@@ -1,0 +1,39 @@
+@page { size: A4; margin: 18mm; }
+.print-toc { display: none; }
+@media print {
+  html, body { background: white !important; color: black; }
+  .site-header, .site-footer, .reader-toolbar, .reader-review-entry, .review-navigation, .toc-panel, .version-details,
+  .annotation-toolbox, .site-messages, .skip-link, .print-options, .reading-column > noscript { display: none !important; }
+  .reader-layout, .reading-column { display: block; max-width: none; margin: 0; padding: 0; }
+  .document-header { padding: 0 0 6mm; margin: 0 0 6mm; break-inside: avoid; break-after: page; page-break-after: always; }
+  .document-header h1 { font: 24pt/1.2 Georgia, serif; margin: 0 0 4mm; }
+  .document-subtitle { font: 16pt/1.4 Georgia, serif; margin: 0 0 8mm; }
+  .document-metadata dt { font-weight: bold; margin-top: 3mm; }
+  .document-metadata dd { margin: 1mm 0 0; overflow-wrap: anywhere; }
+  .document-header .eyebrow { display: none; }
+  .reader-content { font: 11pt/1.55 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+  .reader-content h2, .reader-content h3, .reader-content h4,
+  .reader-content h5, .reader-content h6 { break-inside: avoid; break-after: avoid; page-break-after: avoid; margin-top: 7mm; }
+  .reader-content p, .reader-content li { orphans: 3; widows: 3; }
+  .reader-content img { max-width: 100%; max-height: 210mm; width: auto; height: auto; object-fit: contain; break-inside: avoid; margin: 3mm auto; }
+  .reader-content figure { break-inside: avoid; page-break-inside: avoid; margin: 5mm 0; }
+  .reader-content figcaption { margin: 2mm 0; color: #333; }
+  .reader-content table { display: table; width: 100%; overflow: visible; table-layout: fixed; }
+  .reader-content th, .reader-content td { overflow-wrap: anywhere; }
+  .reader-content tr { break-inside: avoid; }
+  .reader-content pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .reader-content a { color: inherit; }
+  .reader-layout:has(#print-wrap-images:checked) .reader-content figure:not(.quotation) {
+    float: right; width: 44%; margin: 3mm 0 4mm 6mm;
+  }
+  .reader-content::after { content: ""; display: block; clear: both; }
+  .reader-content figure.quotation { break-inside: auto; }
+  .reader-content .quotation blockquote { break-after: avoid; }
+  .reader-content .quotation figcaption { break-before: avoid; }
+  .print-toc { display: block; margin: 6mm 0; }
+  .print-toc h2 { font: bold 13pt/1.3 Georgia, serif; bookmark-level: none; break-after: avoid; }
+  .print-toc ul { list-style: none; padding-left: 5mm; }
+  .print-toc > ul { padding-left: 0; }
+  .print-toc li { margin: 1mm 0; }
+  .print-toc a { color: black; text-decoration: none; }
+}

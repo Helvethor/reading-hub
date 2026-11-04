@@ -1,0 +1,41 @@
+:root {
+  --primary: #240505;
+  --secondary: #582424;
+  --accent: #b62222;
+  --primary-fg: #fff5eb;
+  --header-bg: #240505;
+  --header-color: #fff5eb;
+  --header-branding-color: #fff5eb;
+  --breadcrumbs-bg: #582424;
+  --breadcrumbs-fg: #fff5eb;
+  --link-fg: #8b1c1c;
+  --link-hover-color: #5f1010;
+  --button-bg: #a52323;
+  --button-hover-bg: #7a1616;
+  --default-button-bg: #582424;
+  --default-button-hover-bg: #3a1111;
+}
+
+#header {
+  border-bottom: 4px solid #b62222;
+}
+
+#branding h1,
+#branding h1 a:link,
+#branding h1 a:visited {
+  color: var(--header-branding-color);
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: var(--secondary);
+}
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  border-radius: 4px;
+}

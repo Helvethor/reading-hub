@@ -1,0 +1,11 @@
+{% extends 'library/base.html' %}
+{% block title %}Form could not be verified | {{ site.name }}{% endblock %}
+{% block content %}
+<section class="page-container">
+  <p class="eyebrow">REQUEST NOT SUBMITTED</p>
+  <h1>Let's reload that page.</h1>
+  <p>The form's security cookie or page token is missing or expired. Your saved library has not been changed.</p>
+  <p>Return to the library and try again. Cookies must be enabled for this local site. If an embedded browser blocks cookies, open the local address in a regular browser.</p>
+  <a class="button" href="{% url 'home' %}">Return to library</a>
+</section>
+{% endblock %}

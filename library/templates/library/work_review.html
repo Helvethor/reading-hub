@@ -1,0 +1,18 @@
+{% extends "library/base.html" %}
+{% block title %}Work review | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Review this article or book</h1>
+  <p>Reviewer operations are separate from reading, PDF downloads and reformatting. Choose a tool above; use Back to reading to return to the selected version.</p>
+  <dl class="review-tool-guide">
+    {% if editor_pilot and review.version %}<dt><a href="{% url 'document-editor' review.version.pk %}">Continue correcting this document</a></dt><dd>Open the latest correction or choose a starting version. Edit and save; no task or run is required. Publication stays separate.</dd>{% endif %}
+    <dt>Parsing &amp; source metadata</dt><dd>Choose a retained source or book part. Correct text blocks, headings, image captions/credits, footnote links, people, dates and language. Saving affects future formatting, not old readers.</dd>
+    <dt>Content organization</dt><dd>Combine pages into a book or correct its parts, roles and reading order, with preview and audit history.</dd>
+    <dt>Catalogue metadata</dt><dd>Explicitly apply a saved correction to catalogue listings, or preview undo. For books, select the contents source first.</dd>
+    <dt>Metadata review</dt><dd>Review pending or previous proposals whose primary source or catalogue entry matches the selected source. Aggregated evidence from other pages may still appear.</dd>
+    <dt>Source revision history</dt><dd>Inspect saved parsing corrections without changing them.</dd>
+  </dl>
+  {% if not review.url %}<p class="notice">No work selected. Open a reader's Review this work link, or choose a source from <a href="{% url 'correction-history' %}">correction history</a> or <a href="{% url 'metadata-review' %}">metadata review</a>.</p>{% endif %}
+  <details><summary>Collection-wide reviewer tools</summary><p><a href="{% url 'metadata-review' %}">All metadata review</a> · <a href="{% url 'correction-history' %}">All correction history</a> · <a href="{% url 'correction-dataset-import' %}">Import correction dataset</a></p></details>
+</div>
+{% endblock %}

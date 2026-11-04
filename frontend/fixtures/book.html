@@ -1,0 +1,22 @@
+<section id="opening"><h2>A small book</h2>
+<p class="document-subtitle">A semantic editing fixture</p>
+<p><span>Written:</span> A test date<br><span>Source:</span> <a href="https://example.org/book"><em>Collected readings</em></a></p></section>
+<section id="chapter-one"><h2 id="chapter-title"><span>I</span>. A chapter</h2>
+<a id="section-target"></a>
+<h3>A section</h3>
+<blockquote>
+<p>A quotation<br>with a line break.</p>
+</blockquote>
+<p id="edit-target">Original wording in the first chapter.</p>
+<p><span><sup><a id="reference" href="#note">1</a></sup> An inline annotation <em>inside its wrapper</em>.</span></p>
+<br>
+<table><caption>A table</caption><tbody><tr><th colspan="2">Heading</th></tr><tr><td>First <em>cell</em></td><td>Second cell</td></tr></tbody></table>
+<dl><dt>Term</dt><dd>Inline definition</dd><dt>Another term</dt><dd><p>Block definition</p></dd></dl>
+</section>
+<section id="chapter-two"><h2>II. Another chapter</h2>
+<p class="text-align-center">Centered content <span class="text-italic-off">with an override</span>.</p>
+<pre><code>  exact
+ spacing</code></pre>
+<hr>
+<h3>Notes</h3>
+<p id="note">A shared endnote <a href="#reference" class="note-backlink">Back</a> and <a href="#section-target">section link</a>.</p></section>

@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+data/
+.env
+*.egg-info/
+node_modules/
+library/static/library/generated/

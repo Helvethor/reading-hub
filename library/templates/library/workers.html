@@ -1,0 +1,58 @@
+{% extends 'library/base.html' %}
+{% load static %}
+{% block title %}Worker administration | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container" id="worker-controls" data-status-url="{% url 'worker-status' %}">
+  <p><a href="{% url 'home' %}">Home</a>{% if site.catalogue_enabled %} &middot; <a href="{% url 'crawl-controls' %}">Manage crawlers</a>{% endif %}</p>
+  <h1>Worker administration</h1>
+  <p>Controls are available to signed-in administrators. Default: one worker with a 1024 MiB (1 GiB) memory ceiling. Workers handle imports first, then enabled crawls and archive sampling. Different sources and sampling can run concurrently. Each source and the sampling run have one processing slot; source request intervals are shared.</p>
+  <p>Stop and restart finish the current task first. A stopped worker stays stopped. Crashed workers are not automatically restarted. Running workers continue if this page is closed or the web server is restarted. Changes to memory ceilings require a restart.</p>
+  <p>The OS ceiling limits <strong>virtual address space</strong>, not exact physical RAM; it does not reserve memory. Current RAM usage below is resident memory (RSS). Exceeding the ceiling fails the job and stops that worker; increase its ceiling before retrying. The configured total ceiling is not a guarantee against system-wide memory pressure.</p>
+  {% if control_error %}<p class="notice warning" role="alert">{{ control_error }}</p>{% endif %}
+  <p class="notice warning" id="worker-status-error" role="alert" hidden></p>
+  {% if queues %}
+  <section class="crawl-card">
+    <h2>Background queues</h2>
+    <p>Extra workers wait when all available slots are occupied. Paused or limited sources do not run, even if their queues contain URLs. Sampling has its own slot. <a href="{% url 'crawl-controls' %}">Inspect sampling progress or adjust source limits</a>.</p>
+    <ul>{% for queue in queues %}<li>{{ queue.host }}: <span data-queue-id="{{ queue.pk }}"><strong>{{ queue.status }}</strong>{% if not queue.enabled %} (off){% endif %}, {{ queue.pending_count }} pending, {{ queue.pages }}/{{ queue.max_pages }} requests{% if queue.error %} &mdash; {{ queue.error }}{% endif %}</span></li>{% endfor %}</ul>
+    <p>Queue counts and worker activities update automatically.</p>
+  </section>
+  {% endif %}
+  <section class="crawl-card">
+    <h2>All workers</h2>
+    <form method="post" action="{% url 'worker-control' %}" class="crawl-settings">
+      {% csrf_token %}{{ pool_form.as_p }}
+      <p>Saving applies this memory ceiling to all worker slots, replacing individual overrides. Increasing the count creates stopped slots; decreasing it gracefully stops excess workers. Saving does not start or restart workers.</p>
+      <div class="crawl-actions">
+        <button name="action" value="save" class="secondary">Save pool settings</button>
+        <button name="action" value="start" formnovalidate>Start all</button>
+        <button name="action" value="stop" class="secondary" formnovalidate>Stop all</button>
+        <button name="action" value="restart" class="secondary" formnovalidate>Restart all</button>
+      </div>
+    </form>
+  </section>
+  {% for row in rows %}
+  <section class="crawl-card" data-worker-id="{{ row.worker.pk }}">
+    <h2>Worker {{ row.worker.number }}</h2>
+    <p>Status: <strong data-field="status">{{ row.worker.status }}{% if row.worker.restart_requested %} (restart pending){% endif %}</strong> &middot; PID: <span data-field="pid">{% if row.live %}{{ row.worker.pid }}{% else %}&mdash;{% endif %}</span> &middot; RAM: <span data-field="rss">{{ row.rss|filesizeformat }}</span></p>
+    <p>Activity: <span data-field="activity">{% if row.job %}{{ row.job.stage }}{% else %}{{ row.worker.activity }}{% endif %}</span></p>
+    <p>Last heartbeat: <span data-field="heartbeat">{{ row.worker.heartbeat|date:"c"|default:"Not started" }}</span></p>
+    {% if row.job %}<p class="source-url"><a href="{% url 'job' row.job.pk %}">{{ row.job.document.url }}</a></p>{% endif %}
+    <p>Applied memory ceiling: <span data-field="applied_memory">{% if row.worker.applied_memory_mib %}{{ row.worker.applied_memory_mib }} MiB{% else %}Not started{% endif %}</span>. <span data-field="pending_memory">{% if row.pending_memory %}Memory change pending restart.{% endif %}</span></p>
+    <p class="notice warning" data-field="error" role="alert"{% if not row.worker.error %} hidden{% endif %}>{{ row.worker.error }}</p>
+    <form method="post" action="{% url 'worker-instance-control' row.worker.pk %}" class="crawl-settings">
+      {% csrf_token %}{{ row.form.as_p }}
+      <div class="crawl-actions">
+        <button name="action" value="save" class="secondary">Save memory ceiling</button>
+        <button name="action" value="start" formnovalidate>Start</button>
+        <button name="action" value="stop" class="secondary" formnovalidate>Stop</button>
+        <button name="action" value="restart" class="secondary" formnovalidate>Restart</button>
+      </div>
+    </form>
+    <p><a href="{% url 'worker-log' row.worker.pk %}">View recent process log</a></p>
+  </section>
+  {% endfor %}
+  <p>Status updates every 3 seconds. <a href="{% url 'worker-controls' %}">Refresh full page</a> to update configuration and task links.</p>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'library/workers.js' %}?v={{ app_version }}" defer></script>{% endblock %}

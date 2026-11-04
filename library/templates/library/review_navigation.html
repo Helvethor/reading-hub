@@ -1,0 +1,25 @@
+{% load static %}
+{% if review_nav %}
+<nav class="review-navigation" aria-label="Work reviewer tools">
+  <div class="review-navigation-heading">
+    <strong>Reviewer workspace</strong>
+    {% if review_nav.reading_url %}<a href="{{ review_nav.reading_url }}">Back to reading — version {{ review_nav.version.pk }}</a>{% endif %}
+  </div>
+  {% if review_nav.title %}<p class="muted">{{ review_nav.title }}</p>{% endif %}
+  {% if review_nav.capture %}<p class="muted">Selected source: capture {{ review_nav.capture.pk }} · {{ review_nav.capture.url }}</p>{% endif %}
+  <ul>{% for item in review_nav.items %}<li><a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a></li>{% endfor %}</ul>
+  {% if review_nav.source_error %}<p class="warning-text" role="alert">{{ review_nav.source_error }}</p>{% endif %}
+  {% if review_nav.sources %}
+  <form method="post" action="{% url 'rendition-correction-source' review_nav.version.pk %}" class="review-source-switcher">
+    {% csrf_token %}<input type="hidden" name="review_version" value="{{ review_nav.version.pk }}">
+    <label>Source editor — selected content
+      <select name="page" data-source-switcher aria-label="Source editor selected content">
+        {% for source in review_nav.sources %}<option value="{{ source.index }}"{% if source.selected %} selected{% endif %}>{{ source.label }} — {{ source.url }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Open source</button>
+  </form>
+  <script src="{% static 'library/source_switcher.js' %}?v={{ app_version }}" defer></script>
+  {% endif %}
+</nav>
+{% endif %}

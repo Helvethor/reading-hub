@@ -1,0 +1,13 @@
+{% extends "library/base.html" %}
+{% block title %}Discovery index | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Discovery index, not a readable work</h1>
+  {% include "library/page_type.html" %}
+  <p><a href="{{ capture.url }}" target="_blank" rel="noopener noreferrer">Open original source: {{ capture.url }}</a></p>
+  <p>This page lists other works. The crawler uses its links for discovery; it is not an article or a book and does not need author/role corrections.</p>
+  <p>It is excluded from readable catalogue listings, imports and article metadata review. Genuine book tables of contents are handled separately.</p>
+  <p>Previously retained source and decision/correction history are preserved as crawler evidence, not as a library work. No evidence has been deleted.</p>
+  {% include "library/source_excerpts.html" %}
+</div>
+{% endblock %}

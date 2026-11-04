@@ -1,0 +1,154 @@
+{% extends "library/base.html" %}
+{% load static %}
+{% block title %}Source corrections | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container correction-workspace" data-update-url="{% url 'correction-update' capture.pk %}" data-person-matches-url="{% url 'correction-person-matches' %}" data-revision="{{ current.revision|default:0 }}">
+  <details><summary>Correction data tools</summary><p><a href="{% url 'correction-history' %}">Browse all corrections</a> · <a href="{% url 'correction-export' capture.pk %}">Export source correction history</a> · <a href="{% url 'correction-dataset-import' %}">Import dataset</a></p></details>
+  <h1>Source editor {% include "library/correction_help.html" with id="correction-workflow-help" label="Correction workflow" text="Select blocks, or drag to select text, then right-click. Selected text takes precedence over block selection for styling. Preview checks your draft; save records a correction; reformat publishes a new reader version. Existing reader versions remain unchanged." %}</h1>
+  {% include "library/page_type.html" %}
+  <details class="correction-source-info"><summary>Retained source &middot; captured {{ capture.captured_at }}</summary>
+    <p><a href="{{ capture.url }}" target="_blank" rel="noopener noreferrer">Open original source: {{ capture.url }}</a><br>Digest: <code>{{ capture.response.digest }}</code></p>
+  </details>
+  {% if load_error %}<p class="notice warning-text" role="alert">{{ load_error }}</p>
+  {% include "library/source_excerpts.html" %}
+  {% else %}
+  {% if stale %}<p class="notice warning-text" role="alert">The previous correction no longer matches this extraction version. Its history is retained. Review the current baseline and save a new revision; the old edits have not been silently reused.</p>{% endif %}
+  <noscript><p class="notice">Correction editing requires JavaScript. Source evidence and saved history remain readable.</p></noscript>
+  <form id="correction-form">
+    {% csrf_token %}
+    <div class="correction-command-bar" aria-label="Source editor commands">
+      <button name="action" value="preview" type="submit">Preview changes</button>
+      <button name="action" value="save" type="submit">Save verified correction</button>
+      <button id="reset-correction" class="secondary" type="button">Reset edits to baseline</button>
+      <span class="muted">Draft → Preview → Save → Reformat</span>
+    </div>
+    <section class="correction-preview-workspace">
+      <h2>Normalized page preview {% include "library/correction_help.html" with id="correction-preview-help" label="Preview selection" text="One retained page, not an assembled book. Click a block, or focus it and press Enter/Space. Text stays read-only; headings, exclusions and associations preserve source wording. Source links are disabled. Images without saved preview assets appear as text. Generated elements without a source block cannot be selected." %}</h2>
+      {% include "library/correction_help.html" with id="correction-menu-help" label="Selection actions" text="Left-click selects only. Ctrl/Command-click toggles blocks; Shift-click selects a range. Right-click or Ctrl-right-click opens Selection actions; Context Menu or Shift+F10 also works. Change type, exclude/restore, inspect source text or choose an enclosing container. Excerpts creates and manages named selections, with Name and Save directly in the menu. On a single heading, Attach preceding number chooses a source number and separator; Detach heading number restores separate blocks. The number must precede the heading in the same container without intervening content. Container actions include nested content. Selection actions also finds excluded or other source blocks. Parsing changes remain drafts until saved; preview refreshes the layout." %}
+      {% include "library/source_excerpts.html" with integrated=True %}
+      <h3 id="correction-preview-title">{{ preview.title }}</h3>
+      <p id="correction-preview-warning" class="warning-text" role="alert">{{ preview.error }}</p>
+      <div id="correction-preview" class="reader-content" aria-label="Sanitized normalized correction preview">{{ preview.html|safe }}</div>
+      <div id="preview-block-menu" class="preview-block-menu" popover role="menu" aria-label="Selected block actions"></div>
+    </section>
+    <details class="correction-panel">
+      <summary>Page metadata and attribution</summary>
+    <fieldset>
+      <legend>Metadata {% include "library/correction_help.html" with id="correction-metadata-help" label="Metadata overrides" text="Only checked fields become verified overrides. Uncheck a field to retain the parser's metadata." %}</legend>
+      {% if original.metadata.covers %}
+      <fieldset>
+        <legend>Book cover images (from the contents page)</legend>
+        {% include "library/correction_help.html" with id="correction-covers-help" label="Book cover images" text="These images are inserted before the first part during book assembly, not extracted from that chapter. Select images to exclude, then preview and save this correction. Reformat the book to create a new reader version." %}
+        <label><input type="checkbox" data-override="excluded_covers"> Correct book cover images</label>
+        {% for cover in original.metadata.covers %}
+        <label><input type="checkbox" data-exclude-cover value="{{ cover.url }}"> Exclude image: {{ cover.alt|default:"Uncaptioned image" }} — {{ cover.url }}</label>
+        {% endfor %}
+      </fieldset>
+      {% endif %}
+      <label><input type="checkbox" data-override="title"> Correct title</label>
+      <input name="title" maxlength="1000" aria-label="Corrected title" value="{{ original.title }}">
+      <label><input type="checkbox" data-override="subtitle"> Correct subtitle</label>
+      <input name="subtitle" maxlength="1000" aria-label="Corrected subtitle" value="{{ original.metadata.subtitle|default:'' }}">
+      <label><input type="checkbox" data-override="language"> Correct language</label>
+      <input name="language" maxlength="35" aria-label="Corrected language" value="{{ original.metadata.language }}" placeholder="en, fr, de, und">
+      <label><input type="checkbox" data-override="topics"> Correct topics (one label per line)</label>
+      <textarea name="topics" rows="3" aria-label="Corrected topics"></textarea>
+      <label><input type="checkbox" data-override="dates"> Correct typed dates</label>
+      {% include "library/correction_help.html" with id="correction-dates-help" label="Typed dates" text="Add a year (1848), year and month (1848-02), or full date (1848-02-21). Choose what each date describes; do not invent a month or day. Only one publication date is supported. To clear existing dates, check Correct typed dates and remove all date rows. Uncheck it to keep the parser's dates." %}
+      <div id="correction-dates"></div>
+      {% include "library/correction_help.html" with id="correction-range-help" label="Date ranges" text="For a range such as 1891-92, enter 1891 as Date and 1892 as End date. Leave End date empty for a single date. Both ends must use the same precision. A range describes an interval, not two conflicting publication dates." %}
+      <button type="button" class="secondary" id="add-correction-date">Add date</button>
+      <template id="correction-date-template">
+        <div class="correction-date">
+          <label>Date
+            <input type="text" data-date-field="value" placeholder="1848 or 1848-02 or 1848-02-21" maxlength="10" pattern="[12][0-9]{3}(-[0-9]{2}(-[0-9]{2})?)?" required aria-describedby="correction-dates-help">
+          </label>
+          <label>End date (optional)
+            <input type="text" data-date-field="end_value" placeholder="1892" maxlength="10" pattern="[12][0-9]{3}(-[0-9]{2}(-[0-9]{2})?)?" aria-describedby="correction-dates-help">
+          </label>
+          <label>Date type
+            <select data-date-field="type">
+              <option value="unknown">Unknown role</option>
+              <option value="publication">Publication</option>
+              <option value="written">Written</option>
+              <option value="online_edition">Online edition</option>
+            </select>
+          </label>
+          <button type="button" class="secondary" data-remove-date>Remove date</button>
+        </div>
+      </template>
+      <label><input type="checkbox" data-override="people"> Replace this page's attribution with separate components</label>
+      {% include "library/correction_help.html" with id="correction-people-help" label="Attribution components" text="Parsed names are unverified components; roles stay unknown unless explicitly parsed. Adding, editing, splitting or removing a component enables this override. Uncheck it to retain parsed attribution; checked with no rows explicitly clears it. Splitting never assumes co-authorship." %}
+      <details><summary>Original parsed attribution (unchanged evidence)</summary><pre>{{ original.metadata.author }}</pre><pre>{{ original.metadata.authors|pprint }}</pre><pre>{{ original.metadata.contributors|pprint }}</pre></details>
+      {% include "library/correction_help.html" with id="correction-identity-help" label="Canonical person matching" text="Find an existing canonical person for each component, or keep a scoped name. Matching does not assign a role, create a person, merge identities or teach a global alias. A saved selection records its canonical name and authority URL as a portable identity snapshot." %}
+      <div id="correction-people"></div>
+      <button type="button" class="secondary" id="add-correction-person">Add person/component</button>
+    </fieldset>
+    <details><summary>Normalized metadata</summary><pre id="correction-preview-metadata"></pre></details>
+    </details>
+    <details class="correction-panel">
+      <summary>Images, captions and credits</summary>
+    <fieldset>
+      <legend>Images, captions and credits</legend>
+      {% include "library/correction_help.html" with id="correction-media-help" label="Image associations" text="Associate an image block with caption and/or credit text blocks. Text and links are moved, not rewritten. One image per figure; each text block can be used once. Blocks must share a container and cannot cross another image, heading or divider. Existing figure captions must be selected explicitly. Remove an association to restore source placement on the next preview/save." %}
+      <div id="correction-media"></div>
+      <button type="button" id="add-correction-media">Associate image with caption / credit</button>
+      <template id="correction-media-template">
+        <div class="correction-media-row">
+          <label>Image block <select data-media-field="image" required><option value="">Choose image</option>{% for block in blocks %}{% if block.tag == "img" %}<option value="{{ block.index }}">Block {{ block.index }}: {{ block.text|truncatechars:100 }}</option>{% endif %}{% endfor %}</select></label>
+          <label>Caption block <select data-media-field="caption"><option value="">No caption</option>{% for block in blocks %}{% if block.tag == "p" or block.tag == "figcaption" %}<option value="{{ block.index }}">Block {{ block.index }}: {{ block.text|truncatechars:100 }}</option>{% endif %}{% endfor %}</select></label>
+          <label>Credit block <select data-media-field="credit"><option value="">No credit</option>{% for block in blocks %}{% if block.tag == "p" or block.tag == "figcaption" %}<option value="{{ block.index }}">Block {{ block.index }}: {{ block.text|truncatechars:100 }}</option>{% endif %}{% endfor %}</select></label>
+          <button type="button" data-remove-media>Remove association</button>
+        </div>
+      </template>
+    </fieldset>
+    </details>
+    <details class="correction-panel">
+      <summary>Footnote references and backlinks</summary>
+    <fieldset>
+      <legend>Footnote references and backlinks</legend>
+      {% include "library/correction_help.html" with id="correction-notes-help" label="Footnote repairs" text="Pair an existing text link with its note paragraph or list item. Text, placement and targets are preserved. Select an existing backlink to repair, or a return link is added if needed. Multiple references may point to one note. Remove a repair to restore source linking on the next preview/save. This does not create references from plain text or repair links across pages." %}
+      <div id="correction-notes"></div>
+      <button type="button" id="add-correction-note">Repair footnote reference</button>
+      <template id="correction-note-template">
+        <div class="correction-note-row">
+          <label>Reference link <select data-note-field="reference" required><option value="">Choose reference</option>{% for link in note_links %}<option value="{{ link.block }}:{{ link.link }}">Block {{ link.block }}, link {{ link.link }}: {{ link.text|truncatechars:45 }} — {{ link.href|truncatechars:70 }}</option>{% endfor %}</select></label>
+          <label>Note target block <select data-note-field="target" required><option value="">Choose note</option>{% for block in blocks %}{% if block.tag == "p" or block.tag == "li" %}<option value="{{ block.index }}">Block {{ block.index }}: {{ block.text|truncatechars:110 }}</option>{% endif %}{% endfor %}</select></label>
+          <label>Existing backlink (optional) <select data-note-field="backlink"><option value="">Add return link if needed</option>{% for link in note_links %}<option value="{{ link.block }}:{{ link.link }}">Block {{ link.block }}, link {{ link.link }}: {{ link.text|truncatechars:45 }} — {{ link.href|truncatechars:70 }}</option>{% endfor %}</select></label>
+          <button type="button" data-remove-note>Remove repair</button>
+        </div>
+      </template>
+    </fieldset>
+    </details>
+    <div hidden aria-hidden="true">
+          {% for block in blocks %}
+              <select data-block-action="{{ block.index }}">
+                <option value="">Keep original</option><option value="exclude">Exclude</option>
+                {% if block.tag == "p" or block.tag == "h1" or block.tag == "h2" or block.tag == "h3" or block.tag == "h4" or block.tag == "h5" or block.tag == "h6" %}
+                <option value="subtitle">Subtitle (not in contents)</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="h5">Heading 5</option><option value="h6">Heading 6</option><option value="p">Paragraph</option>
+                {% endif %}
+              </select>
+          {% endfor %}
+    </div>
+    <details class="correction-panel">
+      <summary>Advanced source evidence</summary>
+        <details><summary>Full source text (inert)</summary><pre class="correction-source">{{ source_text }}</pre></details>
+        <details><summary>Advanced: original HTML (inert, not executed)</summary><pre class="correction-source">{{ source_html }}</pre></details>
+    </details>
+    <label>Reason for revision <textarea name="reason" rows="2" maxlength="4000"></textarea></label>
+    {% include "library/correction_help.html" with id="correction-save-help" label="Saving and resetting" text="Corrections match the exact source URL, content digest, profile and extraction version. New captures do not automatically inherit these edits. Reset selects baseline behavior; save records it as a new auditable revision. Previous revisions are retained." %}
+    <p id="correction-status" role="status" aria-live="polite"></p>
+    <p id="correction-error" role="alert" class="warning-text"></p>
+  </form>
+  <h2>Revision history</h2>
+  <p><a href="{% url 'correction-revisions' capture.pk %}?{{ review_nav.query }}">Inspect all revisions and saved expected output</a></p>
+  {% include "library/correction_help.html" with id="correction-history-help" label="Revision history" text="Saving creates a new revision, never deletes the previous one. To supersede a mistake, change the fields and save again. Only the newest revision is active." %}
+  <ol>{% for revision in revisions %}<li>Revision {{ revision.revision }} &middot; {{ revision.created_at }} &middot; {{ revision.reviewer.username }}: {{ revision.reason|default:"No reason supplied" }}</li>{% empty %}<li>No saved corrections.</li>{% endfor %}</ol>
+  {{ expected|json_script:"correction-expected" }}
+  {{ original.metadata|json_script:"correction-original-metadata" }}
+  {{ parsed_people|json_script:"correction-parsed-people" }}
+  {{ preview|json_script:"correction-initial-preview" }}
+  {% endif %}
+</div>
+<script src="{% static 'library/corrections.js' %}?v={{ app_version }}" defer></script>
+{% endblock %}

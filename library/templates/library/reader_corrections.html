@@ -1,0 +1,10 @@
+{% extends "library/base.html" %}
+{% block title %}Source editor | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container correction-workspace">
+  <h1>Source editor</h1>
+  <p>Use the selected-content menu above to open a source from {{ version.title }}, version {{ version.pk }}.</p>
+  <p>Opening a source retains its exact cached evidence without downloading. Corrections apply to future renditions; this historical rendition and its annotations remain unchanged. Reformat the complete work afterward to see corrected output.</p>
+  {% if correction_source_error %}<p class="notice warning" role="alert">{{ correction_source_error }}</p>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "library/base.html" %}
+{% block title %}Reviewer evaluation | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container reviewer-evaluation">
+  <h1>Reviewer evaluation</h1>
+  <p><a href="{% url 'reviewer-tasks' %}">All tasks and my runs</a></p>
+  <p class="notice">Try a fixed task, then record what happened. Evaluation does not verify content, publish an edition, approve a milestone or create training data. Blank measurements mean unknown, not zero.</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if task_form %}
+    <h2>1. Define a task</h2>
+    <p>The starting document is the <strong>pinned base (revision 0)</strong> of draft {{ starting_draft.pk }}, not its later edits. Starting a run makes a separate working draft with the same base and source evidence. No existing draft is changed.</p>
+    <p><a href="{% url 'document-comparison' starting_draft.rendition_id %}?draft={{ starting_draft.pk }}&amp;from=0&amp;to=0" target="_blank" rel="noopener">Inspect the pinned starting evidence (new tab)</a></p>
+    <form method="post">{% csrf_token %}{{ task_form.as_p }}<button type="submit">Save fixed task</button></form>
+  {% elif run %}
+    <h2>{{ task.title }}{% if run.practice %} — practice{% endif %}</h2>
+    <p><strong>Review scope:</strong> {{ task.scope }}</p>
+    <p class="evaluation-instructions">{{ task.instructions }}</p>
+    {% if result %}
+      <h2>Result recorded</h2>
+      <p>This observation is fixed to saved revision {{ result.binding.revision }}. Later edits do not update it. It is self-reported, not independent acceptance.</p>
+      <dl>
+        <dt>Outcome</dt><dd>{{ result.observations.outcome }}</dd>
+        <dt>Active minutes</dt><dd>{{ result.observations.active_minutes|default_if_none:"Unknown" }}</dd>
+        <dt>Remaining errors / severe errors</dt><dd>{{ result.observations.remaining_errors|default_if_none:"Unknown" }} / {{ result.observations.severe_errors|default_if_none:"Unknown" }}</dd>
+        <dt>Keyboard-only</dt><dd>{% if result.observations.keyboard == "not_tested" %}Not tested{% else %}{{ result.observations.keyboard|capfirst }}{% endif %}</dd>
+        <dt>Screen reader</dt><dd>{% if result.observations.screen_reader == "not_tested" %}Not tested{% else %}{{ result.observations.screen_reader|capfirst }}{% endif %}</dd>
+        <dt>Narrow screen</dt><dd>{% if result.observations.narrow_screen == "not_tested" %}Not tested{% else %}{{ result.observations.narrow_screen|capfirst }}{% endif %}</dd>
+        <dt>Observations</dt><dd class="evaluation-instructions">{{ result.observations.notes }}</dd>
+        <dt>Recorded by / at</dt><dd>{{ result.reviewer }} / {{ result.created_at|date:"c" }}</dd>
+        <dt>Result digest</dt><dd>{{ result.binding.document_digest }}</dd>
+        <dt>Run app / result-recording app</dt><dd>{{ result.binding.run_app_version }} / {{ result.binding.recorded_with_app }}</dd>
+      </dl>
+      <p><a href="{% url 'document-comparison' run.draft.rendition_id %}?draft={{ run.draft_id }}&amp;to={{ result.binding.revision }}" target="_blank" rel="noopener">Inspect this exact saved result and provenance (new tab)</a></p>
+      <p><a href="{% url 'reviewer-task' task.pk %}">Start another run of the same task</a></p>
+    {% else %}
+      <h2>2. Do the review</h2>
+      <p><a class="button" href="{{ editor_url }}" target="_blank" rel="noopener">Open working draft (new tab)</a></p>
+      <p>This is your isolated working copy. Save changes in the editor, then return here. No automatic timer runs; measure active time yourself if needed. Do not count breaks. Practice runs are kept separate from evaluation runs.</p>
+      <p><a href="{% url 'rendition-corrections' run.draft.rendition_id %}" target="_blank" rel="noopener">Inspect retained sources (new tab)</a>. Source inspection is separate from changing source corrections; do not modify them during a fixed-task run.</p>
+      <h2>3. Record what happened</h2>
+      <p><a href="{% url 'reviewer-run' run.pk %}">Refresh saved revision choices</a> after saving in the editor. This form records saved content only; unsaved editor changes are excluded. Publication is optional and never performed here.</p>
+      <form method="post">
+        {% csrf_token %}
+        {{ result_form.non_field_errors }}
+        <div class="evaluation-field">{{ result_form.revision.as_field_group }}</div>
+        <div class="evaluation-field">{{ result_form.outcome.as_field_group }}</div>
+        <div class="evaluation-field">{{ result_form.notes.as_field_group }}</div>
+        <details{% if result_form.errors %} open{% endif %}>
+          <summary>Optional measurements and accessibility checks</summary>
+          <p>Leave measurements blank if unknown; choose Not tested for checks you did not perform.</p>
+          <div class="evaluation-field">{{ result_form.active_minutes.as_field_group }}</div>
+          <div class="evaluation-field">{{ result_form.remaining_errors.as_field_group }}</div>
+          <div class="evaluation-field">{{ result_form.severe_errors.as_field_group }}</div>
+          <div class="evaluation-field">{{ result_form.keyboard.as_field_group }}</div>
+          <div class="evaluation-field">{{ result_form.screen_reader.as_field_group }}</div>
+          <div class="evaluation-field">{{ result_form.narrow_screen.as_field_group }}</div>
+        </details>
+        <p><button type="submit">Record result permanently</button></p>
+      </form>
+    {% endif %}
+  {% elif task %}
+    <h2>{{ task.title }}</h2>
+    <p><strong>Review scope:</strong> {{ task.scope }}</p>
+    <p class="evaluation-instructions">{{ task.instructions }}</p>
+    <details><summary>Fixed starting evidence</summary>
+      <dl><dt>Starting document digest</dt><dd>{{ task.binding.document_digest }}</dd>
+        <dt>Starting evidence digest</dt><dd>{{ task.binding.evidence_digest }}</dd>
+        <dt>Edition / snapshot</dt><dd>{{ task.binding.rendition }} / {{ task.binding.snapshot }}</dd>
+        <dt>Task defined by / at</dt><dd>{{ task.reviewer }} / {{ task.created_at|date:"c" }}</dd>
+      </dl>
+    </details>
+    <p>Each run opens a new copy of the same pinned starting base, without later edits or review certification. Task instructions cannot be changed after saving; define a new task if the scope changes.</p>
+    <form method="post">{% csrf_token %}
+      <label>Run type <select name="mode"><option value="practice">Practice (not a measurement)</option><option value="measured">Evaluation run (record actual observations)</option></select></label>
+      <button type="submit">Start isolated run</button>
+    </form>
+  {% else %}
+    <h2>Fixed tasks</h2>
+    <p>Open a saved editor draft and choose <strong>Define a review task from this starting document</strong>. Its pinned base becomes the common start for repeatable runs. Choose an article and a book task with explicit source-backed corrections; do not infer representative coverage from the number of runs.</p>
+    <ul>{% for item in tasks %}<li><a href="{% url 'reviewer-task' item.pk %}">{{ item.title }}</a> — {{ item.scope }}</li>{% empty %}<li>No tasks yet.</li>{% endfor %}</ul>
+    <h2>My recent runs</h2>
+    <ul>{% for item in recent_runs %}<li><a href="{% url 'reviewer-run' item.pk %}">{{ item.task.title }} — {% if item.practice %}practice{% else %}evaluation{% endif %} — {% if item.result %}result recorded{% else %}awaiting result{% endif %} — {{ item.created_at|date:"SHORT_DATETIME_FORMAT" }}</a></li>{% empty %}<li>No runs yet.</li>{% endfor %}</ul>
+    <p>Lists show at most 50 latest tasks and 20 of your latest runs. A completed task is not a passed acceptance gate. Thresholds and independent reviewer evaluation still need agreement.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends 'admin/index.html' %}
+{% block content %}
+<p><a href="{% url 'worker-controls' %}">Manage workers</a> &middot; <a href="{% url 'crawl-controls' %}">Manage crawlers</a> &middot; <a href="{% url 'home' %}">Reading library</a></p>
+{{ block.super }}
+{% endblock %}

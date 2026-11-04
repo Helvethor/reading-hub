@@ -1,0 +1,123 @@
+{% extends "library/base.html" %}
+{% load static %}
+{% block title %}Metadata review | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+<section class="page-heading">
+  <p class="eyebrow">Catalogue quality</p>
+  <h1>Metadata review</h1>
+  <p>Suggestions are extracted from retained source pages. Decisions are reviewed and recorded; no source metadata is silently rewritten.</p>
+  <p>To correct an author name with stray symbols, match the intended existing person or create a person with the cleaned canonical name, then approve. The parsed name stays as evidence and becomes a reviewed alias; the catalogue displays the canonical name. This does not train or change the parser.</p>
+  <p><strong>Reject</strong> means &ldquo;do not apply this suggestion&rdquo;, not &ldquo;remove this author from the catalogue&rdquo;. Rejected suggestions are not proposed again automatically. You can reopen one with a reason to return it to Pending; this preserves decision history and applies no metadata. Approved facts cannot be undone here.</p>
+  <p><a href="{% url 'correction-history' %}?language={{ language }}">Browse correction history</a></p>
+  <p>Review defaults to German, English and French. Unknown-language evidence is hidden unless you choose All languages. Author suggestions may combine evidence from several languages; filtering uses the primary capture, not the person's nationality.</p>
+</section>
+<form method="get" class="catalogue-controls">
+  {% for key,value in review_nav.params.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+  <label>Language
+    <select name="language">{% for value,label in languages %}<option value="{{ value }}"{% if language == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </label>
+  <label>Status
+    <select name="status">{% for value,label in statuses %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </label>
+  <label>Fact
+    <select name="field"><option value="">All</option>{% for value,label in fields %}<option value="{{ value }}"{% if field == value %} selected{% endif %}>{% if value == "published" %}Date evidence{% else %}{{ label }}{% endif %}</option>{% endfor %}</select>
+  </label>
+  <label>Source host <input name="source" value="{{ source }}" maxlength="253"></label>
+  <button type="submit">Filter</button>
+</form>
+<p data-review-count="{{ page.paginator.count }}">{{ page.paginator.count }} suggestions{% if page.paginator.count %}; page {{ page.number }} of {{ page.paginator.num_pages }}{% endif %}</p>
+<p data-review-status role="status" aria-live="polite"></p>
+<p data-review-empty hidden>No suggestions remain on this page. <a href="?{{ review_nav.query }}&amp;status={{ status }}&amp;field={{ field }}&amp;source={{ source|urlencode }}&amp;language={{ language }}">Reload the queue</a> to see any remaining suggestions.</p>
+{% for suggestion in page %}
+  <article class="metadata-suggestion">
+    {% if suggestion.scoped_correction %}
+    <h2>Corrected attribution for this captured page</h2>
+    <ul>{% for person in suggestion.corrected_people %}<li>{{ person.name }} &middot; {{ person.role }} (source component: {{ person.source_name }})</li>{% empty %}<li>Attribution explicitly cleared.</li>{% endfor %}</ul>
+    <p><strong>Saved correction revision {{ suggestion.scoped_correction.revision }}</strong>. This page-scoped correction does not change global aliases or resolve this original proposal. Other evidence pages, if listed below, are not corrected by it.</p>
+    {% if suggestion.correction_stale %}<p class="notice warning-text" role="alert">The saved correction needs revalidation: its source digest or adapter version has changed. Open the workspace before relying on it.</p>{% endif %}
+    <p><strong>Original parsed proposal (retained evidence, not the corrected attribution):</strong> {{ suggestion.value }}</p>
+    <p>Approval of this original author value is blocked to avoid creating an obsolete global alias. Accept the saved correction to resolve this review, or explicitly reject the original proposal; neither action removes your correction.</p>
+    {% else %}
+    <h2>{% if suggestion.field == "published" %}{{ suggestion.get_date_type_display }} date{% else %}{{ suggestion.get_field_display }}{% endif %}: {{ suggestion.value }}</h2>
+    {% endif %}
+    <p><strong>Evidence source:</strong>
+      {% if suggestion.capture %}<a href="{{ suggestion.capture.url }}">{{ suggestion.capture.site.host }}</a>{% elif suggestion.entry %}{{ suggestion.entry.site.host }}{% else %}retained catalogue evidence{% endif %}
+      &middot; {{ suggestion.method }}
+      {% if suggestion.field == "published" %}&middot; {{ suggestion.get_date_type_display }}{% endif %}
+    </p>
+    {% if suggestion.entry %}<p><a href="{{ suggestion.entry.url }}">{{ suggestion.entry.title }}</a></p>{% endif %}
+    {% if suggestion.capture %}<p><a href="{% url 'work-review' %}?review_capture={{ suggestion.capture_id }}{% if review_nav.version %}&amp;review_version={{ review_nav.version.pk }}{% endif %}">Review this source: parsing, catalogue and organization</a></p>{% endif %}
+    {% for item in suggestion.evidence %}
+      <blockquote>
+        {% if item.title %}<strong>{{ item.title }}</strong><br>{% endif %}
+        <q>{{ item.excerpt }}</q><br>
+        {% if item.url %}<a href="{{ item.url }}">{{ item.url }}</a>{% endif %}
+      </blockquote>
+    {% endfor %}
+    {% if status == "pending" %}
+      <form method="post" action="{% url 'metadata-review-decision' suggestion.pk %}?{{ request.GET.urlencode }}">
+        {% csrf_token %}
+        <p data-review-error role="alert" hidden></p>
+        {% if suggestion.field == "author" and not suggestion.scoped_correction %}
+          <label>Match an existing person
+            <select name="author_id">
+              <option value="">Create a new canonical person</option>
+              {% if suggestion.author_matches %}
+                <optgroup label="Suggested matches">
+                  {% for person,score in suggestion.author_matches %}
+                    <option value="{{ person.pk }}"{% if forloop.first %} selected{% endif %}>{{ person.name }} (similarity {{ score|floatformat:2 }})</option>
+                  {% endfor %}
+                </optgroup>
+              {% endif %}
+              {% if suggestion.other_authors %}
+                <optgroup label="Other existing people">
+                  {% for person in suggestion.other_authors %}
+                    <option value="{{ person.pk }}">{{ person.name }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% endif %}
+            </select>
+          </label>
+          <p class="help">The best suggested match is pre-selected when available. Check it before approving; similarity is not proof of identity.</p>
+          <label>Canonical person name (new person only) <input name="canonical_name" value="{{ suggestion.value }}" maxlength="500"></label>
+          <label>Authority URL (optional) <input name="authority_uri" type="url" maxlength="2048" placeholder="Wikidata, VIAF, or library authority record"></label>
+        {% endif %}
+        <label>Decision reason (optional) <input name="reason" maxlength="4000"></label>
+        {% if suggestion.scoped_correction %}
+        <input type="hidden" name="correction_id" value="{{ suggestion.scoped_correction.pk }}">
+        {% if not suggestion.correction_stale %}<button type="submit" name="action" value="accept_correction">Accept saved correction and resolve review</button>{% endif %}
+        <p class="help">Accepting closes this original proposal as superseded by the saved correction. It does not create a global alias or publish catalogue identity changes.</p>
+        {% endif %}
+        {% if not suggestion.scoped_correction %}<button type="submit" name="action" value="approve">Approve</button>{% endif %}
+        <button type="submit" name="action" value="reject" class="secondary">Reject</button>
+      </form>
+    {% else %}
+      <p>{{ suggestion.get_status_display }}{% if suggestion.reviewed_by %} by {{ suggestion.reviewed_by.username }}{% endif %}</p>
+      {% if status == "rejected" %}
+      <form method="post" action="{% url 'metadata-review-decision' suggestion.pk %}?{{ request.GET.urlencode }}">
+        {% csrf_token %}
+        <p data-review-error role="alert" hidden></p>
+        <label>Reason for reopening <input name="reason" maxlength="4000" required></label>
+        <button type="submit" name="action" value="reopen">Reopen for review</button>
+      </form>
+      {% endif %}
+    {% endif %}
+    {% if suggestion.review_events.all %}
+    <details><summary>Decision history</summary>
+      <ol>{% for event in suggestion.review_events.all %}<li>{{ event.created_at }} &middot; {{ event.reviewer.username }}: {{ event.get_previous_status_display }} → {{ event.get_status_display }}{% if event.correction %} &middot; <a href="{% url 'correction-revisions' event.correction.capture_id %}">Accepted correction revision {{ event.correction.revision }}</a>{% endif %}{% if event.reason %} &mdash; {{ event.reason }}{% endif %}</li>{% endfor %}</ol>
+    </details>
+    {% endif %}
+  </article>
+{% empty %}
+  <p>No suggestions match these filters.</p>
+{% endfor %}
+{% if page.has_other_pages %}
+  <nav aria-label="Metadata suggestion pages">
+    {% if page.has_previous %}<a href="?{{ review_nav.query }}&amp;status={{ status }}&amp;field={{ field }}&amp;source={{ source|urlencode }}&amp;language={{ language }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    {% if page.has_next %}<a href="?{{ review_nav.query }}&amp;status={{ status }}&amp;field={{ field }}&amp;source={{ source|urlencode }}&amp;language={{ language }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
+  </nav>
+{% endif %}
+</div>
+<script src="{% static 'library/metadata_review.js' %}?v={{ app_version }}" defer></script>
+{% endblock %}

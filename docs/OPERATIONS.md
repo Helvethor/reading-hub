@@ -1,0 +1,1366 @@
+# Reading Hub: operations and development
+
+Current instructions consolidated 2026-10-18. Product behavior belongs in
+[the specification](../SPECIFICATION.md); priorities in [TASKS](../TASKS.md).
+Older source-layout examples and release evidence remain in
+[the historical reference](archive/README-before-2026-10-18-consolidation.md),
+which may contain superseded instructions.
+
+## 1. Local setup and start
+
+Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
+Article discovery uses the public homepage, not the Joomla component sitemap.
+Normal robots, fetch limits, URL/asset validation and immutable cache rules
+apply. The configured catalogue source is created paused; adding the site does
+not resume crawling or import articles into the live library. Other subdomains
+are not implicitly trusted. Existing source extraction is unchanged, so adapter
+20 and formatting 20 remain unchanged; no schema migration is required.
+
+This installation uses `~/reading-hub` in WSL distribution `archlinux`,
+Python >= 3.14, Django, SQLite and local files. Commands below run in a WSL/Linux
+shell, not directly in PowerShell.
+
+For first-time setup or restoration:
+
+```sh
+cd ~/reading-hub
+python -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock
+.venv/bin/python -m pip install --no-deps -e .
+.venv/bin/python manage.py migrate
+```
+
+WeasyPrint also needs system Pango/Harfbuzz/fontconfig and suitable installed
+fonts. On Arch Linux, install `pango` and fonts such as `noto-fonts` when missing.
+Do not reinstall dependencies on every documentation/UI change.
+
+Start the web process:
+
+```sh
+.venv/bin/python manage.py runserver 127.0.0.1:8765 --noreload --insecure
+```
+
+Open <http://127.0.0.1:8765/>. This serves local static assets with debug disabled;
+it is not a public deployment setup. Do not bind to all interfaces, tunnel or
+forward the service to other machines. Template changes require restart with
+this no-autoreload configuration.
+
+The local 0.53.0 installation enables the bounded editor pilot for user testing.
+
+Use **Target ID…** to create or rename a paragraph/heading anchor, or the target
+of a selected block/image. The dialog identifies the exact element: a cursor in
+a paragraph normally edits that paragraph. Since 0.52.1, Ctrl/Cmd-click an internal
+link first to edit its exact destination, including an inline note span/anchor or
+chapter section. The dialog identifies that target. Moving the selection or
+editing clears this handoff. Since 0.53.0, a cursor or selection inside one
+existing inline marker edits its complete wrapper, even when only part of its
+text is selected. Outside inline markers, the cursor edits its block.
+Select text within one block, without an existing inline target, to create a
+new targeted span. Nested formatting remains intact. Selections crossing a
+partial wrapper, multiple targets, block boundaries, images or breaks refuse
+explicitly. Follow a link to choose overlapping targets rather than guessing.
+Show the whole document and expand all content first, since linked references may
+be elsewhere. Choose a unique ID starting with a letter, up to 200 ASCII
+letters/digits/_.:-. Renaming updates every internal link to the old ID atomically,
+including encoded fragments, nested formatting and empty anchor nodes.
+External URLs and all other content stay unchanged; unchanged historical IDs
+remain valid. For a new note/reference, create block targets, then select the
+reference/return text and use Selection tools to create their links. Existing
+link details can choose the current targets. New inline spans can also be linked
+from selected reference/return text. No automatic note pairing or target removal
+is included. Save/publication are separate.
+
+To restore a lost section wrapper around existing content, show the whole document,
+expand affected content and place the cursor in its starting heading. Open
+**Section boundary…** and check the preview. Within a section, everything from
+that heading through its current section's end becomes a new sibling section;
+the earlier content retains its old wrapper. For a document-level heading, wrapping
+stops before the next section or equal/higher-level heading. The content is
+physically contained in the new section, not just linked to its outline entry.
+Choose a unique target ID; restore an old missing ID only when that boundary is
+intended. Heading/text/links/assets stay unchanged. Undo is atomic; save and
+publication are separate. Source-page membership is not changed by this tool.
+
+Use **New section…** with the cursor inside a block to add a titled section.
+Enter its title, choose H2–H6, then place it before/after the current block
+(within the same container), or at document end in whole-document view.
+Creation assigns a unique section target ID and puts the cursor in its empty
+paragraph. Populate it by typing or semantic cut-and-paste. Undo creation
+independently of later text edits; save/reopen and separate publication retain
+its heading, structure and generated ToC. No source-page membership changes.
+
+The outline marks all sections in the current editor viewport and emphasizes
+the current heading while scrolling. Turn off **Follow scroll** to browse the
+outline without auto-follow. Titles have separate Section/H-level badges and
+nesting guides. Use **+/−** to fold outline descendants, or the adjacent triangle
+to collapse editor content while retaining its opening heading and an expand
+placeholder. **Expand outline** and **Expand editor** clear the two states
+independently. On mobile, the toolbar **Outline** button exposes these controls.
+Folding is view-only and tab-local: it does not dirty the draft, remove saved
+content/IDs/links, certify review or create an undo step. Expand hidden content
+before editing or undoing actions that touch it. Choosing a part expands its
+overlapping folds; Whole book expands all content folds.
+Outline title clicks now scroll to the target without hiding other parts,
+clearing any existing part filter. Use the part selector when explicitly
+filtering to one part. Borderless §/H-level labels leave more room for titles.
+Ctrl/Cmd-click follows editor links: internal anchors reveal/scroll to their
+exact target; external links open a new tab. Ordinary clicks remain for editing.
+Anchor navigation clears a part filter and expands target-containing folds,
+leaving unrelated folds intact. Missing/malformed targets show explicit errors.
+
+For a precise destination, select content and press **Ctrl+X**, place the cursor
+anywhere editable (or select text to replace), then **Ctrl+V**. This moves the
+semantic selection without a dialog, retaining formatting, links, IDs and images.
+Cut removes immediately; Ctrl+Z undoes paste and cut separately. Whole blocks
+split a destination paragraph; partial multi-block/cross-container selections
+are supported where the semantic schema can retain their content. Use the
+outline to change chapters; choose Whole book for a selection spanning chapters.
+Fully include any target-bearing inline wrappers. Duplicate target IDs and
+content-losing destinations are refused rather than silently repaired.
+Paste before closing or reloading the same editor; editor-local clipboard
+capabilities are not transferable to another tab. Undo an unpasted cut before
+leaving. External clipboard paste still uses its review dialog.
+
+For section-based placement or a new titled destination, select the complete content,
+including its marker/target and attribution, then right-click or press Shift+F10
+and choose **Move selected content…** (also in **Selection tools**).
+Choose a destination section and section-end/before/after placement, or document
+end. To create Endnotes/Appendix as part of the move, choose **In a new titled
+section at destination's end** and enter its title. The new child heading uses
+the next destination heading level up to H6, or H2 if there is none; edit normally
+afterward. Review the selected and resulting source text, then **Move content**.
+The whole document is shown; cancel does not move anything. Undo is one step,
+recovery retains unsaved moves, and **Save corrected version** persists the change.
+
+Inline content becomes a paragraph; full sibling blocks/media retain their
+structure. For several blocks select from the first block's start to the last
+block's end within one container. Fully select target-bearing wrappers and
+preformatted blocks; partial target/preformatted selections refuse. Any added
+ordinary space needed to separate words at the source seam is explicitly shown.
+Empty original paragraphs are retained. Existing links/IDs are preserved, not
+automatically repaired or renumbered; use existing link tools to inspect them.
+The section-placement dialog retains these bounded selection rules; Ctrl+X/V
+provides the broader cursor-based workflow above. Neither operation alters
+source-page membership or automatically reviews the content.
+No migration or reset is part of 0.53.0.
+
+The Marxist profile now themes the latest editor surfaces in its paper/red
+palette, including metadata rows, outline/context menus, section/source/figure
+dialogs, previews and saved comparison. The neutral profile is unchanged.
+Theme CSS loads after page styles; versioned URLs refresh it on reload. No
+source reformat, database migration or draft save is needed for this update.
+
+Editor prose collapses HTML indentation, repeated ordinary spaces and source
+line wrapping just like the reader (0.44.2). Preformatted blocks retain exact
+spacing; explicit line breaks and nonbreaking spaces remain visible. This is a
+display fix, not cleanup of stored text or a new source conversion: existing
+drafts benefit on reload without changing their evidence or saving a revision.
+
+To move Endnotes or another complete section, right-click its outline entry and
+choose **Move section…**, or use **Move section…** in the toolbar and select the
+section. Keyboard users can focus an outline entry and press Shift+F10 or the
+Context Menu key. Escape dismisses the menu; Shift+right-click keeps the browser
+menu. Ordinary outline clicks still focus the selected part.
+Choose document start/end, before/after another section, or inside another
+section at its end, then **Move section**. The dialog describes the destination
+and containment; opening it shows the whole book. Before/after uses the
+destination's parent. Descendants cannot be destinations for their ancestor.
+Section labels include target IDs to distinguish repeated titles. Only actual
+section containers are movable, not heading-only outline ranges. The move keeps
+all content, IDs, links and assets; Undo/Redo is one step. **Save corrected
+version** persists it; publication is separate. This does not change source-page
+membership. Cancel does not move content.
+
+In the document editor's metadata panel, expand **Contributors and roles** or
+**Dates and subjects** to edit document-scoped bibliographic rows. Contributor
+edits derive Author from author-role names; excluded attributions are retained
+but not displayed as contributors. Names do not merge catalogue identities.
+Dates accept YYYY, YYYY-MM or YYYY-MM-DD; ranges require equal precision and
+chronological order, with at most one publication row. The stored publication
+value is shown explicitly: editing date rows replaces it with the publication
+row or clears it when none remains. Untouched historical metadata is preserved;
+edited date groups store typed values without renewed parser certification.
+Original evidence remains pinned. Subjects use one value per line. Remove all
+rows/subjects explicitly to clear them. Save corrected version, recovery,
+comparison and separate publication apply as for document text; reader/PDF
+share these values. This does not replace catalogue-wide metadata administration.
+Preserve that setting on restart:
+
+```sh
+READING_HUB_EDITOR_PILOT=1 .venv/bin/python manage.py runserver 127.0.0.1:8765 --noreload --insecure
+```
+
+Migrations 0023-0026 are applied; deployment SQLite backups are retained under
+`data/backups/`. Leaving the flag unset hides editing/publication controls without
+deleting drafts or published editions.
+
+Use staff **Administration / Manage workers** to start processing. GET/status
+requests do not start processes. Managed workers survive normal web-process
+restarts but are not boot services or automatic crash-respawning daemons.
+For a full shutdown, gracefully stop workers before stopping the web process.
+For a rolling update, identify the exact web PID and restart only that process;
+do not kill its entire process tree or unrelated workers.
+When Python code or the source profile changes, also use **Manage workers →
+Restart** for the existing active import workers. They retain the loaded profile
+across web restarts; without their own restart, newly registered sources can
+pass the URL form but fail in the worker as an unsupported host. Restart finishes
+the current task before loading fresh code. Confirm worker start times advance
+and their status returns to running, then retry any affected failed import.
+Do not start previously stopped workers or enable paused catalogues as part of
+deployment.
+
+The standalone `run_import_worker` and `run_import_worker --once` commands are
+exclusive maintenance alternatives: stop the managed pool before using them.
+`--once` handles at most one import or background step.
+
+## 2. Profiles and runtime versions
+
+Default profile: [profiles.marxist.site](../profiles/marxist/site.py).
+For another installation, configure the same environment in web, worker and
+maintenance commands:
+
+```sh
+export READING_HUB_PROFILE=profiles.science.site
+export READING_HUB_DATA="$HOME/reading-hub-science-data"
+```
+
+The example profile must be implemented first; it is not bundled support for
+arbitrary journal hosts. Use a separate data directory per subject deployment.
+Restart both web and workers after changing profile/environment configuration.
+Profiles are trusted Python code, not user-uploaded configuration.
+
+Source adapters implement deterministic `discover(soup, url)` and
+`extract(soup, url, *, book=False, group="", chapter_title="")`, returning
+shared `Source`/`Part` values and an extracted BeautifulSoup body respectively.
+They must preserve semantic text/anchors and never fetch URLs themselves.
+Catalogue adapters supply `links`, `metadata` and optional `language` methods;
+register them and discovery seeds in `SourceSite`. Add fixtures before enabling
+a source. Host registration alone does not make a layout supported.
+
+Version sources of truth:
+
+- [library/versions.py](../library/versions.py): runtime app and formatting rules.
+- [Profile](../profiles/marxist/site.py): source adapter version.
+- [Corrections](../library/services/corrections.py): correction schema.
+- [Dataset service](../library/services/correction_datasets.py): dataset envelope.
+
+Increment adapter version when extraction changes and format version when
+normalization/reader typography changes. Revalidate source corrections when
+adapter/body bindings change. Documentation-only work does not bump runtime
+versions. Package metadata is not the cached-rendition version authority.
+
+0.24.0 uses format 12 for bounded contents-page sections and their provenance.
+0.24.2 uses format 13 to keep that provenance in structured section metadata
+without injecting technical authorship notices into reader or PDF prose.
+0.28.0 uses format 17 for full parsed book-index bodies and default first-part
+inclusion. Imports, unreviewed reformats and organization drafts now begin with
+**Contents** rather than adding detected Endnotes separately. Existing saved
+organizations remain authoritative; add the whole index explicitly if desired.
+Do not combine a whole index with its sections or excerpts. The root catalogue
+identity and historical editions remain unchanged. The index preview is no
+longer intentionally empty, and its blocks can be corrected like chapter blocks.
+Existing immutable editions are unchanged; preview or reformat creates output
+without the notice.
+Adapter 19 is intentionally retained: ordinary article/chapter extraction and
+correction bindings are unchanged. Index body corrections need exact baseline
+revalidation where the previous editor exposed only bounded sections.
+Existing metadata-only index corrections with the old
+empty-body baseline remain applicable only when their source/adapter bindings
+match and they contain no block/media/note operations. All other body changes
+still require exact revalidation; no historical revision is rewritten.
+Historical dataset imports retain strict baseline verification and may require
+revalidation against the newly exposed index body.
+
+To include source-index Endnotes in an already reviewed book, open its content
+organization, choose **Include index section: Endnotes**, set the desired role
+and position, and preview before confirming with a reason. Editing the selected
+index source controls parsing/exclusion but does not change saved membership.
+No source refresh is required when the index and chapters are already retained.
+
+### Quotation and source review
+
+0.36.1 versions the editor script and styles with the application version, matching
+the base application assets. This prevents new controls being paired with an old
+cached bundle (observed as unresponsive quotation tools after the 0.36.0 update).
+Save existing work before reloading an already open tab; do not inject a second
+editor runtime or discard a draft to refresh assets.
+
+Since 0.37.0, images and quotations share one **Figure & caption...** panel instead
+of separate low-level quotation commands. Click the **FIGURE / QUOTE · edit**
+handle beside the content, or use right-click / Selection tools / Shift+F10.
+Enable **Block labels** to see the handle, grouping border and QUOTE/IMAGE/CAPTION
+roles. These are editor decorations, never saved markup. Cited titles have a
+dotted underline; the panel explicitly lists their relationship.
+
+For edition 80's Preface, save current work before reloading, focus Preface, then:
+
+1. Click its **QUOTE · edit** handle (no precise text selection required).
+2. Under **Caption / attribution belongs to this figure**, choose the paragraph
+   beginning "(From a letter...)". The preview shows it separately from QUOTE.
+3. Optionally enter the exact words `letter of Lassalle to Marx` as the source
+   document title. This marks that existing passage as `cite`, not a person's
+   name alone. No bibliographic information is inferred.
+4. Check the preview and **Apply figure changes** once. Caption movement and
+   title marking are one undoable operation. Cancel/Escape changes nothing.
+
+For an image, click its FIGURE handle or right-click the image and open the same
+panel. Choose an existing paragraph inside its figure, the immediately following
+paragraph in the same section, or **Write a new caption**. The preview includes a
+retained-image thumbnail and caption/source relationship. Existing caption text
+is kept and any chosen/new paragraph appended; asset, alternative text, IDs,
+links, formatting and credits are preserved. Image alternative text retains its
+separate dedicated dialog. Standalone images/image-only paragraphs can be grouped
+too; mixed prose/image paragraphs are not silently split.
+
+To create a quotation, select adjacent whole paragraphs within a section/div and
+open Figure & caption. Choose which, if any, belongs in the caption. Text is
+never classified automatically. Edit quote/caption wording directly afterward;
+use existing link tools for a source URL. The source-title field must match one
+unique existing caption passage, without splitting nested wrappers. Invalid or
+ambiguous choices disable Apply with a visible explanation.
+
+Under **Structure options**, remove existing cite markings (text/IDs stay), or
+**Ungroup figure (keep all content)**. To dissociate an existing caption, choose
+**Detach caption**: it becomes ordinary text immediately after the figure, not
+deleted. IDs/classes remain in neutral containers when needed.
+Grouping, caption association and title marking are independently undoable per
+Apply. Existing multi-image/complex figures, cross-section moves, hidden targets
+and stale panels are refused rather than guessed. Saving includes hidden chapters,
+resets review to partial and does not publish or overwrite the historical edition.
+
+### Preview-first retained-image recovery
+
+The 0.35.0 maintenance command retries only failed asset URLs already recorded in
+one snapshot. It does not refresh HTML, crawl for replacements, change successful
+assets, guess that two image occurrences are the same, or edit a historical
+edition. Run it in the same profile/data environment as the application:
+
+```sh
+.venv/bin/python manage.py recover_snapshot_media 24
+```
+
+This example targets retained snapshot 24, not edition 24. Inspect JSON `results`,
+`recovered_images`, `remaining_failed_images` and `preview_digest`. A preview
+performs real source requests using normal robots, per-hop host/public-IP/rate/
+byte policies and raster verification. No blobs or application records are
+stored; shared request clocks still update. Errors are logged and reported per
+image. More than 50 failures or an exhausted network budget aborts the command.
+Literal spaces in a source image path are encoded; host/query/control-character
+validation is not relaxed. Manifest keys preserve the original source URLs.
+
+Only after reviewing the result, replace the placeholder with its exact digest:
+
+```sh
+.venv/bin/python manage.py recover_snapshot_media 24 --apply PREVIEW_DIGEST
+```
+
+Confirmation refetches under current policy and refuses changed bytes, resolved
+URLs, manifest or failure outcomes. Re-preview instead of bypassing this check.
+With at least one successful recovery, it stores the verified bytes and creates
+a separate snapshot with lineage, timestamps and request/resolved URL evidence,
+or reuses an identical existing snapshot (`created: false`). An existing snapshot
+is never changed to attach new provenance. Original failed entries/warnings stay
+on the original snapshot; unresolved errors and unrelated warnings remain on the
+new snapshot. A disk failure is explicit, not a successful recovery.
+
+The command does **not** create jobs, editions or draft revisions. A new snapshot
+alone will not change the reader. An operator can separately request an offline
+reformat using the returned `recovered_snapshot` ID and the existing enqueue
+service. In `manage.py shell`, replacing `RECOVERED_ID` with that integer:
+
+```python
+from library.models import Job, Snapshot
+from library.services.pipeline import enqueue
+snapshot = Snapshot.objects.get(pk=RECOVERED_ID)
+job = enqueue(snapshot.document.url, Job.Mode.REFORMAT, snapshot)
+print(job.pk, job.snapshot_id)
+```
+
+If an active job already exists, enqueue returns that job; check its snapshot
+before proceeding. Use the usual managed worker queue; do not start a second
+maintenance worker alongside the pool. Normal language/layout, organization,
+semantic and publication gates still apply. An explicit reformat does not replay
+direct editor revisions or certify completeness. The reader's existing Reformat
+button still uses its edition's original snapshot, not an unrendered recovery.
+
+Local checks on 2026-10-24: snapshot 24's failed photograph is now supported and
+available. Snapshot 23's hero is available after path-space encoding, but its
+second image remains HTTP 404 and its French `kommunismus.ch` URL fails today's
+German-language gate. Recovery must not bypass that restriction or silently
+redirect it to a different document. These real checks were previews only.
+
+## 3. Accounts and permissions
+
+Keep registration/sign-in local. Staff manage accounts/groups in Django admin;
+grant `review_metadata` or membership of **Metadata reviewers** for reviewer
+tools. Worker/crawler administration is staff-only. Account creation does not
+start workers or change crawler settings.
+
+Password recovery without email:
+
+```sh
+.venv/bin/python manage.py changepassword USERNAME
+```
+
+Sessions, CSRF and POST-only state changes remain enabled. For a missing/expired
+security token, reload the form and use one consistent localhost origin.
+Keep the application's same-origin referrer policy; do not disable CSRF or
+trust `Origin: null` as a workaround.
+
+Private annotation access is owner-only, including editing/deletion. There is
+no staff bypass in the application, but this is not encryption against someone
+with filesystem/database access. Annotations use UTF-16 offsets and quoted text,
+up to 20,000 characters per selection and 1,000 marks per account/rendition.
+New editions do not inherit marks. Preserved annotations remain accessible for
+retired standalone chapter readers.
+
+## 4. Workers and crawls
+
+Managed worker controls support 1-8 workers and 256-8192 MiB per worker;
+the default is one worker at 1024 MiB. Existing deployment settings, not these
+defaults, govern a running pool. Saving settings does not start workers;
+memory changes apply on restart. Restart/stop lets the current task finish.
+
+Linux `RLIMIT_AS` limits virtual address space, not physical RSS or reserved RAM.
+The UI reports PID, RSS, heartbeat, current activity, errors and bounded logs.
+An allocation failure pauses the affected background task and stops its worker;
+adjust limits and resume explicitly. Do not diagnose every process exit as OOM.
+
+The SQLite job queue atomically claims jobs. Source crawls and archive sampling
+have separate locked lanes; request clocks are shared across workers/aliases.
+Adding workers does not remove source rate limits or SQLite's writer limit.
+Dead workers' jobs fail explicitly; slow live ownership is not reclaimed just
+because a heartbeat is old.
+
+Crawler controls: enable/pause, request/byte/discovered-URL budgets, minimum
+interval and optional article metadata/HTML capture. Stored limits and robots
+delays take precedence over attempts to speed up work. Crawls are optional and
+must not be resumed as a side effect of deploying another feature.
+
+Imports are bounded by the active profile; current defaults include 100 HTML
+pages/work, 100 MiB aggregate content and a 30-second request deadline.
+Responses requesting unsupported compression, unsafe redirects/resources or
+HTTP rate limits fail explicitly. Do not bypass access blocks/robots.
+Offline reformatting cannot recover images missing from the original snapshot.
+
+## 5. Retained-source maintenance
+
+Use the active profile and data directory. Inspect command help and back up
+before write operations. These commands do not authorize changing crawl states.
+
+```sh
+# Update catalogue metadata from retained captures/snapshots; writes metadata.
+.venv/bin/python manage.py rebuild_catalogue_metadata
+
+# Read-only catalogue consistency check; nonzero on reported issues.
+.venv/bin/python manage.py check_catalogue_metadata
+
+# Preview proposals without applying facts or fetching pages.
+.venv/bin/python manage.py propose_catalogue_metadata --host www.marxists.org --limit 100 --dry-run
+
+# Inspect index classification; --apply persists it.
+.venv/bin/python manage.py classify_discovery_pages
+
+# Inspect retained book membership; --apply persists it.
+.venv/bin/python manage.py register_catalogue_book CONTENTS_URL
+```
+
+Removing `--dry-run` from proposal generation saves pending review suggestions,
+not accepted facts. Metadata rebuild respects active catalogue overlays.
+Classification preserves captures/history; book registration publishes
+membership only when a matching complete rendition is available. Use the
+reviewed organization preview workflow for editorial organization changes.
+Unknown metadata is not an error to be filled with guesses.
+
+The profile's `topic_rules` use literal whole-word, case/accent-insensitive
+phrases; a label requires at least two occurrences in title/body. This is a
+transparent heuristic. Rebuild retained catalogue metadata after deliberate
+vocabulary changes; old reader versions remain immutable.
+
+### Archive sampler
+
+The Marxist profile's optional archive sampler audits whole works, not raw
+request counts. A book counts only when all parts extract and format with valid
+internal links; it does not publish reader editions or prove editorial accuracy.
+
+```sh
+.venv/bin/python manage.py archive_corpus
+.venv/bin/python manage.py archive_corpus --start --target 1000
+.venv/bin/python manage.py archive_corpus --pause
+.venv/bin/python manage.py archive_corpus --start --target 1000 --retry-failed --recheck
+```
+
+Only run start/resume commands when collection is intended. `--recheck` reuses
+cached pages but may fetch missing chapters/parent indexes; it is not strictly
+offline. State is in `data/archive-corpus.sqlite3`. Runs obey robots, shared
+rate limits, bounded discovery/bytes and worker resource limits. Exhausted
+languages/layouts or safety caps are reported, not counted as completion.
+
+### Offline formatting measurements
+
+```sh
+.venv/bin/python manage.py profile_formatting 67 --runs 3
+```
+
+Pass a retained rendition ID from the active profile. The command formats that
+edition's snapshot using **current** corrections, organization and rules; it
+does not reproduce the historical edition. It runs 1-5 times (default 1) and
+emits JSON with elapsed/CPU seconds, database query count/execution time,
+HTML bytes, part/ToC counts, warnings, output digest and median elapsed time.
+Each run also includes `stages_seconds`: `prepare_pages_seconds` (source
+loading, discovery, extraction and scoped corrections), `metadata_and_assets_seconds`
+(metadata normalization/topic inference, organization lookup and asset checks),
+`normalize_seconds` (HTML normalization, ToC and sanitization), and
+`stylesheet_seconds` (stylesheet loading). These elapsed stages include database
+execution within them; do not add query time again. Instrumentation is opt-in
+and never enters reader metadata, cache identity or stored content.
+Repeated output digests must match or the command fails explicitly. Missing
+sources and incompatible corrections likewise fail; there is no network fallback
+or publication. Check warnings before interpreting timings.
+
+These are same-process diagnostic samples, not cold-cache benchmarks. Timed
+formatting excludes snapshot selection, network, PDFs and publication write
+transactions; query time excludes some result fetching/materialization. No
+claim about lock contention, scalability or a speedup follows from this command
+alone. Use measurements to choose subsequent profiling work; do not remove
+validation to improve timing.
+
+Initial local observation (2026-10-19): rendition 67's retained snapshot with
+current nine-part organization produced identical output on three runs,
+1.54/1.31/1.30 seconds, 51 database queries per run and no warnings. This is
+one complete book on one installation, not a performance acceptance threshold.
+Stage follow-up on the same retained book: median preparation 0.92 seconds,
+metadata/assets 0.43 seconds, normalization 0.13 seconds and stylesheet loading
+under 1 ms (three runs; total median 1.48 seconds, same output digest and
+51 queries). Preparation dominates this sample; timing variation between
+invocations is not evidence of a regression or speedup.
+No web restart or runtime version bump is needed for this command-only change.
+The subsequent 0.24.3 runtime optimization limits correction lookup to the
+newest matching revision and joins its capture/site for chapter fallback.
+It preserves resets and correction binding/selection behavior. The same book
+measured 41 rather than 51 queries with identical output, no warnings, and a
+1.45s three-run median. Timing variation does not demonstrate a significant
+speedup; the bounded revision fetch and reduced query count are the verified
+improvements. Formatting/adapter/schema versions remain unchanged.
+0.24.4 batches non-root-part discovery-only checks into at most three queries
+instead of checking each member separately. Only the latest page-type decision
+for each URL counts; discovery flags on captures/catalogue entries still block
+assembly. Checks remain profile-scoped and root validation precedes extraction.
+The same complete book measured 17 queries (previously 41, originally 51) and
+identical output across three runs, median 1.56s. This is a query-count
+improvement, not evidence of a wall-clock speedup or reduced lock contention.
+0.24.5 batch-loads the newest applicable correction per source URL/digest for
+all retained book pages using a database window function. Ordering remains
+created time then primary key across duplicate captures, with site/profile
+filtering, and reset revisions remain authoritative. Same complete-book sample
+used 9 rather than 17 queries (51 before both optimizations), with the same
+output digest. This verifies query reduction, not a wall-clock gain.
+
+### Recurring-correction evidence
+
+```sh
+.venv/bin/python manage.py correction_patterns
+```
+
+To inspect correction compatibility with the current parser, opt into bounded
+retained-source re-extraction:
+
+```sh
+.venv/bin/python manage.py correction_patterns --check-current --limit 100
+```
+
+The optional `current_compatibility` section checks newest revisions per capture
+in correction-ID order. The limit is 1-1000 (default 100); `checked` and `remaining`
+make truncation explicit. Statuses are `compatible` (source/adapter/body bindings
+match and saved operations validate/apply), `needs_revalidation` (changed
+bindings), `unavailable` (extraction/operation/storage error with its reason),
+`unsupported` (future schema), and `reset` (no active answer). Historical
+empty-index metadata compatibility is identified explicitly.
+
+This is workspace-level compatibility, not whole-book or reader-link validation,
+parser accuracy, review adjudication or a benchmark. Conflicting answers may
+both be compatible; inspect `conflicts` too. The regular report still describes
+historical explicit evidence and does not filter its groups by current
+compatibility. The default command does not re-extract sources. Both forms are
+offline and read-only; neither saves corrected baselines nor revalidates a
+revision on the reviewer's behalf. No runtime/format version bump or web restart
+is required for this management-command-only change.
+
+This read-only, offline JSON report uses the active profile's saved corrections.
+It separates all revisions from active captures and deduplicated source examples.
+Newest empty corrections count as resets, not historical failures. Groups cover
+explicit block/metadata/media/note operations by host, adapter and baseline
+language, with extracted tag-sequence layout proxies, current catalogue work
+counts and up to five correction/capture/URL examples per group.
+
+Each group now includes a `work_breakdown`: work URL, distinct source URLs,
+deduplicated examples and operation counts. Use it to distinguish repeated
+chapters of one book from evidence spread across independent works.
+
+Review `conflicts` and `unsupported` schema entries before using
+counts. If newest revisions on different captures of the same
+URL/source-digest/adapter/body disagree, the report excludes that evidence from
+operation groups and lists the conflicting correction/capture/revision IDs.
+This includes a reset on one capture versus an active override on another.
+Answers are compared as exact JSON values (ignoring object-key order), not
+assumed equivalent through semantic guesses. Identical resets do not constitute
+verified negative examples. Resolve differences through normal capture review;
+the report neither merges answers nor edits revisions.
+
+Review the emitted limitations before using
+counts. Layout hashes are not proven website templates; corrections are partial
+answers, not verified-document accuracy. Work counts use current catalogue
+membership, not an immutable benchmark partition. No source re-extraction,
+network access, rule promotion or database changes occur. Representative
+development/held-out fixtures and promotion thresholds are still pending.
+
+### Reviewer-feedback labels and benchmark manifests
+
+**Direction revised 2026-10-23:** the commands below describe implemented partial
+operation evidence, not the planned document-pair dataset or whole-work scorer.
+The semantic editing/revision contract, bounded editor and explicit saved-result
+publication are implemented in development. Representative reviewer evaluation,
+remaining editor tools and source/draft/result capture with scope-aware scoring
+remain the next milestones.
+See [Specification sections 5-6](../SPECIFICATION.md#5-result-first-semantic-editing-planned)
+and [the roadmap](../TASKS.md). No new browser editor, portable dataset format or
+model service is deployed.
+
+#### Semantic editing foundation (development, 2026-10-23)
+
+An additive migration (`0023_document_review_foundation`) and internal services
+now support immutable rendition-based draft evidence and edited revisions. An
+opt-in browser pilot uses them for partial saves, with separate explicit publication
+provenance added in migration 0024. Apply migrations using the usual
+backup/deployment process when rolling out this foundation; do not fabricate live
+review records for testing. No old corrections/editions are converted automatically.
+
+Check specific retained editions without writing data or fetching resources:
+
+```sh
+.venv/bin/python manage.py semantic_document_check 77
+```
+
+The command accepts 1-50 distinct positive rendition IDs and reports version-one
+semantic compatibility, canonical digest and unresolved target/asset-binding issues
+as JSON. It exits nonzero for missing editions, invalid structure or reported issues.
+It does not create drafts, certify review, validate every blob byte or measure ML
+quality. Historical HTML with invalid nesting can fail; preserve it.
+
+Preview the supported legacy conversion without saving or approving anything:
+
+```sh
+.venv/bin/python manage.py semantic_document_check 58 --preview-conversion
+# Include the full proposed semantic document for one edition only:
+.venv/bin/python manage.py semantic_document_check 58 --preview-conversion --include-document
+```
+
+Conversion v1 repairs only generic span wrappers around blocks, replacing them
+with divs while checking text, tree shape, attributes, links and asset references.
+The JSON reports each original element ordinal/ID, operation, before/after tag,
+source/result digests, evidence bindings and `requires_approval`. Inspect the
+proposal: a wrapper change can affect layout. Unsafe/malformed input and ambiguous
+structural changes are refused, never silently cleaned. Relationship issues still
+cause a nonzero exit even if the structural conversion succeeds.
+
+`document_edits.preview_rendition_import(rendition)` returns the full proposal;
+`create_draft(..., conversion_approval=proposal["approval_digest"])` rechecks the
+exact edition/evidence/output/repair binding before saving. Conversion requires
+explicit approval when repairs exist; omitting approval or using a stale digest
+fails without creating a draft. The service retains original HTML plus the
+conversion report, and does not mark the draft as reviewed. No CLI write/approval
+command is exposed. The opt-in pilot presents the repair list and requires a
+conversion-approval checkbox before the first save.
+
+The internal `document_edits.create_draft` pins an exact existing rendition.
+`save_revision` requires its current revision number (0 for the first save) and
+appends only; default review is partial, verification is explicit on each save,
+and editorial classification is inherited unless explicitly changed. Existing
+renditions are only a starting point, not fully verified training targets or a
+reconstruction of historical correction revision bindings. The new tables require
+the same evidence-protection/backup policy as other saved review records.
+
+#### Bounded Tiptap editor pilot (development)
+
+##### Retained-source insertion and original-input generation (0.42.0)
+
+Place the cursor in a paragraph or heading, then choose **Insert retained source
+content**. Choose a retained page, select 1-100 source blocks, and preview the
+normalized content. Insert before/after the cursor's block, or show the whole
+document to insert at its end. Cancel changes nothing; Undo removes an insertion
+in one step. This inserts ordinary editable content, not a named excerpt.
+
+Preview images are retained local assets. Missing/corrupt bytes, unsupported
+semantics, unbound images or stale/hidden destinations refuse with an error.
+Internal selected links receive collision-free local IDs. Links to unselected
+material remain exact source links; generated backlinks with no selected or
+original source target are omitted with a visible count. Such links are not
+automatically repaired into the current document. Source evidence is retained,
+but persistent per-character insertion mappings are not implemented.
+
+**Start fresh from original retained source, without previous corrections**
+opens a separate offline generation preview (`?inputs=original`). It excludes
+saved source corrections and organization and binds that policy in the
+confirmation digest. Current extraction/formatting and source-language/asset/
+semantic policies still apply. The default regeneration route still uses applicable
+reviewed inputs during migration. Neither preview edits or deletes existing data.
+
+The one-editor consolidation and authorized destructive fresh-slate reset remain
+unfinished. Do not remove old correction/organization tools until remaining
+feature parity is implemented; do not apply an ad-hoc database wipe.
+
+##### Direct correction and history (0.41.0)
+
+From work review, choose **Continue correcting this document**. With one normal
+correction history, its latest saved version opens; with several, choose a history.
+An explicit editor draft link always continues that history, not another reviewer's
+or branch's latest work. Evaluation copies are excluded from this default choice.
+
+1. Edit and choose **Save corrected version**. No task, run or outcome form is
+   required. Saving records exact immediate-parent document/evidence bindings.
+2. Use **Version history and other starting points** to inspect saved versions.
+   Continue a history's latest correction, or open an earlier version and choose
+   **Start a separate correction from this version**. The latter POST creates a
+   new unreviewed base with exact parent lineage, preserving newer work. History's
+   read-only markup is escaped; use comparison for rendered differences.
+3. When the saved document has been reviewed in full, choose **Mark reviewed**.
+   It appends a reviewed revision with unchanged content. It is disabled while
+   edits are unsaved or the saved document is already fully reviewed. For partial
+   coverage, use the optional section-review controls and save instead. New edits
+   reset approval; marking reviewed never publishes or admits training data.
+
+History also offers the source-derived edition as a starting point. Previewing
+fresh regeneration from retained source remains separate and confirmation-bound;
+it does not replay saved corrections. No action changes original captures,
+historical editions or another open tab's recovery.
+
+Migration 0026 adds a lineage JSON field to saved revisions. Back up SQLite before
+deploying. Legacy rows retain empty bindings; do not invent historical app or
+parent digests. New branches keep generation evidence and assets, any editorial
+classification and exact originating version, but do not inherit verification.
+Saved-comparison JSON exposes lineage; it is not a portable training dataset.
+
+##### Comparing saved editor revisions
+
+Since 0.38.0, **Compare saved revisions and pinned starting document** opens a
+read-only tab from a saved editor draft. It remains explicitly saved-only when
+the editor has unsaved edits. The publication preview links to its exact saved
+revision, not a later revision that may subsequently be saved.
+
+Choose revision **0** for the pinned starting document, or positive saved revision
+numbers from the same draft; earlier must not exceed later. Comparison does not
+write drafts, download sources, publish or change verification. Title, metadata,
+HTML structure/wording and saved review scope remain distinguishable.
+
+For a large book, choose **HTML scope** to compare an identified section (for
+example, edition 80's **Preface**). Sections match exact IDs, never inferred title
+or positional alignment. Scoped markup is parsed for comparison; document digests
+and downloads always bind the exact complete saved documents.
+
+The inline diff omits identical opening/closing tokens before checking a
+6,000-token changed-span limit. It shows at most 400 lines and 2,000 characters
+per line and warns explicitly on refusal/truncation. Hunk numbers count HTML/text
+tokens within the compared span, not source-file lines. Use **Download exact
+documents and pinned provenance (JSON)** for the full saved pair, its stored
+digests, evidence and saved reviewer/status/time bindings. This export is not the
+future approved training-dataset format and does not certify unchanged content.
+The provenance panel distinguishes a pinned retained edition from a freshly
+regenerated source draft. Fresh-source pinning uses the separate workflow below.
+
+##### Regenerating retained source as a separate draft
+
+Since 0.39.0, open **Preview regeneration from retained source as a separate
+draft (new tab)** in the editor. Leave an existing editor tab open; save important
+work there before navigating away. Regeneration is not a way to merge or replay
+its saved or unsaved edits.
+
+1. The server reads this edition's retained snapshot and assets, checks their
+   digests/size/type bindings, and generates with current rules and applicable
+   source corrections and organization specification. No source fetch, job,
+   source capture, catalogue update or edition publication occurs.
+2. Inspect the generated document, warnings, relationship issues, exact versions,
+   correction revisions, organization binding and any semantic conversions.
+3. Explicitly check confirmation and **Start separate draft from this preview**.
+   The server regenerates and compares the exact preview digest. Changed rules,
+   configuration, correction/organization bindings, assets or output refuse the
+   old preview. Confirm only after reviewing a newly generated preview.
+4. The new immutable base opens at revision 0. It has no review certification.
+   Use the existing save, comparison, recovery and explicit publication flows.
+   The comparison download includes the complete pinned generation evidence.
+
+The original edition remains the lineage/navigation anchor, not the fresh
+document's HTML baseline. Actual source corrections and the organization spec
+are captured during generation; they are not reapplied on later editor saves
+or publication. Historical drafts and annotations are not changed.
+
+Failure is explicit: missing/corrupt bytes, source-language restrictions,
+incompatible old correction versions and unsupported semantic layouts do not
+trigger network recovery, silent omission or fallback to historical output.
+Edition 80 currently requires source-correction revalidation for the active
+adapter before fresh regeneration; its existing saved draft remains available.
+The error page links to retained correction inspection. This slice does not
+fetch newer source or authorize any source-policy exception.
+
+##### Simple reviewer evaluation
+
+Optional experimental tooling, not a prerequisite for ordinary correction.
+The [2026-10-25 specification](../SPECIFICATION.md#primary-correction-workflow-direction-revised-2026-10-25)
+replaces task/run-first navigation with direct open/edit/save and automatic version
+evidence. These instructions describe optional tooling introduced in 0.40.0,
+not the normal correction path implemented in 0.41.0.
+Keep existing records; do not drop migration 0025 to simplify the interface.
+
+Since 0.40.0, reviewers can open **Reviewer evaluation: fixed tasks and my
+runs** from the work-review page, or `/review/evaluation/`. The pilot flag and
+usual reviewer permission are required. Migration 0025 must be applied before
+deploying this version; follow the database-backup procedure first. It adds only
+task/run/result tables and creates no evaluation data automatically.
+
+1. **Define a task.** From a saved editor draft, open **Define a review task from
+   this starting document**. Give a short name, explicit scope and source-backed
+   instructions. The task pins that draft's **revision-0 base**, never its later
+   saved/unsaved edits. Inspect the linked starting evidence before saving.
+2. **Do the review.** Choose Practice or Evaluation run, then start. Each run
+   creates a separate working draft with identical base/evidence and no inherited
+   verification. Open it in a new tab, inspect retained sources without changing
+   source corrections, do the task and save. The editor links back to the task.
+   Leave original editor tabs alone; their drafts and recovery keys are separate.
+3. **Record what happened.** Return and refresh saved revision choices after
+   saving. Choose the exact saved result (or unchanged starting base), outcome,
+   and describe what worked/failed. Optional measurements/accessibility checks
+   are collapsed. Blank numbers mean unknown; zero must be entered explicitly.
+   Active minutes include source inspection/rework, not breaks; no automatic timer
+   estimates effort. Severe errors cannot exceed the observed total.
+
+Task, run and recorded result are immutable. Correct the scope by defining a
+new task; record another observation by starting another run. The exact-result
+comparison link stays pinned even if that working draft is subsequently edited.
+Runs/results are visible only to their reviewer; fixed tasks are shared within
+the profile. Practice must not be treated as a measured independent evaluation.
+
+Recording a result never publishes an edition, verifies content, changes source
+corrections, approves a milestone or creates training data. Agree representative
+tasks, independent review and numerical thresholds separately before claiming
+acceptance. This first slice evaluates the pilot; it does not automate a
+counterbalanced comparison against the legacy advanced tools.
+
+##### Editor layout and setup
+
+Since 0.39.1, image-only editable blocks collapse the phantom line boxes created
+by ProseMirror's cursor helpers around reader-style block images. The
+`ProseMirror-separator` and `ProseMirror-trailingBreak` elements remain in the live
+editor DOM for browser caret navigation; they are not document nodes and never
+enter saved HTML. Genuine empty paragraphs and source line breaks remain editable
+and are not removed. Typing text next to an image restores normal line height;
+the layout correction also applies with block labels off.
+
+The self-hosted Tiptap/ProseMirror pilot is off by default in configuration.
+It is enabled for user testing in the local 0.31.1 installation. Existing review
+tools/readers remain available. To enable it in another approved deployment:
+
+1. Back up the database and apply migrations 0023 and 0024 through the normal deployment
+   process (`.venv/bin/python manage.py migrate`). Do not use live data for
+   destructive or fabricated review tests.
+2. Install the locked build dependencies, run the frontend tests and build:
+
+   ```sh
+   npm ci
+   npm test
+   npm run build
+   ```
+
+   Use a supported Node/npm pairing; the pilot was tested with Node 20.
+   Generated JS/CSS and `editor-licenses.txt` are under
+   `library/static/library/generated/` and are gitignored. Build before
+   `collectstatic` or serving static assets; do not install with `--omit=dev`
+   in the build environment. No CDN, telemetry or cloud editor account is used.
+   Missing local JS/CSS produces an explicit HTTP 503 setup message.
+3. Set `READING_HUB_EDITOR_PILOT=1` in that server's environment and restart it.
+   Authorized metadata reviewers/staff see **Document editor pilot** in reviewer
+   tools, or can visit `/versions/<id>/editor/`. Normal active-profile and CSRF
+   restrictions apply. Leave the flag unset to keep the pilot unavailable.
+
+GET is read-only; the first save atomically creates a rendition-bound draft and
+revision 1. The URL then identifies that draft. Each save appends a partial
+revision using the expected revision number; HTTP 409 means another writer won.
+Unsaved edits remain in the editor and tab session storage. Reload can offer
+recovery, but session storage is not a durable server save or cross-device backup.
+Browser storage failures and save failures are shown explicitly. Disabling the
+flag hides the workspace without deleting retained draft/revision evidence.
+
+The editor uses a fixed-height internally scrolling canvas; its compact command
+bar stays outside the content scroll. Metadata and review details start collapsed.
+Select text and right-click for **Selection tools** at the pointer; **Shift+F10**
+or the command-bar button offers the same menu for keyboard/touch users. Arrow keys,
+Home/End and Escape navigate/dismiss it; Tab closes it and returns to command-bar
+navigation. It preserves the target selection, offers headings and six inline
+styles, paragraph alignment, moves and undo/redo. Text styling affects the selection;
+paragraph type
+and moves affect its containing block. Paragraph changes/moves are disabled for
+cross-block selections. Shift+right-click keeps the native browser menu, including
+clipboard actions; ordinary clipboard shortcuts still work.
+
+**Paragraph alignment** changes the whole containing paragraph/heading/preformatted
+block, even when only some of its text is selected. Left, center, right and justify
+use the canonical reader/PDF classes, not inline CSS. **Default / inherited** removes
+only the current block's explicit alignment. The menu checks the current explicit
+value and disables unsupported or multi-block selections. IDs, unrelated classes,
+inline markup and selection direction are preserved; each change is separately
+undoable and resets next-revision review to partial.
+
+The outline and **Show** selector focus one section or heading range at a time,
+or show **Whole book**. Nested sections and heading-only documents are supported;
+empty/uneditable ranges report an error. These filters are view state, not review
+certification: saving/recovery retains the entire document. Focused Select All
+selects only the visible part. Changes/undo/moves reaching hidden parts are refused
+with a message to show the whole book. View changes do not dirty the draft or
+invalidate review; edits still reset review to partial.
+Optional left-gutter **Block labels** show text/heading/list-item/table/media types;
+the container/target path of the current block is shown below the canvas (including
+table cells). Labels and filter classes are decorations only, absent from saved
+HTML/JSON and reader/PDF output. Direct typing, paragraph split/join and undo/redo
+remain available. Drag/drop is explicitly disabled.
+The text pointer is a self-hosted dark I-beam with a white outline, with an explicit
+dark typing caret. **Move paragraph up/down** moves the whole current paragraph,
+heading or preformatted block past one adjacent text block within its immediate
+container. It preserves markup, targets and text selection, resets review scope
+to partial, and is separately undoable. Unavailable moves are disabled: no crossing
+sections, structural/media neighbors or bare-prose runs, and no multi-block or
+node selections. Lists, tables, figures and section moves remain planned.
+Paste opens a **Review clipboard paste** dialog showing plain text, supported
+inline-formatted content and replaced text. Choose **Insert plain text**,
+**Insert formatted text** (when available), **Cancel paste**, or Escape; nothing
+is inserted before approval. The two clipboard alternatives can differ: review
+the chosen preview. Plain preview is literal text; formatted preview contains
+only vetted inline HTML parsed inertly and passed through the exact editor
+fidelity gate. Preview links do not navigate.
+
+Formatted paste supports bold/italic aliases, underline, strikethrough, sup/sub,
+small/code/abbr/plain spans, line breaks and absolute HTTP(S)/mailto links with
+optional titles, optionally inside attribute-free paragraphs. CSS, classes,
+IDs, event attributes, comments, media, local/relative links and non-paragraph blocks
+are explicitly refused, not stripped. The reason is displayed and plain text
+remains an explicit option. General word-processor HTML import is not available.
+HTML is limited to 64 KiB, 2,000 nodes, 50 levels and 1,000 breaks, with invalid
+Unicode/control characters refused both before and after entity decoding.
+Preformatted targets only offer plain paste. Formatted insertion uses new internal
+wrapper identities and does not inherit surrounding marks/links.
+
+Up to 100 clipboard paragraphs can be inserted into a selection within one
+paragraph (including one inside a quotation, list item or cell). The preview
+states the paragraph count and split behavior: the destination prefix and suffix
+become separate paragraphs around the inserted content, even if either is empty.
+Its original ID stays on the prefix; other destination block classes remain on
+both halves, not the inserted paragraphs. The cursor ends at the suffix start.
+Undo restores the original paragraph in one step. Headings, preformatted blocks
+and bare-text runs refuse multi-paragraph insertion; cross-block replacements,
+headings/lists/tables/media in clipboard HTML remain planned.
+
+Paste supports one text block at a time, up to 64 KiB UTF-8 and 1,000 line
+breaks. Files/images, HTML-only or empty data, invalid Unicode, unsupported
+control characters and cross-block selections produce explicit errors.
+CRLF/CR becomes LF; newlines become `br` elements (literal LF inside `pre`).
+Plain pasted text does not inherit inline styles, links or IDs. The reviewed selection
+is pinned; any intervening editor-document change invalidates the proposal.
+Insertion is separately undoable and then uses normal draft recovery/save
+validation. Replacing selected inline targets can leave unresolved links;
+resolve diagnostics before publication. Switching to a part hiding the pinned
+target refuses insertion. General structural rich paste remains planned.
+Unapproved clipboard previews are in memory only and are discarded
+on cancellation, not added to draft evidence or tab recovery.
+Source inline nesting, adjacent wrapper boundaries, empty anchors, inline-only
+list items/definitions/quotations and block-level line breaks/images are retained.
+Right-click an existing inline link, then choose **Edit link destination**, or use
+**Selection tools** / Shift+F10 with the cursor or selection within one link.
+The dialog edits the whole link's destination and optional title, preserving
+text, nested styling, IDs and note/backlink classes. Use absolute HTTP(S)/mailto
+URLs or `#target` with an existing document ID, including hidden chapters.
+Invalid destinations remain in the dialog with an error. Apply/cancel and
+undo/redo are explicit; clearing a title removes it. This does not edit
+empty/block anchors or automatically repair reciprocal note/backlink pairs.
+Changes reset review to partial, like other content edits.
+
+To add a link, select unlinked text within one block, then right-click or use
+**Selection tools** / Shift+F10 and choose **Create link from selection**.
+It uses the same destination/title dialog and accepts existing inline target IDs,
+including those in hidden chapters. Select whole nested formatting wrappers;
+partial nested wrappers, existing anchors, images, breaks, cross-block ranges
+and exhausted nesting slots disable creation. Shared outer formatting is retained.
+Apply creates one undoable link without creating IDs or reciprocal backlinks.
+
+To unlink, right-click a link or use **Selection tools** / Shift+F10 inside it,
+then choose **Remove link (keep text and targets)**. This removes the whole
+destination and link-only relationship attribute, not the text or nested
+formatting/images. An anchor carrying an ID, classes, title or accessibility
+label remains nonnavigable, preserving targets and presentation. Otherwise its
+wrapper disappears. Undo/redo is independent; review resets to partial.
+It does not delete notes or reciprocal backlinks. Existing target-only and block
+anchors are not managed by this action.
+
+In the creation or edit dialog, expand **Choose an existing document target**.
+Search by ID, target type or short text excerpt. Results include inline/empty
+anchors and images across hidden chapters, and label targets outside the current
+part. Choose a result to fill Destination only; Apply is still required and
+Cancel discards it. Unicode/reserved characters in IDs are URL-encoded for you.
+The optional title and current part do not change. Only the first 50 matches are
+shown with an explicit count; refine the search to find more. Excerpts are bounded
+to 120 characters, not full-text chapter search. This does not create targets or
+infer reciprocal note relationships.
+
+Right-click an existing retained image, then choose **Edit image alternative text**.
+Clicking/selecting the image and using **Selection tools** or Shift+F10 exposes the
+same action for keyboard/touch use. The dialog previews the retained local asset,
+shows its target ID when present and offers **Apply alternative text** or
+**Cancel image edit** (Escape also cancels). Empty text explicitly marks it
+decorative; this tool accepts at most 4,000 characters without line breaks/control
+characters or invalid Unicode. Only `alt` changes: the file/source, ID, classes,
+loading attributes, inline links/marks, caption and credit remain untouched.
+Apply is independently undoable and resets review; unchanged apply/cancel does
+not dirty a draft. A changed document or hidden image refuses apply with a visible
+dialog error, retaining the typed text for correction/copying. Image insertion,
+replacement and note-management tools remain planned.
+
+The toolbar recognizes source styles at any nesting depth, including bold/italic
+aliases, and preserves IDs when removing their styling. Internal wrapper
+identities/depth slots are editor state, not new persisted HTML attributes.
+Mixed bare prose/block children use internal editable text runs. These have
+transparent wrappers in the editor DOM and explicit nodes in JSON recovery;
+semantic HTML export removes only the schema-created run wrappers. Source
+wrappers, text, links and IDs remain intact. Typing retains bare prose; Enter
+in a run intentionally creates a new paragraph. Undo reverses that change.
+Spaces between inline siblings remain significant in the fidelity comparison.
+The pilot supports explicit partial, selected-section and whole-document review
+scope on each immutable revision. Full/section verification is refused while
+relationship/asset issues remain. Editing content, title or metadata resets the
+next revision's selected scope to partial; prior verification is never inherited.
+The editor shows the current saved revision's scope separately from the next
+revision controls. Section verification lists identified sections; only checked
+sections are recorded.
+
+Only author, subtitle and language are editable metadata. Language accepts known
+codes such as `en`, `en-us`, `fr` and `und`; invalid codes, control characters,
+unsupported field changes and oversized text are rejected. Contributor roles,
+source dates, subjects and other parser fields remain pinned. Metadata changes
+are stored with the document revision and included in the publication preview.
+Existing supported asset references, IDs, note links and
+formatting classes must survive import unchanged. Unsupported documents are
+refused before editing; use existing tools instead.
+
+**Publish a saved result:** save all changes, then select **Review saved result for
+publication (new tab)**. The link is hidden while the editor is dirty or saving.
+Review the saved title, metadata, ToC, text, source warnings and review status;
+check the explicit confirmation and choose **Publish saved revision**. The server
+rechecks the exact latest revision and preview digest. A stale preview returns
+409; return to the editor and preview again. Validation errors return 422, without
+creating an edition. Publication is atomic; repeating a successful confirmation
+reuses that revision's edition.
+
+Partial review can be published, but remains visibly **not verified as a whole
+document** in reader/print/PDF. Publication never adds verification. A new immutable
+provenance record links the original rendition, draft revision, publisher and
+publication-rule version. Reader, current-heading ToC and PDF use the existing
+canonical routes; PDFs retain the dedicated bibliographic opening page.
+Missing internal/part targets, unavailable-image placeholders, empty documents,
+unbound/missing/corrupt asset bytes or evidence-integrity failures block publication.
+Only the editor's validated author, subtitle and language metadata may differ from
+the draft base. Publication does not change catalogue ownership or organization pointers.
+Edited editions can always be opened by their exact version URL/history even when
+the document's organization still selects an older edition.
+Refresh/reformat do not replay direct edits: they generate new results from source.
+Original editions, annotations, source corrections and draft revisions are retained.
+
+Run a separate read-only browser-schema fidelity check for one retained edition:
+
+```sh
+.venv/bin/python manage.py semantic_document_check 77 --preview-conversion --include-document | npm run --silent check:editor
+```
+
+Inspect both the backend report and editor result: editor fidelity alone does
+not certify relationship validity or review. No resources are fetched and no
+records are saved. Edition 77 now passes, including an isolated browser
+edit/save/reopen check with all 421 IDs and 360 links retained. A small read-only
+sample now passes all eight editions: 1, 8, 9, 10, 12, 70, 77 and 80. Isolated
+bare-prose edit/save/reopen checks also passed editions 9 and 70, with 672/147
+unique IDs and 553/136 links retained and no internal wrappers saved. Never strip
+unsupported markup or infer editor compatibility from backend conversion alone.
+Complete-book coverage and comparative reviewer acceptance remain open gates.
+
+`npm test` includes small synthetic article/book/mixed-flow fixtures under
+[`frontend/fixtures`](../frontend/fixtures/), with exact import, edit, undo/redo,
+HTML reopening and JSON recovery checks. The endpoint tests use the same fixtures
+to check partial saves and immutable original editions:
+
+```sh
+.venv/bin/python manage.py test library.tests.test_document_editor_views library.tests.test_document_edits library.tests.test_semantic_import --noinput
+```
+
+Direct source-review saves append separate `CorrectionFeedback` events for
+effective block-type changes, superseded block-type changes and block-type
+reset markers. Each event retains its reviewer and exact capture, source digest,
+adapter version, body digest and correction revision. Correction dataset imports
+are provenance transfers, not new reviewer labels. A verified keep can currently
+be recorded through the service API; the correction editor does not yet expose
+that action. No proposal workflow currently emits suggestion outcomes.
+
+Schema 8 adds explicit `heading_numbers` relationships. In the source preview,
+select a heading, use **Attach preceding number**, choose the source block and
+separator, then preview/save. Reformat the book to publish a new reader edition.
+**Detach heading number** restores separate blocks on the next preview/save.
+These operations emit distinct `heading-number` feedback, not block-type
+labels. Dataset imports retain the relationship but do not emit local reviewer
+feedback. Source number/title links survive; a matching contents title is not
+duplicated during assembly.
+
+Validate a local benchmark manifest:
+
+```sh
+.venv/bin/python manage.py correction_benchmark /path/to/manifest.json
+```
+
+The manifest format is:
+
+```json
+{
+  "format_version": 1,
+  "task": "block-type",
+  "examples": [
+    {
+      "capture_id": 123,
+      "work_key": "stable-whole-work-key",
+      "split": "development",
+      "layout_key": "source-layout-group"
+    },
+    {
+      "capture_id": 456,
+      "work_key": "another-whole-work-key",
+      "split": "held_out",
+      "layout_key": "held-out-layout-group"
+    }
+  ]
+}
+```
+
+Include both splits. Assign every chapter/capture from one work to the same
+`work_key` and split; use `layout_key` for the same known template family when
+the corpus permits that grouping. The command reads exact active-profile
+captures and current extraction offline, rejects work/layout/digest leakage,
+and reports correction/verified-keep labels only when source, adapter, body and
+correction revision bindings match. It also reports unlabeled captures.
+
+The manifest is a validator, not a corpus generator or scorer: it does not
+create labels, include unreviewed fields as negatives, supply candidate
+predictions or compute accuracy. Keep it and its report local because work keys,
+capture IDs and source evidence may reveal private collection structure.
+There is no representative corpus or promotion threshold yet, so do not treat a
+successful manifest check as evidence that a rule or model is ready to promote.
+
+### Bibliographic opening and title page
+
+Since 0.30.0, reader/PDF opening metadata uses full language names (English,
+French, etc.). The source editor has a sticky Preview/Save/Reset command bar,
+compact preview controls and collapsible source evidence/selection help.
+Right-click opens **Text-align**, **Headings** and **Styling** hover submenus;
+click/Right Arrow opens them too, with Back/Left Arrow to return.
+Selected text is always the styling target, even with selected blocks.
+Without selected text, styling applies to all selected blocks. Clear text
+selection for block-only alignment/headings. Styling offers italic, bold,
+underline, strikethrough, superscript and subscript; selecting an active style
+turns it off. Formatting previews automatically; save explicitly to record it.
+Reset presentation restores source presentation without editing original prose.
+Only supported inline text-align values are copied from source CSS.
+Format 19 / correction schema 10 stores whitelisted presentation and exact
+source text-range evidence; imports with these fields require schema 10.
+Existing editions remain unchanged until an explicit reformat.
+
+Since 0.29.0 (format 18, correction schema 9), **Page metadata and attribution**
+also has **Correct subtitle**, initially populated from supported source markers.
+Checking it with an empty value removes the inferred subtitle. Mixed-capitals
+archive subtitles are sentence-cased without changing words; reviewed text is
+preserved exactly. A saved source title override wins over the organization title
+on the next reformat. Existing editions and organization specifications are not
+rewritten. Reader and PDF show the same attribution, typed dates, language,
+subjects and original source. Unknown roles remain unconfirmed contributors,
+not invented authors. PDF and browser print reserve page one for the opening
+metadata; body content starts on page two. App-versioned PDF cache names ensure
+old generated PDFs are not reused for the new layout.
+
+### Manual retained-source excerpts
+
+Preferred workflow (0.28.1): use **Source editor — selected content** to switch
+directly between the exact source pages of an edition. In **Normalized page
+preview**, use the shared **Selection actions → Excerpts** submenu. The **Preview content**
+menu selects the parsed draft, all retained source content, or a saved excerpt.
+All retained content uses normalized reader typography and exposes original
+blocks even when extraction omits them or fails. The parsed contents-page
+preview now includes the index body too. Click one block in the preview,
+Ctrl/Command-click to toggle individual blocks, Shift-click to select a range.
+Keyboard Enter/Space supports the same modifiers. Left-click selects only.
+Right-click or Ctrl-right-click the selection (Context Menu/Shift+F10 also works)
+and choose **Excerpts → Create named excerpt from selection**; enter **Name**
+directly in the menu and **Save**. No separate revision form or reason is needed.
+Selected text and omission markers are under **Excerpt evidence and history**.
+Single and multiple selection use the same highlight.
+Wider colored vertical lines in aligned right-side columns, spaced from the
+blocks, identify saved excerpt membership. Accessible labels/tooltips identify
+the name and revision; click a line to select its excerpt, or right-click it
+for inline rename, Save or Delete. To change blocks, select them and return to
+**Excerpts → Edit / save selection**. The revision history remains visible.
+Excerpt selection never becomes a parsing-type
+label. Parsing actions remain available by switching back to the parsed draft.
+All-source preview links are disabled; actual publication still rejects
+unresolved internal links. This release needs no database migration; format 17
+records the changed default book structure without rewriting stored editions.
+
+Saving a definition is separate from saving a source correction or publishing
+a book. Content organization offers **Whole sources and named excerpts**.
+Choose the insertion position, include definitions independently, and set each
+part's display title/role. Explicit checkboxes replace whole-page parts with
+excerpts or vice versa. Definitions from another retained source are loaded by
+its URL using the fallback panel below. Existing uses show their pinned revision;
+an available newer revision can be explicitly adopted into the organization
+draft. Preview and confirm publication afterward. Definitions may overlap, but
+including overlapping definitions in one book is rejected.
+
+Migration `0022_sourceexcerptrevision` adds immutable revision records. Back up
+SQLite before migrating/restarting. Definition revisions carry exact capture
+and source digest, block selection, reviewer and reason. Concurrent/stale
+edits fail explicitly. Deleted definitions disappear from new choices; old
+uses stay valid. A changed retained source cannot silently reuse a selection.
+Named selections use sorted unique complete source blocks and can cross
+containers; original version-1 ranges below retain their same-container rule.
+Definitions are not yet included in correction dataset transfers; keep the
+database and retained blobs together in backups.
+
+Fallback range workflow:
+
+Use **Correct content organization → Include an excerpt from retained source**
+to include index prose or only a portion of a retained chapter/sub-work.
+Load the source URL, choose inclusive complete-block boundaries in one container,
+enter a title and role, and choose a position before an existing part or at the
+end. Review the entire range in the source-evidence panel.
+
+**Replace the whole-page part** is an explicit omission decision: the unselected
+remainder stays in immutable source/history but is not included in the new book.
+Existing excerpts/automatic sections are not silently removed by that checkbox.
+Use **Source headings** when the selected range includes its own title, or
+select prose only and use **Part title**. Preview/save organization publishes
+atomically and can be undone through the existing audited workflow.
+
+This selects original HTML independently of automatic extraction; source-editor
+corrections are not applied to excerpts. The picker and each excerpt part state
+that distinction. Ranges are bound to exact source bytes and selector version 1;
+new captures cannot silently reuse a stale selection. Overlapping manual/automatic
+sections, full-page duplication and missing reader-link targets fail explicitly.
+No remote fetch, guessed authorship or separate catalogue work is created.
+Source excerpts from other books do not transfer their catalogue membership.
+
+## 6. State, backup and restoration
+
+Default ignored `data/` contains:
+
+| Location | Role |
+|---|---|
+| `library.sqlite3` | Accounts, catalogue, captures, corrections, jobs and reader records |
+| `blobs/` | Original HTML/image bytes addressed by digest |
+| `secret-key` | Local signing/CSRF key; keep private |
+| `archive-corpus.sqlite3` | Optional sampler state |
+| `pdf/` | Derived cached PDF exports |
+| `workers/` | Process identities, locks and logs |
+| Coordination locks and `request-times/` | Shared process/source coordination |
+| `backups/` | Named local backup copies when created |
+
+Do not delete coordination files while processes run, individual source blobs,
+or whole data directories as cleanup. There is no automatic source eviction.
+Failed imports can leave unreferenced blobs; garbage collection requires an
+agreed retention/protection policy.
+
+For the simplest consistent **full backup**, gracefully stop workers and web,
+then copy the complete data directory, project and lockfile to a private backup
+destination. Include the optional sampler database and assets, not only SQLite.
+Do not recursively copy a backup destination into itself if it is under `data/`.
+
+For an online **database-only deployment backup**, use SQLite's backup API and
+verify the destination with `PRAGMA quick_check`. It is not a complete library
+backup: source/image files, keys and sampler state still need protection.
+Copying a live SQLite file directly is not an equivalent consistency guarantee.
+No automatic backup rotation/deletion policy is installed.
+
+Restore with web/workers stopped, restore matching data and source assets,
+install locked dependencies if needed, run migrations, and start services.
+Never overwrite a live database or use test fixtures to restore real reviews.
+
+After deployment check HTTP responsiveness, expected runtime version, exact
+worker identities/heartbeats, unchanged resource/crawl settings and preserved
+review/evidence records. Test UI changes without saving invented live decisions.
+
+## 7. PDF export
+
+The existing local WeasyPrint exporter is retained. It uses selected immutable
+HTML/CSS and checksum-verified local assets, not live network resources.
+Cached exports exclude private annotations; browser printing may include marks
+visible to their owner. Only one uncached render runs at a time; busy/resource/
+timeout errors leave cached reading intact.
+
+Further queue/pagination/performance changes are explicitly deferred in
+[TASKS](../TASKS.md). Do not treat historical tuning notes as a request for
+more exporter development.
+
+## 8. Development and verification
+
+```sh
+.venv/bin/python manage.py check
+.venv/bin/python manage.py makemigrations --check --dry-run
+.venv/bin/python manage.py test library.tests
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+```
+
+Use targeted selectors first; run full regressions for shared pipeline changes
+when warranted. Tests use isolated data and do not need live network access.
+Documentation-only changes need link/contract checks, not a live server restart
+or runtime version bump.
+
+Change dependency manifests before installing new packages; regenerate
+`requirements.lock` only when dependencies actually change, using the existing
+project workflow. Do not introduce an editor, extractor or infrastructure
+dependency merely because it appears as a deferred evaluation idea.
+
+Core implementation map:
+
+| Component | Location |
+|---|---|
+| Imports and publication | [pipeline](../library/services/pipeline.py) |
+| Extraction types and normalization | [base](../library/sources/base.py), [normalize](../library/sources/normalize.py) |
+| Source corrections and datasets | [corrections](../library/services/corrections.py), [datasets](../library/services/correction_datasets.py) |
+| Media and note operations | [media](../library/services/media_corrections.py), [notes](../library/services/note_corrections.py) |
+| Reviewer UI | [views](../library/correction_views.py), [script](../library/static/library/corrections.js), [template](../library/templates/library/corrections.html) |
+| Work navigation | [review navigation](../library/review_navigation.py) |
+| Book organization | [organizations](../library/services/organizations.py) |
+| Catalogue updates/overlays | [catalogue](../library/services/catalogue.py), [overlays](../library/services/catalogue_overlays.py) |
+| Worker control and PDF | [workers](../library/services/workers.py), [PDF](../library/services/pdf.py) |
+
+The following notes are historical: preview selection/exclusion used transient
+source mapping in 0.19.0 without changing correction schema 7 or format rules 11.
+No ML service or cross-capture correction reconciliation is deployed. The current
+result-first editor/evidence priorities are in [TASKS](../TASKS.md); the former
+operation-first priority does not prohibit editor infrastructure.
+In 0.19.1, Exclude selected block toggles to Restore selected block; excluded
+blocks remain selectable in the scope menu, without a separate undo-button list.
+In 0.20.0, review uses a single normalized preview and selected-block type
+controls. Show source block opens original text evidence; metadata, image and
+footnote tools are collapsible. All source blocks remain selectable in the scope
+menu when preview validation fails. No correction schema or formatting change
+is required.
+In 0.20.1, longer correction-form guidance appears through ? help buttons on
+hover/focus or click/tap. Escape or an outside click dismisses help. Operational
+errors and draft status remain visible; help is not a replacement for feedback.
+In 0.20.2 desktop help is triggered directly by hovering/focusing its associated
+control. ? buttons remain only at mobile widths or on non-hover devices.
+In 0.21.0 passive help waits 650 ms. Since 0.28.1, left-click only selects;
+right-click/Context Menu/Shift+F10 opens actions. Menu actions change the draft;
+preview, save and reformat remain explicit.
+In 0.23.0 the selected-block toolbar is removed. Use the contextual menu for
+type/exclusion actions, Show source block and enclosing-container selection.
+Selection actions opens the same menu without clicking content; Find excluded
+blocks and Find source block keep absent or unrenderable content accessible.
+Current draft type and source are separate lines; the matching choice is bold.

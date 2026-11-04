@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "purpose": "Synthetic correction acceptance tasks, not a representative reviewer benchmark",
+  "tasks": [
+    {
+      "id": "article-notes-media",
+      "title": "Article review task",
+      "initial": "<section id=\"article\"><h2 id=\"title\">A reading article</h2><p id=\"subheading\">A section</p><p id=\"body\">Original wrding with Unicode 😀 and café.</p><figure><img id=\"plate\" src=\"/assets/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/\" alt=\"Wrong description\"><figcaption>A caption <span class=\"media-credit\">Diagram credit</span></figcaption></figure><p><sup><a id=\"ref\" href=\"#missing\">1</a></sup></p><p id=\"note\">An endnote <a class=\"note-backlink\" href=\"#ref\">Back</a></p></section>",
+      "actions": [
+        {"type": "text", "target": "body", "before": "wrding", "after": "wording"},
+        {"type": "heading", "target": "subheading", "level": "h3"},
+        {"type": "image", "target": "plate", "alt": "A retained diagram"},
+        {"type": "link", "target": "ref", "href": "#note"}
+      ],
+      "expected": "<section id=\"article\"><h2 id=\"title\">A reading article</h2><h3 id=\"subheading\">A section</h3><p id=\"body\">Original wording with Unicode 😀 and café.</p><figure><img id=\"plate\" src=\"/assets/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/\" alt=\"A retained diagram\"><figcaption>A caption <span class=\"media-credit\">Diagram credit</span></figcaption></figure><p><sup><a id=\"ref\" href=\"#note\">1</a></sup></p><p id=\"note\">An endnote <a class=\"note-backlink\" href=\"#ref\">Back</a></p></section>",
+      "toc": ["A reading article", "A section"],
+      "pdf_text": ["Original wording", "A caption", "Diagram credit", "An endnote"],
+      "focus": "article"
+    },
+    {
+      "id": "book-order-omission",
+      "title": "Book review task",
+      "source_excerpt": "Restored sentence from retained source.",
+      "initial": "<section id=\"chapter-one\"><h2 id=\"chapter-title\">I. First chapter</h2><p id=\"second\">Second paragraph.</p><p id=\"first\">First paragraph.</p><p id=\"restore\">Opening.</p><p><a id=\"ref\" href=\"#missing\">Note</a></p></section><section id=\"chapter-two\"><h2 id=\"second-title\">II. Notes and table</h2><p id=\"note\">Shared endnote <a class=\"note-backlink\" href=\"#ref\">Back</a></p><table><caption>Data table</caption><tbody><tr><th>Label</th><th>Value</th></tr><tr><td>Alpha</td><td>42</td></tr></tbody></table><pre><code>  exact\n spacing</code></pre></section>",
+      "actions": [
+        {"type": "move", "target": "first", "direction": -1},
+        {"type": "paste", "target": "restore", "text": " Restored sentence from retained source."},
+        {"type": "link", "target": "ref", "href": "#note"}
+      ],
+      "expected": "<section id=\"chapter-one\"><h2 id=\"chapter-title\">I. First chapter</h2><p id=\"first\">First paragraph.</p><p id=\"second\">Second paragraph.</p><p id=\"restore\">Opening. Restored sentence from retained source.</p><p><a id=\"ref\" href=\"#note\">Note</a></p></section><section id=\"chapter-two\"><h2 id=\"second-title\">II. Notes and table</h2><p id=\"note\">Shared endnote <a class=\"note-backlink\" href=\"#ref\">Back</a></p><table><caption>Data table</caption><tbody><tr><th>Label</th><th>Value</th></tr><tr><td>Alpha</td><td>42</td></tr></tbody></table><pre><code>  exact\n spacing</code></pre></section>",
+      "toc": ["I. First chapter", "II. Notes and table"],
+      "pdf_text": ["First paragraph.", "Second paragraph.", "Restored sentence", "Shared endnote", "Data table", "Alpha"],
+      "focus": "chapter-one"
+    }
+  ]
+}

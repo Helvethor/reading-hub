@@ -1,0 +1,8 @@
+{% extends "library/base.html" %}
+{% block content %}
+<div class="page-container">
+  <h1>Content organization published</h1>
+  <p>Decision #{{ decision.pk }} saved. All affected complete renditions were validated before membership changed. Immutable versions, source corrections and private annotations were preserved.</p>
+  <p><a href="{% url 'content-organization' %}?url={{ url|urlencode }}">Review organization and audited undo</a> &middot; <a href="{% url 'home' %}">Library</a></p>
+</div>
+{% endblock %}

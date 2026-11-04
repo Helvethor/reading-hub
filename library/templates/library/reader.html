@@ -1,0 +1,79 @@
+{% extends 'library/base.html' %}
+{% load static %}
+{% block title %}{{ version.title }} | {{ site.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}">{% endblock %}
+{% block content %}
+<div class="reader-toolbar">
+  <a href="{% url 'home' %}">&larr; Library</a>
+  <a href="{% url 'history' version.document_id %}">Version history ({{ other_versions|length }})</a>
+  <form method="post" action="{% url 'refresh' version.document_id %}">{% csrf_token %}<button class="secondary" type="submit">Refresh source</button></form>
+  <form method="post" action="{% url 'reformat' version.pk %}">{% csrf_token %}<button class="secondary" type="submit">Reformat stored source</button></form>
+  <a href="{% url 'reader-pdf' version.pk %}">Download PDF</a>
+  {% if user.is_authenticated %}<a href="{% url 'preserved-annotations' %}">Preserved annotations</a>{% endif %}
+  {% if user.is_authenticated %}<button class="secondary" type="button" id="annotation-toggle" aria-controls="annotation-toolbox" aria-expanded="false" hidden>Private annotations</button>{% else %}<a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in to highlight or underline</a>{% endif %}
+</div>
+{% if user.is_staff or perms.library.review_metadata %}
+<div class="reader-review-entry"><a href="{% url 'work-review' %}?review_version={{ version.pk }}">Review this work</a><span class="muted">Parsing, organization and metadata</span></div>
+{% endif %}
+<div class="reader-layout">
+  <label class="print-options"><input type="checkbox" id="print-wrap-images"> Wrap text around smaller figures when printing (reduces image width). Browser print: Ctrl+P. Downloaded PDFs exclude private annotations.</label>
+  <aside class="toc-panel" aria-label="Document navigation">
+    <details open>
+      <summary>On this page</summary>
+      <nav aria-label="Table of contents">
+        {% if toc %}{% include 'library/toc.html' with nodes=toc %}{% else %}<p class="muted">No section headings in this document.</p>{% endif %}
+      </nav>
+    </details>
+  </aside>
+  <div class="reading-column">
+    {% if user.is_authenticated %}
+    <section id="annotation-toolbox" class="annotation-toolbox" aria-label="Private annotation toolbox" data-url="{% url 'annotations' version.pk %}" hidden>
+      <h2>Your private annotations</h2>
+      <p>Only you can see these marks, and only on this exact cached version. Select article text with the mouse, touch selection handles, or keyboard caret browsing (F7 in supported browsers, then Shift + arrows), then apply a style. Closing the toolbox keeps your marks visible.</p>
+      <form id="annotation-form" class="annotation-controls">
+        {% csrf_token %}
+        <label>Style <select name="kind"><option value="highlight">Highlight</option><option value="underline">Underline</option></select></label>
+        <label>Color <select name="color"><option value="yellow">Yellow</option><option value="green">Green</option><option value="blue">Blue</option><option value="pink">Pink</option></select></label>
+        <button type="submit" disabled>Apply to selection</button>
+      </form>
+      <p id="annotation-selection" class="muted">Select text in the article to begin.</p>
+      <p id="annotation-status" role="status" aria-live="polite"></p>
+      <p id="annotation-error" class="warning-text" role="alert"></p>
+      <ol id="annotation-list"></ol>
+    </section>
+    <noscript><p class="notice">Private highlighting requires JavaScript. Reading the saved article does not.</p></noscript>
+    {% endif %}
+    <header class="document-header">
+      <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
+      <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
+      {% include 'library/document_metadata.html' %}
+      {% include 'library/document_review_status.html' with revision=version.document_publication.revision %}
+    </header>
+    {% if version.warnings %}
+    <section class="notice warning" aria-label="Import warnings"><h2>Some images could not be saved</h2>
+      <ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    <article class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ version.html|safe }}</article>
+    <section class="version-details" aria-label="Cached version details">
+      <h2>About this cached version</h2>
+      <dl>
+        <dt>Version created</dt><dd>{{ version.created_at|date:"Y-m-d H:i:s T" }}</dd>
+        <dt>Source captured</dt><dd>{{ version.snapshot.fetched_at|date:"Y-m-d H:i:s T" }}</dd>
+        <dt>Application</dt><dd>{{ version.app_version }}</dd>
+        <dt>Source adapter</dt><dd>{{ version.adapter_version }}</dd>
+        <dt>Formatting rules</dt><dd>{{ version.format_version }}</dd>
+        {% if version.document_publication %}<dt>Document publication rules</dt><dd>{{ version.document_publication.publication_version }}</dd>{% endif %}
+        {% if version.document_publication %}<dt>Edited result provenance</dt><dd>Original edition <a href="{% url 'reader' version.document_publication.revision.draft.rendition_id %}">{{ version.document_publication.revision.draft.rendition_id }}</a>; draft {{ version.document_publication.revision.draft_id }}, revision {{ version.document_publication.revision.revision }}.</dd>{% endif %}
+        {% if last_check %}<dt>Last source check</dt><dd>{{ last_check.checked_at|date:"Y-m-d H:i:s T" }} ({{ last_check.outcome }})</dd>{% endif %}
+      </dl>
+      <p>Refresh downloads the source again. Reformat uses this version's saved source and images without network access. Neither action overwrites existing versions.</p>
+      {% if version.document_publication %}<p>Refresh and reformat generate from source; they do not reapply this edition's direct edits.</p>{% endif %}
+      <details><summary>Choose a saved version</summary><ul>{% for item in other_versions %}
+        <li><a href="{% url 'reader' item.pk %}">{{ item.created_at|date:"Y-m-d H:i:s T" }} &middot; app {{ item.app_version }}, rules {{ item.format_version }}</a>{% if item.pk == version.pk %} (current){% endif %}</li>
+      {% endfor %}</ul></details>
+    </section>
+  </div>
+</div>
+{% if user.is_authenticated %}<script src="{% static 'library/annotations.js' %}?v={{ app_version }}" defer></script>{% endif %}
+{% endblock %}

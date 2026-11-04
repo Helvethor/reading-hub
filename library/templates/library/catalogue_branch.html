@@ -1,0 +1,10 @@
+{% for error in browse_errors %}<p class="notice warning" role="alert">{{ error }}</p>{% endfor %}
+{% include 'library/catalogue_tree.html' %}
+{% if leaf %}
+  <p class="muted">{% if page.paginator.count %}Articles {{ page.start_index }}&ndash;{{ page.end_index }} of {{ page.paginator.count }} in this branch.{% else %}No articles in this branch.{% endif %}</p>
+  {% if page.has_other_pages %}<nav class="pagination" aria-label="Branch pages">
+    {% if page.has_previous %}<a data-tree-page href="?{{ browse_query }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a data-tree-page href="?{{ browse_query }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
+  </nav>{% endif %}
+{% endif %}

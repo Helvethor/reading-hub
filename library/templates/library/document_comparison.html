@@ -1,0 +1,62 @@
+{% extends "library/base.html" %}
+{% block title %}Compare saved revisions | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container document-comparison">
+  <h1>Compare saved revisions</h1>
+  <p><a href="{% url 'document-editor' source.pk %}{% if draft %}?draft={{ draft.pk }}{% endif %}">Back to editor</a></p>
+  {% if comparison_error %}<p class="error" role="alert">{{ comparison_error }}</p>{% else %}
+  <p class="notice">Read-only comparison of saved evidence. Unsaved editor changes are not included. Differences do not verify content, approve publication or establish a training example.</p>
+  <form method="get">
+    <input type="hidden" name="draft" value="{{ draft.pk }}">
+    <label>Earlier revision (0 = pinned draft base) <input type="number" name="from" min="0" value="{{ earlier }}" required></label>
+    <label>Later revision (0 = pinned draft base) <input type="number" name="to" min="0" value="{{ later }}" required></label>
+    <label>HTML scope
+      <select name="section">
+        <option value="">Whole document</option>
+        {% for item in comparison.sections %}<option value="{{ item.id }}"{% if comparison.section == item.id %} selected{% endif %}>{{ item.label }} — #{{ item.id }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Compare saved revisions</button>
+  </form>
+  <p>Comparing <strong>{% if earlier %}saved revision {{ earlier }}{% else %}pinned draft base{% endif %}</strong>
+    → <strong>{% if later %}saved revision {{ later }}{% else %}pinned draft base{% endif %}</strong>.</p>
+  <p><a href="?draft={{ draft.pk }}&amp;from={{ earlier }}&amp;to={{ later }}&amp;section={{ comparison.section|urlencode }}&amp;download=1">Download exact documents and pinned provenance (JSON)</a> (always includes the complete documents)</p>
+  <details>
+    <summary>Provenance and saved review status</summary>
+    <dl>
+      <dt>Original edition</dt><dd><a href="{% url 'reader' source.pk %}">{{ source.pk }} — {{ source.title }}</a></dd>
+      <dt>Draft</dt><dd>{{ draft.pk }}</dd>
+      <dt>Profile</dt><dd>{{ draft.profile }}</dd>
+      <dt>Pinned snapshot</dt><dd>{{ draft.evidence.snapshot }}</dd>
+      <dt>Source versions (app / adapter / format)</dt><dd>{{ draft.evidence.versions.app }} / {{ draft.evidence.versions.adapter }} / {{ draft.evidence.versions.format }}</dd>
+      <dt>Base provenance</dt><dd>{{ draft.evidence.kind }}. {% if draft.evidence.kind == "fresh-retained-source" %}Fresh offline generation from pinned retained source, using the recorded rules and correction/organization bindings. Saved editor revisions were not replayed.{% else %}This is a pinned retained edition, not a newly regenerated source draft.{% endif %}</dd>
+      <dt>Evidence digest</dt><dd>{{ draft.evidence_digest }}</dd>
+      <dt>Earlier document digest</dt><dd>{{ comparison.before_digest }}</dd>
+      <dt>Later document digest</dt><dd>{{ comparison.after_digest }}</dd>
+      <dt>Earlier saved by / at</dt><dd>{{ before_row.reviewer }} / {{ before_row.created_at|date:"c" }}</dd>
+      <dt>Later saved by / at</dt><dd>{{ after_row.reviewer }} / {{ after_row.created_at|date:"c" }}</dd>
+      <dt>Earlier saved status</dt><dd>{% if earlier %}{{ before_row.get_review_display }}; editorial: {{ before_row.editorial|yesno:"yes,no" }}; sections: {{ before_row.verified_sections|join:", "|default:"none" }}{% else %}Draft base; no saved review certification{% endif %}</dd>
+      <dt>Later saved status</dt><dd>{% if later %}{{ after_row.get_review_display }}; editorial: {{ after_row.editorial|yesno:"yes,no" }}; sections: {{ after_row.verified_sections|join:", "|default:"none" }}{% else %}Draft base; no saved review certification{% endif %}</dd>
+    </dl>
+  </details>
+  {% if not comparison.changed_fields %}<p>No document changes between these saved states. Review status can still differ.</p>{% else %}
+  <p>Changed document fields: {{ comparison.changed_fields|join:", " }}.</p>
+  {% if before.title != after.title %}<h2>Title</h2><p>Earlier: {{ before.title }}</p><p>Later: {{ after.title }}</p>{% endif %}
+  {% if before.metadata != after.metadata %}
+    <h2>Metadata</h2>
+    <details><summary>Earlier metadata</summary><pre>{{ comparison.metadata_before }}</pre></details>
+    <details><summary>Later metadata</summary><pre>{{ comparison.metadata_after }}</pre></details>
+  {% endif %}
+  <h2>HTML structure and wording</h2>
+  {% if comparison.section %}<p>HTML scope: section <strong>#{{ comparison.section }}</strong>, matched by its exact ID, not by title or position. Other sections are excluded from this display. Section markup is parsed for comparison; the download and document digests retain the exact complete saved documents. Title and metadata above remain whole-document values.</p>{% endif %}
+  <p>Markup is displayed as inert text, one tag or text token per line. Minus (−) means earlier; plus (+) means later. Whitespace and wrapper changes are not classified as semantic intent. Unchanged opening and closing content is omitted; hunk line numbers refer to tokens within the compared span, not source lines.</p>
+  {% if comparison.limited %}<p class="notice">The changed span exceeds the 6,000-token inline comparison limit after omitting unchanged opening and closing content. Choose an identified section above or download the exact evidence pair for a complete comparison; no partial diff is presented as complete.</p>
+  {% elif comparison.html_changed %}
+    {% if comparison.truncated %}<p class="notice">Comparison display is truncated to 400 lines and 2,000 characters per line. Download the exact documents for all differences.</p>{% endif %}
+    <pre aria-label="Saved HTML differences">{% for line in comparison.lines %}{% if line.kind == "added" %}<ins>{{ line.text }}</ins>{% elif line.kind == "removed" %}<del>{{ line.text }}</del>{% else %}{{ line.text }}{% endif %}
+{% endfor %}</pre>
+  {% else %}<p>No HTML changes{% if comparison.section %} in this selected section{% endif %}.</p>{% endif %}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

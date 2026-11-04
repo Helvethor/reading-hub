@@ -1,0 +1,27 @@
+{% extends "library/base.html" %}
+{% block title %}Correction revisions | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container correction-workspace">
+  <h1>Saved correction revisions</h1>
+  <p>{{ capture.url }}</p>
+  <p><a href="{% url 'correction-export' capture.pk %}">Export all source revisions</a></p>
+  <p>Read-only evidence, not an old reader rendition. Only the latest saved revision is active. Earlier revisions remain inspectable even when the current adapter cannot extract the page. This page never executes retained HTML.</p>
+  {% for correction in page %}
+  <article class="metadata-suggestion">
+    <h2>Revision {{ correction.revision }}</h2>
+    <p>{{ correction.created_at }} &middot; {{ correction.reviewer.username }} &middot; Schema {{ correction.schema_version }} &middot; Adapter {{ correction.adapter_version }}</p>
+    <p>{{ correction.reason|default:"No reason supplied" }}</p>
+    <p>Source digest: <code>{{ correction.source_digest }}</code></p>
+    <h3>Verified expected output</h3>
+    {% if not correction.expected %}<p>Reset to baseline; no explicit overrides.</p>{% endif %}
+    <pre class="correction-source">{{ correction.expected|pprint }}</pre>
+    <details><summary>Original extraction and provenance</summary><pre class="correction-source">{{ correction.original|pprint }}</pre></details>
+    {% if correction.imported_from %}<details><summary>Imported source revision evidence (not authenticated reviewer identity)</summary><pre class="correction-source">{{ correction.imported_from|pprint }}</pre></details>{% endif %}
+  </article>
+  {% empty %}<p>No saved revisions for this capture.</p>{% endfor %}
+  <nav aria-label="Correction revision pages">
+    {% if page.has_previous %}<a href="?{{ review_nav.query }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    {% if page.has_next %}<a href="?{{ review_nav.query }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
+  </nav>
+</div>
+{% endblock %}

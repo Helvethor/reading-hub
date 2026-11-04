@@ -1,0 +1,313 @@
+{% extends "library/base.html" %}
+{% load static %}
+{% block title %}Document editor pilot | {{ site.name }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
+<link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}">
+{% endblock %}
+{% block content %}
+<div class="page-container editor-page">
+  <h1>Document editor pilot</h1>
+  <p class="notice">Editing version {{ version.pk }} creates immutable saved revisions. Each saved revision is explicitly partial, section-verified or whole-document verified. Publication is a separate action. Source corrections, organization, old editions and annotations are unchanged.</p>
+  <p><a href="{% url 'reader' version.pk %}">Back to the original edition</a> · <a href="{% url 'work-review' %}?review_version={{ version.pk }}">Existing reviewer tools</a></p>
+  <p><a href="{% url 'document-fresh-draft' version.pk %}" target="_blank" rel="noopener">Preview regeneration from retained source as a separate draft (new tab)</a></p>
+  <p><a href="{% url 'document-fresh-draft' version.pk %}?inputs=original" target="_blank" rel="noopener">Start fresh from original retained source, without previous corrections (new tab)</a></p>
+  {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
+  {% if evaluation_run %}<p class="notice">Isolated evaluation working draft. <a href="{% url 'reviewer-run' evaluation_run.pk %}" target="_blank" rel="noopener">Task instructions and result form (new tab)</a>. Save here before recording a result; evaluation does not publish or verify.</p>
+  {% endif %}
+  <p><a id="editor-history" href="{% url 'document-editor-history' version.pk %}{% if draft %}?draft={{ draft.pk }}{% endif %}" target="_blank" rel="noopener">Version history and other starting points (new tab)</a></p>
+  {% if draft.evidence.correction_origin %}<p class="notice">Starting from saved version {{ draft.evidence.correction_origin.revision }} of another correction history. Its content is retained exactly; review approval is not inherited.</p>{% endif %}
+  <p><small>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a></small></p>
+  {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
+  {% if initial %}
+  <p class="editor-book-title">{{ initial.document.title }}</p>
+  <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" novalidate>
+    {% csrf_token %}
+    <details class="editor-metadata">
+      <summary>Bibliographic metadata and title</summary>
+      <label>Document title <input name="title" value="{{ initial.document.title }}" maxlength="1000" required disabled></label>
+      <label>Author <input name="author" maxlength="1000" value="{{ initial.document.metadata.author|default:'' }}" disabled></label>
+      <label>Subtitle <input name="subtitle" maxlength="1000" value="{{ initial.document.metadata.subtitle|default:'' }}" disabled></label>
+      <label>Language code <input name="language" maxlength="35" value="{{ initial.document.metadata.language|default:'' }}" placeholder="en, en-us, fr, und" disabled></label>
+      <p>Changes belong to this corrected document, not the original source or catalogue. Use contributor rows for multiple authors and roles; once these are edited, Author is derived from their author roles.</p>
+      <details><summary>Contributors and roles</summary>
+        <div id="editor-contributors"></div>
+        <button type="button" id="editor-add-contributor" disabled>Add contributor</button>
+        <p>Names are scoped to this document. Changing a name does not merge catalogue identities. Excluded attributions are kept in metadata but not displayed as contributors.</p>
+      </details>
+      <details><summary>Dates and subjects</summary>
+        <p id="editor-original-publication"></p>
+        <p>Editing date rows stores typed dates without copying parser evidence as new certification. Original evidence remains in the pinned starting version.</p>
+        <div id="editor-dates"></div>
+        <button type="button" id="editor-add-date" disabled>Add date</button>
+        <p>Use the precision known from the source. Ranges require matching precision and chronological order. Only one publication date is supported. Remove all date rows to clear dates after editing; untouched source dates remain unchanged.</p>
+        <label>Subjects (one per line)<textarea name="subjects" rows="4" disabled></textarea></label>
+      </details>
+    </details>
+    {% if initial.requires_approval %}
+    <details open><summary>Proposed legacy conversion: {{ initial.repairs|length }} wrapper repair(s)</summary>
+      <ul>{% for repair in initial.repairs %}<li>Element {{ repair.element }}{% if repair.id %}, target {{ repair.id }}{% endif %}: {{ repair.before }} → {{ repair.after }}</li>{% endfor %}</ul>
+      <p>These wrappers become block containers. Text, attributes, links and asset references are preserved, but layout can change.</p>
+      <label><input name="approve_conversion" type="checkbox"> I approve this exact conversion for the draft.</label>
+    </details>
+    {% endif %}
+    <div class="editor-workspace">
+      <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands">
+        <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
+        <button type="button" data-history="undo" disabled>Undo</button>
+        <button type="button" data-history="redo" disabled>Redo</button>
+        <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="">Whole book</option></select></label>
+        <label><input id="editor-block-labels" type="checkbox" checked disabled> Block labels</label>
+        <button type="submit" disabled>Save corrected version</button>
+        <button type="button" id="editor-mark-reviewed" disabled>Mark reviewed</button>
+        <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert retained source content</button>
+        <button type="button" id="editor-section-move-open" disabled>Move section…</button>
+        <button type="button" id="editor-new-section-open">New section…</button>
+        <button type="button" id="editor-section-boundary-open">Section boundary…</button>
+        <button type="button" id="editor-target-open">Target ID…</button>
+        <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
+      </div>
+      <p id="editor-status" role="status">Loading the local editor and checking document fidelity…</p>
+      <p id="editor-error" class="error" role="alert"></p>
+      <div class="editor-workspace-body">
+        <nav class="editor-outline" aria-label="Book parts">
+          <h2>Book outline</h2>
+          <p>Highlighted entries are in view; the current heading follows scroll. +/− folds outline branches; triangles collapse editor content. Click a title to scroll there without hiding other parts. Use the part selector to show only one part. Right-click or Shift+F10 opens section actions.</p>
+          <div id="editor-outline-items"></div>
+        </nav>
+        <div class="editor-canvas">
+          <p id="editor-view-notice" role="status">Whole book. Saving always includes all parts.</p>
+          <div id="editor-surface" class="reader-content"></div>
+          <p id="editor-selection-path" aria-label="Current block structure"></p>
+        </div>
+      </div>
+    </div>
+    <p id="editor-help" class="editor-help">Select text and right-click for formatting, or press Shift+F10. Selection tools provides the same menu by keyboard or touch. Ctrl/Cmd-click a link to follow it: internal anchors scroll to their target; external links open a new tab. Ordinary clicks remain for editing. Ctrl+X cuts semantic content; Ctrl+V pastes it at the cursor in this editor, preserving formatting, links and retained images without a dialog. Cut removes immediately; Ctrl+Z restores it. Paste before closing or reloading the editor. Use the outline to reach another chapter, or Whole document for cross-chapter selections. External clipboard paste still opens a preview. Shift+right-click opens the native browser menu.</p>
+    <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
+      <p id="editor-menu-target"></p>
+      <div role="group" aria-label="Text styling" class="editor-menu-group">
+        <span class="editor-menu-heading">Text styling</span>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="strong" disabled>Bold</button>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="em" disabled>Italic</button>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="u" disabled>Underline</button>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="s" disabled>Strikethrough</button>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="sup" disabled>Superscript</button>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="sub" disabled>Subscript</button>
+      </div>
+      <div role="group" aria-label="Paragraph type" class="editor-menu-group">
+        <span class="editor-menu-heading">Paragraph type</span>
+        <button type="button" role="menuitemradio" aria-checked="false" data-block="p" disabled>Paragraph</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-block="h2" disabled>H2</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-block="h3" disabled>H3</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-block="h4" disabled>H4</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-block="h5" disabled>H5</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-block="h6" disabled>H6</button>
+      </div>
+      <div role="group" aria-label="Paragraph alignment" class="editor-menu-group">
+        <span class="editor-menu-heading">Paragraph alignment (whole block)</span>
+        <button type="button" role="menuitemradio" aria-checked="false" data-align="" disabled>Default / inherited</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-align="left" disabled>Align left</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-align="center" disabled>Align center</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-align="right" disabled>Align right</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-align="justify" disabled>Justify</button>
+      </div>
+      <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
+      <button type="button" role="menuitem" data-quotation="edit" disabled>Figure &amp; caption…</button>
+      <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
+      <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
+      <button type="button" role="menuitem" data-link-remove disabled>Remove link (keep text and targets)</button>
+      <button type="button" role="menuitem" data-move="-1" disabled>Move paragraph up</button>
+      <button type="button" role="menuitem" data-move="1" disabled>Move paragraph down</button>
+      <button type="button" role="menuitem" id="editor-content-move-open" disabled>Move selected content…</button>
+      <button type="button" role="menuitem" data-history="undo" disabled>Undo</button>
+      <button type="button" role="menuitem" data-history="redo" disabled>Redo</button>
+      <button type="button" role="menuitem" id="editor-menu-close">Close menu</button>
+    </div>
+    <details class="editor-review-controls">
+      <summary>Optional review scope and editorial status</summary>
+      <p id="editor-saved-review" role="status"></p>
+      <p>Ordinary saves need no review declaration. Mark reviewed certifies the whole saved document without publishing it; save your edits first. For partial coverage, choose sections here and save. Any content, title or metadata edit resets the next save to partial.</p>
+      <label><input type="radio" name="review" value="partial" checked disabled> Partial review — no verified scope</label>
+      <label><input type="radio" name="review" value="sections" disabled> Verify selected sections</label>
+      <div id="editor-sections" hidden></div>
+      <label><input type="radio" name="review" value="full" disabled> Verify the whole document</label>
+      <label><input type="checkbox" name="editorial" disabled> Includes editorial changes beyond transcription/formatting</label>
+    </details>
+    <p>Type directly; Enter splits paragraphs and Backspace joins them. Paste opens a clipboard preview with plain-text and supported inline-formatting choices for approval. Drag/drop is unavailable in this pilot.</p>
+    <p>Move paragraph up/down moves the whole paragraph, heading or preformatted block containing the cursor or selected text, past one adjacent text block in the same container. It preserves links and targets and can be undone. It does not cross sections, lists, tables or media.</p>
+    <p>Save all changes before previewing publication. Saving a review scope does not publish; publication does not itself verify.</p>
+    <a id="editor-publication" target="_blank" rel="noopener" hidden>Review saved result for publication (new tab)</a>
+    <p><a id="editor-comparison" target="_blank" rel="noopener" hidden>Compare saved revisions and pinned starting document (new tab; excludes unsaved edits)</a></p>
+    <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
+    <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
+  </form>
+  <dialog id="editor-new-section" aria-labelledby="editor-new-section-heading">
+    <h2 id="editor-new-section-heading">New section</h2>
+    <p>Place the cursor in a block before opening this tool. Create a titled section with an empty paragraph, then type or paste content into it. Existing content is unchanged. Creation is one undo step; saving and publication remain separate.</p>
+    <label>Title <input name="title" maxlength="500"></label>
+    <label>Heading level <select name="level">
+      <option value="2">H2</option><option value="3">H3</option><option value="4">H4</option>
+      <option value="5">H5</option><option value="6">H6</option>
+    </select></label>
+    <label>Place <select name="placement">
+      <option value="after">After current block</option>
+      <option value="before">Before current block</option>
+      <option value="end">At end of document (whole-document view)</option>
+    </select></label>
+    <p>Before/after creates a sibling of the current block, within its existing container. A unique target ID is assigned automatically.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Create section</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-section-boundary" aria-labelledby="editor-section-boundary-heading">
+    <h2 id="editor-section-boundary-heading">Start a section at this heading</h2>
+    <p>Place the cursor in an existing heading in whole-document view. A heading is not a section container: this tool makes the boundary explicit without changing its content.</p>
+    <p data-summary role="status"></p>
+    <label>New section target ID <input name="target" maxlength="200" spellcheck="false"></label>
+    <p>Use a unique ID, or restore a missing ID only after checking the intended boundary. Existing heading IDs, text, links and images remain unchanged. This does not change source-page membership or imply source provenance.</p>
+    <pre data-preview></pre>
+    <p>One undo step. Save the corrected version separately; publication remains separate.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Apply boundary</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-target" aria-labelledby="editor-target-heading">
+    <h2 id="editor-target-heading">Create or rename an element target</h2>
+    <p>Show the whole document and expand all content. Select text within one block to create an inline target, or place the cursor/select text inside an existing inline target to edit the whole marker. Otherwise this edits the current paragraph/heading or selected block/image. Ctrl/Cmd-click a link to choose its exact destination, including overlapping targets. Moving the selection or editing clears that navigation handoff.</p>
+    <p data-summary role="status"></p>
+    <label>Target ID <input name="target" maxlength="200" spellcheck="false"></label>
+    <p data-links></p>
+    <p>Renaming updates all internal links to the old target in one undo step. It does not infer note/reference pairs, change external URLs or redirects, or remove targets. Save and publication remain separate.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Apply target</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-content-move" aria-labelledby="editor-content-move-heading">
+    <h2 id="editor-content-move-heading">Move selected content</h2>
+    <p>Move selected inline content as a paragraph, or complete blocks, keeping formatting, IDs, links and retained assets. This shows the whole document. The source is removed and the destination updated in one undoable step. No clipboard copy or footnote-specific workflow is required.</p>
+    <label>Destination section <select name="destination"></select></label>
+    <label>Place <select name="placement">
+      <option value="section-end">At end of destination section</option>
+      <option value="before">Before destination section</option>
+      <option value="after">After destination section</option>
+      <option value="new-section">In a new titled section at destination's end</option>
+      <option value="document-end">At end of document</option>
+    </select></label>
+    <label hidden>New section title <input name="section-title" maxlength="500"></label>
+    <p>A new child section uses the next heading level after its destination's heading (up to H6), or H2 if none exists. Its heading can be edited normally afterward.</p>
+    <h3>Selected content (text preview, up to 4,000 characters)</h3>
+    <pre data-selection></pre>
+    <h3>Source paragraph after removal (text preview, up to 4,000 characters)</h3>
+    <pre data-source></pre>
+    <p data-seam></p>
+    <p>Select all of a target-bearing link or wrapper to move its ID safely. For several blocks, select from the first block's start to the last block's end within one container. Partial preformatted text is not supported; select the complete block. Links are preserved, not automatically repaired or renumbered. Save when satisfied; publication remains separate.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Move content</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-section-move" aria-labelledby="editor-section-move-heading">
+    <h2 id="editor-section-move-heading">Move section</h2>
+    <p>Move a complete section, including nested sections, links, note targets and images. This shows the whole book so destinations are visible. Nothing is deleted or copied; undo restores the previous order. Save corrected version to keep the change.</p>
+    <label>Section to move <select name="section"></select></label>
+    <label>Place <select name="placement">
+      <option value="end">At end of document</option>
+      <option value="start">At start of document</option>
+      <option value="before">Before another section</option>
+      <option value="after">After another section</option>
+      <option value="inside">Inside another section, at its end</option>
+    </select></label>
+    <label>Destination section <select name="destination"></select></label>
+    <p>Before/after uses the destination's container; inside makes the moved section a child of the destination. Only actual section containers are listed, not heading-only outline ranges. Moving sections changes document content order, not source-page membership.</p>
+    <p role="status"></p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Move section</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-source" aria-labelledby="editor-source-heading">
+    <h2 id="editor-source-heading">Insert retained source content</h2>
+    <p>Select blocks from the original retained page, preview, then insert as ordinary editable content. No named excerpt is created. Your cursor position is kept while this panel is open.</p>
+    <label>Retained page <select name="page" aria-label="Retained page"><option value="0">Loading source pages</option></select></label>
+    <p id="editor-source-notice"></p>
+    <div id="editor-source-blocks" role="group" aria-label="Source blocks"></div>
+    <button type="button" id="editor-source-preview-button">Preview selected content</button>
+    <p>Images use retained assets only. Internal links within the selection stay linked; links to unselected material remain source-site links, not inferred document relationships. Review the preview for normalization or wrapper changes. Insertions can be undone in one step.</p>
+    <div id="editor-source-preview" class="reader-content" aria-label="Source insertion preview"></div>
+    <label>Insert <select name="placement"><option value="after">After the cursor's block</option><option value="before">Before the cursor's block</option><option value="end">At the end of the whole document</option></select></label>
+    <p class="error" role="alert"></p>
+    <button type="button" id="editor-source-insert" disabled>Insert previewed content</button>
+    <button type="button" id="editor-source-cancel">Cancel</button>
+  </dialog>
+  <dialog id="editor-quotation" aria-labelledby="editor-quotation-heading">
+    <h2 id="editor-quotation-heading">Figure &amp; caption</h2>
+    <p id="editor-quotation-target"></p>
+    <label for="editor-figure-caption">Caption / attribution belongs to this figure</label>
+    <select id="editor-figure-caption" aria-describedby="editor-quotation-help"></select>
+    <div id="editor-figure-new" hidden>
+      <label for="editor-quotation-attribution">New caption text</label>
+      <textarea id="editor-quotation-attribution" rows="3" maxlength="4000"></textarea>
+    </div>
+    <label for="editor-figure-title">Source title within the caption (optional)</label>
+    <input id="editor-figure-title" type="text" maxlength="4000" placeholder="Exact words already in the caption">
+    <p>Copy the work/document title here to mark it as cite, not the author's name. Existing title markup stays unless explicitly removed.</p>
+    <details><summary>Structure options</summary>
+      <label><input id="editor-figure-uncite" type="checkbox"> Remove source-title markings from the caption (keep text and targets)</label>
+      <button type="button" id="editor-figure-remove">Ungroup figure (keep all content)</button>
+    </details>
+    <p id="editor-quotation-help">Choose an existing paragraph to move it into the caption; any existing caption is kept and the paragraph appended. Nothing is inferred. Selected paragraphs become a quotation; images keep their retained asset. Edit text directly afterward; use link tools for a source URL. Cancel changes nothing.</p>
+    <section id="editor-figure-preview" aria-label="Proposed figure relationships" aria-live="polite"></section>
+    <p class="error" role="alert"></p>
+    <button type="button" id="editor-quotation-apply">Apply figure changes</button>
+    <button type="button" id="editor-quotation-cancel">Cancel</button>
+  </dialog>
+  <dialog id="editor-link" aria-labelledby="editor-link-heading">
+    <h2 id="editor-link-heading">Edit link destination</h2>
+    <p id="editor-link-target"></p>
+    <label for="editor-link-href">Destination</label>
+    <input id="editor-link-href" type="text" maxlength="4000" aria-describedby="editor-link-help" spellcheck="false">
+    <label for="editor-link-title">Link title (optional)</label>
+    <input id="editor-link-title" type="text" maxlength="4000">
+    <details>
+      <summary>Choose an existing document target</summary>
+      <label for="editor-link-search">Search target IDs or text</label>
+      <input id="editor-link-search" type="search" maxlength="200" aria-controls="editor-link-targets">
+      <p id="editor-link-target-count" role="status"></p>
+      <div id="editor-link-targets" role="group" aria-label="Matching document targets"></div>
+      <p>Choosing a target fills Destination only. Apply link changes to save the edit, or cancel. Targets in other parts are included; the current view stays unchanged.</p>
+    </details>
+    <p id="editor-link-help">Use an absolute HTTP(S)/mailto URL or #target with an existing document ID, including targets in hidden chapters. Editing affects the whole existing link; creation wraps the selected unlinked text. Select within one block and include whole nested formatting wrappers; images, breaks and anchors are not supported for creation. Text, formatting, IDs and note/backlink classes stay unchanged. Clearing the title removes it. Reciprocal note links are not repaired automatically.</p>
+    <p class="error" role="alert"></p>
+    <button type="button" id="editor-link-apply">Apply link changes</button>
+    <button type="button" id="editor-link-cancel">Cancel link edit</button>
+  </dialog>
+  <dialog id="editor-image" aria-labelledby="editor-image-heading">
+    <h2 id="editor-image-heading">Image alternative text</h2>
+    <p id="editor-image-target"></p>
+    <img alt="">
+    <label for="editor-image-alt">Alternative text</label>
+    <textarea id="editor-image-alt" rows="4" maxlength="4000" aria-describedby="editor-image-help"></textarea>
+    <p id="editor-image-help">Describe the image's meaning for readers who cannot see it. An empty value explicitly marks it decorative. Maximum 4,000 characters; no line breaks. This changes only alternative text, not the image file, caption, credit or target ID.</p>
+    <p class="error" role="alert"></p>
+    <button type="button" id="editor-image-apply">Apply alternative text</button>
+    <button type="button" id="editor-image-cancel">Cancel image edit</button>
+  </dialog>
+  <dialog id="editor-paste" aria-labelledby="editor-paste-heading">
+    <h2 id="editor-paste-heading">Review clipboard paste</h2>
+    <p id="editor-paste-notice"></p>
+    <p>Plain text imports no formatting or links. Formatted text supports inline styles and absolute HTTP(S)/mailto links, optionally inside plain paragraphs. Multiple paragraphs split the destination paragraph around the insertion; only paragraph destinations support this. CSS, IDs, media, local note links and other block types are refused, not stripped. Neither option inherits surrounding styles or links.</p>
+    <h3>Plain-text preview</h3><pre id="editor-paste-text"></pre>
+    <h3>Formatted-text preview</h3>
+    <p id="editor-paste-format-status" role="status"></p>
+    <div id="editor-paste-formatted" class="reader-content"></div>
+    <h3>Selected text to replace</h3><pre id="editor-paste-replaced"></pre>
+    <p>Replacing text can remove selected inline targets. Review note links before publishing.</p>
+    <button id="editor-paste-insert" type="button">Insert plain text</button>
+    <button id="editor-paste-insert-formatted" type="button" hidden>Insert formatted text</button>
+    <button id="editor-paste-cancel" type="button" autofocus>Cancel paste</button>
+  </dialog>
+  {{ initial|json_script:"document-editor-initial" }}
+  <noscript><p class="error">This opt-in pilot requires JavaScript. Existing reviewer tools remain available.</p></noscript>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}"></script>{% endif %}{% endblock %}

@@ -1,0 +1,479 @@
+import io
+import tempfile
+from copy import deepcopy
+from dataclasses import replace
+from pathlib import Path
+from unittest.mock import patch
+
+from bs4 import BeautifulSoup
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
+from PIL import Image
+from pypdf import PdfReader
+
+from library.models import Blob, DocumentPublication, Rendition, RenditionAsset
+from library.profile import get_profile
+from library.services.document_edits import DocumentEditConflict, save_revision
+from library.services.document_publication import prepare_publication, publish_revision
+from library.services.pdf import STYLES, render_pdf
+from library.services.storage import blob_path, store_blob
+from library.tests import test_document_edits as foundation
+
+
+@override_settings(READING_HUB_EDITOR_PILOT=True)
+class DocumentPublicationTests(TestCase):
+    def setUp(self):
+        foundation.DocumentEditTests.setUp(self)
+        self.reviewer.is_staff = True
+        self.reviewer.save(update_fields=["is_staff"])
+        self.client.force_login(self.reviewer)
+        self.revision = save_revision(
+            self.draft, self.reviewer, {
+                **self.draft.document, "title": "Edited title",
+                "html": '<section id="c1"><h2>New heading</h2>'
+                '<p id="heading-1">Edited text. <a href="#c1">Return</a></p></section>',
+            }, 0,
+        )
+        self.url = reverse("document-publication", args=[self.rendition.pk])
+        self.query = f"?draft={self.draft.pk}&revision=1"
+
+    def publish(self, revision=None):
+        revision = revision or self.draft.revisions.first().revision
+        candidate = prepare_publication(self.draft, revision)
+        return publish_revision(self.draft, self.reviewer, revision, candidate["digest"])
+
+    def test_new_empty_section_persists_and_publishes_with_heading_toc_and_pdf(self):
+        markup = '<section id="c1"><h2>Chapter</h2><p id="main">Main text.</p>' \
+            '<section id="edited-section"><h3>Endnotes</h3><p></p></section></section>'
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+        }, 1)
+        self.assertEqual(revision.document["html"], markup)
+        result = self.publish(2)
+        soup = BeautifulSoup(result.rendition.html, "html.parser")
+        section = soup.find("section", id="edited-section")
+        self.assertEqual(section.h3.get_text(), "Endnotes")
+        self.assertIsNotNone(section.p)
+        self.assertEqual(section.p.get_text(), "")
+        self.assertIn("Endnotes", [item["title"] for item in result.rendition.structure["toc"]])
+        response = self.client.get(reverse("reader", args=[result.rendition.pk]))
+        self.assertContains(response, "Endnotes")
+        output = io.BytesIO()
+        render_pdf(result.rendition, output)
+        pdf = PdfReader(output)
+        self.assertIn("Endnotes", "\n".join(page.extract_text() for page in pdf.pages))
+
+    def test_restored_section_boundary_preserves_chapter_targets_and_saved_ancestry(self):
+        prefix = '<h2 id="iv">Chapter IV</h2><p id="earlier">Earlier prose.</p>'
+        tail = '<h2 id="v">Chapter V</h2><p id="later">Later prose. ' \
+            '<a href="#earlier" rel="noopener noreferrer">Return</a></p><pre>Exact\n  space</pre>'
+        original = '<section id="c6">' + prefix + tail + '</section>'
+        merged = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": original,
+        }, 1)
+        restored = ('<section id="c6">' + prefix + '</section><section id="c7">'
+                    + tail + '</section>')
+        revision = save_revision(self.draft, self.reviewer, {
+            **merged.document, "html": restored,
+        }, 2)
+        self.assertEqual(revision.document["html"], restored)
+        self.assertEqual(revision.review, "partial")
+        merged.refresh_from_db()
+        self.assertEqual(merged.document["html"], original)
+        self.assertFalse(DocumentPublication.objects.exists())
+        publication = self.publish(3)
+        soup = BeautifulSoup(publication.rendition.html, "html.parser")
+        self.assertEqual([n["id"] for n in soup.find_all("section", recursive=False)], ["c6", "c7"])
+        self.assertEqual(str(soup.select_one("#c7")), '<section id="c7">' + tail + '</section>')
+        self.assertEqual([n["title"] for n in publication.rendition.structure["toc"]],
+                         ["Chapter IV", "Chapter V"])
+        self.assertContains(self.client.get(reverse("reader", args=[publication.rendition.pk])),
+                            'href="#earlier"')
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+        for expected in ["Chapter IV", "Chapter V", "Earlier prose.", "Later prose."]:
+            self.assertIn(expected, text)
+
+    def test_created_and_renamed_note_targets_preserve_reciprocal_links_on_publication(self):
+        markup = (
+            '<section id="chapter"><h2>Chapter</h2><p id="reference">'
+            '<a href="#renamed-note" rel="noopener noreferrer"><sup>1</sup></a> Main prose.'
+            '</p><section id="notes"><h3>Notes</h3><p id="renamed-note">Note text. '
+            '<a href="#reference" rel="noopener noreferrer">Return</a></p></section></section>'
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+        }, 1)
+        self.assertEqual(revision.document["html"], markup)
+        self.assertEqual(revision.review, "partial")
+        publication = self.publish(2)
+        soup = BeautifulSoup(publication.rendition.html, "html.parser")
+        self.assertEqual(soup.select_one("#reference a")["href"], "#renamed-note")
+        self.assertEqual(soup.select_one("#renamed-note a")["href"], "#reference")
+        self.assertEqual(soup.select_one("#reference sup").get_text(), "1")
+        self.assertEqual(soup.select_one("#renamed-note").find_parent("section")["id"], "notes")
+        response = self.client.get(reverse("reader", args=[publication.rendition.pk]))
+        self.assertContains(response, 'href="#renamed-note"')
+        self.assertContains(response, 'href="#reference"')
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+        for expected in ["Main prose.", "Note text.", "Return"]:
+            self.assertIn(expected, text)
+        self.revision.refresh_from_db()
+        self.assertNotIn("renamed-note", self.revision.document["html"])
+
+    def test_renamed_inline_target_preserves_nested_content_and_reference_on_publication(self):
+        markup = (
+            '<section id="chapter"><h2>Chapter</h2><p>Before '
+            '<span id="renamed-inline"><em>Nested</em> note '
+            '<a href="#reference" rel="noopener noreferrer">Return</a></span> after.</p>'
+            '<p id="reference"><a href="#renamed-inline" rel="noopener noreferrer">'
+            'Reference</a></p></section>'
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+        }, 1)
+        self.assertEqual(revision.document["html"], markup)
+        result = self.publish(2)
+        soup = BeautifulSoup(result.rendition.html, "html.parser")
+        self.assertEqual(soup.select_one("#renamed-inline em").get_text(), "Nested")
+        self.assertEqual(soup.select_one("#renamed-inline a")["href"], "#reference")
+        self.assertEqual(soup.select_one("#reference a")["href"], "#renamed-inline")
+        self.assertContains(self.client.get(reverse("reader", args=[result.rendition.pk])),
+                            'id="renamed-inline"')
+        output = io.BytesIO()
+        render_pdf(result.rendition, output)
+        text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+        for expected in ["Before", "Nested", "note", "after.", "Reference"]:
+            self.assertIn(expected, text)
+
+    def test_preview_is_read_only_and_generates_collision_free_current_toc(self):
+        candidate = prepare_publication(self.draft, 1)
+        self.assertEqual(candidate["output"]["structure"]["toc"], [
+            {"id": "heading-1-h", "level": 2, "title": "New heading"},
+        ])
+        self.assertIn('<h2 id="heading-1-h">New heading</h2>', candidate["output"]["html"])
+        self.assertEqual(Rendition.objects.count(), 1)
+        self.assertFalse(DocumentPublication.objects.exists())
+        self.assertNotIn("heading-1-h", self.revision.document["html"])
+        response = self.client.get(self.url + self.query)
+        self.assertContains(response, "Edited title")
+        self.assertContains(response, "Not verified as a whole document")
+        self.assertContains(response, 'href="#heading-1-h"')
+        self.assertContains(response, reverse("document-comparison", args=[self.rendition.pk])
+                            + f"?draft={self.draft.pk}&amp;to=1")
+        self.assertEqual(Rendition.objects.count(), 1)
+        css = self.client.get(self.url + self.query + "&stylesheet=1")
+        self.assertEqual(css.content.decode(), self.rendition.stylesheet)
+        self.assertEqual(css["Content-Type"], "text/css; charset=utf-8")
+
+    def test_publish_is_idempotent_preserves_evidence_and_does_not_verify(self):
+        result = self.publish()
+        self.assertEqual(self.publish().pk, result.pk)
+        self.assertEqual(Rendition.objects.count(), 2)
+        self.assertEqual(result.revision_id, self.revision.pk)
+        self.assertEqual(result.reviewer, self.reviewer)
+        self.assertEqual(result.rendition.snapshot_id, self.rendition.snapshot_id)
+        self.assertEqual(result.rendition.title, "Edited title")
+        self.assertEqual(result.rendition.adapter_version, self.rendition.adapter_version)
+        self.revision.refresh_from_db()
+        self.assertEqual(self.revision.review, "partial")
+        self.rendition.refresh_from_db()
+        self.assertIn("Source text.", self.rendition.html)
+        with self.assertRaisesMessage(ValueError, "immutable"):
+            result.save()
+        with self.assertRaisesMessage(ValueError, "immutable"):
+            DocumentPublication.objects.filter(pk=result.pk).delete()
+
+    def test_quotation_and_cited_attribution_survive_publication_reader_and_pdf(self):
+        original = self.rendition.html
+        markup = (
+            '<section id="c1"><h2>Preface</h2><figure class="quotation">'
+            '<blockquote id="quote"><p>Party struggles lend strength and vitality.</p>'
+            '</blockquote><figcaption id="source"><p>From <cite>'
+            '<a href="https://example.org/letter">A letter to Marx</a></cite>, 1852.'
+            '</p></figcaption></figure><p>Following prose.</p></section>'
+        )
+        revision = save_revision(
+            self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1,
+        )
+        publication = self.publish(revision.revision)
+        result = BeautifulSoup(publication.rendition.html, "html.parser")
+        self.assertEqual(result.select_one("figure.quotation blockquote#quote p").get_text(),
+                         "Party struggles lend strength and vitality.")
+        self.assertEqual(
+            result.select_one("figcaption#source cite a").get_text(), "A letter to Marx"
+        )
+        response = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        self.assertContains(response, '<cite><a href="https://example.org/letter"')
+        self.assertContains(response, 'figcaption id="source"')
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            override_settings(DATA_DIR=Path(directory)),
+        ):
+            output = io.BytesIO()
+            render_pdf(publication.rendition, output)
+            document = PdfReader(output)
+            text = " ".join(page.extract_text() for page in document.pages)
+        for expected in ("Party struggles", "A letter to Marx", "1852", "Following prose"):
+            self.assertIn(expected, text)
+        self.rendition.refresh_from_db()
+        self.assertEqual(self.rendition.html, original)
+        self.assertEqual(revision.review, "partial")
+
+    def test_stale_revision_or_wrong_preview_never_publishes(self):
+        with self.assertRaises(DocumentEditConflict):
+            publish_revision(self.draft, self.reviewer, 1, "wrong")
+        candidate = prepare_publication(self.draft, 1)
+        save_revision(self.draft, self.reviewer, self.revision.document, 1)
+        with self.assertRaises(DocumentEditConflict):
+            publish_revision(self.draft, self.reviewer, 1, candidate["digest"])
+        self.assertEqual(Rendition.objects.count(), 1)
+        self.assertFalse(DocumentPublication.objects.exists())
+
+    def test_reordered_endnotes_preserve_targets_current_toc_reader_and_pdf_order(self):
+        markup = (
+            '<section id="c1"><h2>Opening</h2><p><a id="ref" href="#note">1</a></p></section>'
+            '<section id="chapter"><h2>Main chapter</h2><p>Main chapter text.</p></section>'
+            '<section id="notes"><h2>Endnotes</h2><p id="note">Final note text. '
+            '<a href="#ref">Back</a></p></section>'
+        )
+        revision = save_revision(
+            self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1,
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.revisions.get(revision=2).document, revision.document)
+        publication = self.publish(2)
+        self.assertEqual(
+            [item["title"] for item in publication.rendition.structure["toc"]],
+            ["Opening", "Main chapter", "Endnotes"],
+        )
+        result = BeautifulSoup(publication.rendition.html, "html.parser")
+        self.assertEqual(result.find_all("section")[-1]["id"], "notes")
+        self.assertEqual(result.select_one("#ref")["href"], "#note")
+        self.assertEqual(result.select_one("#note a")["href"], "#ref")
+        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        self.assertContains(reader, 'id="notes"')
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+        self.assertLess(text.rindex("Main chapter text."), text.rindex("Final note text."))
+
+    def test_manually_relocated_inline_content_keeps_note_links_and_saved_evidence(self):
+        markup = (
+            '<section id="c1"><h2>Chapter</h2><p id="main">Before '
+            '<sup><a id="ref" href="#note">1</a></sup> after.</p>'
+            '<p id="other">Another note.</p><section id="edited-section"><h2>Endnotes</h2>'
+            '<p><span><sup><a id="note" href="#ref">1</a></sup> Relocated note '
+            '<a href="#other">2</a> — Author.</span></p></section></section>'
+        )
+        value = {**self.revision.document, "html": markup}
+        row = save_revision(self.draft, self.reviewer, value, 1)
+        original_base = deepcopy(self.draft.document)
+        publication = self.publish(row.revision)
+        soup = BeautifulSoup(publication.rendition.html, "html.parser")
+        self.assertEqual(soup.select_one("#note").find_parent("section")["id"], "edited-section")
+        self.assertEqual(soup.select_one("#main").get_text(), "Before 1 after.")
+        self.assertEqual(soup.select_one("#ref")["href"], "#note")
+        self.assertEqual(soup.select_one("#note")["href"], "#ref")
+        self.assertEqual(len(soup.select("#note")), 1)
+        self.assertEqual(soup.select_one('#edited-section a[href="#other"]').get_text(), "2")
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.document, original_base)
+        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        self.assertContains(reader, "Relocated note")
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+        self.assertLess(text.rindex("Before"), text.rindex("Relocated note"))
+
+    def test_invalid_relationships_metadata_and_empty_content_block_publication(self):
+        cases = [
+            {**self.revision.document, "html": '<p><a href="#absent">Missing</a></p>'},
+            {**self.revision.document, "html": '<p class="missing-image">Missing</p>'},
+            {**self.revision.document, "html": "<p></p>"},
+        ]
+        for number, document in enumerate(cases, 2):
+            save_revision(self.draft, self.reviewer, document, number - 1)
+            with self.subTest(document=document), self.assertRaises(ValueError):
+                prepare_publication(self.draft, number)
+        self.assertEqual(Rendition.objects.count(), 1)
+        invalid_metadata = {
+            **self.revision.document,
+            "metadata": {**self.revision.document["metadata"], "author": ["invalid"]},
+        }
+        with self.assertRaisesMessage(ValueError, "Author must be text"):
+            save_revision(
+                self.draft, self.reviewer, invalid_metadata,
+                self.draft.revisions.first().revision,
+            )
+
+    def test_tampered_revision_base_or_source_evidence_is_refused(self):
+        self.draft.document_digest = "bad"
+        with self.assertRaisesMessage(ValueError, "integrity"):
+            prepare_publication(self.draft, 1)
+        self.draft.refresh_from_db()
+        self.rendition.html = "<p>Changed original evidence</p>"
+        self.rendition.save(update_fields=["html"])
+        self.draft.refresh_from_db()
+        with self.assertRaises(DocumentEditConflict):
+            prepare_publication(self.draft, 1)
+
+    def test_profile_and_revision_bounds_are_explicit(self):
+        for revision in (0, -1, True, "1"):
+            with self.subTest(revision=revision), self.assertRaises(ValueError):
+                prepare_publication(self.draft, revision)
+        with patch(
+            "library.services.document_publication.get_profile",
+            return_value=replace(get_profile(), key="another-profile"),
+        ), self.assertRaises(ValueError):
+            prepare_publication(self.draft, 1)
+
+    def test_referenced_assets_are_checked_again_and_bound_to_new_edition(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            override_settings(DATA_DIR=Path(directory)),
+        ):
+            output = io.BytesIO()
+            Image.new("RGB", (2, 2), "white").save(output, format="PNG")
+            data = output.getvalue()
+            digest = store_blob(data)
+            blob = Blob.objects.create(digest=digest, media_type="image/png", size=len(data))
+            RenditionAsset.objects.create(rendition=self.rendition, blob=blob)
+            # Asset evidence is pinned at creation, not silently expanded later.
+            value = {
+                **self.revision.document, "html": f'<p>Image</p><img src="/assets/{digest}/"/>',
+            }
+            save_revision(self.draft, self.reviewer, value, 1)
+            with self.assertRaisesMessage(ValueError, "not bound"):
+                prepare_publication(self.draft, 2)
+            from library.services.document_edits import create_draft
+
+            self.draft = create_draft(self.rendition, self.reviewer)
+            save_revision(self.draft, self.reviewer, value, 0)
+            candidate = prepare_publication(self.draft, 1)
+            with patch("library.services.document_publication.read_blob", side_effect=OSError):
+                with self.assertRaisesMessage(ValueError, "unavailable or corrupt"):
+                    publish_revision(self.draft, self.reviewer, 1, candidate["digest"])
+            self.assertEqual(Rendition.objects.count(), 1)
+            blob_path(digest).write_bytes(b"corrupt bytes")
+            with self.assertRaisesMessage(ValueError, "unavailable or corrupt"):
+                publish_revision(self.draft, self.reviewer, 1, candidate["digest"])
+            blob_path(digest).write_bytes(data)
+            result = self.publish()
+            self.assertEqual(
+                list(result.rendition.assets.values_list("blob_id", flat=True)), [digest],
+            )
+
+    def test_publication_requires_permission_csrf_confirmation_and_exact_preview(self):
+        self.assertEqual(self.client.post(self.url + self.query, {}).status_code, 422)
+        candidate = prepare_publication(self.draft, 1)
+        payload = {"confirm": "yes", "revision": "1", "preview_digest": candidate["digest"]}
+        self.assertEqual(self.client.post(
+            self.url + self.query, {**payload, "preview_digest": "wrong"},
+        ).status_code, 409)
+        protected = Client(enforce_csrf_checks=True)
+        protected.force_login(self.reviewer)
+        self.assertEqual(protected.post(self.url + self.query, payload).status_code, 403)
+        self.reviewer.is_staff = False
+        self.reviewer.save(update_fields=["is_staff"])
+        self.assertEqual(self.client.get(self.url + self.query).status_code, 403)
+        self.assertEqual(self.client.post(self.url + self.query, payload).status_code, 403)
+        self.reviewer.is_staff = True
+        self.reviewer.save(update_fields=["is_staff"])
+        with override_settings(READING_HUB_EDITOR_PILOT=False):
+            self.assertEqual(self.client.get(self.url + self.query).status_code, 404)
+            self.assertEqual(self.client.post(self.url + self.query, payload).status_code, 404)
+        response = self.client.post(self.url + self.query, payload)
+        result = DocumentPublication.objects.get()
+        self.assertRedirects(response, reverse("reader", args=[result.rendition_id]))
+
+    def test_edited_reader_stylesheet_and_pdf_do_not_redirect_to_another_book(self):
+        result = self.publish()
+        with patch("library.organization_views.member_destination") as destination:
+            response = self.client.get(reverse("reader", args=[result.rendition_id]))
+            self.assertContains(response, "Edited text.")
+            self.assertContains(response, "Not verified as a whole document")
+            self.assertContains(response, 'href="#heading-1-h"')
+            self.assertContains(response, "Original edition")
+            css = self.client.get(reverse("reader-css", args=[result.rendition_id]))
+            self.assertEqual(css.content.decode(), self.rendition.stylesheet)
+            destination.assert_not_called()
+
+    def test_pdf_contains_edited_text_review_status_and_separate_opening_page(self):
+        self.rendition.stylesheet = (STYLES / "reader.css").read_text()
+        self.rendition.save(update_fields=["stylesheet"])
+        from library.services.document_edits import create_draft
+
+        self.draft = create_draft(self.rendition, self.reviewer)
+        save_revision(self.draft, self.reviewer, self.revision.document, 0)
+        result = self.publish()
+        output = io.BytesIO()
+        render_pdf(result.rendition, output)
+        pdf = PdfReader(output)
+        self.assertGreaterEqual(len(pdf.pages), 2)
+        self.assertIn("Edited title", pdf.pages[0].extract_text())
+        self.assertIn("Not verified as a whole document", pdf.pages[0].extract_text())
+        self.assertNotIn("Edited text.", pdf.pages[0].extract_text())
+        self.assertIn("Edited text.", "\n".join(page.extract_text() for page in pdf.pages[1:]))
+
+    def test_preview_output_does_not_mutate_pinned_structure(self):
+        before = deepcopy(self.draft.evidence)
+        prepare_publication(self.draft, 1)
+        self.assertEqual(self.draft.evidence, before)
+
+    def test_direct_metadata_changes_are_validated_and_used_in_published_reader(self):
+        value = {
+            **self.revision.document,
+            "metadata": {
+                **self.revision.document["metadata"], "author": "Corrected Author",
+                "subtitle": "Corrected Subtitle", "language": "fr",
+            },
+        }
+        revision = save_revision(self.draft, self.reviewer, value, 1)
+        self.assertEqual(revision.document["metadata"]["author"], "Corrected Author")
+        self.revision = revision
+        result = self.publish()
+        self.assertEqual(result.rendition.metadata["subtitle"], "Corrected Subtitle")
+        self.assertContains(
+            self.client.get(reverse("reader", args=[result.rendition_id])),
+            "Corrected Author",
+        )
+        self.assertContains(
+            self.client.get(reverse("reader", args=[result.rendition_id])),
+            'lang="fr"',
+        )
+
+    def test_failed_provenance_write_rolls_back_entire_publication(self):
+        candidate = prepare_publication(self.draft, 1)
+        with patch(
+            "library.services.document_publication.DocumentPublication.objects.create",
+            side_effect=ValueError("failed evidence write"),
+        ), self.assertRaisesMessage(ValueError, "failed evidence"):
+            publish_revision(self.draft, self.reviewer, 1, candidate["digest"])
+        self.assertEqual(Rendition.objects.count(), 1)
+        self.assertFalse(DocumentPublication.objects.exists())
+
+    def test_removing_source_part_target_requires_organization_workflow(self):
+        from library.services.document_edits import create_draft
+
+        self.rendition.structure["parts"] = [
+            {"url": self.rendition.document.url, "id": "c1", "title": "Opening"},
+        ]
+        self.rendition.save(update_fields=["structure"])
+        draft = create_draft(self.rendition, self.reviewer)
+        save_revision(
+            draft, self.reviewer, {**draft.document, "html": "<p>Removed chapter target.</p>"}, 0,
+        )
+        with self.assertRaisesMessage(ValueError, "Retain source part targets"):
+            prepare_publication(draft, 1)
+
+    def test_changed_publication_rules_cannot_reuse_a_different_preview(self):
+        self.publish()
+        with patch("library.services.document_publication.PUBLICATION_VERSION", 2):
+            candidate = prepare_publication(self.draft, 1)
+            with self.assertRaisesMessage(DocumentEditConflict, "another preview"):
+                publish_revision(self.draft, self.reviewer, 1, candidate["digest"])
+        self.assertEqual(Rendition.objects.count(), 2)

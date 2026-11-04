@@ -1,0 +1,9 @@
+{% extends 'library/base.html' %}
+{% block title %}PDF unavailable | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>PDF unavailable</h1>
+  <p role="alert">{{ error }}</p>
+  <p><a href="{% url 'reader-pdf' version.pk %}">Retry PDF download</a> or <a href="{% url 'reader' version.pk %}">return to the cached reader</a> and use your browser's print command.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'library/base.html' %}
+{% block title %}Catalogue crawling | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <p><a href="{% url 'catalogue' %}">Browse catalogue</a> &middot; <a href="{% url 'home' %}">Home</a> &middot; <a href="{% url 'worker-controls' %}">Manage workers</a></p>
+  <h1>Catalogue crawling</h1>
+  <p>Controls are available to every local user. Sites start paused. Article HTML fetched for metadata is cached for later formatting, including its retrieval date and response headers. Formatting and image downloads happen only when a title is opened.</p>
+  <p class="notice">{% if worker_recent %}Worker is responding.{% elif import_busy %}Worker is busy importing a requested document.{% else %}Worker is not responding recently. <a href="{% url 'worker-controls' %}">Start a worker</a> to process enabled crawls.{% endif %}{% if worker %} Last seen: {{ worker.heartbeat|date:"Y-m-d H:i:s T" }}.{% endif %} Imports have priority between crawl requests.</p>
+  <p>Pause stops before the next network request; an in-flight request may finish. Robots rules and the profile's minimum rate always apply. Limits include failed page attempts and downloaded robots data. Save changes limits without starting a crawl. Resume continues; restart recrawls known URLs, retains the catalogue, and resets run counters.</p>
+  {% if control_error %}<p class="notice warning" role="alert">{{ control_error }}</p>{% endif %}
+  {% if corpus %}
+  <section class="crawl-card">
+    <h2>Archive format sampling</h2>
+    <p><strong>{{ corpus.works.passed|default:0 }} / {{ corpus.target }} verified whole books/articles</strong> &mdash; {% if corpus.enabled %}running{% else %}paused or finished{% endif %}.</p>
+    <p>{{ corpus.works.failed|default:0 }} extraction failures &middot; {{ corpus.requests }} source requests &middot; {{ corpus.bytes|filesizeformat }} downloaded. Chapter pages do not count as separate works. This audit is separate from catalogue discovery; images are not audited. It retains source HTML for later imports and checks extraction, headings and internal links without publishing reader versions.</p>
+    {% if corpus.error %}<p class="notice warning" role="alert">{{ corpus.error }}</p>{% endif %}
+    <details><summary>Sampling coverage and failures</summary>
+      <ul>{% for row in corpus.languages %}<li>{{ row.language }}: {{ row.count }} {{ row.status }}</li>{% endfor %}</ul>
+      <ul>{% for row in corpus.recent_failures %}<li class="source-url">{{ row.url }}: {{ row.error }}</li>{% endfor %}{% for row in corpus.page_failures %}<li class="source-url">{{ row.url }}: {{ row.error }}</li>{% endfor %}</ul>
+    </details>
+    <p>Control this resumable run with <code>python manage.py archive_corpus --pause</code> or <code>python manage.py archive_corpus --start --target {{ corpus.target }}</code>.</p>
+  </section>
+  {% endif %}
+  {% for row in rows %}
+  <section class="crawl-card">
+    <h2>{{ row.label }}</h2><p>{{ row.site.host }} &mdash; <strong>{{ row.site.status }}</strong>{% if row.site.enabled %} (on){% else %} (off){% endif %}</p>
+    <p>{{ row.entries }} catalogue entries &middot; {{ row.captures }} cached HTML capture{{ row.captures|pluralize }} &middot; {{ row.pending }} pending &middot; {{ row.failed }} failed<br>{{ row.site.pages }} page requests &middot; {{ row.site.downloaded|filesizeformat }} downloaded{% if row.site.heartbeat %} &middot; Updated {{ row.site.heartbeat|date:"Y-m-d H:i:s T" }}{% endif %}</p>
+    {% if row.site.error %}<p class="notice warning">{{ row.site.error }}</p>{% endif %}
+    <form method="post" action="{% url 'crawl-control' row.site.pk %}" class="crawl-settings">
+      {% csrf_token %}{{ row.form.as_p }}
+      <div class="crawl-actions">
+        <button name="action" value="save" class="secondary">Save settings</button>
+        <button name="action" value="resume">Start / resume</button>
+        <button name="action" value="pause" class="secondary" formnovalidate>Pause</button>
+        <button name="action" value="restart" class="secondary">Restart crawl</button>
+      </div>
+    </form>
+    {% if row.recent_errors %}<details><summary>Recent request errors</summary><ul>{% for page in row.recent_errors %}<li class="source-url">{{ page.url }}: {{ page.error }}</li>{% endfor %}</ul></details>{% endif %}
+  </section>
+  {% endfor %}
+  <p><a href="{% url 'crawl-controls' %}">Refresh status</a></p>
+</div>
+{% endblock %}

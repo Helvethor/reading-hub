@@ -1,0 +1,25 @@
+{% extends 'library/base.html' %}
+{% load static %}
+{% block title %}Import request | {{ site.name }}{% endblock %}
+{% block content %}
+<section class="page-container job-panel" data-status-url="{% url 'job-status' job.pk %}" data-job-status="{{ job.status }}">
+  <a href="{% url 'home' %}">&larr; Library</a>
+  <p class="eyebrow">IMPORT REQUEST</p>
+  <h1>{{ job.get_mode_display }}</h1>
+  <p class="source-url">{{ job.document.url }}</p>
+  <p id="job-stage" role="status">{{ job.stage }}</p>
+  <p id="job-progress">{% if job.total %}{{ job.completed }} / {{ job.total }} HTML pages{% endif %}</p>
+  <div id="job-error" class="notice warning" {% if not job.error %}hidden{% endif %}>{{ job.error_code }}: {{ job.error }}</div>
+  {% if job.status == 'ready' %}
+    <p><a class="button" href="{% url 'reader' job.rendition_id %}">Read cached version &rarr;</a></p>
+  {% elif job.status == 'failed' %}
+    <form method="post" action="{% url 'retry' job.pk %}">{% csrf_token %}<button type="submit">Retry import</button></form>
+    <p>No incomplete document has replaced your saved versions.</p>
+  {% else %}
+    <p class="muted">Imports run in the separate background worker. If this stays queued, start <code>python manage.py run_import_worker</code> in the application's virtual environment.</p>
+  {% endif %}
+  <p><a href="{% url 'job' job.pk %}">Refresh status manually</a></p>
+  {% if job.document.title %}<p><a href="{% url 'latest' job.document_id %}">Return to the latest saved version</a></p>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'library/jobs.js' %}" defer></script>{% endblock %}

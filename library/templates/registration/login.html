@@ -1,0 +1,13 @@
+{% extends 'library/base.html' %}
+{% block title %}Sign in | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Sign in</h1>
+  <form method="post" class="account-form">
+    {% csrf_token %}{{ form.as_p }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">Sign in</button>
+  </form>
+  <p><a href="{% url 'signup' %}">Create account</a> for private highlights and underlining.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "library/base.html" %}
+{% block title %}Import correction dataset | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Import correction dataset</h1>
+  <p><a href="{% url 'correction-history' %}">Correction history and dataset export</a></p>
+  <p>Offline only: up to 50 revisions and 1 MiB. Every record must match an exact local retained URL, content digest, profile, adapter and extracted blocks. This does not fetch missing sources or train a model.</p>
+  <p>Only explicitly corrected fields are verified labels. Unchanged fields, unknown roles and resets are not complete supervised answers. Importing creates new local revisions under your reviewer account; source revision evidence is retained separately. Existing revisions and reader versions are never overwritten.</p>
+  {% if error %}<p class="notice warning-text" role="alert">{{ error }}</p>{% endif %}
+  {% if success %}<p class="notice" role="status">{{ success }}</p>{% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label>Dataset JSON <input type="file" name="dataset" accept=".json,application/json" required></label>
+    <button type="submit" name="action" value="preview">Validate and preview</button>
+  </form>
+  {% if rows %}
+  <h2>Validated import preview</h2>
+  <p>{{ new_count }} new local revisions will be appended. All records are applied atomically, in source revision order within each capture. The last imported revision for a capture becomes its active override, including a reset. This can supersede your current correction: inspect the differences below. Imported provenance is evidence supplied by the file, not authentication of its original reviewer.</p>
+  {% for row in rows %}
+  <article class="metadata-suggestion">
+    <h3>{{ row.title }}</h3>
+    <p>{{ row.capture.url }} &middot; source revision {{ row.record.revision }} &middot; current local revision {{ row.base_revision }}</p>
+    <p>{% if row.reapply %}Reapply this latest source revision after adding missing older history, so the older correction does not become active.{% elif row.duplicate %}Already imported; will be skipped.{% else %}Will append a new local revision.{% endif %}</p>
+    <p>Source decision: {{ row.record.created_at }} &middot; {{ row.record.reason|default:"No reason supplied" }}</p>
+    <details><summary>Current local correction</summary><pre>{{ row.current_expected }}</pre></details>
+    <details open><summary>Imported expected overrides{% if not row.record.expected %} (reset to baseline){% endif %}</summary><pre>{{ row.expected_json }}</pre></details>
+    <p><a href="{% url 'correction-workspace' row.capture.pk %}">Inspect local source workspace</a></p>
+  </article>
+  {% endfor %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="token" value="{{ token }}">
+    <p>Confirmation expires after 30 minutes. A changed local correction requires a fresh preview. Duplicate imports do not create additional revisions.</p>
+    <button type="submit" name="action" value="confirm">Confirm import of verified corrections</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

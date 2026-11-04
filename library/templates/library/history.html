@@ -1,0 +1,23 @@
+{% extends 'library/base.html' %}
+{% block title %}Version history | {{ site.name }}{% endblock %}
+{% block content %}
+<section class="page-container">
+  <a href="{% url 'latest' document.pk %}">&larr; Reader</a>
+  <p class="eyebrow">PRESERVED, NOT OVERWRITTEN</p>
+  <h1>Version history</h1>
+  <p class="intro">{{ document.title }}</p>
+  {% for version in versions %}
+  <section class="version-card">
+    <h2><a href="{% url 'reader' version.pk %}">{{ version.created_at|date:"Y-m-d H:i:s T" }}</a></h2>
+    <p>Source captured {{ version.snapshot.fetched_at|date:"Y-m-d H:i:s T" }}</p>
+    <p>App {{ version.app_version }} &middot; adapter {{ version.adapter_version }} &middot; formatting {{ version.format_version }}</p>
+    {% if version.warnings %}<p class="warning-text">{{ version.warnings|length }} missing-image warning{{ version.warnings|length|pluralize }}</p>{% endif %}
+    <details><summary>Integrity fingerprints</summary><p class="source-url">Source: {{ version.snapshot.digest }}<br>Output: {{ version.output_digest }}</p></details>
+  </section>
+  {% empty %}<p>No ready versions yet.</p>{% endfor %}
+  <h2>Recent source checks</h2>
+  <ul class="request-list">{% for check in checks %}
+    <li><div><a href="{% url 'job' check.job_id %}">{{ check.checked_at|date:"Y-m-d H:i:s T" }} &middot; {{ check.outcome }}</a>{% if check.detail %}<p>{{ check.detail }}</p>{% endif %}</div></li>
+  {% empty %}<li>No source checks yet.</li>{% endfor %}</ul>
+</section>
+{% endblock %}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="{{ version.metadata.language|default:'en' }}">
+<head><meta charset="utf-8"><title>{{ version.title }}</title><meta name="author" content="{{ display_author }}"></head>
+<body>
+<header class="document-header">
+  <h1>{{ version.title }}</h1>
+  {% include 'library/document_metadata.html' %}
+  {% include 'library/document_review_status.html' with revision=version.document_publication.revision %}
+  <p>Cached {{ version.created_at|date:"Y-m-d H:i T" }} &middot; app {{ version.app_version }}, adapter {{ version.adapter_version }}, rules {{ version.format_version }}</p>
+  {% if version.document_publication %}<p>Document publication rules {{ version.document_publication.publication_version }}.</p>{% endif %}
+</header>
+{% if version.warnings %}<section><p>Import warnings:</p><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
+<article class="reader-content">{{ version.html|safe }}</article>
+</body>
+</html>

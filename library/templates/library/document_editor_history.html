@@ -1,0 +1,36 @@
+{% extends "library/base.html" %}
+{% block title %}Correction history | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Correction history</h1>
+  <p>{{ version.title }} · Edition {{ version.pk }}</p>
+  <p>Continue a history's latest saved correction, or choose an earlier version as a separate starting point. Nothing overwrites existing versions or transfers review approval. Your other open tabs are unchanged.</p>
+  <p><a href="{% url 'document-editor' version.pk %}?start=source">Start from the source-derived edition</a> · <a href="{% url 'document-fresh-draft' version.pk %}">Preview fresh regeneration from retained source</a></p>
+  {% if history_error %}<p class="error" role="alert">{{ history_error }}</p>{% endif %}
+  {% if not draft %}
+  <h2>Choose a correction history</h2>
+  <ul>{% for item in histories %}
+    <li><a href="{% url 'document-editor' version.pk %}?draft={{ item.pk }}">Continue latest correction</a> · <a href="?draft={{ item.pk }}">Versions</a> · {{ item.created_at }} · {{ item.reviewer }} · <small>{{ item.pk }}</small></li>
+  {% empty %}<li>No saved corrections yet. Start from the source-derived edition above.</li>{% endfor %}</ul>
+  {% else %}
+  <p><a href="{% url 'document-editor' version.pk %}?draft={{ draft.pk }}">Continue latest correction in this history</a> · <a href="{% url 'document-editor-history' version.pk %}">All correction histories</a></p>
+  {% if draft.evidence.correction_origin %}
+  <p>This history starts from <a href="?draft={{ draft.evidence.correction_origin.draft }}&amp;revision={{ draft.evidence.correction_origin.revision }}">version {{ draft.evidence.correction_origin.revision }} of its parent history</a>. Review approval was not inherited.</p>
+  {% endif %}
+  <ul>
+    {% for row in revisions %}<li><a href="?draft={{ draft.pk }}&amp;revision={{ row.revision }}">Version {{ row.revision }}</a> · {{ row.created_at }} · {{ row.reviewer }} · {{ row.get_review_display }} · <a href="{% url 'document-comparison' version.pk %}?draft={{ draft.pk }}&amp;to={{ row.revision }}">Compare to starting version</a></li>{% endfor %}
+    <li><a href="?draft={{ draft.pk }}&amp;revision=0">Starting version (0)</a> · Not reviewed</li>
+  </ul>
+  {% if selected %}
+  <h2>Saved version {{ selected.number }}: {{ selected.row.document.title }}</h2>
+  <p>Read-only saved content below. To edit this exact version, start a separate correction. Later corrections remain intact.</p>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="draft" value="{{ draft.pk }}">
+    <input type="hidden" name="revision" value="{{ selected.number }}">
+    <button type="submit">Start a separate correction from this version</button>
+  </form>
+  <details><summary>Exact saved markup (read-only)</summary><pre class="correction-history-markup">{{ selected.row.document.html }}</pre></details>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

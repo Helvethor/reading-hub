@@ -1,0 +1,122 @@
+{% extends "library/base.html" %}
+{% load static %}
+{% block title %}Correct content organization | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Correct content organization</h1>
+  <p><a href="#organization-save">Review and save changes</a></p>
+  <p>Combine retained URLs into a complete book, attach, rename or reorder parts, or remove an incorrect member into a separate work. Donor books and detached works are rebuilt together. No source evidence is deleted.</p>
+  <p>Use a source URL, not title similarity. Missing pages, conflicting membership, active imports and incomplete output block publication. Capture missing pages first; this tool never starts a crawl.</p>
+  {% if error %}<p class="notice warning" role="alert">{{ error }}</p>{% endif %}
+  <form method="get">
+    {% if review_nav.version %}<input type="hidden" name="review_version" value="{{ review_nav.version.pk }}">{% endif %}
+    {% if review_nav.capture %}<input type="hidden" name="review_capture" value="{{ review_nav.capture.pk }}">{% endif %}
+    <label>Book or source URL <input type="url" name="url" value="{{ review_nav.url }}" required></label>
+    <button type="submit">Load work</button>
+  </form>
+  <form method="post" id="organization-editor" action="#organization-preview">
+    {% csrf_token %}
+    <p>The ordered parts below are the proposed hierarchy. Removing a page makes it a separate work; removing an index section only omits that section from the book. No source is deleted. Roles: preface, chapter, appendix, postscript.</p>
+    <div id="organization-parts"></div>
+    <div id="organization-sections"></div>
+    {{ section_candidates|default_if_none:""|json_script:"organization-section-candidates" }}
+    <button type="button" id="organization-add" hidden>Attach URL</button>
+    <section aria-label="Named source excerpts">
+      <h2>Whole sources and named excerpts</h2>
+      <p>Define excerpts on the source parsing page using All retained source blocks.
+        Include multiple definitions independently, then move each part into position.
+        Existing uses stay pinned until you explicitly adopt an updated revision.
+        Part titles are independent of definition names.</p>
+      <p class="warning-text" role="alert">{{ excerpt_definition_error }}</p>
+      <label>Place included part <select id="excerpt-position"><option value="end">At the end</option></select></label>
+      {{ excerpt_definitions|default_if_none:""|json_script:"organization-excerpt-definitions" }}
+      <div id="organization-definitions"></div>
+      <p>To find definitions from another retained source, load its URL below.
+        Whole pages and overlapping excerpts cannot be included together.</p>
+    </section>
+    <details id="organization-excerpt-picker">
+      <summary>Include an excerpt from retained source</summary>
+      <p>Select complete source blocks from the index or any retained chapter/sub-work.
+        This uses original retained HTML, not the chapter's corrected extraction.
+        Excerpts become named book parts, not new catalogue works. Excluding the rest
+        of a chapter is deliberate: replace its whole-page part with an excerpt.
+        Missing internal-link targets block publication rather than silently dropping links.</p>
+      <label>Retained source URL <input type="url" id="excerpt-source-url"></label>
+      <button type="button" id="excerpt-load">Load source blocks</button>
+      <label>First block <select id="excerpt-start" disabled></select></label>
+      <label>Last block (inclusive) <select id="excerpt-end" disabled></select></label>
+      <p>Boundaries must share a container. All content between them is included.
+        Choose the prose paragraphs alone when you want to supply a new part title.</p>
+      <pre id="excerpt-evidence" class="correction-source"></pre>
+      <label>Excerpt title <input id="excerpt-title" maxlength="1000"></label>
+      <label>Role <select id="excerpt-role"><option>preface</option><option>chapter</option><option>appendix</option><option>postscript</option></select></label>
+      <label><input type="checkbox" id="excerpt-replace"> Replace the whole-page part for this source, deliberately omitting its unselected material. Other excerpts and automatic sections are not removed.</label>
+      <button type="button" id="excerpt-add" disabled>Add excerpt to organization draft</button>
+      <p id="excerpt-status" role="status"></p>
+      <p id="excerpt-error" role="alert" class="warning-text"></p>
+    </details>
+    <fieldset id="organization-save">
+      <legend>Save organization</legend>
+      <label>Reason for changes <textarea name="reason" rows="2" maxlength="2000" required>{{ reason }}</textarea></label>
+      <button type="submit" name="action" value="preview">Preview changes to save</button>
+      <p class="help">Step 1 of 2: preview the complete book, then confirm Save organization. Nothing is saved yet.</p>
+    </fieldset>
+    <details id="organization-advanced" open>
+      <summary>Work specification (also editable without JavaScript)</summary>
+      <label>JSON: url, title, book, ordered parts
+        <textarea id="organization-specification" name="specification" rows="20" cols="90" required>{{ specification }}</textarea>
+      </label>
+    </details>
+  </form>
+  {% if preview %}
+  <section id="organization-preview" aria-label="Organization preview" tabindex="-1">
+    <h2>Preview: all affected works</h2>
+    <p>All required pages are present; the entire new rendition of every affected work was formatted and validated without publishing anything.</p>
+    <form method="post" id="organization-confirm">
+      {% csrf_token %}<input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="{{ token }}">
+      <fieldset>
+        <legend>Confirm and save organization</legend>
+        <label><input type="checkbox" name="preserve_annotations" value="yes" required> {{ preview.annotation_policy }}</label>
+        <p>Reason: {{ reason }}. Confirmation expires in 30 minutes. Any intervening content/review change requires a fresh preview.</p>
+        <button type="submit">Save organization and publish editions</button>
+      </fieldset>
+    </form>
+    <h3>Before</h3>
+    {% for spec in preview.before %}
+    <details><summary>{{ spec.title }} — {{ spec.url }}</summary><ol>{% for part in spec.parts %}<li>{{ part.role }}: {{ part.title }} — <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a></li>{% endfor %}</ol></details>
+    {% endfor %}
+    <h3>After: hierarchy</h3>
+    {% for spec in preview.after %}
+    <details open><summary>{{ spec.title }} ({% if spec.book %}book{% else %}separate work / retained member evidence{% endif %})</summary>
+      <p><a href="{{ spec.url }}" target="_blank" rel="noopener noreferrer">{{ spec.url }}</a></p>
+      <ol>{% for part in spec.parts %}<li>{{ part.role }}: {{ part.title }} — <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a></li>{% endfor %}</ol>
+    </details>
+    {% endfor %}
+    {% for work in preview.works %}
+    <details><summary>New rendition / ToC: {{ work.spec.title }}</summary>
+      <ol>{% for node in work.structure.toc %}<li>Level {{ node.level }}: {{ node.title }}</li>{% endfor %}</ol>
+      {% for warning in work.warnings %}<p class="notice warning">{{ warning }}</p>{% endfor %}
+      <div class="reader-content">{{ work.html|safe }}</div>
+    </details>
+    {% endfor %}
+    <p>{{ preview.annotations }} existing private annotations affected (counts only; private text is not shared with reviewers).</p>
+  </section>
+  {% endif %}
+  <h2>Append-only organization decisions</h2>
+  {% for decision in decisions %}
+  <details>
+    <summary>#{{ decision.pk }} — {{ decision.created_at }} — {{ decision.reviewer }}{% if decision.undo_of_id %} — undo of #{{ decision.undo_of_id }}{% endif %}</summary>
+    <p>{{ decision.reason }}</p>
+    <h3>Before</h3><pre>{{ decision.before }}</pre>
+    <h3>After</h3><pre>{{ decision.after }}</pre>
+    <p>{{ decision.evidence.annotation_policy }}</p>
+    <form method="post">
+      {% csrf_token %}<input type="hidden" name="action" value="undo-preview"><input type="hidden" name="decision" value="{{ decision.pk }}">
+      <label>Required undo reason <input name="reason" maxlength="2000" required></label>
+      <button type="submit">Preview audited undo</button>
+    </form>
+  </details>
+  {% empty %}<p>No organization decisions yet.</p>{% endfor %}
+</div>
+<script src="{% static 'library/organization.js' %}?v={{ app_version }}" defer></script>
+{% endblock %}

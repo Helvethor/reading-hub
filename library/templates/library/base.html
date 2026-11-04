@@ -1,0 +1,35 @@
+{% load static review_navigation %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site.name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'library/app.css' %}?v={{ app_version }}">
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">{{ site.name|first }}</span> {{ site.name }}</a>
+    <span class="local-badge">{{ site.tagline }}</span>
+    <nav class="account-nav" aria-label="Account">
+      {% if user.is_authenticated %}
+        <span class="account-name">{{ user.username }}</span>
+        {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a>{% endif %}
+        {% if user.is_staff or perms.library.review_metadata %}<a href="{% url 'work-review' %}">Reviewer tools</a>{% endif %}
+        <a href="{% url 'password_change' %}">Password</a>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary" type="submit">Sign out</button></form>
+      {% else %}
+        <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in</a>
+        <a href="{% url 'signup' %}">Create account</a>
+      {% endif %}
+    </nav>
+  </header>
+  {% if messages %}<div class="site-messages" role="status">{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}</div>{% endif %}
+  <main id="main">{% reviewer_navigation as review_nav %}{% include "library/review_navigation.html" %}{% block content %}{% endblock %}</main>
+  <footer class="site-footer">{{ site.footer }}</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

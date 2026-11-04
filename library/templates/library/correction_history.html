@@ -1,0 +1,30 @@
+{% extends "library/base.html" %}
+{% block title %}Correction history | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Correction history</h1>
+  <p><a href="{% url 'metadata-review' %}">Metadata review</a></p>
+  <p>One latest revision per captured page, including resets. German, English and French are shown by default; language follows the latest explicit override or its extracted baseline. Unknown languages are hidden unless All languages is selected. Other captures and historical revisions are not deleted.</p>
+  <form method="get" class="catalogue-controls">
+    <label>Language <select name="language">{% for value,label in languages %}<option value="{{ value }}"{% if language == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Source host <input name="source" value="{{ source }}" maxlength="253"></label>
+    <button type="submit">Filter</button>
+  </form>
+  <p>{{ page.paginator.count }} corrected captures</p>
+  <p><a href="{% url 'correction-dataset-export' %}?language={{ language }}&amp;source={{ source|urlencode }}">Export latest revisions matching these filters</a> &middot; <a href="{% url 'correction-dataset-import' %}">Import correction dataset</a></p>
+  <p>Exports contain only explicitly verified overrides, not verified labels for every baseline field. Account identifiers and private annotations are excluded. Maximum 50 revisions / 1 MiB per file; narrow filters when needed.</p>
+  {% for correction in page %}
+  <article class="metadata-suggestion">
+    <h2>{{ correction.expected.metadata.title|default:correction.original.title }}</h2>
+    <p>{{ correction.capture.url }}</p>
+    <p>Revision {{ correction.revision }} &middot; {{ correction.created_at }} &middot; {{ correction.reviewer.username }}</p>
+    <p>{{ correction.reason|default:"No reason supplied" }}{% if not correction.expected %} &middot; Reset to baseline{% endif %}</p>
+    <p><a href="{% url 'correction-workspace' correction.capture_id %}">Open correction workspace</a> &middot; <a href="{% url 'correction-revisions' correction.capture_id %}">Inspect revisions</a> &middot; <a href="{% url 'correction-export' correction.capture_id %}">Export</a></p>
+  </article>
+  {% empty %}<p>No saved corrections match these filters.</p>{% endfor %}
+  <nav aria-label="Correction history pages">
+    {% if page.has_previous %}<a href="?language={{ language }}&amp;source={{ source|urlencode }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    {% if page.has_next %}<a href="?language={{ language }}&amp;source={{ source|urlencode }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
+  </nav>
+</div>
+{% endblock %}

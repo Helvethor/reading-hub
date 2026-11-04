@@ -1,0 +1,17 @@
+{% for node in tree.children %}
+<details data-branch-url="{{ node.url }}"><summary>{{ node.label }} <span class="muted">({{ node.count }})</span></summary>
+  <div class="catalogue-branch" data-branch-content><a href="{{ node.url }}">Browse {{ node.label }} ({{ node.count }} articles)</a></div>
+</details>
+{% endfor %}
+{% for entry in tree.entries %}
+<div class="catalogue-entry">
+  <form method="post" action="{% url 'catalogue-open' entry.pk %}">{% csrf_token %}<button class="catalogue-title" type="submit">{{ entry.title }}</button></form>
+  <p class="muted">{% if entry.display_authors %}{{ entry.display_authors|join:", " }}{% else %}{{ entry.display_author }}{% endif %} &middot; {{ entry.published|default:"Unknown date" }}{% if entry.topics %} &middot; {{ entry.topics|join:", " }}{% elif entry.topic %} &middot; {{ entry.topic }}{% endif %}{% if entry.era %} &middot; {{ entry.era }}{% endif %}</p>
+  <p class="source-url">{{ entry.url }}</p>
+  <p class="muted">Language: {{ entry.language|default:"Unknown" }}</p>
+  {% if entry.metadata_overrides %}
+  <p class="muted">Reviewed catalogue overlay{% if user.is_staff or perms.library.review_metadata %} &middot; <a href="{% url 'catalogue-overlay' entry.overlay_decisions.first.correction.capture_id %}">Review overlay / undo</a>{% endif %}</p>
+  {% endif %}
+  {% if not entry.checked_at %}<p class="muted">Listing metadata only; article details not fetched yet.</p>{% endif %}
+</div>
+{% endfor %}

@@ -1,0 +1,14 @@
+{% extends 'library/base.html' %}
+{% block title %}Create account | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Create account</h1>
+  <p>Reading stays public. Your highlights and underlining are private and belong to a specific cached version.</p>
+  {% if first_account %}<p class="notice">The first account becomes administrator of this private local installation. Later accounts are regular readers. Keep this service bound to localhost.</p>{% endif %}
+  <form method="post" class="account-form">
+    {% csrf_token %}{{ form.as_p }}
+    <button type="submit">Create account</button>
+  </form>
+  <p>Already registered? <a href="{% url 'login' %}">Sign in</a>.</p>
+</div>
+{% endblock %}

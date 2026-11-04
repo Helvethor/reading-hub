@@ -1,0 +1,43 @@
+{% extends "library/base.html" %}
+{% load static %}
+{% block title %}Regenerate a separate draft | {{ site.name }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
+{% endblock %}
+{% block content %}
+<div class="page-container document-comparison">
+  <h1>Regenerate a separate draft</h1>
+  <p><a href="{% url 'reader' source.pk %}">Original edition {{ source.pk }}</a> — {{ source.title }}</p>
+  <p class="notice">Offline preview from this edition's retained snapshot, using current extraction and formatting rules{% if original_source %}, without previous source corrections, saved organization or named excerpts{% else %} and applicable source corrections/organization{% endif %}. No source is fetched. Saved editor revisions are not replayed, copied or overwritten. Leave your current editor tab open to preserve unsaved work.</p>
+  <p>{% if original_source %}<strong>Original retained source inputs</strong>{% else %}<a href="?inputs=original">Start fresh from original retained source, without previous corrections or organization</a>{% endif %}</p>
+  {% if generation_error %}<p class="error" role="alert">{{ generation_error }}</p>
+    <p><a href="{% url 'document-fresh-draft' source.pk %}?inputs={{ input_mode }}">Generate a new preview</a></p>
+    {% if original_source %}<p>Original inputs exclude saved corrections, but current source-language, asset and semantic policies still apply.</p>
+    {% else %}<p><a href="{% url 'rendition-corrections' source.pk %}" target="_blank" rel="noopener">Inspect retained source corrections (new tab)</a>. Revalidation requirements and source-language restrictions are not bypassed by regeneration.</p>{% endif %}
+  {% endif %}
+  {% if proposal %}
+  <dl>
+    <dt>Pinned snapshot</dt><dd>{{ proposal.evidence.snapshot }} / {{ proposal.evidence.snapshot_digest }}</dd>
+    <dt>Generation versions (app / adapter / format)</dt><dd>{{ proposal.evidence.versions.app }} / {{ proposal.evidence.versions.adapter }} / {{ proposal.evidence.versions.format }}</dd>
+    <dt>Profile / configuration digest</dt><dd>{{ proposal.evidence.profile }} / {{ proposal.evidence.profile_digest }}</dd>
+    <dt>Exact preview digest</dt><dd>{{ proposal.digest }}</dd>
+    <dt>Applied source corrections</dt><dd>{% for row in proposal.evidence.generation.corrections %}#{{ row.id }} (revision {{ row.binding.revision }}){% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+    <dt>Organization</dt><dd>{% if proposal.evidence.generation.organization.id %}Saved organization #{{ proposal.evidence.generation.organization.id }}; exact specification pinned{% else %}Current adapter discovery; exact generated parts pinned{% endif %}</dd>
+    <dt>Retained image blobs checked</dt><dd>{{ proposal.evidence.assets|length }}</dd>
+  </dl>
+  {% if proposal.evidence.warnings %}<h2>Generation warnings</h2><ul>{% for item in proposal.evidence.warnings %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+  {% if proposal.issues %}<h2>Issues still requiring review</h2><ul>{% for item in proposal.issues %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+  {% if proposal.repairs %}<h2>Proposed semantic wrapper conversions</h2><ul>{% for repair in proposal.repairs %}<li>Element {{ repair.element }}: {{ repair.before }} → {{ repair.after }}{% if repair.id %}, target {{ repair.id }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="preview_digest" value="{{ proposal.digest }}">
+    <input type="hidden" name="inputs" value="{{ input_mode }}">
+    <label><input type="checkbox" name="confirm" value="yes" required> I reviewed this generation and any wrapper conversions. Start a separate unverified draft; do not publish or carry over saved edits or verification.</label>
+    <button type="submit">Start separate draft from this preview</button>
+  </form>
+  <h2>Generated document preview</h2>
+  <h3>{{ proposal.document.title }}</h3>
+  <div class="reader-content">{{ proposal.document.html|safe }}</div>
+  {% endif %}
+</div>
+{% endblock %}

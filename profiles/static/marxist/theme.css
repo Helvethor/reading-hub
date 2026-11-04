@@ -1,0 +1,116 @@
+:root {
+  --paper: #faf5ef;
+  --ink: #302221;
+  --muted: #74605b;
+  --line: #e1d3cb;
+  --accent: #a52323;
+  --editor-paper: #fffaf5;
+  --editor-panel: #f5eae2;
+  --editor-hover: #efdbd0;
+  --editor-border: #b78e80;
+  --editor-selected: #791d1d;
+}
+a:hover { color: #721515; }
+button:hover, .button:hover { background: #7a1616; }
+.site-header { background: #240505; border-color: #582424; color: #fff5eb; }
+.site-header .brand { color: #fff5eb; }
+.site-header .brand-mark { background: #c92b2b; }
+.site-header .local-badge { color: #e5bdb5; }
+.site-header .account-nav a, .site-header .account-nav button.secondary { color: #ffded6; }
+.site-header .account-nav a:hover { color: white; }
+.site-header .account-nav button.secondary { border-color: #b97b73; }
+.home-container { max-width: none; padding: 0; }
+.welcome {
+  max-width: none;
+  padding: 5rem max(calc((100vw - 1100px) / 2), 2rem);
+  min-height: 610px;
+  background-color: #300000;
+  background-image: linear-gradient(90deg, rgba(36, 0, 0, .16) 50%, rgba(36, 0, 0, .06)), url("lenin-red.png");
+  background-position: center, center right;
+  background-size: cover;
+  color: #fff5ed;
+}
+.welcome h1 { max-width: 580px; font-size: clamp(2.8rem, 4.5vw, 4.5rem); }
+.welcome .intro { max-width: 530px; color: #f2d8cc; }
+.welcome .eyebrow { color: #ffb5a7; }
+.welcome .url-form { max-width: 670px; padding: 1.2rem; border: 1px solid #8c4842; border-radius: 8px; background: rgba(35, 0, 0, .86); }
+.welcome .url-row input { background: #fffaf5; border-color: #e6b7a8; }
+.welcome .help, .welcome .cache-note { color: #f0c9bc; max-width: 640px; }
+.welcome .errorlist { color: #ffd6a8; }
+.welcome button { background: #b62222; border-color: #d3594e; }
+.welcome button:hover { background: #d0312b; }
+.home-container > .library-section { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+.browse-controls { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; margin: 0 0 1.5rem; }
+.browse-controls label { display: flex; flex-direction: column; gap: .4rem; font-size: .82rem; font-weight: 600; }
+.browse-controls select { font: inherit; color: var(--ink); background: #fffaf5; border: 1px solid #baa49b; border-radius: 5px; padding: .5rem .7rem; max-width: 100%; }
+.pagination { display: flex; justify-content: center; gap: 1.5rem; padding: 1.5rem 0; font-size: .85rem; }
+.reader-content blockquote { border-color: #c79b91; color: #59413b; }
+.reader-content :target { background: #f3dfbf; }
+.reader-content .note-backlink, .reader-content a { color: var(--accent); }
+.reader-content figcaption { color: var(--muted); }
+
+.editor-workspace, .editor-metadata, .editor-review-controls,
+#editor-sections, #editor-source-blocks, #editor-source-preview,
+#editor-figure-preview { border-color: var(--editor-border); }
+.editor-pilot-toolbar, .editor-outline, #editor-view-notice,
+#editor-selection-path { background: var(--editor-panel); border-color: var(--line); color: var(--ink); }
+#editor-surface, #editor-surface .tiptap { background: var(--editor-paper); color: var(--ink); }
+#editor-surface:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
+#editor-surface .ProseMirror-selectednode { outline-color: var(--accent); }
+#editor-surface .editor-labelled-block::before { color: var(--muted); border-color: var(--line); }
+#editor-outline-items button { color: var(--ink); }
+#editor-outline-items button:hover { background: var(--editor-hover); }
+#editor-outline-items button[aria-current="true"] { background: var(--editor-selected); color: #fffaf5; }
+.editor-outline-row { border-inline-start-color: var(--editor-border); }
+.editor-outline-visible { border-inline-start-color: var(--accent); background: var(--editor-hover); }
+#editor-outline-items .editor-outline-active > [data-part] { background: var(--editor-selected); color: #fffaf5; }
+#editor-surface .tiptap .editor-fold-placeholder { border-color: var(--accent); background: var(--editor-hover); color: var(--ink); }
+.editor-page :is(input, select, textarea),
+.editor-page dialog :is(input, select, textarea) {
+  background-color: var(--editor-paper);
+  color: var(--ink);
+  border-color: var(--editor-border);
+  accent-color: var(--accent);
+}
+.editor-metadata fieldset { min-width: 0; border: 1px solid var(--line); margin-block: .75rem; padding: .75rem; }
+.editor-metadata :is(input, select, textarea) { max-width: 100%; box-sizing: border-box; }
+.editor-metadata textarea { display: block; width: min(100%, 40rem); font: inherit; }
+.editor-metadata input[readonly] { background: var(--editor-panel); }
+.editor-page dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--editor-border); border-radius: .5rem; box-shadow: 0 .5rem 2rem #24050533; }
+.editor-page dialog::backdrop { background: #24050566; }
+#editor-context-menu, #editor-outline-menu { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
+#editor-context-menu button, #editor-outline-menu button { color: var(--ink); background: transparent; }
+#editor-context-menu button:hover, #editor-context-menu button:focus-visible,
+#editor-outline-menu button:hover, #editor-outline-menu button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
+#editor-context-menu button[aria-checked="true"] { background: var(--editor-selected); color: #fffaf5; }
+.editor-menu-group { border-color: var(--line); }
+#editor-context-menu button:focus-visible, #editor-outline-menu button:focus-visible,
+#editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline-color: var(--accent); }
+#editor-figure-preview { border-inline-start-color: var(--accent); background: var(--editor-paper); }
+#editor-surface .tiptap .editor-figure-group { border-inline-start-color: var(--editor-border); }
+#editor-surface .tiptap .editor-figure-handle { background: var(--editor-panel); color: var(--editor-selected); border-color: var(--editor-border); }
+#editor-surface .tiptap .editor-figure-handle:hover { background: var(--editor-hover); }
+#editor-surface .tiptap .editor-figure-handle:focus-visible { outline-color: var(--accent); }
+#editor-surface .tiptap cite { text-decoration-color: var(--editor-border); }
+#editor-surface .tiptap .quotation blockquote { border-color: var(--editor-border); }
+.editor-page button:disabled { opacity: .55; }
+.review-navigation { background: var(--editor-paper); }
+.review-navigation a[aria-current] { color: var(--editor-selected); }
+.document-comparison pre { background: var(--editor-paper); }
+.document-comparison ins { background: #dcebd9; color: #223b21; text-decoration: underline; }
+.document-comparison del { background: #f2d8d2; color: #702020; text-decoration: line-through; }
+@media (max-width: 850px) {
+  .welcome { background-position: center, 60% center; }
+  .welcome .intro, .welcome h1 { max-width: 470px; text-shadow: 0 2px 12px #260000; }
+}
+@media (max-width: 560px) {
+  .welcome {
+    padding: 3rem 1.25rem;
+    min-height: 0;
+    background-image: linear-gradient(rgba(32, 0, 0, .78), rgba(32, 0, 0, .88)), url("lenin-red.png");
+    background-position: center, 70% center;
+  }
+  .welcome h1 { font-size: 2.8rem; }
+  .home-container > .library-section { padding: 1.5rem 1.25rem; }
+  .browse-controls label { width: 100%; }
+}

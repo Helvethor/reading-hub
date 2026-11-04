@@ -1,0 +1,7 @@
+<ul>
+{% for node in nodes %}
+  <li><a href="#{{ node.id }}">{{ node.title }}</a>
+  {% if node.children %}{% include 'library/toc.html' with nodes=node.children %}{% endif %}
+  </li>
+{% endfor %}
+</ul>

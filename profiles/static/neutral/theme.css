@@ -1,0 +1,5 @@
+/* The engine's default paper-and-green presentation needs no color overrides. */
+.browse-controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+.browse-controls label { display: flex; flex-direction: column; gap: .4rem; }
+.browse-controls select { font: inherit; padding: .5rem; max-width: 100%; }
+.pagination { display: flex; gap: 1rem; padding: 1rem 0; }

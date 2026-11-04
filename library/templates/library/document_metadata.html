@@ -1,0 +1,6 @@
+{% if version.metadata.subtitle %}<p class="document-subtitle" lang="{{ version.metadata.language|default:'en' }}">{{ version.metadata.subtitle }}</p>{% endif %}
+<dl class="document-metadata">
+  {% if not version.metadata.author or version.metadata.author_is_fallback %}<dt>Source website</dt><dd>{{ display_author }}</dd>{% endif %}
+  {% for label, value in metadata_rows %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+  <dt>Source</dt><dd><a class="source-link" href="{{ version.document.url }}" rel="noopener noreferrer">{{ version.document.url }}</a></dd>
+</dl>

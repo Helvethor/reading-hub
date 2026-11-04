@@ -1,0 +1,33 @@
+{% extends "library/base.html" %}
+{% block title %}Catalogue metadata overlay | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container catalogue-overlay">
+  <h1>{% if undo %}Undo latest catalogue overlay change{% else %}Apply saved metadata to catalogue{% endif %}</h1>
+  <p class="source-url"><a href="{{ capture.url }}" target="_blank" rel="noopener noreferrer">{{ capture.url }}</a></p>
+  <p>This changes only this exact source URL's catalogue entry, not other pages, global aliases, reader versions or private annotations. Only explicitly corrected metadata fields are applied. Unknown/editor/translator components are not authors. Selecting this correction replaces the previous overlay; omitted fields return to their latest underlying values. Later crawls/imports update those underlying values without replacing the active overlay.</p>
+  <p>People remain scoped names (using any explicitly selected canonical name); no global identity links are created. Only publication dates fill the catalogue date; other date roles remain in correction evidence.</p>
+  {% if error %}<p role="alert" class="notice warning-text">{{ error }}</p>{% endif %}
+  {% if plan %}
+  <h2>Preview: {{ plan.entry.title }}</h2>
+  <p>Source correction revision {{ plan.correction.revision }} (capture {{ plan.correction.capture_id }}). Existing discovery/book organization is unchanged.</p>
+  <table><thead><tr><th>Field</th><th>Current</th><th>After confirmation</th></tr></thead>
+    <tbody>{% for row in plan.rows %}<tr><th>{{ row.field }}</th><td>{{ row.before }}</td><td>{{ row.after }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="token" value="{{ token }}">
+    <label>Required reason <textarea name="reason" required maxlength="2000">{{ reason }}</textarea></label>
+    <button name="action" value="confirm">{% if undo %}Confirm undo{% else %}Apply catalogue overlay{% endif %}</button>
+  </form>
+  {% endif %}
+  <p><a href="{% url 'catalogue-overlay' capture.pk %}?{{ review_nav.query }}">Preview saved correction</a> &middot; <a href="{% url 'catalogue-overlay' capture.pk %}?{{ review_nav.query }}&amp;action=undo">Preview undo of latest change</a></p>
+  <h2>Audit history</h2>
+  {% for decision in history %}
+  <article>
+    <h3>{% if decision.undo_of_id %}Undo of decision {{ decision.undo_of_id }}{% else %}Applied overlay{% endif %} — {{ decision.created_at }}</h3>
+    <p>{{ decision.reviewer }} · correction {{ decision.correction_id }} · {{ decision.reason }}</p>
+    <details><summary>Before / after evidence</summary><pre class="correction-source">{{ decision.before|pprint }}</pre><pre class="correction-source">{{ decision.after|pprint }}</pre></details>
+  </article>
+  {% empty %}<p>No catalogue overlay decisions.</p>{% endfor %}
+</div>
+{% endblock %}

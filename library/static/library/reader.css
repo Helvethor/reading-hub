@@ -1,0 +1,52 @@
+.reader-content { font: 1.15rem/1.85 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.reader-content p { margin: 0 0 1.4em; }
+.reader-content .document-subtitle { font-size: 1.2em; font-style: italic; line-height: 1.45; margin: .5em 0 1.5em; }
+.reader-content h2, .reader-content h3, .reader-content h4, .reader-content h5, .reader-content h6 { font-family: Georgia, serif; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; margin: 2.2em 0 .85em; text-wrap: balance; }
+.reader-content h2 { font-size: 1.75em; }
+.reader-content h3 { font-size: 1.4em; }
+.reader-content h4 { font-size: 1.2em; }
+.reader-content h5, .reader-content h6 { font-size: 1em; }
+.reader-content [id] { scroll-margin-top: 2rem; }
+.reader-content :target { background: #eeeacb; border-radius: 3px; }
+.reader-content img { display: block; max-width: 100%; height: auto; margin: 1.8rem auto .7rem; }
+.reader-content figure { margin: 2rem 0; }
+.reader-content figcaption { font: .78rem/1.6 system-ui, sans-serif; color: #686e65; margin-bottom: 1.8rem; }
+.reader-content blockquote { margin: 1.7rem 0; padding: .2rem 0 .2rem 1.5rem; border-left: 3px solid #a9b7a1; color: #4c554b; }
+.reader-content blockquote p:last-child { margin-bottom: 0; }
+.reader-content figure.quotation { margin: 1.7rem 0; }
+.reader-content .quotation blockquote { margin: 0; }
+.reader-content .quotation figcaption { margin: .65rem 0 0; padding-left: 1.5rem; font: .9em/1.6 Georgia, serif; color: inherit; }
+.reader-content .quotation figcaption p { margin: 0; }
+.reader-content ul, .reader-content ol { padding-left: 1.5em; margin-bottom: 1.4em; }
+.reader-content table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: .9em; margin: 1.5rem 0; }
+.reader-content th, .reader-content td { border: 1px solid #d9ddd1; padding: .5rem; }
+.reader-content pre { white-space: pre-wrap; }
+.reader-content hr { border: 0; border-top: 1px solid #d9ddd1; margin: 2rem 0; }
+.reader-content .missing-image { display: block; background: #f3e9d2; padding: 1rem; font: .8rem/1.5 system-ui, sans-serif; }
+.reader-content .note-backlink { font: .75rem/1.4 system-ui, sans-serif; }
+@media (max-width: 560px) { .reader-content { font-size: 1.05rem; } }
+@media print {
+  .site-header, .site-footer, .reader-toolbar, .toc-panel, .version-details { display: none; }
+  .reader-layout { display: block; padding: 0; }
+  .reader-content { font-size: 11pt; }
+}
+.media-credit { font-size: .9em; font-style: italic; }
+.reader-content .text-align-left { text-align: left; }
+.reader-content .text-align-right { text-align: right; }
+.reader-content .text-align-center { text-align: center; }
+.reader-content .text-align-justify { text-align: justify; }
+.reader-content .text-italic-on { font-style: italic; }
+.reader-content .text-italic-off { font-style: normal; }
+.reader-content .text-bold-on { font-weight: bold; }
+.reader-content .text-bold-off { font-weight: normal; }
+.reader-content .text-underline-on { text-decoration-line: underline; }
+.reader-content .text-strikethrough-on { text-decoration-line: line-through; }
+.reader-content .text-underline-on.text-strikethrough-on { text-decoration-line: underline line-through; }
+.reader-content .text-underline-off, .reader-content .text-strikethrough-off { text-decoration-line: none; }
+.reader-content .text-underline-on.text-strikethrough-off { text-decoration-line: underline; }
+.reader-content .text-underline-off.text-strikethrough-on { text-decoration-line: line-through; }
+.reader-content .text-superscript-on { vertical-align: super; font-size: .8em; }
+.reader-content .text-subscript-on { vertical-align: sub; font-size: .8em; }
+.reader-content .text-superscript-off, .reader-content .text-subscript-off { vertical-align: baseline; }
+.reader-content .text-superscript-on.text-subscript-off { vertical-align: super; }
+.reader-content .text-subscript-on.text-superscript-off { vertical-align: sub; }

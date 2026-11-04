@@ -1,0 +1,11 @@
+{% if revision %}
+<section class="notice document-review-status" aria-label="Edited edition review status">
+  <p><strong>Directly edited edition — {{ revision.get_review_display }}.</strong>
+  {% if revision.review == "partial" %}Not verified as a whole document.
+  {% elif revision.review == "sections" %}Only the explicitly recorded sections are verified: {{ revision.verified_sections|join:", " }}. Not verified as a whole document.
+  {% else %}Explicit whole-document verification applies only to this saved revision.{% endif %}
+  {% if revision.editorial %}Contains editorial changes.{% endif %}</p>
+  <p>Saved draft revision {{ revision.revision }}. Publication does not add verification.</p>
+  <p>Source edition {{ revision.draft.rendition_id }}; draft {{ revision.draft_id }}.</p>
+</section>
+{% endif %}
