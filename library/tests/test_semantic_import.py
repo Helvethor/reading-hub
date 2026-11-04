@@ -62,6 +62,44 @@ class SemanticImportTests(SimpleTestCase):
                          [1, 2])
         self.assertIn('<div id="outer"><div id="inner">', proposal["document"]["html"])
 
+    def test_mixed_list_flow_is_grouped_without_losing_text_links_ids_or_breaks(self):
+        value = document(
+            '<section id="c1"><ul id="contents">'
+            '<li id="existing">Keep <a id="existing-link" href="#note">this</a></li>'
+            '\n \n<br/> <a id="part-one" href="#note">Part one</a><br/>'
+            '<a id="part-two" href="#note">Part two</a></ul>'
+            '<p id="note">Target</p></section>'
+        )
+        original = deepcopy(value)
+        proposal = preview_import(value)
+
+        self.assertTrue(proposal["requires_approval"])
+        self.assertEqual(proposal["conversion"]["version"], 2)
+        self.assertEqual(proposal["conversion"]["repairs"], [{
+            "element": 1, "id": "contents", "operation": "list-flow",
+            "before": "direct list content", "after": "list items",
+            "whitespace_wrappers": 1,
+        }])
+        result = BeautifulSoup(proposal["document"]["html"], "html.parser")
+        list_node = result.select_one("#contents")
+        self.assertEqual(
+            [node.name for node in list_node.find_all(recursive=False)
+             if getattr(node, "name", None)],
+            ["li", "li", "li", "li"],
+        )
+        self.assertEqual([node.get("id") for node in list_node.find_all("li", recursive=False)],
+                         ["existing", None, None, None])
+        self.assertEqual([node.get("id") for node in result.select("a")],
+                         ["existing-link", "part-one", "part-two"])
+        self.assertEqual([node.get("href") for node in result.select("a")],
+                         ["#note", "#note", "#note"])
+        self.assertEqual(result.get_text(), BeautifulSoup(value["html"], "html.parser").get_text())
+        self.assertEqual(len(result.select("#contents br")), 2)
+        self.assertTrue(all(node.parent.name == "li" for node in result.select("#contents br")))
+        self.assertEqual(len(result.select("#contents span")), 1)
+        self.assertEqual(document_issues(proposal["document"], set()), [])
+        self.assertEqual(value, original)
+
     def test_unsupported_ambiguity_is_not_automatically_reinterpreted(self):
         for html in (
             '<section><figcaption>Orphan caption</figcaption></section>',

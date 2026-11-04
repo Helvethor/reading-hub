@@ -89,6 +89,13 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   history; preview source text and any word-separating seam space.
   Copied edition-80 inline-note repair passed exact markup/target preservation,
   undo/recovery/save/reopen/publication and reader/PDF checks.
+- [x] Integrate the pinned book's ordered parts into the editor context, link to
+  the existing audited organization workspace, and return from compatible
+  organization commits to the new source-derived editor edition. Show an
+  explicit limitation instead of a broken link when import is unsupported.
+  Keep organization and document revisions separate; the editor does not
+  overlay saved edits onto a source rebuild. Direct structure editing inside
+  the document editor remains a separate consolidation gap.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent
@@ -345,14 +352,24 @@ Initial foundation implemented in development on 2026-10-23 (not Gate A complete
   bindings, no intermediate publication and no saved-edit replay (0.39.0).
 - [ ] Complete typed note/media relationship semantics and full asset validation;
   extend provenance to other generation paths only with explicit scope.
-- [x] Implement conservative legacy conversion v1: audited block-wrapper repair,
+- [x] Initial conservative legacy conversion v1: audited block-wrapper repair,
   text/tree/attribute/link/asset-reference preservation checks, read-only preview,
   exact evidence-bound approval before draft creation and original HTML retention.
-  Ten conversion/approval tests were added; the full suite passes with 531 tests.
-  A read-only pass found 62 of 80 editions directly compatible, 14 convertible
-  with explicit approval, and four refused. Three accepted proposals also reported
-  relationship issues requiring review. These are local compatibility observations,
-  not a representative benchmark or instructions to rewrite historical output.
+  Its ten conversion/approval tests, 531-test suite result and read-only pass
+  (62/80 direct, 14 convertible, four refused; three proposals with relationship
+  issues) are historical v1 observations, not a representative benchmark or
+  instructions to rewrite historical output.
+- [x] Extend legacy conversion to v2 with approved mixed-list-flow grouping and
+  exact preservation checks for text characters, IDs, links, attributes, assets
+  and line breaks. The focused editor/import/organization regression set passes
+  50 tests. On the isolated data copy, a real nine-part book completed
+  organization preview/commit, conversion approval, editor save/reopen,
+  publication, reader/ToC (37 links) and a 74-page PDF. Article 52 completed
+  direct import, save/reopen, publication, reader/ToC (16 links) and a 28-page
+  PDF. Both documents also passed the editor-schema fidelity check in
+  the local jsdom harness. The original source editions remained unchanged; no
+  live data was used. This is workflow evidence, not independent reviewer
+  acceptance.
 - [ ] Define additional conversions only from representative failure fixtures;
   ambiguous captions, block links and unsupported markup remain explicit failures.
 - [x] Select self-hosted Tiptap core with user approval and implement a bounded,

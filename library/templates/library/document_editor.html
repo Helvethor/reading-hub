@@ -21,6 +21,18 @@
   <p><small>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a></small></p>
   {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
   {% if initial %}
+  <details class="editor-book-structure">
+    <summary>Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
+    <p>Membership, part titles, roles and order are managed as a separate audited organization decision. The organization preview rebuilds every affected work from retained sources; it does not apply this editor’s saved or unsaved document revisions. This edition and its history remain unchanged. After confirming a structure change, continue in the editor for the new edition.</p>
+    <ol>
+      {% for part in initial.structure.parts %}
+      <li><strong>{{ part.title }}</strong> — {{ part.role|default:"chapter" }}{% if part.url %} · <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a>{% endif %}</li>
+      {% empty %}
+      <li>Part details are unavailable in this edition’s structure.</li>
+      {% endfor %}
+    </ol>
+    <p><a class="editor-structure-link" href="{% url 'content-organization' %}?url={{ version.document.url|urlencode }}" target="_blank" rel="noopener">Manage membership, part titles, roles and order in the audited structure workflow (new tab)</a></p>
+  </details>
   <p class="editor-book-title">{{ initial.document.title }}</p>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" novalidate>
     {% csrf_token %}
@@ -46,9 +58,9 @@
       </details>
     </details>
     {% if initial.requires_approval %}
-    <details open><summary>Proposed legacy conversion: {{ initial.repairs|length }} wrapper repair(s)</summary>
-      <ul>{% for repair in initial.repairs %}<li>Element {{ repair.element }}{% if repair.id %}, target {{ repair.id }}{% endif %}: {{ repair.before }} → {{ repair.after }}</li>{% endfor %}</ul>
-      <p>These wrappers become block containers. Text, attributes, links and asset references are preserved, but layout can change.</p>
+    <details open><summary>Proposed legacy conversion: {{ initial.repairs|length }} repair(s)</summary>
+      <ul>{% for repair in initial.repairs %}<li>Element {{ repair.element }}{% if repair.id %}, target {{ repair.id }}{% endif %}: {% if repair.operation == "list-flow" %}direct list content → list items{% if repair.whitespace_wrappers %} with {{ repair.whitespace_wrappers }} whitespace-preserving inline wrapper(s){% endif %}{% else %}{{ repair.before }} → {{ repair.after }}{% endif %}</li>{% endfor %}</ul>
+      <p>Repairs preserve text, element order, attributes, links and asset references; wrapper meaning or list grouping can change. Review the exact draft before approval.</p>
       <label><input name="approve_conversion" type="checkbox"> I approve this exact conversion for the draft.</label>
     </details>
     {% endif %}

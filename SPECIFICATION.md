@@ -99,8 +99,13 @@ stores typed values, not renewed parser certification; original evidence remains
 pinned. Names do not merge catalogue identities, and changing a name drops its
 canonical identity binding. Save/recovery, comparison and explicit publication
 retain these values; reader and PDF use the same metadata presentation.
-Reciprocal note/media repair and book structure remain consolidation prerequisites;
-legacy retirement and the authorized destructive reset have not happened.
+The editor now summarizes the pinned edition's ordered book parts and links to
+the audited organization workspace; compatible organization commits link back to
+the new source-derived editor edition. When import is unsupported, the result
+page explains the limitation instead of offering a broken continuation link.
+Direct book-structure editing within the document editor and reciprocal
+note/media repair remain consolidation prerequisites. Legacy retirement and the
+authorized destructive reset have not happened.
 
 ## 1. Purpose and scope
 
@@ -764,15 +769,19 @@ Existing corrections and readers are unchanged.
 The read-only `semantic_document_check` command supports compatibility assessment;
 passing it is not review certification.
 
-Legacy import conversion v1 is now implemented in development. It can propose
-replacing a generic inline `span` containing block content with a `div`, including
-nested wrappers. Each repair identifies the original element ordinal, optional
-target ID and before/after element names. It preserves exact text-node contents,
-tree depth/order, attributes, links and asset references; strict semantic validation
-is applied again afterwards. This may change wrapper layout and must be reviewed,
-not described as an invisible formatting-only fix. Unsupported captions, block
-links, invalid paragraph nesting, malformed/unsafe HTML and ambiguous repairs are
-refused rather than guessed or sanitized into apparent success.
+Legacy import conversion v2 is now implemented in development. It retains the
+audited `span`-to-`div` repair for generic inline wrappers containing block
+content, including nested wrappers, and adds a bounded repair for direct mixed
+flow inside `ul`/`ol`: content is explicitly grouped into `li` items, with
+whitespace-preserving inline wrappers where canonical serialization would
+otherwise trim spaces. Each repair identifies the original element ordinal,
+optional target ID and operation. Original text characters, element order,
+attributes, IDs, links, asset references and line breaks are checked; the
+approved grouping can change tree depth and layout. The editor lists these
+repairs, including inserted whitespace wrappers, and requires exact approval.
+Unsupported captions, block links, invalid paragraph nesting, malformed/unsafe
+HTML and ambiguous repairs remain explicit failures rather than guessed or
+sanitized success.
 
 `--preview-conversion` returns a versioned report and approval digest without
 saving. `--include-document` includes the proposed document for one edition.

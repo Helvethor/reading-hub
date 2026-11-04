@@ -60,6 +60,7 @@ def workspace(request, pk):
             saved_state(draft, revision.revision if revision else 0)
             initial = {
                 "document": revision.document if revision else draft.document,
+                "structure": draft.evidence.get("structure", version.structure),
                 "draft": str(draft.pk), "revision": revision.revision if revision else 0,
                 "approval_digest": None, "requires_approval": False, "repairs": [],
                 "editorial": revision.editorial if revision else
@@ -71,6 +72,7 @@ def workspace(request, pk):
             proposal = preview_rendition_import(version)
             initial = {
                 "document": proposal["document"], "draft": None, "revision": 0,
+                "structure": version.structure,
                 "approval_digest": proposal["approval_digest"],
                 "requires_approval": proposal["requires_approval"],
                 "repairs": proposal["conversion"]["repairs"],

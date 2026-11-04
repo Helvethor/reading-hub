@@ -1,5 +1,9 @@
 .editor-page { max-width: 1440px; margin-block: 1.5rem; }
 .editor-page h1 { font-size: 1.8rem; }
+.editor-book-structure { margin-block: 1rem; padding: .75rem 1rem; border: 1px solid #98a48e; border-radius: .4rem; background: #f8f9f5; }
+.editor-book-structure summary { cursor: pointer; font-weight: 700; }
+.editor-book-structure li { overflow-wrap: anywhere; }
+.editor-structure-link { font-weight: 700; }
 .editor-pilot-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .6rem; border-bottom: 1px solid #cbd1c4; background: #f8f9f5; }
 .editor-pilot-toolbar label { margin: 0; }
 .editor-pilot-toolbar button, .editor-pilot-toolbar label { font-size: .85rem; }

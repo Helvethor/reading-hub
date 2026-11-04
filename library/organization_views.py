@@ -1,15 +1,18 @@
 import json
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.db import OperationalError
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from library.metadata_views import metadata_reviewer_required
-from library.models import Annotation, ContentOrganizationDecision
+from library.models import Annotation, ContentOrganizationDecision, Rendition
 from library.profile import get_profile
+from library.services.document_edits import preview_rendition_import
 from library.services.errors import ImportFailure
 from library.services.fetch import canonical_url
 from library.services.organizations import (
@@ -104,10 +107,51 @@ def workspace(request):
                 else None
             )
             decision = commit_change(payload, request.user, payload["reason"], undo_of=undo)
+            source_url = payload["before"][0]["url"]
+            target_spec = next(
+                (spec for spec in payload["after"] if spec["url"] == source_url),
+                None,
+            )
+            if target_spec is None:
+                target_spec = next(
+                    (
+                        spec for spec in payload["after"]
+                        if any(part["url"] == source_url for part in spec["parts"])
+                    ),
+                    None,
+                )
+            rendition_id = (
+                decision.evidence["renditions"].get(target_spec["url"])
+                if target_spec else None
+            )
+            editor_url, editor_limitation = None, None
+            if settings.READING_HUB_EDITOR_PILOT:
+                if rendition_id:
+                    rendition = get_object_or_404(Rendition, pk=rendition_id)
+                    try:
+                        preview_rendition_import(rendition)
+                    except (ValueError, ImportFailure) as exc:
+                        editor_limitation = (
+                            "The document editor cannot open this edition yet: " + str(exc)
+                        )
+                    else:
+                        editor_url = (
+                            reverse("document-editor", args=[rendition_id]) + "?start=source"
+                        )
+                else:
+                    editor_limitation = (
+                        "The organization change was saved, but no resulting editor edition "
+                        "was identified."
+                    )
             return render(
                 request,
                 "library/organization_saved.html",
-                {"decision": decision, "url": payload["after"][0]["url"]},
+                {
+                    "decision": decision,
+                    "url": payload["after"][0]["url"],
+                    "editor_url": editor_url,
+                    "editor_limitation": editor_limitation,
+                },
             )
         else:
             reason = request.POST.get("reason", "").strip()

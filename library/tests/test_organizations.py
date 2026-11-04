@@ -17,6 +17,9 @@ from library.models import (
     ContentOrganizationDecision,
     CrawlCapture,
     Document,
+    DocumentDraftBase,
+    DocumentEditRevision,
+    DocumentPublication,
     Job,
     Rendition,
 )
@@ -97,6 +100,139 @@ class OrganizationTests(TestCase):
 
     def publish(self, spec):
         return commit_change(self.prepare(spec), self.reviewer, "Verified source organization")
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_editor_structure_workflow_reorders_book_then_corrects_article_and_book(self):
+        editor_path = reverse("document-editor", args=[self.book.pk])
+        with patch("library.document_editor_views.finders.find", return_value="built-asset"):
+            initial_editor = self.client.get(editor_path)
+        self.assertEqual(initial_editor.status_code, 200)
+        self.assertContains(initial_editor, "Book structure")
+        self.assertEqual(len(initial_editor.context["initial"]["structure"]["parts"]), 3)
+        self.assertContains(initial_editor, reverse("content-organization"))
+
+        changed = deepcopy(self.spec)
+        changed["parts"].reverse()
+        changed["parts"][0].update(title="Reviewed appendix", role="appendix")
+        response = self.client.post(
+            reverse("content-organization"),
+            {
+                "action": "preview",
+                "reason": "Set the reviewed book hierarchy",
+                "specification": json.dumps(changed),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        token = response.context["token"]
+        response = self.client.post(
+            reverse("content-organization"),
+            {"action": "apply", "token": token, "preserve_annotations": "yes"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "newly organized retained-source edition")
+        editor_url = response.context["editor_url"]
+        new_book = Document.objects.get(url=BOOK).latest()
+        self.assertEqual(
+            editor_url, reverse("document-editor", args=[new_book.pk]) + "?start=source"
+        )
+
+        def edit_and_publish(version):
+            path = reverse("document-editor", args=[version.pk])
+            with patch("library.document_editor_views.finders.find", return_value="built-asset"):
+                page = self.client.get(path)
+            self.assertEqual(page.status_code, 200)
+            initial = page.context["initial"]
+            payload = {
+                "draft": None,
+                "revision": 0,
+                "document": initial["document"],
+                "conversion_approval": initial["approval_digest"],
+                "review": "partial",
+                "verified_sections": [],
+                "editorial": False,
+            }
+            saved = self.client.post(
+                path, json.dumps(payload), content_type="application/json",
+            )
+            self.assertEqual(saved.status_code, 200, saved.content.decode())
+            draft = saved.json()["draft"]
+            publication_path = (
+                reverse("document-publication", args=[version.pk])
+                + f"?draft={draft}&revision=1"
+            )
+            preview = self.client.get(publication_path)
+            self.assertEqual(preview.status_code, 200)
+            published = self.client.post(
+                publication_path,
+                {
+                    "confirm": "yes", "revision": 1,
+                    "preview_digest": preview.context["candidate"]["digest"],
+                },
+            )
+            self.assertEqual(published.status_code, 302)
+            return DocumentPublication.objects.get(
+                revision__draft__pk=draft, revision__revision=1,
+            ).rendition
+
+        new_book.refresh_from_db()
+        new_book_publication = edit_and_publish(new_book)
+        self.assertTrue(new_book_publication.structure["book"])
+        self.assertEqual(new_book_publication.structure["pages"], 3)
+        self.assertEqual(new_book_publication.structure["parts"][0]["role"], "appendix")
+        self.assertEqual(
+            new_book_publication.structure["parts"][0]["title"], "Reviewed appendix"
+        )
+        book_html = new_book_publication.html
+        self.assertIn("Reviewed appendix", book_html)
+        self.assertIn("First chapter", book_html)
+        self.assertIn("This is a sufficiently long original test paragraph", book_html)
+        self.assertEqual(
+            self.client.get(reverse("reader", args=[new_book_publication.pk])).status_code,
+            200,
+        )
+
+        enqueue(ARTICLE)
+        article = process_job(claim_job())
+        self.assertIsNotNone(article)
+        article_publication = edit_and_publish(article)
+        self.assertFalse(article_publication.structure["book"])
+        self.assertEqual(article_publication.structure["pages"], 1)
+        self.assertEqual(
+            self.client.get(reverse("reader", args=[article_publication.pk])).status_code,
+            200,
+        )
+        self.assertEqual(DocumentDraftBase.objects.count(), 2)
+        self.assertEqual(DocumentEditRevision.objects.count(), 2)
+        self.assertEqual(DocumentPublication.objects.count(), 2)
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_organization_commit_explains_when_editor_conversion_is_unsupported(self):
+        changed = deepcopy(self.spec)
+        changed["title"] = "New edition with unsupported legacy structure"
+        preview = self.client.post(
+            reverse("content-organization"),
+            {
+                "action": "preview",
+                "reason": "Validate editor conversion limitation",
+                "specification": json.dumps(changed),
+            },
+        )
+        self.assertEqual(preview.status_code, 200)
+        with patch(
+            "library.organization_views.preview_rendition_import",
+            side_effect=ValueError("Legacy structure needs manual conversion."),
+        ):
+            saved = self.client.post(
+                reverse("content-organization"),
+                {
+                    "action": "apply", "token": preview.context["token"],
+                    "preserve_annotations": "yes",
+                },
+            )
+        self.assertEqual(saved.status_code, 200)
+        self.assertIsNone(saved.context["editor_url"])
+        self.assertContains(saved, "The document editor cannot open this edition yet")
+        self.assertContains(saved, "Legacy structure needs manual conversion.")
 
     def test_preview_then_reorder_rename_roles_redirect_every_old_surface(self):
         first_url = self.spec["parts"][1]["url"]
