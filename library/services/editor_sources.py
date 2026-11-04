@@ -5,7 +5,8 @@ from urllib.parse import unquote, urljoin
 
 from bs4 import BeautifulSoup
 
-from library.models import Blob
+from library.models import Blob, SourceExcerptRevision
+from library.profile import get_profile
 from library.services.pipeline import snapshot_digest
 from library.services.semantic_documents import SCHEMA_VERSION, canonical_document, fingerprint
 from library.services.semantic_import import preview_import
@@ -14,7 +15,59 @@ from library.services.storage import read_blob
 from library.sources.base import Part, Source
 from library.sources.normalize import make_id, normalize
 
-MAX_SELECTION = 100
+MAX_SELECTION = 2000
+
+
+def original_section(rendition, target, *, allowed_assets=None):
+    proposal = preview_import({
+        "version": SCHEMA_VERSION, "title": rendition.title,
+        "metadata": rendition.metadata, "html": rendition.html,
+    })
+    soup = BeautifulSoup(proposal["document"]["html"], "html.parser")
+    section = soup.find("section", id=target)
+    if section is None:
+        raise ValueError("Choose a section from this original edition.")
+    assets = {image["src"].split("/")[2] for image in section.select("img")}
+    if allowed_assets is not None and not assets <= set(allowed_assets):
+        raise ValueError("This original section uses images not bound to this draft.")
+    part = next(
+        (part for part in rendition.structure.get("parts", []) if part.get("id") == target), {},
+    )
+    return {
+        "html": str(section), "title": part.get("title", target),
+        "url": part.get("url", ""), "role": part.get("role", "chapter"),
+        "target": target, "repairs": proposal["conversion"]["repairs"],
+        "binding": {"rendition": rendition.pk, "output_digest": rendition.output_digest},
+    }
+
+
+def section_candidates(entry, blocks):
+    candidates = []
+    for index, node in enumerate(blocks):
+        if node.name not in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            continue
+        end = next((
+            i for i in range(index + 1, len(blocks))
+            if blocks[i].name in {"h1", "h2", "h3", "h4", "h5", "h6"}
+            and blocks[i].name <= node.name
+        ), len(blocks))
+        candidates.append({
+            "title": node.get_text(" ", strip=True), "kind": "Parsed heading range",
+            "blocks": list(range(index, end)),
+        })
+    seen = set()
+    excerpts = SourceExcerptRevision.objects.filter(
+        capture__site__profile=get_profile().key, capture__url=entry["url"],
+    ).order_by("definition", "-revision")
+    for excerpt in excerpts:
+        if excerpt.definition in seen:
+            continue
+        seen.add(excerpt.definition)
+        if not excerpt.deleted and excerpt.source_digest == entry["digest"]:
+            candidates.append({
+                "title": excerpt.name, "kind": "Saved excerpt", "blocks": excerpt.blocks,
+            })
+    return candidates
 
 
 def source_page(rendition, page_number, selection=None, *, allowed_assets=None):
@@ -34,6 +87,12 @@ def source_page(rendition, page_number, selection=None, *, allowed_assets=None):
              or node.get("alt", "") or "(Image or divider)"}
             for i, node in enumerate(blocks)
         ],
+        "candidates": section_candidates(entry, blocks),
+        "original_sections": [
+            {"id": part["id"], "title": part["title"], "url": part.get("url", ""),
+             "role": part.get("role", "chapter")}
+            for part in rendition.structure.get("parts", []) if part.get("id")
+        ],
     }
     if selection is None:
         return result
@@ -42,7 +101,7 @@ def source_page(rendition, page_number, selection=None, *, allowed_assets=None):
         or any(type(i) is not int or not 0 <= i < len(blocks) for i in selection)
         or selection != sorted(set(selection))
     ):
-        raise ValueError("Choose 1-100 distinct source blocks in source order.")
+        raise ValueError("Choose 1-2000 distinct source blocks in source order.")
     for entry_asset in manifest["assets"].values():
         if "digest" not in entry_asset:
             continue

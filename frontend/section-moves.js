@@ -1,17 +1,13 @@
 import {closeHistory} from "@tiptap/pm/history";
 import {TextSelection} from "@tiptap/pm/state";
 import {showDocumentPart, visiblePart} from "./workspace.js";
+import {sectionHeading} from "./section-info.js";
 
 export function movableSections(doc) {
   const sections = [];
   doc.descendants((node, from) => {
     if (node.type.name !== "section") return;
-    let label = "";
-    node.descendants(child => {
-      if (child.type.name === "section") return false;
-      if (!label && /^h[2-6]$/.test(child.type.name)) label = child.textContent;
-      return !label;
-    });
+    const label = sectionHeading(node, from)?.node.textContent || "";
     const depth = doc.resolve(from).depth;
     sections.push({
       from, to: from + node.nodeSize, node, depth,
@@ -57,7 +53,7 @@ export function moveSection(editor, proposal, sourceIndex, placement, destinatio
   editor.view.dispatch(closeHistory(editor.state.tr));
 }
 
-export function mountSectionMoves(form, editor, showError) {
+export function mountSectionMoves(form, editor, showError, {externalMenu = false} = {}) {
   const dialog = form.ownerDocument.querySelector("#editor-section-move");
   if (!dialog) return;
   const source = dialog.querySelector("[name=section]");
@@ -144,10 +140,12 @@ export function mountSectionMoves(form, editor, showError) {
       owner.defaultView.innerHeight - bounds.height - 8))}px`;
     move.focus();
   }
-  outline?.addEventListener("contextmenu", event => openMenu(event));
-  outline?.addEventListener("keydown", event => {
-    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) openMenu(event, true);
-  });
+  if (!externalMenu) {
+    outline?.addEventListener("contextmenu", event => openMenu(event));
+    outline?.addEventListener("keydown", event => {
+      if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) openMenu(event, true);
+    });
+  }
   move.addEventListener("click", () => {
     const target = menuTarget;
     closeMenu();
@@ -190,4 +188,5 @@ export function mountSectionMoves(form, editor, showError) {
     } catch (failure) { error.textContent = failure.message; }
   });
   dialog.addEventListener("close", () => { proposal = null; editor.commands.focus(); });
+  return {open};
 }

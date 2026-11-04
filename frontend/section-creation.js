@@ -73,9 +73,9 @@ export function mountSectionCreation(form, editor, showError) {
       apply.disabled = true;
     }
   }
-  trigger.addEventListener("click", () => {
+  function open(anchor = null) {
     try {
-      target = prepareSectionCreation(editor);
+      target = anchor || prepareSectionCreation(editor);
       title.value = "";
       level.value = "2";
       placement.value = "after";
@@ -83,7 +83,8 @@ export function mountSectionCreation(form, editor, showError) {
       dialog.showModal();
       title.focus();
     } catch (failure) { showError(failure.message); }
-  });
+  }
+  trigger.addEventListener("click", () => open());
   for (const input of [title, level, placement]) input.addEventListener("input", preview);
   apply.addEventListener("click", () => {
     try {
@@ -96,4 +97,5 @@ export function mountSectionCreation(form, editor, showError) {
     dialog.close();
     editor.view.focus();
   });
+  return {open};
 }

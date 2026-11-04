@@ -1,6 +1,7 @@
 import {Extension} from "@tiptap/core";
 import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state";
 import {Decoration, DecorationSet} from "@tiptap/pm/view";
+import {sectionHeading} from "./section-info.js";
 
 const workspaceKey = new PluginKey("readingHubWorkspace");
 const headingTypes = new Set(["h2", "h3", "h4", "h5", "h6"]);
@@ -15,16 +16,12 @@ export function documentParts(doc) {
     const firstLevel = levels.length ? Math.min(...levels) : 2;
     children.forEach(({node, pos}, index) => {
       if (node.type.name === "section") {
-        let heading = "";
-        node.descendants(child => {
-          if (child.type.name === "section") return false;
-          if (!heading && headingTypes.has(child.type.name)) heading = child.textContent;
-          return !heading;
-        });
+        const heading = sectionHeading(node, pos)?.node.textContent || "";
         parts.push({
           from: pos + 1, to: pos + node.nodeSize - 1, depth,
           label: heading.trim().slice(0, 120) || node.attrs.id || "Untitled section",
           kind: "Section", id: node.attrs.id,
+          role: node.attrs["data-section-role"],
         });
       } else if (headingTypes.has(node.type.name)) {
         const next = children.slice(index + 1).find(({node: sibling}) =>
@@ -94,6 +91,26 @@ function decorations(doc, scope, labels, folds = []) {
     if (hidden.some(range => pos >= range.from && end <= range.to)) {
       result.push(Decoration.node(pos, end, {class: "editor-folded-content", "aria-hidden": "true"}));
       return false;
+    }
+    if (node.type.name === "section") {
+      const heading = sectionHeading(node, pos);
+      const label = heading?.node.textContent || node.attrs.id || "Untitled section";
+      result.push(Decoration.node(pos, end, {class: "editor-section-boundary"}));
+      for (const [at, text, edge] of [
+        [pos + 1, `Section: ${label} · #${node.attrs.id || "no target"}`, "start"],
+        [end - 1, `End section: ${label}`, "end"],
+      ]) {
+        result.push(Decoration.widget(at, view => {
+          const badge = view.dom.ownerDocument.createElement("span");
+          badge.className = `editor-section-edge editor-section-${edge}`;
+          badge.textContent = text;
+          badge.contentEditable = "false";
+          return badge;
+        }, {side: edge === "start" ? -1 : 1, key: `section-${edge}-${pos}-${label}`}));
+      }
+      if (heading) result.push(Decoration.node(heading.from,
+        heading.from + heading.node.nodeSize,
+        {class: "editor-section-title", "data-editor-title": "Section title"}));
     }
     const resolved = doc.resolve(pos);
     if (node.isTextblock && node.childCount === 1 && node.firstChild.type.name === "img") {

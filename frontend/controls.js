@@ -18,8 +18,9 @@ import {mountContentMoves} from "./content-moves.js";
 import {mountSectionCreation} from "./section-creation.js";
 import {mountSectionBoundaries} from "./section-boundaries.js";
 import {mountTargets} from "./targets.js";
+import {mountSectionManagement} from "./section-management.js";
 
-export function mountWorkspace(form, editor, showError) {
+export function mountWorkspace(form, editor, showError, initial = {}) {
   const owner = form.ownerDocument;
   const surface = form.querySelector("#editor-surface");
   const partSelect = form.querySelector("#editor-part");
@@ -37,7 +38,7 @@ export function mountWorkspace(form, editor, showError) {
   let imageProposal = null;
   let parts = [], menuTarget = null;
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError);
-  mountSectionBoundaries(form, editor, showError);
+  mountSectionBoundaries(form, editor, showError, initial.structure?.parts || []);
   mountTargets(form, editor, showError);
 
   function figureOptions() {
@@ -141,7 +142,10 @@ export function mountWorkspace(form, editor, showError) {
     if (focus) editor.commands.focus();
   }
   function refreshOutline() {
-    parts = documentParts(editor.state.doc);
+    parts = documentParts(editor.state.doc).map(part => {
+      const original = initial.structure?.parts?.find(source => source.id === part.id);
+      return {...part, role: part.role || original?.role};
+    });
     const sections = movableSections(editor.state.doc);
     const scope = visiblePart(editor);
     partSelect.replaceChildren(new Option("Whole book", ""));
@@ -165,6 +169,7 @@ export function mountWorkspace(form, editor, showError) {
       const sectionIndex = index ? sections.findIndex(section =>
         section.from + 1 === part.from && section.to - 1 === part.to) : -1;
       if (sectionIndex >= 0) {
+        button.draggable = true;
         button.dataset.sectionMove = String(sectionIndex);
         button.setAttribute("aria-haspopup", "menu");
         button.setAttribute("aria-expanded", "false");
@@ -530,9 +535,10 @@ export function mountWorkspace(form, editor, showError) {
     owner.removeEventListener("scroll", pageScrolled, true);
     owner.defaultView.removeEventListener("resize", scrolled);
   });
-  mountSectionMoves(form, editor, showError);
+  const sectionMoves = mountSectionMoves(form, editor, showError, {externalMenu: true});
+  const sectionCreation = mountSectionCreation(form, editor, showError);
+  mountSectionManagement(form, editor, showError, sectionMoves, sectionCreation, initial);
   mountContentMoves(form, editor, showError);
-  mountSectionCreation(form, editor, showError);
   refreshOutline();
   updateTools();
 }

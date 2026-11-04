@@ -99,13 +99,19 @@ stores typed values, not renewed parser certification; original evidence remains
 pinned. Names do not merge catalogue identities, and changing a name drops its
 canonical identity binding. Save/recovery, comparison and explicit publication
 retain these values; reader and PDF use the same metadata presentation.
-The editor now summarizes the pinned edition's ordered book parts and links to
-the audited organization workspace; compatible organization commits link back to
-the new source-derived editor edition. When import is unsupported, the result
-page explains the limitation instead of offering a broken continuation link.
-Direct book-structure editing within the document editor and reciprocal
-note/media repair remain consolidation prerequisites. Legacy retirement and the
-authorized destructive reset have not happened.
+The editor's left Book outline now owns corrected section management: drag/drop
+before/inside/after, accessible move dialogs and up/down actions, add/restore,
+heading-boundary repair, and title/source-URL/role editing. Missing original
+boundaries are diagnosed; an existing title heading can restore its missing
+section target without copying text. Section borders, start/end labels and the
+chosen title heading are editor-only decorations. Explicit title bindings, URL
+and role are validated semantic section attributes, saved/recovered/compared with
+HTML. Publication version 2 derives part titles, roles, containment and order
+from the corrected document instead of copying the pinned source order.
+The unchanged source structure remains available separately. Advanced cross-work
+catalogue organization still rebuilds from source and never overlays editor
+revisions. Reciprocal note/media repair and broader consolidation remain open;
+legacy retirement and the authorized destructive reset have not happened.
 
 ## 1. Purpose and scope
 
@@ -299,7 +305,7 @@ inventory, copied-database rehearsal, verified backup and renewed confirmation
 of the exact current scope. Do not claim that remaining parity gaps are closed.
 
 Since 0.42.0, **Insert retained source content** opens exact retained-page block
-choices and a normalized preview in the document editor. Select 1-100 blocks,
+choices and a normalized preview in the document editor. Select 1-2000 blocks,
 then insert before/after the cursor's block or at the end of the whole document.
 Insertion is explicit and one-step undoable, refuses stale/hidden destinations
 and remaps inserted IDs/internal links without collisions. Bound retained images,
@@ -311,6 +317,17 @@ This creates ordinary editable content, no excerpt database records or named
 selection lifecycle. Source snapshot evidence remains pinned to the draft;
 selection previews expose exact block bindings but no persistent per-character
 source mapping or new training labels are claimed.
+
+**Add / restore section** also offers original edition parts, parsed retained
+heading ranges, current named excerpts bound to the exact retained source digest,
+and individual source blocks. URL selection resolves only pages already in the
+edition's retained snapshot; it never silently fetches a live URL. Original
+section restoration keeps a missing section ID and remaps inserted descendant
+IDs/internal links. Existing content is never replaced automatically. When the
+Appendix heading/text already exists, boundary repair is the nonduplicating path.
+Inserting explicitly approves previewed conversion repairs; unbound assets and
+stale documents refuse. Adding a live/unretained page and cross-work catalogue
+reassignment are not implied by document-scoped section management.
 
 An explicit **Start fresh from original retained source** preview excludes
 previous source corrections and saved organization. Its input policy is digest-
@@ -1044,8 +1061,8 @@ Quotation operations are independently undoable and guard exact document identit
 and whole-target visibility. Hidden chapters remain in saves and JSON recovery.
 Edits reset review to partial and do not alter or publish the original rendition.
 
-Drag/drop, new media or note insertion/renumbering and general reading-order moves
-remain unavailable. Each next revision can be explicitly marked partial, verified
+Outline section drag/drop is available; arbitrary canvas drag/drop, new media or
+note insertion/renumbering remain unavailable. Each next revision can be explicitly marked partial, verified
 for selected identified sections, or whole-document verified. Verification requires
 no unresolved document issues and applies to that exact immutable revision only.
 Any content/title/metadata edit in the UI resets the selected scope to partial.

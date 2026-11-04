@@ -187,7 +187,7 @@ if (form) {
     form.elements.editorial.checked = initial.editorial;
     form.elements.editorial.addEventListener("change", remember);
     updatePublication();
-    mountWorkspace(form, editor, showError);
+    mountWorkspace(form, editor, showError, initial);
     function metadataChanged() {
       selectReview("partial");
       refreshSections([]);

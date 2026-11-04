@@ -134,7 +134,7 @@ export function mountDynamicOutline(editor, outline, surface, showError) {
       button.before(row);
       const badge = owner.createElement("span");
       badge.className = "editor-outline-kind";
-      badge.textContent = part.kind === "Section" ? "§" : part.kind;
+      badge.textContent = part.kind === "Section" ? `§ ${part.role || ""}`.trim() : part.kind;
       badge.title = part.kind;
       badge.setAttribute("aria-label", part.kind);
       const title = owner.createElement("span");
@@ -161,6 +161,12 @@ export function mountDynamicOutline(editor, outline, surface, showError) {
       content.setAttribute("aria-expanded", String(!folded));
       content.setAttribute("aria-label", `${folded ? "Expand" : "Collapse"} editor content: ${part.label}`);
       row.append(button, content);
+      const actions = owner.createElement("button");
+      actions.type = "button";
+      actions.dataset.sectionActions = String(index);
+      actions.textContent = "…";
+      actions.setAttribute("aria-label", `Section actions: ${part.label}`);
+      row.append(actions);
     }
     visibility();
     schedule();

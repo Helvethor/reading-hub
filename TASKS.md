@@ -94,8 +94,18 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   organization commits to the new source-derived editor edition. Show an
   explicit limitation instead of a broken link when import is unsupported.
   Keep organization and document revisions separate; the editor does not
-  overlay saved edits onto a source rebuild. Direct structure editing inside
-  the document editor remains a separate consolidation gap.
+  overlay saved edits onto a source rebuild. This initial link-only integration
+  is superseded by direct document-scoped section management below.
+- [x] Make the left outline the primary section workflow: before/inside/after
+  drag/drop with destination feedback; menu/keyboard move, add/restore, heading
+  boundary repair, title-heading/URL/role editing; visible start/end boundaries
+  and title-heading labels. Offer original parts, retained parsed heading ranges,
+  exact-digest saved excerpts and source blocks/retained URL selection. Diagnose
+  missing original boundaries without duplicating still-present content.
+  Persist document-scoped attributes through save/reopen/recovery/comparison;
+  derive corrected publication parts/order from HTML, not pinned source order.
+  Live/unretained URL capture and cross-work catalogue reassignment remain outside
+  this document-scoped workflow.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

@@ -151,6 +151,11 @@ export function buildTargetEdit(editor, proposal, id) {
     tr.addMark(run.position, run.position + run.size, run.mark.type.create(attributes));
   }
   const href = "#" + encodeURIComponent(id);
+  editor.state.doc.descendants((node, at) => {
+    if (proposal.id && node.attrs["data-section-title"] === proposal.id) {
+      tr.setNodeMarkup(at, undefined, {...tr.doc.nodeAt(at).attrs, "data-section-title": id});
+    }
+  });
   for (const link of proposal.links) {
     if (link.mark) {
       if (proposal.targetMarks.some(run =>

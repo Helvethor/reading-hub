@@ -81,7 +81,18 @@ Inserted paragraphs retain their own formatting, not the destination's classes.
 Unsupported CSS, IDs, media, local note links and non-paragraph blocks are refused
 with a reason; plain text remains an explicit option.
 This is a first rich-paste slice, not general HTML/word-processor import.
-Drag/drop remains unavailable.
+Arbitrary canvas drag/drop remains unavailable; section titles can now be dragged
+in the left Book outline before, inside or after another section.
+The outline's action menu (right-click, Shift+F10 or **...**) also provides
+move/up/down, add/restore, heading-boundary repair and title/source-URL/role edits.
+Missing original boundaries have a repair/restore prompt. Use repair when the
+heading/text is still present, rather than inserting a duplicate original.
+**Add / restore section** offers original edition parts, parsed retained heading
+ranges, exact-source saved excerpts and source blocks. URL selection is offline:
+only URLs already in this edition's retained snapshot are available.
+Section start/end borders and the chosen title heading are visible in the canvas
+but are not saved as content. Corrected order and metadata save with the document;
+publication remains separate, and original editions/source organization are unchanged.
 The editor uses an outlined, high-contrast text pointer and an explicit dark caret.
 **Move paragraph up/down** reorders the current paragraph, heading or preformatted
 block past one adjacent text block in the same container. Links, targets and the

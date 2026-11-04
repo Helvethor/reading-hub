@@ -78,10 +78,11 @@ button:hover, .button:hover { background: #7a1616; }
 .editor-metadata input[readonly] { background: var(--editor-panel); }
 .editor-page dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--editor-border); border-radius: .5rem; box-shadow: 0 .5rem 2rem #24050533; }
 .editor-page dialog::backdrop { background: #24050566; }
-#editor-context-menu, #editor-outline-menu { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
-#editor-context-menu button, #editor-outline-menu button { color: var(--ink); background: transparent; }
+#editor-context-menu, #editor-outline-menu, #editor-section-actions { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
+#editor-context-menu button, #editor-outline-menu button, #editor-section-actions button { color: var(--ink); background: transparent; }
 #editor-context-menu button:hover, #editor-context-menu button:focus-visible,
-#editor-outline-menu button:hover, #editor-outline-menu button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
+#editor-outline-menu button:hover, #editor-outline-menu button:focus-visible,
+#editor-section-actions button:hover, #editor-section-actions button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
 #editor-context-menu button[aria-checked="true"] { background: var(--editor-selected); color: #fffaf5; }
 .editor-menu-group { border-color: var(--line); }
 #editor-context-menu button:focus-visible, #editor-outline-menu button:focus-visible,
@@ -92,6 +93,10 @@ button:hover, .button:hover { background: #7a1616; }
 #editor-surface .tiptap .editor-figure-handle:hover { background: var(--editor-hover); }
 #editor-surface .tiptap .editor-figure-handle:focus-visible { outline-color: var(--accent); }
 #editor-surface .tiptap cite { text-decoration-color: var(--editor-border); }
+#editor-surface .editor-section-boundary, #editor-surface .editor-section-title { border-color: var(--editor-border); outline-color: var(--accent); }
+#editor-surface .editor-section-edge, #editor-surface .editor-section-title::after { background: var(--editor-panel); color: var(--ink); border-color: var(--editor-border); }
+#editor-outline-items [data-section-drop] { border-color: var(--accent); outline-color: var(--accent); }
+#editor-outline-items [data-section-drop=inside] { background: var(--editor-hover); }
 #editor-surface .tiptap .quotation blockquote { border-color: var(--editor-border); }
 .editor-page button:disabled { opacity: .55; }
 .review-navigation { background: var(--editor-paper); }

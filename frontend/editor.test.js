@@ -34,6 +34,7 @@ import {outlineHierarchy, mountDynamicOutline} from "./outline.js";
 import {prepareSectionCreation, buildSectionCreation, applySectionCreation, mountSectionCreation} from "./section-creation.js";
 import {prepareSectionBoundary, buildSectionBoundary, applySectionBoundary, mountSectionBoundaries} from "./section-boundaries.js";
 import {prepareTargetEdit, buildTargetEdit, applyTargetEdit, mountTargets} from "./targets.js";
+import {prepareSectionDetails, applySectionDetails, sectionInsertionTarget} from "./section-management.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -62,6 +63,190 @@ function selectText(text, length = 0) {
   assert.notEqual(position, undefined, text);
   editor.commands.setTextSelection({from: position, to: position + length});
 }
+
+test("Appendix boundary repair restores the missing original target without copying or losing edits", () => {
+  const html = '<section id="c8"><h2>Conclusion</h2><p>Corrected prose.</p>' +
+    '<h2 id="c9-title">Appendix</h2><p id="note">Original appendix. <a href="#c8">Back</a></p>' +
+    '</section><section id="c10"><h2>Corrections</h2></section><p><a href="#c9">Appendix</a></p>';
+  open(html);
+  selectText("Appendix");
+  const proposal = prepareSectionBoundary(editor);
+  assert.equal(proposal.id, "c9");
+  applySectionBoundary(editor, proposal, proposal.id);
+  assert.deepEqual(movableSections(editor.state.doc).map(section => section.node.attrs.id),
+    ["c8", "c9", "c10"]);
+  const repaired = editor.getHTML();
+  assert(repaired.includes('<section id="c9"><h2 id="c9-title">Appendix</h2>'));
+  assert(repaired.includes('href="#c9"'));
+  assert.equal(editor.state.doc.textContent, proposal.doc.textContent);
+  assert(editor.view.dom.querySelector("#c9").classList.contains("editor-section-boundary"));
+  assert(editor.view.dom.querySelector("#c9-title").classList.contains("editor-section-title"));
+  assert(!repaired.includes("editor-section-boundary"), "Visual labels are not saved content.");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), html);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), repaired);
+});
+
+test("section title binding URL role and ordering survive undo redo serialization and reopen", () => {
+  const html = '<section id="a"><h2>Earlier</h2><p>Keep.</p></section>' +
+    '<section id="b"><h2 id="old">Running title</h2><h3 id="actual"><em>Appendix</em></h3>' +
+    '<p id="n">Body <a href="#actual">Title</a></p></section>';
+  open(html);
+  const proposal = prepareSectionDetails(editor, 1, [{id: "b", url: "https://example.org/b", role: "appendix"}]);
+  assert.equal(proposal.role, "appendix");
+  applySectionDetails(editor, proposal, {
+    title: "Reviewed Appendix", titleFrom: proposal.headings[1].from,
+    role: "appendix", url: "https://example.org/original",
+  });
+  const edited = editor.getHTML();
+  assert(edited.includes('data-section-title="actual"'));
+  assert(edited.includes('<em>Reviewed Appendix</em>'));
+  assert.equal(documentParts(editor.state.doc).find(part => part.id === "b").label, "Reviewed Appendix");
+  assert.equal(movableSections(editor.state.doc)[1].label, "Reviewed Appendix");
+  assert.equal(editor.view.dom.querySelectorAll(".editor-section-title").length, 2);
+  moveSection(editor, {doc: editor.state.doc}, 1, "before", 0);
+  const reordered = editor.getHTML();
+  assert.equal(movableSections(editor.state.doc)[0].node.attrs.id, "b");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), edited);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), html);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), reordered);
+  editor.destroy();
+  open(reordered);
+  assert.equal(prepareSectionDetails(editor, 0).role, "appendix");
+  assert.equal(prepareSectionDetails(editor, 0).url, "https://example.org/original");
+  selectText("Reviewed Appendix");
+  applyTargetEdit(editor, prepareTargetEdit(editor), "renamed-title");
+  assert(editor.getHTML().includes('data-section-title="renamed-title"'));
+  assert(editor.getHTML().includes('href="#renamed-title"'));
+});
+
+test("section details refuse stale state unsafe URLs and destructive title replacement", () => {
+  open('<section id="s"><h2>Title <span id="target">marked</span></h2><p>Body</p></section>');
+  const proposal = prepareSectionDetails(editor, 0);
+  const values = {title: "Changed", titleFrom: proposal.titleFrom, role: "appendix", url: ""};
+  const original = editor.getHTML();
+  assert.throws(() => applySectionDetails(editor, proposal, values), /targets or media/);
+  assert.throws(() => applySectionDetails(editor, proposal, {...values, url: "javascript:alert(1)"}), /HTTP/);
+  assert.throws(() => applySectionDetails(editor, proposal, {...values, role: "invalid"}), /role/);
+  assert.equal(editor.getHTML(), original);
+  selectText("Body");
+  editor.commands.insertContent("edited ");
+  assert.throws(() => applySectionDetails(editor, proposal, values), /changed/);
+});
+
+test("restoring an original section keeps its missing section target and remaps internal links", () => {
+  open('<section id="c1"><h2>Edited chapter</h2><p id="n">Edited text.</p></section>' +
+    '<p><a href="#c9">Missing appendix</a></p>');
+  const original = editor.getHTML();
+  applySourceInsertion(editor, sectionInsertionTarget(editor), '<section id="c9">' +
+    '<h2 id="c9-title">Appendix</h2><p id="n">Source note. <a href="#n">Self</a></p></section>',
+  "end", {section: {restoreId: "c9", title: "Appendix", role: "appendix", url: "https://example.org/appendix"}});
+  const restored = editor.getHTML();
+  assert(restored.startsWith(original));
+  assert(restored.includes('<section id="c9"'));
+  assert(restored.includes('id="inserted-n"'));
+  assert(restored.includes('href="#inserted-n"'));
+  assert(restored.includes('href="#c9"'));
+  assert.throws(() => applySourceInsertion(editor, sectionInsertionTarget(editor),
+    '<section id="c9"><h2>Appendix</h2></section>', "end",
+    {section: {restoreId: "c9"}}), /already exists/);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+});
+
+test("source section insertion wraps excerpts and remaps an explicit title binding with its heading", () => {
+  open('<section id="existing"><h2>Existing</h2></section>');
+  applySourceInsertion(editor, sectionInsertionTarget(editor), '<p>Excerpt without a heading.</p>', "end",
+    {section: {title: "Recovered note", role: "appendix", url: "https://example.org/note"}});
+  assert.equal(movableSections(editor.state.doc).at(-1).label, "Recovered note");
+  applySourceInsertion(editor, sectionInsertionTarget(editor),
+    '<section id="s" data-section-title="h"><h2 id="other">Running title</h2><h3 id="h">Real title</h3></section>',
+    "end", {section: {title: "Real title", role: "chapter"}});
+  assert(editor.getHTML().includes('data-section-title="inserted-h"'));
+  assert.equal(movableSections(editor.state.doc).at(-1).label, "Real title");
+});
+
+function mountSectionWorkspace(html, initial = {}) {
+  const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
+  document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
+    template.indexOf('<dialog id="editor-image"'));
+  const form = document.querySelector("#document-editor");
+  editor = createBoundedEditor(form.querySelector("#editor-surface"), html);
+  editor.commands.focus = () => true;
+  editor.view.coordsAtPos = () => ({left: 0, right: 0, top: 0, bottom: 0});
+  for (const dialog of document.querySelectorAll("dialog")) {
+    dialog.showModal = () => { dialog.open = true; };
+    dialog.close = () => { dialog.open = false; dialog.dispatchEvent(new dom.window.Event("close")); };
+  }
+  mountWorkspace(form, editor, message => { if (message) assert.fail(message); }, initial);
+  return form;
+}
+
+test("sidebar diagnoses missing Appendix and repairs its original boundary through one undoable action", () => {
+  const html = '<section id="c8"><h2>Conclusion</h2><p>Edited prose.</p>' +
+    '<h2 id="c9-title">Appendix</h2><p id="n">Note.</p></section>';
+  const form = mountSectionWorkspace(html, {structure: {parts: [
+    {id: "c8", title: "Conclusion"}, {id: "c9", title: "Original Appendix", role: "appendix"},
+  ]}});
+  const repair = form.querySelector(".editor-missing-sections button");
+  assert(repair.textContent.includes("Repair Original Appendix"));
+  repair.click();
+  const dialog = document.querySelector("#editor-section-boundary");
+  assert(dialog.open);
+  assert.equal(dialog.querySelector("[name=target]").value, "c9");
+  assert.equal(dialog.querySelector("[name=original]").value, "c9");
+  dialog.querySelector("[data-apply]").click();
+  assert.equal(form.querySelector(".editor-missing-sections").textContent, "");
+  assert.equal(movableSections(editor.state.doc).length, 2);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), html);
+  assert(form.querySelector(".editor-missing-sections").textContent.includes("Original Appendix"));
+});
+
+test("sidebar context actions edit details and drag sections before inside and after without losing content", () => {
+  const html = '<section id="a"><h2>A</h2><p id="n">Body.</p></section>' +
+    '<section id="b"><h2>B</h2><p><a href="#n">Note</a></p></section>';
+  const form = mountSectionWorkspace(html);
+  function drag(source, destination, clientY) {
+    const dataTransfer = {setData() {}};
+    const from = form.querySelector(`[data-section-move="${source}"]`);
+    const to = form.querySelector(`[data-section-move="${destination}"]`);
+    to.getBoundingClientRect = () => ({top: 0, height: 100});
+    for (const [node, type] of [[from, "dragstart"], [to, "drop"]]) {
+      const event = new dom.window.MouseEvent(type, {bubbles: true, cancelable: true, clientY});
+      Object.defineProperty(event, "dataTransfer", {value: dataTransfer});
+      node.dispatchEvent(event);
+    }
+  }
+  const item = form.querySelector('[data-section-move="1"]');
+  assert(item.draggable);
+  item.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  const menu = form.querySelector("#editor-section-actions");
+  [...menu.querySelectorAll("button")].find(button => button.textContent.startsWith("Edit title")).click();
+  const dialog = document.querySelector("#editor-section-details");
+  dialog.querySelector("[name=title]").value = "Appendix";
+  dialog.querySelector("[name=role]").value = "appendix";
+  dialog.querySelector("[data-apply]").click();
+  assert.equal(movableSections(editor.state.doc)[1].label, "Appendix");
+  const detailed = editor.getHTML();
+  drag(1, 0, 0);
+  assert.equal(movableSections(editor.state.doc)[0].node.attrs.id, "b");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), detailed);
+  drag(1, 0, 50);
+  assert.equal(movableSections(editor.state.doc)[1].depth, 1);
+  assert(undo(editor.state, editor.view.dispatch));
+  drag(0, 1, 100);
+  assert.equal(movableSections(editor.state.doc)[0].node.attrs.id, "b");
+  assert.equal(editor.state.doc.textContent.replace("Appendix", "B").length,
+    "ABody.BNote".length);
+  assert(editor.getHTML().includes('href="#n"'));
+});
 
 test("anchor navigation hands inline target to Target ID and renames every marked run and reference", () => {
   const html = '<p id="paragraph">Before <span id="note"><em>Nested</em> note</span> after.</p>' +
@@ -1187,7 +1372,7 @@ test("workspace mounts section moves immediately and outline targets nested sect
   form.querySelector('[data-part=""]').click();
   const currentItem = form.querySelector('[data-section-move="1"]');
   currentItem.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, shiftKey: true}));
-  const menu = form.querySelector("#editor-outline-menu");
+  const menu = form.querySelector("#editor-section-actions");
   assert(menu.hidden, "Shift+right-click retains the native browser menu.");
   currentItem.dispatchEvent(new dom.window.KeyboardEvent("keydown",
     {bubbles: true, key: "F10", shiftKey: true}));
@@ -1198,7 +1383,7 @@ test("workspace mounts section moves immediately and outline targets nested sect
   assert.equal(document.activeElement, currentItem);
   currentItem.dispatchEvent(new dom.window.MouseEvent("contextmenu",
     {bubbles: true, clientX: 20, clientY: 30}));
-  menu.querySelector("button").click();
+  [...menu.querySelectorAll("button")].find(button => button.textContent === "Move section…").click();
   assert(dialog.open);
   assert.equal(dialog.querySelector("[name=section]").value, "1");
   dialog.querySelector("[data-apply]").click();

@@ -14,7 +14,11 @@ from pypdf import PdfReader
 from library.models import Blob, DocumentPublication, Rendition, RenditionAsset
 from library.profile import get_profile
 from library.services.document_edits import DocumentEditConflict, save_revision
-from library.services.document_publication import prepare_publication, publish_revision
+from library.services.document_publication import (
+    PUBLICATION_VERSION,
+    prepare_publication,
+    publish_revision,
+)
 from library.services.pdf import STYLES, render_pdf
 from library.services.storage import blob_path, store_blob
 from library.tests import test_document_edits as foundation
@@ -41,6 +45,54 @@ class DocumentPublicationTests(TestCase):
         revision = revision or self.draft.revisions.first().revision
         candidate = prepare_publication(self.draft, revision)
         return publish_revision(self.draft, self.reviewer, revision, candidate["digest"])
+
+    def test_corrected_section_order_title_url_role_survive_publication_and_reopen(self):
+        source_html = self.rendition.html
+        markup = (
+            '<section id="appendix" data-section-role="appendix" '
+            'data-section-url="https://example.org/appendix" data-section-title="actual">'
+            '<h2>Running title</h2><h3 id="actual">Reviewed Appendix</h3>'
+            '<p id="note">Retained note <a href="#chapter">Return</a></p></section>'
+            '<section id="chapter"><h2>Chapter</h2><p>Corrected text.</p></section>'
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+        }, 1)
+        publication = self.publish(2)
+        rendition = publication.rendition
+        self.assertEqual([part["id"] for part in rendition.structure["parts"]],
+                         ["appendix", "chapter"])
+        appendix = rendition.structure["parts"][0]
+        self.assertEqual(appendix["title"], "Reviewed Appendix")
+        self.assertEqual(appendix["url"], "https://example.org/appendix")
+        self.assertEqual(appendix["role"], "appendix")
+        self.assertEqual(revision.review, "partial")
+        self.rendition.refresh_from_db()
+        self.assertEqual(self.rendition.html, source_html)
+        reopened = self.client.get(reverse("document-editor", args=[self.rendition.pk]),
+                                   {"draft": self.draft.pk})
+        self.assertEqual(reopened.context["initial"]["document"]["html"],
+                         revision.document["html"])
+        self.assertContains(self.client.get(reverse("reader", args=[rendition.pk])),
+                            "Reviewed Appendix")
+
+    def test_invalid_section_title_binding_is_partial_issue_and_blocks_publication(self):
+        markup = '<section id="s" data-section-title="nested"><h2>Title</h2>' \
+            '<section id="child"><h3 id="nested">Child</h3></section></section>'
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+        }, 1)
+        self.assertTrue(any("Section title" in issue for issue in revision.issues))
+        with self.assertRaisesMessage(ValueError, "Section title"):
+            self.publish(2)
+        for attribute in (
+            'data-section-url="javascript:alert(1)"',
+            'data-section-url="#local"', 'data-section-role="unknown"',
+        ):
+            with self.subTest(attribute=attribute), self.assertRaises(ValueError):
+                save_revision(self.draft, self.reviewer, {
+                    **revision.document, "html": f"<section {attribute}><h2>Title</h2></section>",
+                }, 2)
 
     def test_new_empty_section_persists_and_publishes_with_heading_toc_and_pdf(self):
         markup = '<section id="c1"><h2>Chapter</h2><p id="main">Main text.</p>' \
@@ -472,7 +524,9 @@ class DocumentPublicationTests(TestCase):
 
     def test_changed_publication_rules_cannot_reuse_a_different_preview(self):
         self.publish()
-        with patch("library.services.document_publication.PUBLICATION_VERSION", 2):
+        with patch(
+            "library.services.document_publication.PUBLICATION_VERSION", PUBLICATION_VERSION + 1,
+        ):
             candidate = prepare_publication(self.draft, 1)
             with self.assertRaisesMessage(DocumentEditConflict, "another preview"):
                 publish_revision(self.draft, self.reviewer, 1, candidate["digest"])

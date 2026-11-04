@@ -685,7 +685,7 @@ the same evidence-protection/backup policy as other saved review records.
 ##### Retained-source insertion and original-input generation (0.42.0)
 
 Place the cursor in a paragraph or heading, then choose **Insert retained source
-content**. Choose a retained page, select 1-100 source blocks, and preview the
+content**. Choose a retained page, select 1-2000 source blocks, and preview the
 normalized content. Insert before/after the cursor's block, or show the whole
 document to insert at its end. Cancel changes nothing; Undo removes an insertion
 in one step. This inserts ordinary editable content, not a named excerpt.
@@ -708,6 +708,32 @@ reviewed inputs during migration. Neither preview edits or deletes existing data
 The one-editor consolidation and authorized destructive fresh-slate reset remain
 unfinished. Do not remove old correction/organization tools until remaining
 feature parity is implemented; do not apply an ad-hoc database wipe.
+
+##### Section management in the editor outline
+
+Use the left **Book outline** for corrected section structure. Open a row's
+**...** action button, right-click, or press Shift+F10. Move by dialog, up/down,
+or drag a section title to another title's top (before), middle (inside) or bottom
+(after). Drop feedback names the destination. Moves keep content, IDs, links and
+retained assets together and are independently undoable.
+
+**Edit title / URL / role** selects the actual owned heading used as the title,
+changes its text, and stores section-scoped URL/role. URL is a citation, not a
+fetch command. Target/media-bearing title text must be edited in the canvas to
+avoid deleting its anchors. Section start/end and title labels are decorations,
+not saved text. Saves include these structural changes; publication version 2
+uses the saved order/containment/titles rather than the pinned source part order.
+
+For missing boundaries, the outline identifies the original part. If its heading
+still exists, choose **Repair ... boundary**, inspect the preview and missing
+original target ID, then Apply. This restores a wrapper without copying text.
+For genuinely missing content, **Add / restore section** offers original edition
+parts and retained-page parsed ranges, exact-digest saved excerpts or source
+blocks. Preview and explicitly insert; existing edits are not replaced.
+URL selection only resolves pages in this edition's retained snapshot; no
+live/unretained fetching occurs here. Unbound media, unsupported conversions,
+stale documents and duplicate restored section targets fail explicitly.
+Save separately; publishing remains an explicit preview/confirmation.
 
 ##### Direct correction and history (0.41.0)
 
@@ -919,7 +945,8 @@ Optional left-gutter **Block labels** show text/heading/list-item/table/media ty
 the container/target path of the current block is shown below the canvas (including
 table cells). Labels and filter classes are decorations only, absent from saved
 HTML/JSON and reader/PDF output. Direct typing, paragraph split/join and undo/redo
-remain available. Drag/drop is explicitly disabled.
+remain available. Arbitrary canvas drag/drop is disabled; outline section
+drag/drop uses the section-management workflow above.
 The text pointer is a self-hosted dark I-beam with a white outline, with an explicit
 dark typing caret. **Move paragraph up/down** moves the whole current paragraph,
 heading or preformatted block past one adjacent text block within its immediate

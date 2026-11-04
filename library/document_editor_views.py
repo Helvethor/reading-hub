@@ -22,7 +22,7 @@ from library.services.document_edits import (
     saved_state,
 )
 from library.services.document_publication import prepare_publication, publish_revision
-from library.services.editor_sources import source_page
+from library.services.editor_sources import original_section, source_page
 from library.services.errors import ImportFailure
 from library.services.fresh_document_drafts import create_fresh_draft, preview_fresh_draft
 from library.services.semantic_documents import MAX_BYTES
@@ -158,7 +158,12 @@ def retained_source(request, pk):
             draft.evidence["assets"] if draft else
             source.assets.values_list("blob_id", flat=True)
         )
-        result = source_page(source, page, selection, allowed_assets=assets)
+        if request.GET.get("original_section"):
+            result = original_section(
+                source, request.GET["original_section"], allowed_assets=assets,
+            )
+        else:
+            result = source_page(source, page, selection, allowed_assets=assets)
     except (ValueError, ImportFailure, OSError) as exc:
         response = JsonResponse({"error": str(exc)}, status=422)
     else:

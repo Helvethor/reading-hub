@@ -48,7 +48,9 @@ export function prepareSectionBoundary(editor) {
     throw new Error("Expand folded content in the affected section before changing its boundary.");
   }
   const ids = targetIds(doc);
-  let id = "edited-section";
+  const titleTarget = $pos.parent.attrs.id || "";
+  let id = titleTarget.endsWith("-title") && !ids.has(titleTarget.slice(0, -6))
+    ? titleTarget.slice(0, -6) : "edited-section";
   while (ids.has(id)) id += "-copy";
   return {
     doc, container, index, endIndex, from, to, replaceFrom, replaceTo, id,
@@ -103,13 +105,14 @@ export function applySectionBoundary(editor, proposal, id) {
   editor.view.dispatch(closeHistory(editor.state.tr));
 }
 
-export function mountSectionBoundaries(form, editor, showError) {
+export function mountSectionBoundaries(form, editor, showError, originals = []) {
   const dialog = form.ownerDocument.querySelector("#editor-section-boundary");
   const trigger = form.querySelector("#editor-section-boundary-open");
   if (!dialog || !trigger) return;
   const input = dialog.querySelector("[name=target]");
   const error = dialog.querySelector('[role="alert"]');
   const apply = dialog.querySelector("[data-apply]");
+  const original = dialog.querySelector("[name=original]");
   let proposal;
   function preview() {
     try {
@@ -125,6 +128,14 @@ export function mountSectionBoundaries(form, editor, showError) {
     try {
       proposal = prepareSectionBoundary(editor);
       input.value = proposal.id;
+      if (original) {
+        const used = targetIds(editor.state.doc);
+        original.replaceChildren(new Option("New section target", ""),
+          ...originals.filter(part => !used.has(part.id))
+            .map(part => new Option(`Restore ${part.title} (#${part.id})`, part.id)));
+        original.value = [...original.options].some(option => option.value === proposal.id)
+          ? proposal.id : "";
+      }
       dialog.querySelector("[data-summary]").textContent =
         `"${proposal.heading}" and ${proposal.count - 1} following blocks will become a ` +
         (proposal.container.type.name === "section"
@@ -137,6 +148,10 @@ export function mountSectionBoundaries(form, editor, showError) {
     } catch (failure) { showError(failure.message); }
   });
   input.addEventListener("input", preview);
+  original?.addEventListener("change", () => {
+    input.value = original.value || proposal.id;
+    preview();
+  });
   apply.addEventListener("click", () => {
     try {
       applySectionBoundary(editor, proposal, input.value);

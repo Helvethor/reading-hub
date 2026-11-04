@@ -27,6 +27,7 @@ CLASSES = {
     ) for state in ("on", "off")),
 }
 ATTRIBUTES = {
+    "section": {"data-section-url", "data-section-role", "data-section-title"},
     "a": {"href", "title", "aria-label", "rel"},
     "img": {"src", "alt", "loading", "decoding"},
     "th": {"colspan", "rowspan"},
@@ -117,6 +118,18 @@ class SemanticParser(HTMLParser):
                 raise ValueError("Images must reference a retained local asset.")
             if name == "href":
                 self.validate_link(value)
+            if name == "data-section-url":
+                self.validate_link(value)
+                if urlsplit(value).scheme not in {"http", "https"}:
+                    raise ValueError("Section URLs require an explicit HTTP(S) URL.")
+            if name == "data-section-role" and value not in {
+                "preface", "chapter", "appendix", "postscript",
+            }:
+                raise ValueError("Choose a supported section role.")
+            if name == "data-section-title" and (
+                not value or re.search(r"[\s\x00-\x1f]", value)
+            ):
+                raise ValueError("Section title bindings require a heading target ID.")
             if name == "rel" and not set(value.split()) <= {"noopener", "noreferrer"}:
                 raise ValueError("Unsupported link relationship.")
             if name == "loading" and value not in {"lazy", "eager"}:
@@ -206,6 +219,14 @@ def document_issues(document, asset_digests):
     soup = BeautifulSoup(document["html"], "html.parser")
     ids = {node["id"] for node in soup.select("[id]")}
     issues = []
+    for section in soup.select("section[data-section-title]"):
+        heading = soup.find(id=section["data-section-title"])
+        if (
+            heading is None or heading.name not in {"h2", "h3", "h4", "h5", "h6"}
+            or heading.find_parent("section") is not section
+        ):
+            issues.append("Section title must identify a heading owned by that section: "
+                          + section["data-section-title"])
     for anchor in soup.select("a[href^='#']"):
         if unquote(anchor["href"][1:]) not in ids:
             issues.append(f"Unresolved internal target: {anchor['href']}")

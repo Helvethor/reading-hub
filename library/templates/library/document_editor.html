@@ -22,8 +22,8 @@
   {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
   {% if initial %}
   <details class="editor-book-structure">
-    <summary>Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
-    <p>Membership, part titles, roles and order are managed as a separate audited organization decision. The organization preview rebuilds every affected work from retained sources; it does not apply this editor’s saved or unsaved document revisions. This edition and its history remain unchanged. After confirming a structure change, continue in the editor for the new edition.</p>
+    <summary>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
+    <p>This is the unchanged source structure, not the current edited order. Manage corrected sections directly in the left Book outline: move, add or restore sections, repair headings into sections, and edit title/URL/role. These changes save with the document and publish only after separate confirmation.</p>
     <ol>
       {% for part in initial.structure.parts %}
       <li><strong>{{ part.title }}</strong> — {{ part.role|default:"chapter" }}{% if part.url %} · <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a>{% endif %}</li>
@@ -31,7 +31,7 @@
       <li>Part details are unavailable in this edition’s structure.</li>
       {% endfor %}
     </ol>
-    <p><a class="editor-structure-link" href="{% url 'content-organization' %}?url={{ version.document.url|urlencode }}" target="_blank" rel="noopener">Manage membership, part titles, roles and order in the audited structure workflow (new tab)</a></p>
+    <p><a class="editor-structure-link" href="{% url 'content-organization' %}?url={{ version.document.url|urlencode }}" target="_blank" rel="noopener">Advanced source organization / cross-work membership (new tab)</a>. This separate source rebuild does not replay saved or unsaved editor revisions.</p>
   </details>
   <p class="editor-book-title">{{ initial.document.title }}</p>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" novalidate>
@@ -85,7 +85,11 @@
       <div class="editor-workspace-body">
         <nav class="editor-outline" aria-label="Book parts">
           <h2>Book outline</h2>
-          <p>Highlighted entries are in view; the current heading follows scroll. +/− folds outline branches; triangles collapse editor content. Click a title to scroll there without hiding other parts. Use the part selector to show only one part. Right-click or Shift+F10 opens section actions.</p>
+          <div class="editor-section-controls">
+            <button type="button" id="editor-add-section-open" disabled>Add / restore section…</button>
+            <button type="button" id="editor-section-empty" disabled>New empty section…</button>
+          </div>
+          <p>Right-click a section or heading (Shift+F10 by keyboard) for title/URL/role, move, add or boundary repair. Drag a section title onto another: top = before, middle = inside, bottom = after. Move section offers the same placements without dragging. +/− folds outline branches; triangles collapse content. Click a title to scroll; Show focuses one part.</p>
           <div id="editor-outline-items"></div>
         </nav>
         <div class="editor-canvas">
@@ -146,7 +150,7 @@
       <label><input type="radio" name="review" value="full" disabled> Verify the whole document</label>
       <label><input type="checkbox" name="editorial" disabled> Includes editorial changes beyond transcription/formatting</label>
     </details>
-    <p>Type directly; Enter splits paragraphs and Backspace joins them. Paste opens a clipboard preview with plain-text and supported inline-formatting choices for approval. Drag/drop is unavailable in this pilot.</p>
+    <p>Type directly; Enter splits paragraphs and Backspace joins them. Paste opens a clipboard preview with plain-text and supported inline-formatting choices for approval. Drag section titles within the outline to reorder; dragging arbitrary canvas content remains unavailable.</p>
     <p>Move paragraph up/down moves the whole paragraph, heading or preformatted block containing the cursor or selected text, past one adjacent text block in the same container. It preserves links and targets and can be undone. It does not cross sections, lists, tables or media.</p>
     <p>Save all changes before previewing publication. Saving a review scope does not publish; publication does not itself verify.</p>
     <a id="editor-publication" target="_blank" rel="noopener" hidden>Review saved result for publication (new tab)</a>
@@ -154,6 +158,37 @@
     <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
     <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
   </form>
+  <dialog id="editor-section-details" aria-labelledby="editor-section-details-heading">
+    <h2 id="editor-section-details-heading">Section title, URL and role</h2>
+    <label>Heading used as section title <select name="heading"></select></label>
+    <label>Title <input name="title" maxlength="500"></label>
+    <label>Source URL <input name="url" type="url"></label>
+    <label>Role <select name="role"><option value="chapter">Chapter</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
+    <p>The selected heading is labeled in the canvas. Changing URL records a citation only; it does not fetch or replace content. Targets, links and all other sections are preserved. One undo step; save and publish separately.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Apply section details</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-add-section" aria-labelledby="editor-add-section-heading">
+    <h2 id="editor-add-section-heading">Add / restore section</h2>
+    <p>Restore an original edition section, or insert retained source content as a section. If the text already exists but its boundary disappeared, cancel and use Repair heading into section instead. Nothing replaces or deletes your current edits.</p>
+    <label>Content source <select name="source"></select></label>
+    <label>Retained page <select name="page"></select></label>
+    <label>Retained source URL <input name="url" type="url"></label>
+    <button type="button" data-url>Choose retained URL</button>
+    <label>Parsed section / saved excerpt <select name="candidate"></select></label>
+    <details><summary>Or select source blocks</summary><div data-blocks></div></details>
+    <label>Title (used when source has no heading) <input name="title" maxlength="500"></label>
+    <label>Role <select name="role"><option value="chapter">Chapter</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
+    <label>Place <select name="placement"><option value="after">After selected section</option><option value="before">Before selected section</option><option value="end">At document end</option></select></label>
+    <button type="button" data-load>Preview section content</button>
+    <p role="status"></p>
+    <div data-preview class="reader-content"></div>
+    <p>Preview repairs require your approval by inserting. Source targets are uniquely remapped with their internal links; restoring an original section keeps its section target if missing. URLs must already belong to this edition's retained snapshot; this tool does not fetch live pages. Retained media must be bound to the draft.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply disabled>Insert section (approve preview)</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
   <dialog id="editor-new-section" aria-labelledby="editor-new-section-heading">
     <h2 id="editor-new-section-heading">New section</h2>
     <p>Place the cursor in a block before opening this tool. Create a titled section with an empty paragraph, then type or paste content into it. Existing content is unchanged. Creation is one undo step; saving and publication remain separate.</p>
@@ -176,6 +211,7 @@
     <h2 id="editor-section-boundary-heading">Start a section at this heading</h2>
     <p>Place the cursor in an existing heading in whole-document view. A heading is not a section container: this tool makes the boundary explicit without changing its content.</p>
     <p data-summary role="status"></p>
+    <label>Missing original section <select name="original"><option value="">New section target</option></select></label>
     <label>New section target ID <input name="target" maxlength="200" spellcheck="false"></label>
     <p>Use a unique ID, or restore a missing ID only after checking the intended boundary. Existing heading IDs, text, links and images remain unchanged. This does not change source-page membership or imply source provenance.</p>
     <pre data-preview></pre>

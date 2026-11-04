@@ -19,7 +19,7 @@ export function sourceInsertionTarget(editor) {
   };
 }
 
-export function applySourceInsertion(editor, target, html, placement) {
+export function applySourceInsertion(editor, target, html, placement, {section = null} = {}) {
   if (!target || target.doc !== editor.state.doc) {
     throw new Error("The document changed. Open retained source again.");
   }
@@ -43,14 +43,48 @@ export function applySourceInsertion(editor, target, html, placement) {
     for (const mark of node.marks) if (mark.attrs.id) used.add(mark.attrs.id);
   });
   const renamed = new Map();
+  if (section) {
+    let root;
+    if (template.content.childNodes.length === 1 &&
+        template.content.firstChild.nodeName === "SECTION") {
+      root = template.content.firstChild;
+    } else {
+      root = owner.createElement("section");
+      root.append(...template.content.childNodes);
+      template.content.append(root);
+    }
+    if (section.restoreId && used.has(section.restoreId)) {
+      throw new Error("That original section target already exists. Edit or repair its boundary instead of duplicating it.");
+    }
+    if (!root.id) {
+      let id = "section";
+      while (used.has(`inserted-${id}`)) id += "-copy";
+      root.id = id;
+    }
+    if (section.url) root.setAttribute("data-section-url", section.url);
+    root.setAttribute("data-section-role", section.role || "chapter");
+    const heading = [...root.querySelectorAll("h2,h3,h4,h5,h6")]
+      .find(node => node.closest("section") === root);
+    if (!heading) {
+      const title = owner.createElement("h2");
+      title.textContent = section.title;
+      root.prepend(title);
+    }
+  }
   for (const node of template.content.querySelectorAll("[id]")) {
     if (renamed.has(node.id)) throw new Error("Source selection has duplicate targets.");
     const original = node.id;
-    let id = `inserted-${original}`;
+    let id = section?.restoreId && node === template.content.firstChild
+      ? section.restoreId : `inserted-${original}`;
     while (used.has(id)) id += "-copy";
     renamed.set(original, id);
     used.add(id);
     node.id = id;
+  }
+  for (const node of template.content.querySelectorAll("[data-section-title]")) {
+    const target = node.getAttribute("data-section-title");
+    if (!renamed.has(target)) throw new Error("The inserted section title heading is missing.");
+    node.setAttribute("data-section-title", renamed.get(target));
   }
   for (const link of template.content.querySelectorAll('a[href^="#"]')) {
     let id;

@@ -4,8 +4,9 @@ from bs4 import BeautifulSoup
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from library.models import SourceExcerptRevision
-from library.services.editor_sources import source_page
+from library.models import CrawlCapture, CrawlSite, SourceExcerptRevision
+from library.profile import get_profile
+from library.services.editor_sources import original_section, source_page
 from library.services.errors import ImportFailure
 from library.services.pipeline import snapshot_digest
 from library.services.storage import store_blob
@@ -38,6 +39,46 @@ class EditorSourceTests(TestCase):
             result["source_digest"], self.rendition.snapshot.manifest["pages"][0]["digest"],
         )
         self.assertEqual(SourceExcerptRevision.objects.count(), before)
+
+    def test_section_candidates_include_exact_heading_ranges_and_current_saved_excerpts(self):
+        self.source('<h2>Appendix</h2><p>Note</p><h3>Detail</h3><p>More</p>'
+                    '<h2>Next</h2><p>Other</p>')
+        result = source_page(self.rendition, 0)
+        candidates = result["candidates"]
+        self.assertEqual(candidates[0], {
+            "title": "Appendix", "kind": "Parsed heading range", "blocks": [0, 1, 2, 3],
+        })
+        self.assertEqual(candidates[1]["blocks"], [2, 3])
+        self.assertEqual(candidates[2]["blocks"], [4, 5])
+        self.assertEqual(len(result["pages"]), 1)
+        entry = self.rendition.snapshot.manifest["pages"][0]
+        site = CrawlSite.objects.create(profile=get_profile().key, host="www.marxists.org")
+        capture = CrawlCapture.objects.create(site=site, url=ARTICLE, response=entry)
+        excerpt = SourceExcerptRevision.objects.create(
+            capture=capture, revision=1, name="Selected appendix note",
+            source_digest=entry["digest"], blocks=[1, 3], reviewer=self.reviewer,
+        )
+        self.assertIn({
+            "title": excerpt.name, "kind": "Saved excerpt", "blocks": [1, 3],
+        }, source_page(self.rendition, 0)["candidates"])
+        SourceExcerptRevision.objects.create(
+            definition=excerpt.definition, capture=capture, revision=2, name=excerpt.name,
+            source_digest=entry["digest"], blocks=[1, 3], reviewer=self.reviewer, deleted=True,
+        )
+        self.assertFalse(any(item["kind"] == "Saved excerpt"
+                             for item in source_page(self.rendition, 0)["candidates"]))
+
+    def test_original_section_preview_is_read_only_and_refuses_missing_or_unbound_content(self):
+        original = self.rendition.html
+        section = original_section(self.rendition, "c1")
+        self.assertIn('<section id="c1"', section["html"])
+        self.assertEqual(self.rendition.html, original)
+        with self.assertRaisesMessage(ValueError, "Choose a section"):
+            original_section(self.rendition, "absent")
+        response = self.client.get(self.url, {"original_section": "c1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["binding"]["rendition"], self.rendition.pk)
+        self.assertEqual(self.client.get(self.url, {"original_section": "absent"}).status_code, 422)
 
     def test_structured_selection_preserves_note_links_targets_and_retained_image(self):
         self.source(
