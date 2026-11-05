@@ -768,7 +768,21 @@ certification/publication. No raw-source excerpt definition is changed.
 Cross-work catalogue attach/detach remains a separate legacy operation; deleting
 a document section does not publish it as another work.
 
-The authoritative-section/excerpt increment was checked on 2026-11-05 with
+The whole-block multiselection correction passed 190 frontend and 72 focused
+backend regressions. An isolated synthetic mixed-block fixture passed
+browser-dispatched Ctrl-click toggling, gap refusal/recovery, editor focus,
+right-click image selection retention, Escape clearing and error clearing.
+Seven whole blocks (paragraph/table/list/figure/pre/rule/quotation) survived
+extraction with exact node preservation and exact Undo/Redo. Independent
+movement into another section retained the origin, save/reopen passed, and
+publication/reader/ToC/PDF checks passed (2 pages, including the retained image).
+Publication added its expected navigation ID to an untargeted heading; no
+original block content changed. Native pointer delivery was unavailable in the
+hidden browser tool page: dispatched events are not independent native-pointer,
+human usability or accessibility acceptance. No live correction was saved or
+published during this check.
+
+The earlier authoritative-section/excerpt increment was checked on 2026-11-05 with
 181 frontend and 147 focused backend regressions. An isolated edition-80
 revision-10 branch passed browser-driven paragraph extraction, independent
 movement to document end, exact selected-node/Undo/Redo preservation, group/role

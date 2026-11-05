@@ -136,7 +136,14 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   of contiguous sibling blocks, not just paragraphs, retaining whole container
   nodes. Refuse gaps rather than including unselected intervening blocks.
   Selection changes are view-only, with Escape/normal-click clearing.
-  Current automated checks pass; browser whole-block acceptance is pending.
+  Bounded acceptance: 190 frontend and 72 focused backend regressions pass.
+  An isolated synthetic fixture passed browser-dispatched Ctrl-click selection
+  of paragraph/table/list/figure/pre/rule/quotation blocks, gap refusal and
+  recovery, image-context-menu selection retention, exact selected-node and
+  Undo/Redo preservation, independent movement, origin save/reopen, reader/ToC
+  and PDF text/image checks (2 pages). Browser pointer delivery was unavailable
+  in the hidden tool page; native pointer usability is not independently
+  validated. Live source/corrections were unchanged.
 - [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
   overwriting corrected documents. These remain explicit legacy source-graph
   operations, not ordinary editor-save effects.

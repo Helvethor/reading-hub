@@ -98,6 +98,7 @@ export function toggleBlockSelection(editor, at) {
   positions = positions.includes(at) ? positions.filter(position => position !== at) : [...positions, at];
   const next = positions.length ? new BlockSelection(doc, positions) : Selection.near(doc.resolve(at));
   editor.view.dispatch(editor.state.tr.setSelection(next).setMeta("addToHistory", false));
+  if (editor.view.state.selection.eq(next)) editor.view.focus();
 }
 
 export function blockSelectionExtension(onError) {

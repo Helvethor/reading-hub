@@ -38,7 +38,7 @@ import {
   prepareSectionDetails, applySectionDetails, sectionInsertionTarget,
   prepareSectionRemoval, applySectionRemoval,
 } from "./section-management.js";
-import {prepareSectionExcerpt, applySectionExcerpt} from "./section-excerpts.js";
+import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
@@ -142,6 +142,7 @@ test("excerpt range selection rejects partial blocks and cross-sections but acce
 });
 
 function ctrlClickBlock(selector, options = {}) {
+  editor.view.coordsAtPos = () => ({left: 0, right: 0, top: 0, bottom: 0});
   const element = editor.view.dom.querySelector(selector);
   assert(element, selector);
   element.dispatchEvent(new dom.window.MouseEvent("mousedown", {
@@ -156,8 +157,12 @@ test("Ctrl-click toggles whole blocks without document changes or losing the sel
   open('<section id="s"><h2>Title</h2><p id="a">One <em>nested</em>.</p>' +
     '<blockquote id="q"><p>Quoted.</p></blockquote><hr id="rule"><p>Tail.</p></section>');
   const before = editor.getHTML();
+  let focusCalls = 0;
+  const focus = editor.view.focus.bind(editor.view);
+  editor.view.focus = () => { focusCalls++; focus(); };
   ctrlClickBlock("#a em");
   assert(editor.state.selection instanceof BlockSelection);
+  assert.equal(focusCalls, 1, "Ctrl-click must focus the editor for Escape and keyboard actions.");
   assert.equal(editor.state.selection.positions.length, 1);
   ctrlClickBlock("#q p");
   ctrlClickBlock("#rule");
@@ -177,6 +182,32 @@ test("Ctrl-click toggles whole blocks without document changes or losing the sel
   assert(!undo(editor.state, editor.view.dispatch), "Selection changes must not create edit history.");
 });
 
+test("closing block selection gaps clears the prior excerpt error when the dialog opens", () => {
+  open('<section id="s"><p id="a">One</p><hr id="middle"><p id="b">Two</p></section>');
+  const form = document.createElement("form");
+  form.innerHTML = '<button type="button" id="editor-section-excerpt-open"></button>' +
+    '<button type="button" id="editor-menu-close"></button>';
+  const dialog = document.createElement("dialog");
+  dialog.id = "editor-section-excerpt";
+  dialog.innerHTML = '<input name="title"><p role="alert"></p><p data-origin></p>' +
+    '<pre data-preview></pre><button data-apply></button><button data-cancel></button>';
+  document.body.append(form, dialog);
+  let opened = 0;
+  dialog.showModal = () => { opened++; };
+  const errors = [];
+  mountSectionExcerpts(form, editor, message => errors.push(message));
+  ctrlClickBlock("#a");
+  ctrlClickBlock("#b");
+  form.querySelector("#editor-section-excerpt-open").click();
+  assert.match(errors.at(-1), /gaps/);
+  assert.equal(opened, 0);
+  ctrlClickBlock("#middle");
+  form.querySelector("#editor-section-excerpt-open").click();
+  assert.equal(errors.at(-1), "");
+  assert.equal(opened, 1);
+  assert.match(dialog.querySelector("[data-origin]").textContent, /3 whole block/);
+});
+
 test("mixed block excerpts preserve exact heading table list figure pre rule and nested section nodes", () => {
   const html = '<section id="parent" data-section-title="title" data-section-url="https://example.org/source">' +
     '<h2 id="title">Parent title</h2><p id="p">Text <a href="#title">Back</a></p>' +
@@ -186,6 +217,7 @@ test("mixed block excerpts preserve exact heading table list figure pre rule and
     '<pre id="pre">  exact\n spacing</pre><hr id="rule">' +
     '<section id="nested"><h3>Nested</h3><p>Child</p></section></section>';
   open(html);
+  editor.view.coordsAtPos = () => ({left: 0, right: 0, top: 0, bottom: 0});
   const original = editor.getHTML();
   const parent = editor.state.doc.firstChild;
   const expected = parent.content.toJSON();

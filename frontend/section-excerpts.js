@@ -131,6 +131,7 @@ export function mountSectionExcerpts(form, editor, showError, originals = []) {
   trigger.addEventListener("click", () => {
     try {
       proposal = prepareSectionExcerpt(editor, originals);
+      showError("");
       form.querySelector("#editor-menu-close").click();
       title.value = "";
       dialog.querySelector("[data-origin]").textContent =
