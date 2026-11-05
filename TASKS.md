@@ -213,7 +213,12 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   sections/headings, preserve title text/targets, group each change into one
   undo step, and regenerate per-parent/style series after reordering.
   209 frontend and 35 focused backend tests pass, including actual save/reopen
-  and isolated publication preservation. Browser marker validation pending.
+  and isolated publication preservation. A database-free browser fixture
+  verified no default markers, all six rendered styles, a two-entry set retained
+  through the full right-click sequence, different-parent refusal, None restoring
+  exact original prose, one-step Undo/Redo with ToC view/focus retained, keyboard
+  menu/Escape and a themed menu fitting the 390px viewport. Events were dispatched,
+  not native OS pointer acceptance; live corrections were not saved or published.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

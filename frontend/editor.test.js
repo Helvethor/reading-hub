@@ -846,6 +846,7 @@ test("ToC entries default to none and Ctrl-click sibling selections retain right
   assert(!editor.getHTML().includes("editor-toc"));
   assert(undo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), original, "One undo removes formatting from the whole set.");
+  assert.equal(form.querySelector("#editor-part").value, "toc", "Numbering Undo keeps the ToC visible.");
   assert(redo(editor.state, editor.view.dispatch));
   const saved = editor.getHTML();
   editor.destroy();
@@ -896,6 +897,10 @@ test("ToC selection rejects a different parent without losing the set and expose
   assert.equal(menu.querySelector('[aria-checked="true"]').dataset.tocStyle, "decimal");
   menu.querySelector('[data-toc-style="none"]').click();
   assert(!editor.getHTML().includes("data-toc-style"));
+  entry(0).focus();
+  entry(0).dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "z", ctrlKey: true, bubbles: true}));
+  assert.equal(form.querySelector("#editor-part").value, "toc");
+  assert.equal(document.activeElement, entry(0), "Numbering history restores visible entry focus.");
   entry(0).dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
   assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 0);
 });

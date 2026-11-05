@@ -354,8 +354,8 @@ Numbering is persisted as bounded `data-toc-style` attributes on the actual
 section or heading nodes; None removes the attribute. A multi-entry change is
 one history step and an ordinary document edit, so it dirties recovery/review
 and saves with the four-key document contract. The generated list/selection/menu
-remain outside saved HTML. Styling stays in ToC view; prose Undo/Redo retains
-the editor's existing reveal-Sections behavior. Regular ToC clicks still
+remain outside saved HTML. Styling and numbering-only Undo/Redo stay in ToC view;
+prose Undo/Redo retains the editor's existing reveal-Sections behavior. Regular ToC clicks still
 navigate. Persisted preferences survive publication, but this increment changes
 only the generated editor ToC, not reader/PDF list presentation.
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve

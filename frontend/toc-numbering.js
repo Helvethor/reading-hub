@@ -12,6 +12,21 @@ export function tocEntryPosition(part) {
   return part.kind === "Section" ? part.from - 1 : part.from;
 }
 
+export function isTocNumberingChange(before, after) {
+  function sameContent(left, right) {
+    if (left.eq(right)) return true;
+    if (left.type !== right.type || left.text !== right.text || left.childCount !== right.childCount ||
+        JSON.stringify(left.marks) !== JSON.stringify(right.marks)) return false;
+    const attrs = node => Object.entries(node.attrs).filter(([name]) => name !== "data-toc-style");
+    if (JSON.stringify(attrs(left)) !== JSON.stringify(attrs(right))) return false;
+    for (let index = 0; index < left.childCount; index++) {
+      if (!sameContent(left.child(index), right.child(index))) return false;
+    }
+    return true;
+  }
+  return !before.eq(after) && sameContent(before, after);
+}
+
 export function applyTocNumbering(editor, proposal, style) {
   if (!proposal || proposal.doc !== editor.state.doc) throw new Error("The document changed. Select ToC entries again.");
   if (!tocStyles.some(([value]) => value === style)) throw new Error("Choose a supported ToC numbering style.");

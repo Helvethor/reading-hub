@@ -22,6 +22,7 @@ import {mountSectionManagement} from "./section-management.js";
 import {mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
+import {isTocNumberingChange} from "./toc-numbering.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
   title: form.querySelector('[name="title"]')?.value || initial.document?.title || "",
@@ -628,8 +629,10 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let lastScope = visiblePart(editor);
   let lastFolds = foldedDocumentParts(editor);
   editor.on("transaction", ({transaction}) => {
-    const revealProse = !transaction.getMeta("readingHubToc") && (transaction.docChanged || transaction.selectionSet) &&
-      !["book", "sections"].includes(bookViews.view);
+    const generatedView = !["book", "sections"].includes(bookViews.view);
+    const tocFormatting = transaction.getMeta("readingHubToc") ||
+      generatedView && transaction.docChanged && isTocNumberingChange(transaction.before, transaction.doc);
+    const revealProse = !tocFormatting && (transaction.docChanged || transaction.selectionSet) && generatedView;
     if (revealProse) bookViews.show("sections");
     if (transaction.docChanged) closeMenu();
     updateTools();

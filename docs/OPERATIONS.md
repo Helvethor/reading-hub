@@ -1092,9 +1092,21 @@ matching siblings in current order, restarting per parent/style.
 Changes are one undoable semantic edit, reset review to partial, and enter
 recovery/saves as `data-toc-style` on sections/headings. None removes the
 preference; titles and IDs are not rewritten. View-only generated list markup
-and selection state are never saved. Formatting stays in the ToC; Undo/Redo
-can reveal Sections under the existing history policy. Preferences survive
+and selection state are never saved. Formatting and numbering-only Undo/Redo
+stay in the ToC; prose history still reveals Sections. Preferences survive
 publication/reopen, but reader/PDF ToC marker rendering is unchanged.
+
+Numbering validation: 209 frontend tests, 35 focused backend tests, build and Ruff
+passed. Backend tests exercised real test-database save/reopen and isolated
+publication preserving the preference and unchanged titles. A database-free
+browser fixture used the actual template, editor/workspace code and theme to
+check unnumbered defaults, all six rendered marker styles, sibling Ctrl-click
+and right-click set retention, different-parent refusal without selection loss,
+None restoring exact original prose, and one-step exact Undo/Redo while retaining
+ToC view/focus. Shift+F10/Escape worked and a 304px-wide themed numbering menu
+fit the 390px viewport. Events were dispatched, not native OS pointer acceptance.
+The browser fixture did not save to a database; live corrections/publications
+were not changed.
 
 Generated-view validation: 202 frontend tests and 26 focused backend tests passed,
 including the existing metadata save/reopen/comparison/publication/reader/PDF
