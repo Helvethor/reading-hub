@@ -178,10 +178,18 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   secondary section/heading filter. Keep generated panels out of semantic
   HTML/JSON, history, review/recovery and saves. Support live metadata refresh,
   ToC navigation without new IDs, navigation-group folding and content/history
-  reveal from generated views. Validated with 202 frontend and 25 editor-view
-  regressions, production build and Ruff. Synthetic DOM checks cover article,
-  multi-section book, order/title/undo updates, explicit metadata clears and
-  no-change view switching. Browser workflow validation remains pending.
+  reveal from generated views. Validated with 202 frontend and 26 focused backend
+  checks (25 editor-view regressions plus metadata save/reopen/comparison/
+  publication/reader/PDF preservation), production build and Ruff. Synthetic DOM
+  checks cover article, multi-section book, order/title/undo updates, explicit
+  metadata clears and no-change view switching. A database-free browser fixture
+  used the real template, production entry point and theme to verify all four
+  views, aligned sibling labels, separate filtering, untargeted article ToC
+  navigation, excerpt-before-section drag/Undo with origin retained, live
+  title/translator/date/subject changes and reload/recovery. The save transport
+  was an in-memory echo: its four-key document payload and recovery contained
+  exact original prose without generated markup. Events were dispatched, not
+  native-pointer acceptance; no live correction was saved or published.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

@@ -648,6 +648,9 @@ test("book views have exactly four choices, three navigation groups and a separa
     ["title", "toc", "sections"]);
   assert.equal(outline.querySelectorAll(".editor-book-sections [data-part]").length,
     documentParts(editor.state.doc).length);
+  for (const header of outline.querySelectorAll(".editor-book-group-heading")) {
+    assert.equal(header.childElementCount, 2, "All sibling group labels reserve the same controls column.");
+  }
   assert(!outline.querySelector('[data-book-group="title"] [data-part]'));
   assert(!outline.querySelector('[data-book-group="toc"] [data-part]'));
   assert.equal(filter.value, "");
@@ -804,6 +807,11 @@ test("Sections group folds independently and remains folded across content updat
   fold().click();
   assert(!form.querySelector(".editor-book-sections").hidden);
   assert.equal(fold().getAttribute("aria-expanded"), "true");
+  fold().click();
+  assert.equal(fold().getAttribute("aria-label"), "Expand Sections navigation group");
+  [...form.querySelectorAll(".editor-outline-options button")]
+    .find(button => button.textContent === "Expand outline").click();
+  assert(!form.querySelector(".editor-book-sections").hidden);
 });
 
 test("compact selection tools expose only applicable actions and toggle alignment back to inherited", () => {

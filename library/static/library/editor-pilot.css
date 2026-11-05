@@ -68,7 +68,7 @@
 .editor-outline-title { width: 100%; }
 .editor-book-group { position: relative; margin-inline-start: .85rem; border-inline-start: 1px solid var(--editor-tree-line, #98a48e); }
 .editor-book-group:last-child { border-inline-start-color: transparent; }
-.editor-book-group-heading { position: relative; display: flex; align-items: center; min-height: 2rem; padding-inline-start: .85rem; }
+.editor-book-group-heading { position: relative; display: grid; grid-template-columns: 1.4rem minmax(0, 1fr); align-items: center; min-height: 2rem; padding-inline-start: .85rem; }
 .editor-book-group-heading::before { content: ""; position: absolute; inset-inline-start: 0; width: .85rem; top: 50%; border-top: 1px solid var(--editor-tree-line, #98a48e); }
 .editor-book-group:last-child > .editor-book-group-heading::after { content: ""; position: absolute; inset-inline-start: -1px; top: 0; height: 50%; border-inline-start: 1px solid var(--editor-tree-line, #98a48e); }
 #editor-outline-items [data-book-view] { font-weight: 600; }
@@ -76,7 +76,7 @@
 .editor-book-sections { margin-inline-start: .85rem; }
 .editor-book-group [data-book-group-fold] { width: 1.4rem; padding: 0; text-align: center; }
 #document-editor .editor-section-filter-control[hidden], #editor-surface [hidden], .editor-book-sections[hidden] { display: none !important; }
-.editor-generated-page { margin: 1rem; padding: 1.5rem; border: 1px solid #cbd1c4; background: var(--editor-paper, white); color: var(--ink, #302221); }
+.editor-generated-page { margin: 1rem; padding: 1.5rem; border: 1px solid var(--editor-border, #cbd1c4); background: var(--editor-paper, white); color: var(--ink, #302221); }
 .editor-title-page { text-align: center; min-height: 20rem; }
 .editor-title-page .document-metadata { text-align: start; max-width: 35rem; margin-inline: auto; }
 .editor-generated-notice, .editor-toc-page > p { font: .8rem/1.5 system-ui, sans-serif; color: var(--muted, #4c554b); }

@@ -1079,6 +1079,20 @@ recovery. Prose tools are unavailable on generated panels; history or content
 navigation reveals Sections when it changes/selects prose. Sections-group folding
 is navigation-only; Expand outline opens it. Generated editor pages do not change
 reader/PDF rendering or supply print page numbers.
+
+Generated-view validation: 202 frontend tests and 26 focused backend tests passed,
+including the existing metadata save/reopen/comparison/publication/reader/PDF
+preservation test, plus build and Ruff. A database-free rendered browser fixture
+used the actual editor template, production entry point and theme. It checked
+all four modes without HTML/JSON, recovery, dirty-state or review changes;
+equal horizontal alignment for the three group labels; Appendix filtering;
+ToC navigation to an un-ID'd article heading; excerpt drag-before/Undo with
+origin and exact prose retained; live title/translator/date-range/subject edits;
+and unsaved article title recovery after reload. The fixture's save transport
+only echoed in memory: the observed payload retained the four-key contract and
+exact prose, with no generated markup. Browser events were dispatched rather
+than native pointer input. No live correction was saved or published, and this
+does not validate a new printed ToC or pagination.
 Optional left-gutter **Block labels** show text/heading/list-item/table/media types;
 the container/target path of the current block is shown below the canvas (including
 table cells). Labels and filter classes are decorations only, absent from saved

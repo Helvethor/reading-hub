@@ -121,7 +121,7 @@ export function mountBookViews(form, editor, readDocument, navigate) {
         const toggle = element("button", sectionsCollapsed ? "+" : "\u2212");
         toggle.type = "button";
         toggle.dataset.bookGroupFold = "sections";
-        toggle.setAttribute("aria-label", "Fold Sections navigation group");
+        toggle.setAttribute("aria-label", `${sectionsCollapsed ? "Expand" : "Fold"} Sections navigation group`);
         toggle.setAttribute("aria-expanded", String(!sectionsCollapsed));
         const children = owner.createElement("div");
         children.className = "editor-book-sections";
@@ -132,11 +132,14 @@ export function mountBookViews(form, editor, readDocument, navigate) {
           children.hidden = sectionsCollapsed;
           toggle.textContent = sectionsCollapsed ? "+" : "\u2212";
           toggle.setAttribute("aria-expanded", String(!sectionsCollapsed));
+          toggle.setAttribute("aria-label", `${sectionsCollapsed ? "Expand" : "Fold"} Sections navigation group`);
         });
         header.append(toggle, button);
         group.append(header, children);
       } else {
-        header.append(button);
+        const spacer = owner.createElement("span");
+        spacer.setAttribute("aria-hidden", "true");
+        header.append(spacer, button);
         group.append(header);
       }
       outline.append(group);
