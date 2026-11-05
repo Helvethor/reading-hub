@@ -201,6 +201,12 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   gutter inward, and neither viewport had horizontal surface overflow. Label
   toggles and typing/Undo preserved exact original HTML/JSON; no live data was
   saved. Native pointer usability and arbitrary-depth layout are not certified.
+- [x] Auto-size each hierarchical label column to its widest visible label word,
+  using rendered metrics, minimum text width and compact spacing. Recalculate
+  for edits, filters/folds, viewport/font changes; clear widths when labels are
+  off. All 205 frontend tests and build pass. Database-free rendered checks at
+  1200px/390px observed independent 46/46/22px and 43/43/22px columns; filtering
+  shrank only the affected column, and typing/Undo preserved exact HTML/JSON.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

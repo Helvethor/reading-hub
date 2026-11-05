@@ -998,7 +998,12 @@ leaves the native browser menu available.
 Optional block-type labels sit immediately left of each block's own vertical
 guide, rather than sharing a single outer gutter. Nested figure/quote/caption/
 paragraph blocks therefore form nested label columns. Paragraphs inside quotes
-and captions retain P labels; the containing block owns QUOTE or CAP. Names longer
+and captions retain P labels. Each depth's column fits its widest visible label
+word using actual rendered font metrics, a .8rem minimum text width and .55rem
+total spacing, rounded up to whole pixels. Filtering, folding, edits, font loads
+and viewport resizing recalculate widths; hidden labels do not reserve space.
+Column sizing is view-only and disabling labels removes measured widths.
+The containing block owns QUOTE or CAP. Names longer
 than five characters use three-letter shorthand (FIG, CAP); full type names remain
 in the structure path/decorations. Image-only blocks use IMG. Replaced leaf blocks
 and scrolling tables use view-only label anchors, and table-cell descendants are

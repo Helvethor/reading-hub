@@ -2774,6 +2774,53 @@ test("image and table block labels have view-only anchors outside replaced or sc
   assert.equal(editor.getHTML(), original);
 });
 
+test("label columns size independently from their longest rendered word and refresh after filters and edits", () => {
+  const prototype = dom.window.HTMLElement.prototype;
+  const originalBounds = prototype.getBoundingClientRect;
+  let scale = 1;
+  prototype.getBoundingClientRect = function () {
+    if (this.classList.contains("editor-label-measure")) {
+      return {...originalBounds.call(this), width: (this.textContent.length * 7 + 9) * scale};
+    }
+    return originalBounds.call(this);
+  };
+  try {
+    open('<section id="a"><h2>Title</h2><figure><blockquote><p>Words.</p></blockquote>' +
+      '<figcaption>Credit.</figcaption></figure></section>' +
+      '<section id="b"><blockquote>Other.</blockquote></section>');
+    const root = editor.view.dom, original = editor.getHTML(), json = editor.getJSON();
+    const width = depth => root.style.getPropertyValue(`--editor-label-column-${depth}`);
+    assert.equal(width(0), "44px", "Top-level QUOTE determines column zero.");
+    assert.equal(width(1), "44px", "Nested QUOTE, not its parent FIG, determines column one.");
+    assert.equal(width(2), "16px", "Paragraph-only depth uses its own narrow column.");
+    assert.equal(root.querySelector("figure").dataset.editorLabelDepth, "0");
+    assert.equal(root.querySelector("figure blockquote").dataset.editorLabelDepth, "1");
+    assert.equal(root.querySelector("figure p").dataset.editorLabelDepth, "2");
+    assert.match(root.querySelector("figure p").style.cssText, /--editor-label-column-2/);
+    showDocumentPart(editor, documentParts(editor.state.doc).find(part => part.id === "a"));
+    assert.equal(width(0), "30px", "A hidden longer label must not reserve column space.");
+    assert.equal(width(1), "44px");
+    scale = 2;
+    dom.window.dispatchEvent(new dom.window.Event("resize"));
+    assert.equal(width(0), "60px", "Responsive/font metrics are measured again.");
+    assert.equal(width(2), "32px");
+    assert.equal(editor.getHTML(), original);
+    assert.deepEqual(editor.getJSON(), json);
+    assert(!undo(editor.state));
+    showBlockLabels(editor, false);
+    assert.equal(width(0), "");
+    assert.equal(width(1), "");
+    assert.equal(width(2), "");
+    showBlockLabels(editor, true);
+    assert.equal(width(1), "88px");
+    editor.destroy();
+    editor = null;
+    assert(!document.querySelector(".editor-label-measure"), "Measurements are removed on destroy.");
+  } finally {
+    prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
 test("standalone images and image-only paragraphs gain captions without replacing the asset", () => {
   const asset = "/assets/" + "b".repeat(64) + "/";
   for (const html of [`<img id="photo" src="${asset}" alt="Photo">`,

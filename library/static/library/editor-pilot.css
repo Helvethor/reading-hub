@@ -122,7 +122,7 @@
 #editor-sections[hidden] { display: none; }
 #editor-publication { display: inline-block; margin: .75rem 0; font-weight: 700; }
 #editor-publication[hidden] { display: none; }
-#editor-surface .tiptap { --editor-label-gutter: 3.2rem; position: relative; min-height: 100%; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
+#editor-surface .tiptap { position: relative; min-height: 100%; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
 /* Keep the editor root's caret policy, but render source HTML spacing like the reader. */
 #editor-surface .tiptap > * { white-space: normal; }
 #editor-surface .tiptap pre { white-space: pre-wrap; }
@@ -131,7 +131,9 @@
 #editor-surface .tiptap:focus { outline: none; }
 #editor-surface .editor-outside-part { display: none !important; }
 #editor-surface .tiptap .editor-labelled-block { position: relative; margin-inline-start: var(--editor-label-gutter); border-inline-start: 1px solid var(--editor-border, #cbd1c4); padding-inline-start: .65rem; }
-#editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before { content: attr(data-editor-block) / ""; position: absolute; inset-inline-end: calc(100% + .35rem); top: 0; box-sizing: border-box; width: calc(var(--editor-label-gutter) - .55rem); padding-block-start: .2rem; font: .7rem/1.5 system-ui, sans-serif; letter-spacing: .02em; text-align: end; color: var(--muted, #4c554b); pointer-events: none; user-select: none; }
+#editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font: .7rem/1.5 system-ui, sans-serif; letter-spacing: .02em; }
+#editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before { content: attr(data-editor-block) / ""; position: absolute; inset-inline-end: calc(100% + .35rem); top: 0; box-sizing: border-box; width: calc(var(--editor-label-gutter) - .55rem); padding-block-start: .2rem; text-align: end; color: var(--muted, #4c554b); pointer-events: none; user-select: none; }
+#editor-surface .editor-label-measure { position: absolute; visibility: hidden; pointer-events: none; width: max-content; min-width: .8rem; box-sizing: content-box; padding-inline: .275rem; white-space: nowrap; }
 #editor-surface .editor-leaf-label { display: block; position: relative; height: 0; width: 0; margin-inline-start: var(--editor-label-gutter); pointer-events: none; user-select: none; }
 #editor-surface .tiptap .editor-external-block-label { margin-block-start: 0; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
@@ -174,8 +176,8 @@
   .editor-outline-open .editor-outline { display: block; border-right: 0; border-bottom: 1px solid #cbd1c4; }
   .editor-part-control { order: 1; flex-basis: 100%; }
   #editor-part { width: calc(100% - 3rem); }
-  #editor-surface .tiptap { --editor-label-gutter: 2.7rem; padding-inline: .7rem; }
-  #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before { font-size: .65rem; }
+  #editor-surface .tiptap { padding-inline: .7rem; }
+  #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font-size: .65rem; }
 }
 #editor-quotation { width: min(38rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; }
 #editor-quotation textarea { width: 100%; box-sizing: border-box; }

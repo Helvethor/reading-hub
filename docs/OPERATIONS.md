@@ -1096,6 +1096,10 @@ does not validate a new printed ToC or pagination.
 Optional **Block labels** sit left of each block's own vertical guide. Nested
 figures, quotes, captions and paragraphs get nested columns instead of a single
 outer column. QUOTE/CAP name the container; its paragraph children stay P.
+Column widths are independently measured per hierarchy depth from the widest
+visible label word, with a .8rem minimum text width plus .55rem spacing. Widths
+refresh after filters/folds, content edits, font loads and viewport resizing.
+They are not saved content, and hidden labels do not widen visible columns.
 Names longer than five characters use three-letter shorthand (FIG, CAP), while
 the full type remains in the structure path. Image-only blocks use IMG; leaf
 and table labels have non-editable view-only anchors outside their content.
@@ -1116,6 +1120,12 @@ least one gutter without horizontal surface overflow. Toggling labels and
 typing/Undo retained exact original HTML/JSON. These are rendered/synthetic
 checks, not native-pointer acceptance or a guarantee for arbitrarily deep
 nesting. No live correction was saved or published.
+Auto-width follow-up: all 205 frontend tests and the build pass. Rendered checks
+at 1200px and 390px confirmed every column equals its measured maximum rounded up
+to a pixel, with labels fitting left of their own guides. Desktop depths measured
+46/46/22px and mobile 43/43/22px; filtering out a top-level QUOTE shrank only its
+mobile column to 38px. Labels-off cleared widths, labels-on restored them, and
+typing/Undo preserved exact HTML/JSON. The fixture was database-free.
 The text pointer is a self-hosted dark I-beam with a white outline, with an explicit
 dark typing caret. **Move paragraph up/down** moves the whole current paragraph,
 heading or preformatted block past one adjacent text block within its immediate

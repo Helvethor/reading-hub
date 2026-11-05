@@ -136,6 +136,8 @@ The menu supports arrow keys, Home/End and Escape. **Block labels** shows semant
 types just left of each block's own vertical guide, making nested label columns
 for nested quotes, captions and paragraphs. Labels longer than five characters
 use three-letter shorthand (FIG, CAP); image-only blocks use IMG.
+Each column automatically fits its widest visible label, with a small minimum
+and spacing; narrower columns no longer inherit the width of deeper labels.
 The current block's full container path appears below the
 canvas. **Show** offers **Whole book**, **Title**, **ToC** and **Sections**.
 Whole book includes a generated title page with current metadata, a generated

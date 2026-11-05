@@ -63,6 +63,7 @@ function foldBody(doc, part) {
 
 function decorations(doc, scope, labels, folds = []) {
   const result = [];
+  const labelDepths = new Map();
   const hidden = folds.map(part => foldBody(doc, part));
   for (const [index, part] of folds.entries()) {
     if (scope && (part.to <= scope.from || part.from >= scope.to)) continue;
@@ -159,22 +160,30 @@ function decorations(doc, scope, labels, folds = []) {
           node.firstChild.type.name === "img") tag = "IMG";
       const short = {CAPTION: "CAP", FIGURE: "FIG", BLOCKQUOTE: "QUO",
         EMPTYBLOCKTARGET: "TGT"}[tag] || (tag.length > 5 ? tag.slice(0, 3) : tag);
+      let labelDepth = 0;
+      for (let depth = 1; depth <= resolved.depth; depth++) {
+        if (labelDepths.has(resolved.before(depth))) labelDepth++;
+      }
+      labelDepths.set(pos, labelDepth);
+      const gutter = `--editor-label-gutter: var(--editor-label-column-${labelDepth}, 1.5rem)`;
       // Replaced nodes and scrolling tables cannot paint a label outside their box.
       const externalLabel = node.isLeaf || node.type.name === "table";
       result.push(Decoration.node(pos, end, {
         class: `editor-labelled-block${externalLabel ? " editor-external-block-label" : ""}`,
         "data-editor-block": short, "data-editor-block-type": tag,
+        "data-editor-label-depth": String(labelDepth), style: gutter,
         "data-editor-structure": [...ancestors, tag + (node.attrs.id ? ` #${node.attrs.id}` : "")].join(" / "),
       }));
       if (externalLabel) result.push(Decoration.widget(pos, view => {
         const label = view.dom.ownerDocument.createElement("span");
         label.className = "editor-leaf-label";
         label.dataset.editorBlock = short;
+        label.style.cssText = gutter;
         label.title = tag;
         label.setAttribute("contenteditable", "false");
         label.setAttribute("aria-hidden", "true");
         return label;
-      }, {side: -1, key: `block-label-${pos}-${tag}`, stopEvent: () => true}));
+      }, {side: -1, key: `block-label-${pos}-${tag}-${labelDepth}`, stopEvent: () => true}));
     }
   });
   return DecorationSet.create(doc, result);
@@ -184,6 +193,49 @@ function inside(selection, scope) {
   return !scope || (selection.from >= scope.from && selection.to <= scope.to);
 }
 
+function mountLabelColumns(view) {
+  const owner = view.dom.ownerDocument;
+  const measure = owner.createElement("span");
+  measure.className = "editor-label-measure";
+  measure.setAttribute("aria-hidden", "true");
+  view.dom.before(measure);
+  let columns = 0;
+  function resize() {
+    const widths = [];
+    const measured = new Map();
+    for (const block of view.dom.querySelectorAll("[data-editor-label-depth]")) {
+      if (block.closest(".editor-outside-part, .editor-folded-content")) continue;
+      const depth = Number(block.dataset.editorLabelDepth);
+      for (const word of block.dataset.editorBlock.split(/\s+/)) {
+        if (!measured.has(word)) {
+          measure.textContent = word;
+          measured.set(word, measure.getBoundingClientRect().width);
+        }
+        widths[depth] = Math.max(widths[depth] || 0, measured.get(word));
+      }
+    }
+    for (let depth = 0; depth < Math.max(columns, widths.length); depth++) {
+      const property = `--editor-label-column-${depth}`;
+      if (widths[depth] > 0) view.dom.style.setProperty(property, `${Math.ceil(widths[depth])}px`);
+      else view.dom.style.removeProperty(property);
+    }
+    columns = widths.length;
+  }
+  resize();
+  owner.defaultView.addEventListener("resize", resize);
+  owner.fonts?.addEventListener("loadingdone", resize);
+  return {
+    update(current, previous) {
+      if (workspaceKey.getState(previous).decorations !== workspaceKey.getState(current.state).decorations) resize();
+    },
+    destroy() {
+      owner.defaultView.removeEventListener("resize", resize);
+      owner.fonts?.removeEventListener("loadingdone", resize);
+      measure.remove();
+    },
+  };
+}
+
 export function workspaceExtension(onError) {
   return Extension.create({
     name: "readingHubWorkspace",
@@ -191,6 +243,7 @@ export function workspaceExtension(onError) {
     addProseMirrorPlugins() {
       return [new Plugin({
         key: workspaceKey,
+        view: mountLabelColumns,
         state: {
           init: (_, state) => ({
             scope: null, labels: true, folds: [], decorations: decorations(state.doc, null, true),
