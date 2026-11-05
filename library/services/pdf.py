@@ -227,7 +227,7 @@ def render_pdf(version, destination):
         return {"string": data, "mime_type": blob.media_type}
 
     generated_book = bool(getattr(version, "document_publication", None))
-    projection = publication_view(version.html) if generated_book else {
+    projection = publication_view(version.html, version.structure["toc"]) if generated_book else {
         "content_html": version.html, "entries": version.structure.get("toc", []),
     }
     markup = render_to_string(

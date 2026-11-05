@@ -261,7 +261,9 @@ def publication(request, pk):
             "display_author": version.metadata.get("author", "").strip()
             or source_name(source.document.url),
             "metadata_rows": metadata_rows(version.metadata),
-            "content_html": publication_view(version.html)["content_html"],
+            "content_html": publication_view(
+                version.html, version.structure["toc"],
+            )["content_html"],
         })
     return render(request, "library/document_publication.html", context, status=status)
 

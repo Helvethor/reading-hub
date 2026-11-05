@@ -150,7 +150,7 @@ def reader(request, pk):
     destination = redirect_member(rendition.document, version=rendition)
     if destination:
         return destination
-    projection = publication_view(rendition.html) if getattr(
+    projection = publication_view(rendition.html, rendition.structure["toc"]) if getattr(
         rendition, "document_publication", None,
     ) else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
     return render(

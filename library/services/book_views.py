@@ -133,9 +133,13 @@ def publication_toc(soup):
     return toc
 
 
-def publication_view(html):
+def publication_view(html, saved_entries=()):
     soup = BeautifulSoup(html, "html.parser")
     toc = publication_toc(soup)
+    titles = {entry["id"]: entry["title"] for entry in saved_entries if entry.get("editor_entry")}
+    for entry in toc:
+        if entry["id"] in titles:
+            entry["title"] = titles[entry["id"]]
     for part in book_entries(soup):
         if part["marker"] and part["heading"] is not None:
             heading = part["heading"]

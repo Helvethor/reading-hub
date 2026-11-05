@@ -24,6 +24,7 @@ from library.services.pdf import (
 )
 from library.services.storage import store_blob
 from library.tests.test_pipeline import png
+from library.versions import APP_VERSION
 
 
 class PrintingTests(TestCase):
@@ -256,6 +257,10 @@ class PrintingTests(TestCase):
             Path(command[-1]).write_bytes(b"%PDF-test")
             return subprocess.CompletedProcess(command, 0)
 
+        directory = Path(self.temp.name) / "pdf"
+        directory.mkdir()
+        old = directory / f"{self.version.pk}-{self.version.identity}-{APP_VERSION}.pdf"
+        old.write_bytes(b"%PDF-old-presentation")
         with patch("library.services.pdf.subprocess.run", side_effect=build) as run:
             path = cached_pdf(self.version)
             self.assertTrue(path.name.endswith(f"-p{PDF_PRESENTATION_VERSION}.pdf"))
@@ -263,6 +268,8 @@ class PrintingTests(TestCase):
             self.assertEqual(cached_pdf(self.version), path)
             run.assert_called_once()
             self.assertEqual(run.call_args.kwargs["timeout"], 120)
+        self.assertEqual(old.read_bytes(), b"%PDF-old-presentation")
+        old.unlink()
         path.unlink()
         for result in [
             subprocess.TimeoutExpired("pdf", 120),

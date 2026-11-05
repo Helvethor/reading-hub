@@ -31,6 +31,13 @@ class BookViewTests(SimpleTestCase):
         self.assertEqual(soup.get_text(), BeautifulSoup(html, "html.parser").get_text())
         self.assertNotIn("data-reading-marker", html)
 
+    def test_navigation_target_generation_does_not_rename_untitled_sections(self):
+        soup = BeautifulSoup("<section><p>Body</p></section>", "html.parser")
+        toc = publication_toc(soup)
+        self.assertEqual(toc[0]["title"], "Untitled section")
+        rendered = publication_view(str(soup), toc)
+        self.assertEqual(rendered["entries"][0]["title"], "Untitled section")
+
     def test_series_follow_reorder_and_none_and_restart_under_each_parent(self):
         markup = '<section id="a" data-toc-style="decimal"><h2>A</h2>' \
             '<h3 data-toc-style="lower-alpha">Nested A</h3><p>Body</p></section>' \

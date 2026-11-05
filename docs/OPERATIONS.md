@@ -1125,6 +1125,25 @@ An already-published revision with changed publication rules needs a new saved
 revision, not a rewrite. The ToC right-click menu now uses the same CSS rules
 as canvas and navigation menus.
 
+Publication-parity validation: 217 frontend tests and 88 focused backend tests
+passed, with production build, Ruff and whitespace checks. Shared JS/Python
+examples cover hierarchy/deduplication, explicit titles, heading-only articles,
+empty sections and direct inline flow, including stable untitled-section labels
+after generating navigation IDs. An actual test-database publication
+verified preview/reader metadata rows, title, contents markers and unchanged
+stored prose, plus real PDF cover/contents/body text, internal destinations and
+numbered bookmarks. Legacy-publication projection and prior source PDF behavior
+also passed. Cached older PDF files are bypassed, not deleted.
+
+A database-free rendered browser fixture at 1200px and 390px confirmed identical
+editor/publication title rows, CSS heading prefixes, numbered contents and valid
+targets, with article textContent unchanged. Computed ToC-menu panel colors,
+border/shadow, button typography/spacing and viewport bounds matched the other
+menus after including the profile theme override; the menu measured 304px wide.
+Browser actions were DOM-dispatched, not native-pointer acceptance. No live
+correction was saved or published. Hard-refresh existing tabs to evict cached
+stylesheets.
+
 Heading/navigation mirror validation: all 212 frontend tests and the production
 build passed. A database-free rendered editor fixture verified matching Roman
 prefixes across ToC/headings/navigation, one-step Undo/Redo, reordering, all six
