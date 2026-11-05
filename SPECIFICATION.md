@@ -250,6 +250,12 @@ valid only in the same open editor; reload/another tab cannot import it as
 trusted content. Paste before leaving, or undo the cut. External clipboard
 HTML/text remains previewed and validated through its existing workflow.
 General external structural import remains a gap.
+The same editor-local capability also supports Copy without removing source
+content. Each copy paste assigns collision-free IDs and fresh wrapper identities,
+remaps links and section-title/excerpt-origin bindings to copied targets, and
+leaves external references unchanged. Open boundary containers do not copy their
+IDs; joined destination targets are retained. Gapped block copies contain only
+the explicitly selected blocks. Foreign/expired capabilities refuse explicitly.
 Since 0.50.0, standalone New section creates a titled section and empty paragraph
 before/after the current block or at document end in whole-document view.
 The reviewer explicitly chooses H2–H6; collision-free section IDs are assigned.
@@ -928,7 +934,11 @@ about this and ordinary server relationship validation still applies.
 The first rich-paste slice allows bold/italic aliases, underline, strikethrough,
 sup/sub, small/code/abbr/plain spans, line breaks and absolute HTTP(S)/mailto
 links with optional titles, optionally wrapped in attribute-free paragraphs.
-It refuses IDs, classes, CSS, event attributes, comments, media, local/relative
+Plain root div containers are normalized to paragraphs. Supported browser CSS
+font weight/style, underline/strike decoration and super/sub vertical alignment
+are converted to semantic inline tags; normal/baseline values add no emphasis.
+StartFragment/EndFragment comments are recognized. It refuses IDs, classes,
+other CSS, event attributes, other comments, media, local/relative
 links, non-paragraph block structures and other unsupported nodes/attributes rather than
 silently stripping them. A reason is shown while plain insertion remains an
 explicit alternative. Both plain text and HTML must be within 64 KiB; formatted
@@ -972,8 +982,16 @@ visible range; edits, formatting, moves and undo that would alter hidden content
 are refused explicitly. View-only changes neither dirty a draft nor reset review.
 Structural filters/labels are absent from semantic HTML/JSON and reader/PDF output.
 
-The selection menu includes paragraph alignment (left, center, right, justify)
-and default/inherited reset for a single paragraph, heading or preformatted block.
+The selection menu uses compact representative styled letters and alignment
+line icons, with accessible names, titles and checked states. Unrelated commands
+and empty formatting groups are hidden by selection type; applicable but
+temporarily unavailable commands can remain disabled. Outline and canvas menus
+share typography, spacing and theme. Ctrl/Cmd+Z, Ctrl+Y and Ctrl/Cmd+Shift+Z work
+from navigation/command chrome as well as the canvas, restoring outline focus
+after a redraw; native text-field/dialog history is not intercepted.
+Paragraph alignment (left, center, right, justify) applies to a single paragraph,
+heading or preformatted block. Clicking the checked icon removes its explicit
+alignment to return to inherited formatting, without a separate reset button.
 Alignment targets the whole block, retains unrelated classes/IDs/inline content,
 and uses existing canonical `text-align-*` classes shared by reader/PDF. The
 current explicit value is checked; reset removes only that block's alignment and

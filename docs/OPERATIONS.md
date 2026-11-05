@@ -120,6 +120,14 @@ content-losing destinations are refused rather than silently repaired.
 Paste before closing or reloading the same editor; editor-local clipboard
 capabilities are not transferable to another tab. Undo an unpasted cut before
 leaving. External clipboard paste still uses its review dialog.
+Use **Ctrl/Cmd+C** instead to copy without removing source content; paste in the
+same open editor retains semantic formatting, links, lists/tables and bound
+images. Copied target IDs gain collision-free `-copy` suffixes; links/title/origin
+bindings within the copied content are updated, while outside references stay
+unchanged. Repeated pastes get distinct IDs. Partial text copies do not copy their
+boundary paragraph/section IDs; existing destination targets remain in place.
+Gapped block copies include only selected blocks. Reload/another editor cannot
+use the local capability; copy again in the intended editor.
 
 For section-based placement or a new titled destination, select the complete content,
 including its marker/target and attribution, then right-click or press Shift+F10
@@ -1018,12 +1026,21 @@ paragraph type
 and moves affect its containing block. Paragraph changes/moves are disabled for
 cross-block selections. Shift+right-click keeps the native browser menu, including
 clipboard actions; ordinary clipboard shortcuts still work.
+Text styles use representative B, italic I, underlined U, struck S and x with
+sup/subscript. Alignment uses office-style line icons; hover titles and
+accessible names identify each control. Unrelated commands and empty groups
+are hidden for the selection type, including image/link/text-only tools.
+Both editor and outline context menus use the same compact styling/theme.
+Ctrl/Cmd+Z, Ctrl+Y and Ctrl/Cmd+Shift+Z work while navigation or command buttons
+have focus. Outline focus survives history redraws; text fields and dialogs
+retain their native history.
 
 **Paragraph alignment** changes the whole containing paragraph/heading/preformatted
 block, even when only some of its text is selected. Left, center, right and justify
-use the canonical reader/PDF classes, not inline CSS. **Default / inherited** removes
-only the current block's explicit alignment. The menu checks the current explicit
-value and disables unsupported or multi-block selections. IDs, unrelated classes,
+use the canonical reader/PDF classes, not inline CSS. Click the already selected
+alignment icon again to remove only that block's explicit alignment and inherit.
+The menu checks the current explicit value and hides alignment for unsupported
+or multi-block selections. IDs, unrelated classes,
 inline markup and selection direction are preserved; each change is separately
 undoable and resets next-revision review to partial.
 
@@ -1047,7 +1064,7 @@ container. It preserves markup, targets and text selection, resets review scope
 to partial, and is separately undoable. Unavailable moves are disabled: no crossing
 sections, structural/media neighbors or bare-prose runs, and no multi-block or
 node selections. Lists, tables, figures and section moves remain planned.
-Paste opens a **Review clipboard paste** dialog showing plain text, supported
+External paste opens a **Review clipboard paste** dialog showing plain text, supported
 inline-formatted content and replaced text. Choose **Insert plain text**,
 **Insert formatted text** (when available), **Cancel paste**, or Escape; nothing
 is inserted before approval. The two clipboard alternatives can differ: review
@@ -1057,8 +1074,13 @@ fidelity gate. Preview links do not navigate.
 
 Formatted paste supports bold/italic aliases, underline, strikethrough, sup/sub,
 small/code/abbr/plain spans, line breaks and absolute HTTP(S)/mailto links with
-optional titles, optionally inside attribute-free paragraphs. CSS, classes,
-IDs, event attributes, comments, media, local/relative links and non-paragraph blocks
+optional titles, optionally inside attribute-free paragraphs. Plain root `div`
+containers become paragraphs. A bounded browser-CSS subset is converted to
+semantic tags: `font-weight` (normal/bold/100–900), `font-style`
+(normal/italic/oblique), `text-decoration`/`text-decoration-line`
+(none/underline/line-through), and `vertical-align` (baseline/super/sub).
+Standard StartFragment/EndFragment comments are recognized. Other CSS, classes,
+IDs, event attributes, other comments, media, local/relative links and non-paragraph blocks
 are explicitly refused, not stripped. The reason is displayed and plain text
 remains an explicit option. General word-processor HTML import is not available.
 HTML is limited to 64 KiB, 2,000 nodes, 50 levels and 1,000 breaks, with invalid

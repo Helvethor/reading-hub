@@ -3,8 +3,6 @@ import {NodeSelection} from "@tiptap/pm/state";
 import {closeHistory} from "@tiptap/pm/history";
 import {visiblePart} from "./workspace.js";
 
-const marker = "reading-hub-cut:";
-
 function targets(doc, owner) {
   const dom = owner.createElement("div");
   dom.append(DOMSerializer.fromSchema(doc.type.schema).serializeFragment(
@@ -69,9 +67,73 @@ function clearRetainedBlockTargets(fragment, retained) {
   return Fragment.fromArray(nodes);
 }
 
+function copiedSlice(doc, slice, owner) {
+  while (slice.openStart === slice.openEnd && slice.openStart > 0 && slice.content.childCount === 1) {
+    slice = new Slice(slice.content.firstChild.content, slice.openStart - 1, slice.openEnd - 1);
+  }
+  const boundaryIds = new Set();
+  for (const [first, depth] of [[true, slice.openStart], [false, slice.openEnd]]) {
+    let node = first ? slice.content.firstChild : slice.content.lastChild;
+    for (let level = 0; node && level < depth; level++) {
+      if (node.attrs.id) boundaryIds.add(node.attrs.id);
+      node = first ? node.firstChild : node.lastChild;
+    }
+  }
+  slice = new Slice(clearRetainedBlockTargets(slice.content, boundaryIds), slice.openStart, slice.openEnd);
+  const used = new Set(targets(doc, owner));
+  const renamed = new Map();
+  for (const id of targets(doc.type.create(null, slice.content), owner)) {
+    let next = `${id}-copy`;
+    while (used.has(next)) next += "-copy";
+    used.add(next);
+    renamed.set(id, next);
+  }
+  const identity = `copy-${globalThis.crypto.randomUUID()}`;
+  function attributes(attrs) {
+    const result = {...attrs};
+    if (renamed.has(result.id)) result.id = renamed.get(result.id);
+    for (const name of ["data-section-title", "data-excerpt-parent"]) {
+      if (renamed.has(result[name])) result[name] = renamed.get(result[name]);
+    }
+    if (result.href?.startsWith("#")) {
+      let id;
+      try { id = decodeURIComponent(result.href.slice(1)); }
+      catch { throw new Error("Repair invalid internal link encoding before copying this content."); }
+      if (renamed.has(id)) result.href = `#${encodeURIComponent(renamed.get(id))}`;
+    }
+    if (result.identity != null) result.identity = `${identity}-${result.identity}`;
+    return result;
+  }
+  function fragment(content) {
+    const nodes = [];
+    content.forEach(node => {
+      const marks = node.marks.map(mark => mark.type.create(attributes(mark.attrs)));
+      nodes.push(node.isText ? node.mark(marks) :
+        node.type.create(attributes(node.attrs), fragment(node.content), marks));
+    });
+    return Fragment.fromArray(nodes);
+  }
+  return new Slice(fragment(slice.content), slice.openStart, slice.openEnd);
+}
+
 export function mountSemanticClipboard(editor) {
   let pending = null;
   return {
+    copy(view, event) {
+      event.preventDefault();
+      if (!event.clipboardData) throw new Error("The browser did not provide clipboard access. Nothing was copied.");
+      const {doc, selection} = view.state;
+      if (selection.empty) throw new Error("Select content before copying.");
+      assertVisible(editor, selection.from, selection.to);
+      const slice = selection.content();
+      assertCompleteTargets(doc, selection.from, selection.to, slice);
+      const token = globalThis.crypto.randomUUID();
+      const serialized = view.serializeForClipboard(slice);
+      event.clipboardData.setData("text/plain", serialized.text);
+      event.clipboardData.setData("text/html", `<!--reading-hub-copy:${token}-->${serialized.dom.innerHTML}`);
+      pending = {token, text: serialized.text, slice, mode: "copy"};
+      return true;
+    },
     cut(view, event) {
       event.preventDefault();
       if (!event.clipboardData) throw new Error("The browser did not provide clipboard access. Nothing was cut.");
@@ -108,8 +170,8 @@ export function mountSemanticClipboard(editor) {
       // Only an opaque capability goes on the clipboard. Semantic nodes remain
       // local to this editor; arbitrary clipboard HTML cannot impersonate them.
       event.clipboardData.setData("text/plain", text);
-      event.clipboardData.setData("text/html", `<!--${marker}${token}-->${serialized.dom.innerHTML}`);
-      pending = {token, text, slice};
+      event.clipboardData.setData("text/html", `<!--reading-hub-cut:${token}-->${serialized.dom.innerHTML}`);
+      pending = {token, text, slice, mode: "cut"};
       view.dispatch(tr);
       view.dispatch(closeHistory(view.state.tr));
       if (view.state.doc !== tr.doc) {
@@ -120,33 +182,55 @@ export function mountSemanticClipboard(editor) {
     },
     paste(view, event) {
       const html = event.clipboardData?.getData("text/html") || "";
-      const capability = html.match(/<!--reading-hub-cut:([^<>]+)-->/);
+      const capability = html.match(/<!--reading-hub-(cut|copy):([^<>]+)-->/);
       if (!capability) return false;
       event.preventDefault();
-      if (!pending || capability[1] !== pending.token ||
+      if (!pending || capability[1] !== pending.mode || capability[2] !== pending.token ||
           event.clipboardData.getData("text/plain") !== pending.text) {
-        throw new Error("This semantic cut belongs to another editor or is no longer available. Undo the cut in its original editor.");
+        throw new Error("This semantic clipboard belongs to another editor or is no longer available. Copy again in this editor, or undo the cut in its original editor.");
       }
       const {doc, selection} = view.state;
       assertVisible(editor, selection.from, selection.to);
       assertCompleteTargets(doc, selection.from, selection.to, selection.content());
       const tr = closeHistory(view.state.tr).deleteSelection();
       const baseline = tr.doc;
-      tr.replaceSelection(pending.slice);
+      const slice = pending.mode === "copy"
+        ? copiedSlice(doc, pending.slice, view.dom.ownerDocument) : pending.slice;
+      const boundaries = [];
+      for (const edge of [tr.selection.$from, tr.selection.$to]) {
+        for (let depth = 1; depth <= edge.depth; depth++) {
+          const node = edge.node(depth);
+          if (node.attrs.id) boundaries.push({at: edge.before(depth), node});
+        }
+      }
+      const insertionStep = tr.mapping.maps.length;
+      tr.replaceSelection(slice);
+      // Open clipboard slices may supply the joined paragraph's attributes.
+      // Retain destination targets rather than losing them at that join.
+      const insertedTargets = new Set(targets(tr.doc, view.dom.ownerDocument));
+      for (const {at, node} of boundaries) {
+        if (insertedTargets.has(node.attrs.id)) continue;
+        const mapped = tr.mapping.slice(insertionStep).map(at, -1);
+        const joined = tr.doc.nodeAt(mapped);
+        if (joined?.type === node.type && !joined.attrs.id) {
+          tr.setNodeMarkup(mapped, undefined, {...joined.attrs, id: node.attrs.id}, joined.marks);
+          insertedTargets.add(node.attrs.id);
+        }
+      }
       tr.doc.check();
       const ids = targets(tr.doc, view.dom.ownerDocument);
       if (new Set(ids).size !== ids.length) {
         throw new Error("Pasting here would duplicate a target ID. If you undid the cut, cut the content again.");
       }
-      assertInventory(tr.doc, baseline, pending.slice, "Paste");
+      assertInventory(tr.doc, baseline, slice, "Paste");
       const existing = targets(baseline, view.dom.ownerDocument);
-      const moved = targets(doc.type.create(null, pending.slice.content), view.dom.ownerDocument);
+      const moved = targets(doc.type.create(null, slice.content), view.dom.ownerDocument);
       if ([...existing, ...moved].some(id => !ids.includes(id))) {
-        throw new Error("This destination would lose a target ID. Choose another cursor position.");
+        throw new Error(`This destination would lose a target ID (${[...existing, ...moved].filter(id => !ids.includes(id)).join(", ")}). Choose another cursor position.`);
       }
       view.dispatch(tr.scrollIntoView());
       view.dispatch(closeHistory(view.state.tr));
-      if (view.state.doc !== tr.doc) throw new Error("The editor refused this paste. Cut content is still available.");
+      if (view.state.doc !== tr.doc) throw new Error("The editor refused this paste. Clipboard content is still available.");
       return true;
     },
   };

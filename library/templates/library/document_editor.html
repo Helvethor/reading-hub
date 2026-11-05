@@ -106,16 +106,16 @@
       <p id="editor-menu-target"></p>
       <div role="group" aria-label="Text styling" class="editor-menu-group">
         <span class="editor-menu-heading">Text styling</span>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="strong" disabled>Bold</button>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="em" disabled>Italic</button>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="u" disabled>Underline</button>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="s" disabled>Strikethrough</button>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="sup" disabled>Superscript</button>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-mark="sub" disabled>Subscript</button>
+        <button type="button" role="menuitemcheckbox" aria-label="Bold" title="Bold" aria-checked="false" data-mark="strong" disabled><b aria-hidden="true">B</b></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Italic" title="Italic" aria-checked="false" data-mark="em" disabled><i aria-hidden="true">I</i></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Underline" title="Underline" aria-checked="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Strikethrough" title="Strikethrough" aria-checked="false" data-mark="s" disabled><s aria-hidden="true">S</s></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Superscript" title="Superscript" aria-checked="false" data-mark="sup" disabled><span aria-hidden="true">x<sup>2</sup></span></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Subscript" title="Subscript" aria-checked="false" data-mark="sub" disabled><span aria-hidden="true">x<sub>2</sub></span></button>
       </div>
       <div role="group" aria-label="Paragraph type" class="editor-menu-group">
         <span class="editor-menu-heading">Paragraph type</span>
-        <button type="button" role="menuitemradio" aria-checked="false" data-block="p" disabled>Paragraph</button>
+        <button type="button" role="menuitemradio" aria-label="Paragraph" title="Paragraph" aria-checked="false" data-block="p" disabled>¶</button>
         <button type="button" role="menuitemradio" aria-checked="false" data-block="h2" disabled>H2</button>
         <button type="button" role="menuitemradio" aria-checked="false" data-block="h3" disabled>H3</button>
         <button type="button" role="menuitemradio" aria-checked="false" data-block="h4" disabled>H4</button>
@@ -123,12 +123,11 @@
         <button type="button" role="menuitemradio" aria-checked="false" data-block="h6" disabled>H6</button>
       </div>
       <div role="group" aria-label="Paragraph alignment" class="editor-menu-group">
-        <span class="editor-menu-heading">Paragraph alignment (whole block)</span>
-        <button type="button" role="menuitemradio" aria-checked="false" data-align="" disabled>Default / inherited</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-align="left" disabled>Align left</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-align="center" disabled>Align center</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-align="right" disabled>Align right</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-align="justify" disabled>Justify</button>
+        <span class="editor-menu-heading">Alignment · click again to inherit</span>
+        <button type="button" role="menuitemcheckbox" aria-label="Align left" title="Align left; click again to inherit" aria-checked="false" data-align="left" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h10M2 11h16M2 15h10"/></svg></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Align center" title="Align center; click again to inherit" aria-checked="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Align right" title="Align right; click again to inherit" aria-checked="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Justify" title="Justify; click again to inherit" aria-checked="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
       </div>
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="edit" disabled>Figure &amp; caption…</button>
@@ -153,7 +152,7 @@
       <label><input type="radio" name="review" value="full" disabled> Verify the whole document</label>
       <label><input type="checkbox" name="editorial" disabled> Includes editorial changes beyond transcription/formatting</label>
     </details>
-    <p>Type directly; Enter splits paragraphs and Backspace joins them. Paste opens a clipboard preview with plain-text and supported inline-formatting choices for approval. Drag section titles within the outline to reorder; dragging arbitrary canvas content remains unavailable.</p>
+    <p>Type directly; Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy formatted content inside this editor; copied targets get fresh IDs and matching internal links. External paste opens a preview with plain-text and supported inline-formatting choices for approval, including common browser emphasis CSS. Ctrl/Cmd+Z also works from the outline. Drag section titles within the outline to reorder; dragging arbitrary canvas content remains unavailable.</p>
     <p>Move paragraph up/down moves the whole paragraph, heading or preformatted block containing the cursor or selected text, past one adjacent text block in the same container. It preserves links and targets and can be undone. It does not cross sections, lists, tables or media.</p>
     <p>Save all changes before previewing publication. Saving a review scope does not publish; publication does not itself verify.</p>
     <a id="editor-publication" target="_blank" rel="noopener" hidden>Review saved result for publication (new tab)</a>

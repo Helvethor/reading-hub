@@ -230,42 +230,62 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     showBlockLabels(editor, event.target.checked);
   });
   function updateTools() {
+    const {selection} = editor.state;
+    const textSelection = selection instanceof TextSelection;
+    const blockSelection = selection instanceof BlockSelection ||
+      selection instanceof NodeSelection && selection.node.isBlock;
+    const completeTextBlocks = textSelection && !selection.empty &&
+      selection.$from.parent.isTextblock && selection.$to.parent.isTextblock &&
+      selection.$from.parentOffset === 0 &&
+      selection.$to.parentOffset === selection.$to.parent.content.size &&
+      selection.$from.depth === selection.$to.depth &&
+      selection.$from.depth > 1 &&
+      selection.$from.node(selection.$from.depth - 1) === selection.$to.node(selection.$to.depth - 1);
+    function available(button, applicable, enabled = applicable) {
+      button.hidden = !applicable;
+      button.disabled = !enabled;
+    }
     const contentMove = form.querySelector("#editor-content-move-open");
-    if (contentMove) contentMove.disabled = editor.state.selection.empty;
+    if (contentMove) available(contentMove, !selection.empty && (textSelection || blockSelection));
     const excerpt = form.querySelector("#editor-section-excerpt-open");
-    if (excerpt) excerpt.disabled = editor.state.selection.empty;
+    const excerptParent = blockSelection ? selection.$from.parent :
+      completeTextBlocks ? selection.$from.node(selection.$from.depth - 1) : null;
+    if (excerpt) available(excerpt, (blockSelection || completeTextBlocks) &&
+      excerptParent?.type.name === "section");
     for (const button of form.querySelectorAll("[data-quotation]")) {
-      button.disabled = !canEditFigure(editor);
+      available(button, canEditFigure(editor));
     }
     for (const button of form.querySelectorAll("[data-mark]")) {
-      button.disabled = !(editor.state.selection instanceof TextSelection);
+      available(button, textSelection);
       button.setAttribute("aria-checked", String(isInlineStyleActive(editor, button.dataset.mark)));
     }
     for (const button of form.querySelectorAll("[data-image]")) {
-      button.disabled = !selectedImage(editor);
+      available(button, !!selectedImage(editor));
     }
     for (const button of form.querySelectorAll("[data-link], [data-link-remove]")) {
-      button.disabled = !selectedLink(editor);
+      available(button, !!selectedLink(editor));
     }
     for (const button of form.querySelectorAll("[data-link-insert]")) {
-      button.disabled = !canInsertLink(editor);
+      available(button, canInsertLink(editor));
     }
-    const {selection} = editor.state;
     const oneBlock = selection instanceof TextSelection && selection.$from.sameParent(selection.$to);
     for (const button of form.querySelectorAll("[data-block]")) {
-      button.disabled = !oneBlock || !["p", "h2", "h3", "h4", "h5", "h6", "pre", "inlineRun"]
-        .includes(selection.$from.parent.type.name);
+      available(button, oneBlock && ["p", "h2", "h3", "h4", "h5", "h6", "pre", "inlineRun"]
+        .includes(selection.$from.parent.type.name));
       button.setAttribute("aria-checked", String(editor.isActive(button.dataset.block)));
     }
     for (const button of form.querySelectorAll("[data-move]")) {
-      button.disabled = !canMoveTextBlock(editor, Number(button.dataset.move));
+      available(button, canAlignTextBlock(editor), canMoveTextBlock(editor, Number(button.dataset.move)));
     }
     for (const button of form.querySelectorAll("[data-align]")) {
-      button.disabled = !canAlignTextBlock(editor);
+      available(button, canAlignTextBlock(editor));
       button.setAttribute("aria-checked", String(textBlockAlignment(editor) === button.dataset.align));
     }
     for (const button of form.querySelectorAll("[data-history]")) {
       button.disabled = !(button.dataset.history === "undo" ? undo : redo)(editor.state);
+    }
+    for (const group of menu.querySelectorAll("[role=group]")) {
+      group.hidden = ![...group.querySelectorAll("button")].some(button => !button.hidden);
     }
     const ancestors = [];
     for (let depth = 1; depth <= selection.$from.depth; depth++) {
@@ -298,7 +318,7 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     const bounds = menu.getBoundingClientRect();
     menu.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - bounds.width - 8))}px`;
     menu.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - bounds.height - 8))}px`;
-    menu.querySelector("button:not(:disabled)")?.focus();
+    menu.querySelector("button:not(:disabled):not([hidden])")?.focus();
   }
   function openAtSelection() {
     const coords = editor.view.coordsAtPos(editor.state.selection.head);
@@ -346,7 +366,7 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     }
   });
   menu.addEventListener("keydown", event => {
-    const items = [...menu.querySelectorAll("button:not(:disabled)")];
+    const items = [...menu.querySelectorAll("button:not(:disabled):not([hidden])")];
     const index = items.indexOf(owner.activeElement);
     if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
       event.preventDefault();
@@ -428,7 +448,8 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
         const tr = editor.state.tr.setNodeMarkup(selection.$from.before(),
           editor.schema.nodes[button.dataset.block], selection.$from.parent.attrs);
         editor.view.dispatch(tr);
-      } else if ("align" in button.dataset) alignTextBlock(editor, button.dataset.align);
+      } else if ("align" in button.dataset) alignTextBlock(editor,
+        textBlockAlignment(editor) === button.dataset.align ? "" : button.dataset.align);
       else if (button.dataset.move) moveTextBlock(editor, Number(button.dataset.move));
       else (button.dataset.history === "undo" ? undo : redo)(editor.state, editor.view.dispatch);
       editor.commands.focus();
@@ -440,6 +461,30 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-quotation]")) {
     button.addEventListener("click", () => perform(button));
   }
+  function workspaceHistory(event) {
+    if (event.defaultPrevented || event.altKey || !(event.ctrlKey || event.metaKey) ||
+        event.target.closest("input, textarea, select, [contenteditable], dialog")) return;
+    const key = event.key.toLowerCase();
+    if (key !== "z" && key !== "y") return;
+    event.preventDefault();
+    closeMenu();
+    showError("");
+    const target = event.target;
+    const partButton = target.closest(".editor-outline-row")?.querySelector("[data-part]");
+    const part = partButton ? parts[Number(partButton.dataset.part)] : null;
+    const command = key === "y" || event.shiftKey ? redo : undo;
+    command(editor.state, editor.view.dispatch);
+    if (!target.isConnected && partButton) {
+      const index = parts.findIndex(candidate => candidate.kind === part.kind &&
+        (part.id ? candidate.id === part.id : candidate.from === part.from));
+      (outline.querySelector(`[data-part="${index}"]`) ||
+        outline.querySelector('[data-part=""]'))?.focus({preventScroll: true});
+    } else if (target.closest("#editor-section-actions, #editor-outline-menu")) {
+      (outline.querySelector('.editor-outline-active [data-part]') ||
+        outline.querySelector('[data-part=""]'))?.focus({preventScroll: true});
+    } else if (menu.contains(target)) trigger.focus({preventScroll: true});
+  }
+  form.addEventListener("keydown", workspaceHistory);
   surface.addEventListener("click", event => {
     const handle = event.target.closest("[data-editor-figure]");
     if (!handle) return;

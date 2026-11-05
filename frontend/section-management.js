@@ -400,6 +400,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     button.textContent = label;
     button.setAttribute("role", "menuitem");
     button.disabled = !enabled;
+    button.hidden = !enabled;
     button.addEventListener("click", () => {
       closeMenu();
       try {

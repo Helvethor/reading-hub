@@ -632,6 +632,73 @@ function mountSectionWorkspace(html, initial = {}) {
   return form;
 }
 
+test("compact selection tools expose only applicable actions and toggle alignment back to inherited", () => {
+  const form = mountSectionWorkspace('<section id="s"><h2>Section</h2>' +
+    '<p id="text" class="source text-align-center">Text <a href="#s">Back</a></p>' +
+    '<figure id="f"><img src="/assets/' + "a".repeat(64) + '/" alt="Plate"></figure></section>');
+  selectText("Text", 4);
+  assert.equal(form.querySelector('[data-mark="em"]').getAttribute("aria-label"), "Italic");
+  assert(form.querySelector('[data-mark="em"] i'));
+  assert.equal(form.querySelectorAll("[data-align]").length, 4);
+  assert(form.querySelector('[data-align="center"] svg'));
+  assert(form.querySelector("[data-image]").hidden);
+  assert(form.querySelector("[data-link]").hidden);
+  assert(!form.querySelector("[data-link-insert]").hidden);
+  assert(form.querySelector("#editor-section-excerpt-open").hidden);
+  const center = form.querySelector('[data-align="center"]');
+  assert.equal(center.getAttribute("aria-checked"), "true");
+  center.click();
+  assert.equal(textBlockAlignment(editor), "");
+  assert.equal(editor.view.dom.querySelector("#text").className.replace(/editor-\S+/g, "").trim(), "source");
+  center.click();
+  assert.equal(textBlockAlignment(editor), "center");
+  let position;
+  editor.state.doc.descendants((node, at) => { if (node.type.name === "img") position = at; });
+  editor.commands.setNodeSelection(position);
+  assert(!form.querySelector("[data-image]").hidden);
+  assert(form.querySelector("[data-mark]").hidden);
+  assert(form.querySelector('[aria-label="Text styling"]').hidden);
+  assert(form.querySelector('[aria-label="Paragraph type"]').hidden);
+  assert(form.querySelector('[aria-label="Paragraph alignment"]').hidden);
+  ctrlClickBlock("#text");
+  ctrlClickBlock("#f img");
+  assert(!form.querySelector("#editor-section-excerpt-open").hidden);
+  assert(form.querySelector("[data-image]").hidden);
+  assert(form.querySelector("[data-quotation]").hidden);
+  assert(form.querySelector("[data-mark]").hidden);
+});
+
+test("outline and command chrome support document undo and redo without stealing native field history", () => {
+  const form = mountSectionWorkspace('<section id="s"><p>Text</p></section>');
+  const before = editor.getHTML();
+  selectText("Text", 4);
+  alignTextBlock(editor, "right");
+  const changed = editor.getHTML();
+  const item = form.querySelector("[data-section-move]");
+  const key = (target, options) => {
+    const event = new dom.window.KeyboardEvent("keydown", {
+      bubbles: true, cancelable: true, ...options,
+    });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  item.focus();
+  assert(key(item, {key: "z", ctrlKey: true}));
+  assert.equal(editor.getHTML(), before);
+  assert(key(document.activeElement, {key: "Z", metaKey: true, shiftKey: true}));
+  assert.equal(editor.getHTML(), changed);
+  assert(key(form.querySelector("#editor-tools"), {key: "z", metaKey: true}));
+  assert.equal(editor.getHTML(), before);
+  assert(key(form.querySelector("[data-section-move]"), {key: "y", ctrlKey: true}));
+  assert.equal(editor.getHTML(), changed);
+  const input = form.querySelector('input[name="title"]');
+  assert(!key(input, {key: "z", ctrlKey: true}));
+  assert.equal(editor.getHTML(), changed);
+  const dialog = document.querySelector("#editor-section-details");
+  assert(!key(dialog.querySelector("input"), {key: "z", ctrlKey: true}));
+  assert.equal(editor.getHTML(), changed);
+});
+
 test("sidebar diagnoses missing Appendix and repairs its original boundary through one undoable action", () => {
   const html = '<section id="c8"><h2>Conclusion</h2><p>Edited prose.</p>' +
     '<h2 id="c9-title">Appendix</h2><p id="n">Note.</p></section>';
@@ -1119,6 +1186,123 @@ test("section boundary dialog previews explicit relationship cancels and applies
       }));
       assert(prevented);
     }
+
+test("semantic copy pastes styled text repeatedly without losing source or duplicating target IDs", () => {
+  const errors = [];
+  open('<section id="s"><p id="source"><span id="note"><em>Note</em> ' +
+    '<a href="#note">Back</a></span></p><p id="target">Destination</p></section>',
+  update => { if (update.error) errors.push(update.error); });
+  const before = editor.getHTML();
+  selectText("Note");
+  const from = editor.state.selection.from;
+  selectText("Back", 4);
+  editor.commands.setTextSelection({from, to: editor.state.selection.to});
+  const data = semanticClipboardData();
+  clipboardEvent("copy", data);
+  assert.equal(editor.getHTML(), before);
+  assert(!undo(editor.state));
+  assert.match(data.getData("text/html"), /reading-hub-copy:/);
+  selectText("Destination");
+  clipboardEvent("paste", data);
+  assert.deepEqual(errors, []);
+  let html = editor.getHTML();
+  assert(html.includes('id="note-copy"'));
+  assert(html.includes('href="#note-copy"'));
+  assert(html.includes("<em>Note</em>"));
+  assert.equal(editor.view.dom.querySelector("#source").textContent, "Note Back");
+  assert.equal(editor.view.dom.querySelector("#target").textContent, "Note BackDestination");
+  const first = html;
+  clipboardEvent("paste", data);
+  assert.deepEqual(errors, []);
+  html = editor.getHTML();
+  assert(html.includes('id="note-copy-copy"'));
+  assert(html.includes('href="#note-copy-copy"'));
+  const root = document.createElement("div");
+  root.innerHTML = html;
+  const ids = [...root.querySelectorAll("[id]")].map(node => node.id);
+  assert.equal(ids.length, new Set(ids).size);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), first);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+});
+
+test("whole-block semantic copy retains section metadata media and styles with fresh internal bindings", () => {
+  const errors = [];
+  open('<section id="s"><section id="excerpt" data-section-title="title" data-excerpt-parent="s">' +
+    '<h3 id="title">Excerpt</h3><figure id="plate"><img src="/assets/' + "a".repeat(64) +
+    '/" alt="Plate"><figcaption>Caption</figcaption></figure><pre id="pre">  exact\n spacing</pre>' +
+    '<p class="text-align-center"><strong>Styled</strong> <a href="#title">Back</a></p>' +
+    '</section><p id="end">End</p></section>', update => { if (update.error) errors.push(update.error); });
+  let position;
+  editor.state.doc.descendants((node, at) => { if (node.attrs.id === "excerpt") position = at; });
+  editor.commands.setNodeSelection(position);
+  const before = editor.getHTML(), data = semanticClipboardData();
+  clipboardEvent("copy", data);
+  selectText("End");
+  clipboardEvent("paste", data);
+  assert.deepEqual(errors, []);
+  const root = document.createElement("div");
+  root.innerHTML = editor.getHTML();
+  const copy = root.querySelector("#excerpt-copy");
+  assert(copy);
+  assert.equal(copy.getAttribute("data-section-title"), "title-copy");
+  assert.equal(copy.getAttribute("data-excerpt-parent"), "s");
+  assert(copy.querySelector('a[href="#title-copy"]'));
+  assert(copy.querySelector('p.text-align-center strong'));
+  assert.equal(copy.querySelector("#pre-copy").textContent, "  exact\n spacing");
+  assert.equal(copy.querySelector("#plate-copy img").getAttribute("alt"), "Plate");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+});
+
+test("gapped block copy uses only selected blocks and foreign or modified copy capabilities are refused", () => {
+  const errors = [];
+  open('<section id="s"><p id="a"><em>One</em></p><p>Unselected</p>' +
+    '<p id="b"><strong>Two</strong></p><p id="end">End</p></section>',
+  update => { if (update.error) errors.push(update.error); });
+  ctrlClickBlock("#a");
+  ctrlClickBlock("#b");
+  const before = editor.getHTML(), data = semanticClipboardData();
+  clipboardEvent("copy", data);
+  selectText("End");
+  clipboardEvent("paste", data);
+  assert.deepEqual(errors, []);
+  assert.equal(editor.view.dom.querySelectorAll("#a-copy").length, 1);
+  assert.equal(editor.view.dom.querySelectorAll("#b-copy").length, 1);
+  assert.equal(editor.state.doc.textContent.match(/Unselected/g).length, 1);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+  data.setData("text/plain", "Tampered");
+  clipboardEvent("paste", data);
+  assert.match(errors.pop(), /another editor|no longer available/);
+  assert.equal(editor.getHTML(), before);
+});
+
+test("semantic copy of a multi-paragraph text range preserves both source and destination targets", () => {
+  const errors = [];
+  open('<section id="s"><p id="one">Before <em>First</em></p><p id="two"><strong>Second</strong> after</p>' +
+    '<p id="destination">Destination</p></section>', update => { if (update.error) errors.push(update.error); });
+  selectText("First", 5);
+  const from = editor.state.selection.from;
+  selectText("Second", 6);
+  editor.commands.setTextSelection({from, to: editor.state.selection.to});
+  const before = editor.getHTML(), data = semanticClipboardData();
+  clipboardEvent("copy", data);
+  selectText("Destination");
+  clipboardEvent("paste", data);
+  assert.deepEqual(errors, []);
+  const value = editor.getHTML();
+  for (const id of ["one", "two", "destination"]) {
+    assert.equal(editor.view.dom.querySelectorAll(`#${id}`).length, 1, id);
+  }
+  assert(value.includes("<em>First</em>"));
+  assert(value.includes("<strong>Second</strong>"));
+  assert.equal(editor.view.dom.querySelector("#one").textContent, "Before First");
+  assert.equal(editor.view.dom.querySelector("#two").textContent, "Second after");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+});
 
     test("semantic cut and cursor paste relocate inline notes across chapters with exact IDs and markup", () => {
       const errors = [];
@@ -3294,7 +3478,7 @@ test("formatted paste preserves nested inline markup and links without inheritin
 test("unsupported clipboard markup is refused without mutating content or removing plain option", () => {
   open("<p>Original</p>");
   for (const html of [
-    '<p>One</p><div>Two</div>', '<p class="text-align-center">Text</p>',
+    '<p>One</p><div><div>Two</div></div>', '<p class="text-align-center">Text</p>',
     '<span style="color:red">Text</span>', '<span id="target">Text</span>',
     '<script>alert(1)</script>', '<img src="https://example.org/pixel">',
     '<svg><text>Text</text></svg>', '<em onclick="alert(1)">Text</em>',
@@ -3309,6 +3493,25 @@ test("unsupported clipboard markup is refused without mutating content or removi
   assert.throws(() => prepareFormattedPaste(editor, data, proposal));
   applyPlainTextPaste(editor, proposal);
   assert.equal(editor.getHTML(), "<p>Plain fallbackOriginal</p>");
+});
+
+test("common browser HTML and CSS paste previews retain supported emphasis with no imported CSS", () => {
+  open("<p>Destination</p>");
+  const proposal = formattedProposal('<!--StartFragment--><div>' +
+    '<span style="font-weight:700;font-style:italic;text-decoration:underline line-through">Styled</span>' +
+    '<span style="vertical-align:super">2</span></div><div><b style="font-weight:normal">Plain</b></div><!--EndFragment-->');
+  assert.equal(proposal.formatted.paragraphs, 2);
+  applyFormattedPaste(editor, proposal);
+  const html = editor.getHTML();
+  assert(html.includes("<strong><em><u><s>Styled</s></u></em></strong>"));
+  assert(html.includes("<sup>2</sup>"));
+  assert(!html.includes("style="));
+  assert(!html.includes("<b>Plain"));
+  assert(html.includes("Plain"));
+  for (const style of ["font-weight:garbage", "background-image:url(https://example.org/pixel)",
+    "font-style:italic;position:absolute", "font-weight:700;bad", "color:red"]) {
+    assert.throws(() => formattedProposal(`<span style="${style}">Text</span>`), /Unsupported clipboard CSS/);
+  }
 });
 
 test("formatted paste limits bytes nodes nesting and breaks", () => {

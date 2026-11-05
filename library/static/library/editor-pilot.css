@@ -4,11 +4,11 @@
 .editor-book-structure summary { cursor: pointer; font-weight: 700; }
 .editor-book-structure li { overflow-wrap: anywhere; }
 .editor-structure-link { font-weight: 700; }
-.editor-pilot-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .6rem; border-bottom: 1px solid #cbd1c4; background: #f8f9f5; }
+.editor-pilot-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: .35rem; border-bottom: 1px solid #cbd1c4; background: #f8f9f5; }
 .editor-pilot-toolbar label { margin: 0; }
-.editor-pilot-toolbar button, .editor-pilot-toolbar label { font-size: .85rem; }
-.editor-pilot-toolbar button { padding: .5rem .65rem; }
-.editor-pilot-toolbar select { font: inherit; padding: .4rem; }
+.editor-pilot-toolbar button, .editor-pilot-toolbar label { font-size: .75rem; }
+.editor-pilot-toolbar button { padding: .3rem .4rem; }
+.editor-pilot-toolbar select { font: inherit; padding: .25rem; max-width: 13rem; }
 #document-editor button:disabled { cursor: not-allowed; }
 .editor-workspace { border: 1px solid #98a48e; border-radius: .4rem; overflow: hidden; }
 #editor-status, #editor-error { margin: 0; padding: .4rem .75rem; font-size: .85rem; }
@@ -116,16 +116,20 @@
 #editor-surface .editor-labelled-block::before { content: attr(data-editor-block) / ""; position: absolute; left: .4rem; width: 3.8rem; margin-top: .3em; padding: .1rem; border-inline-end: 1px solid #cbd1c4; font: .75rem/1.5 system-ui, sans-serif; letter-spacing: .02em; text-align: start; color: #4c554b; pointer-events: none; user-select: none; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
-#editor-context-menu { position: fixed; z-index: 1000; width: min(21rem, calc(100vw - 1rem)); max-height: min(38rem, calc(100dvh - 1rem)); overflow: auto; padding: .6rem; border: 1px solid #98a48e; border-radius: .4rem; background: #fff; color: #302221; box-shadow: 0 .3rem 1.5rem #0003; }
-#editor-context-menu[hidden] { display: none; }
-#editor-context-menu button { padding: .4rem .5rem; border: 0; border-radius: .2rem; background: transparent; color: #302221; font-size: .85rem; font-weight: 400; }
-#editor-context-menu button:hover, #editor-context-menu button:focus-visible { background: #e5eadf; }
-#editor-context-menu > button { display: block; width: 100%; margin-top: .25rem; text-align: start; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) { box-sizing: border-box; position: fixed; z-index: 1000; width: min(19rem, calc(100vw - 1rem)); max-height: min(38rem, calc(100dvh - 1rem)); overflow: auto; padding: .4rem; border: 1px solid #98a48e; border-radius: .4rem; background: #fff; color: #302221; box-shadow: 0 .3rem 1.5rem #0003; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu)[hidden], :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) [hidden] { display: none !important; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) button { padding: .3rem .4rem; border: 0; border-radius: .2rem; background: transparent; color: #302221; font: 400 .8rem/1.35 system-ui, sans-serif; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) button:hover, :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) button:focus-visible { background: #e5eadf; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) > button { display: block; width: 100%; margin-top: .1rem; text-align: start; }
 #editor-context-menu button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline: 3px solid #486b38; outline-offset: 1px; }
 #editor-context-menu button[aria-checked="true"] { background: #344a2e; color: white; }
-.editor-menu-group { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; margin: .5rem 0; padding-bottom: .5rem; border-bottom: 1px solid #cbd1c4; }
-.editor-menu-heading { grid-column: 1 / -1; font-weight: 700; font-size: .85rem; }
-#editor-menu-target { margin: 0; font-size: .85rem; }
+.editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; border-bottom: 1px solid #cbd1c4; }
+.editor-menu-heading { grid-column: 1 / -1; font-weight: 600; font-size: .7rem; }
+#editor-context-menu .editor-menu-group button { height: 1.9rem; padding: .2rem; text-align: center; }
+#editor-context-menu [data-mark] { font-family: Georgia, serif; font-size: 1rem; }
+#editor-context-menu [data-mark] :is(b, i, u, s) { font-family: inherit; }
+#editor-context-menu svg { width: 1.2rem; height: 1.2rem; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.6; }
+#editor-menu-target { margin: 0; font-size: .75rem; }
 #document-editor details pre { max-height: 22rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 #document-editor input[name="title"] { width: 100%; }
 .editor-inline-run { display: contents; }

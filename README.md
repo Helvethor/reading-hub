@@ -24,6 +24,12 @@ Paste before closing/reloading the editor; clipboard moves are editor-local,
 and Ctrl+Z restores an unpasted cut. Partial target-bearing wrappers, duplicate
 IDs and destinations that would lose content are explicitly refused.
 External clipboard import still uses its existing reviewed preview.
+**Ctrl/Cmd+C / Ctrl/Cmd+V** now also copies formatted content directly within
+the same open editor. Copied targets receive fresh IDs, and links/title/origin
+bindings to copied targets follow those IDs; references outside the copied
+content remain unchanged. Repeated pastes are collision-safe and independently
+undoable. Ctrl/Cmd+Z and redo also work while the outline or command buttons
+have focus, without taking over native history in text fields.
 
 Project direction (2026-10-23): reviewers will directly correct a semantic rich
 document; immutable source, generated draft and corrected result will support
@@ -78,7 +84,9 @@ inside plain paragraphs. Up to 100 paragraphs can be pasted into one paragraph:
 the destination splits around the insertion, retaining both halves (even empty),
 its original ID on the first half and its other formatting on both halves.
 Inserted paragraphs retain their own formatting, not the destination's classes.
-Unsupported CSS, IDs, media, local note links and non-paragraph blocks are refused
+Common browser `<div>` paragraphs and CSS font weight/style, underline/strike
+and superscript/subscript are converted to semantic inline tags in the preview.
+Other CSS, IDs, media, local note links and non-paragraph blocks are refused
 with a reason; plain text remains an explicit option.
 This is a first rich-paste slice, not general HTML/word-processor import.
 Arbitrary canvas drag/drop remains unavailable; section titles can now be dragged
@@ -132,10 +140,11 @@ always includes the complete book, and focused editing cannot change hidden part
 Metadata and review controls are collapsed by default, not removed.
 
 **Paragraph alignment** in Selection tools sets left, center, right or justified
-alignment on the current paragraph, heading or preformatted block. **Default /
-inherited** removes its explicit alignment without changing ancestor formatting.
-The current explicit value is checked; cross-block selections and bare-text runs
-are disabled. Changes preserve other classes, IDs and inline content and undo
+alignment on the current paragraph, heading or preformatted block. Click an
+already selected alignment icon again to inherit ancestor formatting.
+Compact representative letters show text styles; line icons show alignment.
+The current explicit value is checked; unrelated commands/groups are hidden
+for the current selection type. Changes preserve other classes, IDs and inline content and undo
 individually.
 
 Right-click an existing image and choose **Edit image alternative text**. Its dialog

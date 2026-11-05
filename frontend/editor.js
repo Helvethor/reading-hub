@@ -795,6 +795,55 @@ export function prepareFormattedPaste(editor, clipboard, proposal) {
   const owner = editor.view.dom.ownerDocument;
   const template = owner.createElement("template");
   template.innerHTML = raw;
+  const normalize = (parent, depth = 0, budget = {nodes: 0}) => {
+    if (depth > 50) throw new Error("Formatted paste supports at most 50 nesting levels.");
+    for (const node of [...parent.childNodes]) {
+      if (++budget.nodes > 2000) throw new Error("Formatted paste supports at most 2,000 nodes.");
+      if (node.nodeType === 8 && /^(StartFragment|EndFragment)$/.test(node.data.trim())) {
+        node.remove();
+        continue;
+      }
+      if (node.nodeType !== 1) continue;
+      normalize(node, depth + 1, budget);
+      let tag = node.localName;
+      const wrappers = [];
+      if (node.hasAttribute("style")) {
+        for (const declaration of node.getAttribute("style").split(";").filter(value => value.trim())) {
+          const match = declaration.match(/^\s*([a-z-]+)\s*:\s*([a-z0-9 -]+?)\s*$/i);
+          if (!match) throw new Error("Unsupported clipboard CSS declaration.");
+          const property = match[1].toLowerCase(), value = match[2].trim().toLowerCase();
+          if (property === "font-weight" && /^(normal|bold|[1-9]00)$/.test(value)) {
+            if (value === "bold" || Number(value) >= 600) wrappers.push("strong");
+            else if (["b", "strong"].includes(tag)) tag = "span";
+          } else if (property === "font-style" && /^(normal|italic|oblique)$/.test(value)) {
+            if (value !== "normal") wrappers.push("em");
+            else if (["i", "em"].includes(tag)) tag = "span";
+          } else if (["text-decoration", "text-decoration-line"].includes(property) &&
+              /^(none|underline|line-through|underline line-through|line-through underline)$/.test(value)) {
+            if (value.includes("underline")) wrappers.push("u");
+            if (value.includes("line-through")) wrappers.push("s");
+            if (value === "none" && ["u", "s"].includes(tag)) tag = "span";
+          } else if (property === "vertical-align" && /^(baseline|super|sub)$/.test(value)) {
+            if (value !== "baseline") wrappers.push(value === "super" ? "sup" : "sub");
+            else if (["sup", "sub"].includes(tag)) tag = "span";
+          } else throw new Error(`Unsupported clipboard CSS: ${property}.`);
+        }
+        node.removeAttribute("style");
+      }
+      if (tag === "div" && parent === template.content) tag = "p";
+      const normalized = owner.createElement(tag);
+      for (const attr of node.attributes) normalized.setAttribute(attr.name, attr.value);
+      let content = normalized;
+      for (const wrapper of wrappers) {
+        const element = owner.createElement(wrapper);
+        content.append(element);
+        content = element;
+      }
+      content.append(...node.childNodes);
+      node.replaceWith(normalized);
+    }
+  };
+  normalize(template.content);
   const allowed = new Set(["strong", "b", "em", "i", "u", "s", "sup", "sub",
     "small", "code", "abbr", "cite", "span", "a", "br"]);
   const roots = [...template.content.childNodes];
@@ -1061,6 +1110,14 @@ export function createBoundedEditor(element, html, onUpdate = () => {}) {
         "aria-describedby": "editor-help editor-view-notice",
       },
       handleDOMEvents: {
+        copy: (view, event) => {
+          try {
+            return semanticClipboard.copy(view, event);
+          } catch (failure) {
+            onUpdate({error: failure.message});
+            return true;
+          }
+        },
         cut: (view, event) => {
           try {
             if (view.state.selection instanceof BlockSelection && !view.state.selection.contiguous) {

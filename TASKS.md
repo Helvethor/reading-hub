@@ -157,6 +157,15 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
 - [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
   overwriting corrected documents. These remain explicit legacy source-graph
   operations, not ordinary editor-save effects.
+- [x] Compact selection tools with representative styled letters, office-style
+  alignment icons and toggle-off-to-inherit behavior. Hide type-inapplicable
+  commands/groups; share outline/canvas context-menu styling. Support navigation
+  undo/redo with focus restoration, without intercepting text-field history.
+  Add trusted in-editor Copy/Paste with fresh copied targets/internal bindings
+  and retained destination IDs; preserve existing Cut/Paste behavior.
+  Convert a bounded browser emphasis-CSS subset and plain div paragraphs in
+  external paste previews. General Office/RTF/structural import remains excluded.
+  Automated regressions pass; isolated browser acceptance is pending.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent
