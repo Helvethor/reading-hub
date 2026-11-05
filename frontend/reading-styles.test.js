@@ -11,7 +11,8 @@ function fixture() {
     <article><h2 data-reading-marker="I. ">Exact title</h2><p>Unchanged prose.</p></article>
     <details class="reading-style-controls" data-preview-url="/reading-style/preview/">
     <form class="reading-style-settings"><select name="style_profile">
-    <option value="marxist">Marxist</option><option value="1">Comfort</option></select>
+    <option value="">Custom</option><option value="marxist" selected>Marxist</option>
+    <option value="1">Comfort</option></select>
     <input type="number" name="font_size" value="14" min="9" max="28" required>
     <input type="checkbox" name="italic_to_bold"><button value="apply">Apply</button></form>
     <p class="reading-style-status"></p><p class="reading-style-error" hidden></p>
@@ -64,6 +65,7 @@ test("live settings atomically bind CSS, PDF, saved snapshot and history without
   assert(pdf.href.endsWith("?style=new"));
   assert(view.document.querySelector("[data-reading-style]").href.endsWith("style=new"));
   assert.equal(panel.querySelector('input[name=style]').value, "new");
+  assert.equal(form.elements.style_profile.value, "");
   assert.equal(new URL(view.location).searchParams.get("style"), "new");
   assert.equal(view.document.querySelector("article").innerHTML, original);
   assert.equal(panel.querySelector(".reading-style-error").hidden, true);
@@ -131,4 +133,57 @@ test("loading a profile fills controls and explicit update/create posts bind exa
   assert.equal(posted.get("profile_name"), "New name");
   assert.equal(form.elements.style_profile.value, "2");
   assert.equal(save.elements.profile_id.value, "2");
+  assert.equal(new URL(view.location).searchParams.get("style_profile"), "2");
+});
+
+test("choosing a per-purpose font switches to Mixed and invalid input keeps the applied PDF", async () => {
+  const {view, form, pdf, panel} = fixture();
+  form.insertAdjacentHTML("beforeend", '<select name="font_mode"><option value="dyslexic">All</option>' +
+    '<option value="mixed">Mixed</option></select><select name="body_font">' +
+    '<option value="serif">Serif</option><option value="sans">Sans</option></select>');
+  let requests = 0;
+  view.fetch = async url => {
+    requests++;
+    assert.equal(new URL(url, view.location).searchParams.get("font_mode"), "mixed");
+    return json(snapshot("mixed"));
+  };
+  change(view, form.elements.body_font, "sans");
+  await load(view);
+  assert.equal(form.elements.font_mode.value, "mixed");
+  change(view, form.elements.font_size, "100");
+  await tick();
+  assert.equal(requests, 1);
+  assert(pdf.href.endsWith("style=mixed"));
+  assert.match(panel.querySelector(".reading-style-error").textContent, /highlighted settings/);
+});
+
+test("failure to bind the snapshot URL leaves the old stylesheet and PDF intact", async () => {
+  const {view, form, pdf, panel} = fixture();
+  view.fetch = async () => json(snapshot("new"));
+  view.history.replaceState = () => { throw new Error("History update refused"); };
+  change(view, form.elements.font_size, "18");
+  await load(view);
+  assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"), "/old.css");
+  assert(pdf.href.endsWith("style=old"));
+  assert.match(panel.querySelector(".reading-style-error").textContent, /History update refused/);
+});
+
+test("a delayed profile save cannot relabel a newer live style as the saved profile", async () => {
+  const {view, form, panel, pdf} = fixture();
+  const save = panel.querySelector(".reading-style-save");
+  let finishSave;
+  view.fetch = (url, options) => options.method === "POST"
+    ? new Promise(resolve => { finishSave = resolve; })
+    : Promise.resolve(json(snapshot("newer")));
+  save.elements.profile_name.value = "Saved earlier";
+  save.requestSubmit(save.querySelector("[value=create]"));
+  change(view, form.elements.font_size, "18");
+  await load(view);
+  assert.equal(save.querySelector("[value=create]").disabled, true);
+  finishSave(json({id: 2, name: "Saved earlier", default: "marxist"}));
+  await tick();
+  assert.equal(form.elements.style_profile.value, "");
+  assert.equal(save.elements.profile_id.value, "2");
+  assert(pdf.href.endsWith("style=newer"));
+  assert.match(panel.querySelector(".reading-style-status").textContent, /newer unsaved/);
 });

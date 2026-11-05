@@ -1617,8 +1617,25 @@ content. Apply migrations before restarting a local instance with these controls
 The shared Marxist preset lives in code and cannot be overwritten by a profile.
 Reader/preview settings and PDF use the same validated, bounded CSS generator.
 The PDF link snapshots applied settings in a signed token; the cache includes the
-style digest and presentation version 3. No cache deletion or edition rewrite is
+style digest and presentation version 4. No cache deletion or edition rewrite is
 needed. Default changes only affect subsequent views without an explicit style.
+
+The compact panel uses the read-only `/reading-style/preview/` endpoint for live
+settings/profile loading, then loads external CSS before atomically updating the
+display/PDF/save binding. Snapshot responses and CSS use `Cache-Control: no-store`;
+asset URLs include the presentation revision. Aborted/stale responses cannot win.
+Invalid input or failed requests leave the last applied CSS/PDF intact with an
+explicit error. Without JavaScript, GET Load/Apply forms still work.
+Profile writes remain authenticated, owner-scoped, CSRF-protected POSTs. Update
+targets a profile ID; Save as new refuses duplicate names. Existing integrations
+without an explicit operation retain their name-based save behavior.
+
+**Follow theme** uses transparent content in the browser. The site's
+`reading_paper` and `reading_ink` six-digit colors supply the PDF equivalent;
+keep these aligned with the theme's `--paper`/`--ink` variables when customizing
+a site. Neutral defaults and the Marxist theme have matching configured palettes.
+Numbered body headings also get their prefix rule from the shared dynamic
+stylesheet, so they do not depend solely on the cached static print CSS.
 
 PDF running matter uses top-left book title, top-right current section title and
 centered current/total footer. Separate bounded header columns avoid overlap.

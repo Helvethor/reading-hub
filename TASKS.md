@@ -268,6 +268,27 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   the last section's running title. Actions were synthetic; native-pointer and
   representative accessibility/reviewer acceptance remain unverified. No live
   correction or publication was edited to obtain this evidence.
+- [x] Consolidate presentation/title mirroring and compact live style/profile
+  controls. Keep markers in publication body headings, both ToCs, PDF bookmarks
+  and running section titles; match generated contents/section-title typography.
+  Add transparent theme-following contrast with configured PDF palette.
+  Bind live style/CSS/PDF/save snapshots atomically with explicit error and
+  stale-response guards; retain no-JavaScript Load/Apply. Make Update profile
+  and Save as new distinct, with duplicate-name refusal and explicit defaults.
+  Place outline controls right-aligned beside type labels, with continuous guides.
+  Correctness: 109 focused backend tests and 224 frontend tests, build, Ruff,
+  system/migration and whitespace checks pass. Mocked client tests cover failed
+  requests/CSS loads, races, invalid input and snapshot-URL failures.
+  Observed isolated article/book workflows at 1200px/390px: live typography/
+  transparent background without reload, exact prose/explicit-alignment
+  preservation, profile creation/update/default/reuse, compact nonoverflowing
+  controls, matching editor/publication markers and title metrics. A real 10-page
+  PDF download carried numbered body headings/bookmarks/running titles, correct
+  page totals and the theme paper color. Outline controls share a Y coordinate,
+  guides span full rows, and focus/active states preserve geometry; fold/reopen
+  works. Browser actions were synthetic; native-pointer and representative
+  accessibility acceptance remain unverified. No live correction/publication
+  was modified to obtain this evidence.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

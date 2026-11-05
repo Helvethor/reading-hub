@@ -164,18 +164,24 @@ are saved entry properties, undoable together, without adding prefixes to titles
 Ordinary clicks navigate; Escape clears selection. Published contents, heading
 prefixes and PDF bookmarks carry the same numbering without rewriting titles.
 
-On a publication, expand **Reading & PDF style**, select/load a profile or adjust
-settings, then **Apply to publication & PDF**. Download PDF uses those applied
+On a publication, expand **Reading & PDF style** and choose a profile or adjust
+settings: the display updates live without reloading. Download PDF uses the displayed
 settings, even if a saved profile changes later. Choose paragraph/title alignment,
 fonts (including bundled OpenDyslexic), size, spacing, line length, contrast,
 hyphenation and optional italic/underline-to-bold display. Explicit block alignment
-is preserved. Page wrapping differs between browser and PDF.
+is preserved. **Follow theme** leaves the content background transparent; PDF uses
+the site's configured paper/ink colors. Choosing a per-purpose font switches to
+Mixed mode. Page wrapping differs between browser and PDF.
 
-Sign in to save or replace a named personal profile, reuse it on another
-publication, or make it your personal default. The shared **Marxist** profile is
+Sign in to **Save as new**, or choose an existing personal profile under
+**Update saved profile** and click **Update profile**. This explicitly updates
+that profile with the displayed settings. Reuse it on another publication, or
+choose it under **Default for other publications** and click **Set default**.
+The shared **Marxist** profile is
 read-only and available to everyone; changes never alter the saved edition or
-another reader's settings. Apply before saving: the save form stores the currently
-displayed settings, not unapplied inputs. PDFs have book/section running headers
+another reader's settings. Pending changes temporarily disable download/save;
+errors retain the previous display/PDF. Without JavaScript, Load/Apply buttons
+provide a reload-based fallback. PDFs have book/section running headers
 and a centered current/total page footer. OpenDyslexic is an optional preference,
 not a guarantee of easier reading.
 

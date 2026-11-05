@@ -6,6 +6,7 @@ export function mountReadingStyles(panel) {
   const status = panel.querySelector(".reading-style-status");
   const error = panel.querySelector(".reading-style-error");
   const downloads = [...owner.querySelectorAll("[data-reading-pdf]")];
+  const mutations = new Set();
   let generation = 0, controller = null, timer = null, pending = false;
   let activeSheet = owner.querySelector("[data-reading-style]");
   const pdfPaths = downloads.map(link => new URL(link.href).pathname);
@@ -19,8 +20,9 @@ export function mountReadingStyles(panel) {
   }
   function syncControls() {
     if (save) {
-      save.querySelector("[value=update]").disabled = pending || !save.elements.profile_id.value;
-      save.querySelector("[value=create]").disabled = pending;
+      save.querySelector("[value=update]").disabled =
+        pending || mutations.has(save) || !save.elements.profile_id.value;
+      save.querySelector("[value=create]").disabled = pending || mutations.has(save);
     }
     for (const link of downloads) {
       link.setAttribute("aria-disabled", String(pending));
@@ -86,7 +88,14 @@ export function mountReadingStyles(panel) {
       }));
       if (current !== generation) return;
       sheet = await prepareSheet(data.stylesheet, signal);
-      if (current !== generation || signal.aborted) { sheet.remove(); return; }
+      if (current !== generation) { sheet.remove(); return; }
+      if (signal.aborted) throw new Error("Style update timed out.");
+      const url = new URL(view.location.href);
+      for (const name of [...settingNames, "style_action"]) url.searchParams.delete(name);
+      url.searchParams.set("style", data.token);
+      if (loadProfile && profile.value) url.searchParams.set("style_profile", profile.value);
+      else url.searchParams.delete("style_profile");
+      view.history.replaceState(null, "", url);
       if (loadProfile) {
         for (const [key, value] of Object.entries(data.settings)) {
           const input = form.elements[key];
@@ -106,12 +115,7 @@ export function mountReadingStyles(panel) {
       if (loadProfile && save) {
         save.elements.profile_id.value = profile.value === "marxist" ? "" : profile.value;
       }
-      const url = new URL(view.location.href);
-      for (const name of [...settingNames, "style_action"]) url.searchParams.delete(name);
-      url.searchParams.set("style", data.token);
-      if (profile.value) url.searchParams.set("style_profile", profile.value);
-      else url.searchParams.delete("style_profile");
-      view.history.replaceState(null, "", url);
+      if (!loadProfile) profile.value = "";
       status.textContent = "Displayed style and PDF are in sync. Profile changes are saved only with Update or Save as new.";
     } catch (failure) {
       sheet?.remove();
@@ -134,14 +138,25 @@ export function mountReadingStyles(panel) {
     controller?.abort();
     timer = view.setTimeout(() => apply(false), 120);
   }
+  function chooseFont(input) {
+    if (["body_font", "title_font", "metadata_font", "contents_font", "code_font"].includes(input.name)) {
+      form.elements.font_mode.value = "mixed";
+    }
+  }
   form.addEventListener("input", event => {
-    if (event.target !== profile) schedule();
+    if (event.target !== profile) {
+      chooseFont(event.target);
+      schedule();
+    }
   });
   form.addEventListener("change", event => {
     view.clearTimeout(timer);
     if (event.target === profile) {
       apply(Boolean(profile.value));
-    } else apply(false);
+    } else {
+      chooseFont(event.target);
+      apply(false);
+    }
   });
   form.addEventListener("submit", event => {
     event.preventDefault();
@@ -152,7 +167,8 @@ export function mountReadingStyles(panel) {
   for (const mutation of panel.querySelectorAll(".reading-style-save,.reading-style-default")) {
     mutation.addEventListener("submit", async event => {
       event.preventDefault();
-      if (pending) return;
+      if (pending || mutations.has(mutation)) return;
+      mutations.add(mutation);
       const data = new view.FormData(mutation);
       if (event.submitter?.name) data.set(event.submitter.name, event.submitter.value);
       const buttons = [...mutation.querySelectorAll("button")];
@@ -170,15 +186,23 @@ export function mountReadingStyles(panel) {
             if (!option) { option = new view.Option(result.name, result.id); select.add(option); }
             option.textContent = result.name;
           }
-          profile.value = result.id;
           save.elements.profile_id.value = result.id;
           save.elements.profile_name.value = "";
-          status.textContent = `Saved profile “${result.name}”. Reuse it from the Profile list.`;
+          const current = save.elements.style.value === data.get("style");
+          profile.value = current ? result.id : "";
+          if (current) {
+            const url = new URL(view.location.href);
+            url.searchParams.set("style_profile", result.id);
+            view.history.replaceState(null, "", url);
+          }
+          status.textContent = `Saved profile “${result.name}”. ` + (current ?
+            "Reuse it from the Profile list." : "The display has newer unsaved style changes.");
         } else status.textContent = "Default profile updated for other publications.";
         panel.dataset.default = result.default;
         panel.querySelector(".reading-style-default select").value = result.default;
       } catch (failure) { showError(failure.message); }
       finally {
+        mutations.delete(mutation);
         buttons.forEach(button => { button.disabled = false; });
         syncControls();
       }

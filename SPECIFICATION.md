@@ -403,7 +403,26 @@ Liberation and OpenDyslexic regular/bold/italic/bold-italic faces are bundled lo
 under their OFL licenses. Missing glyphs still depend on system fallback; neither
 the font nor these controls imply validated dyslexia/accessibility outcomes.
 
-Apply reloads the publication; unapplied controls do not change its PDF. Its PDF
+The style panel groups compact typography, per-purpose fonts, spacing/page and
+reading-aid controls. Selecting an option updates the display without navigation.
+Choosing a per-purpose font switches to Mixed mode. A read-only validation endpoint
+returns a signed settings snapshot and external stylesheet; the client loads it
+before switching the display, PDF link and profile-save snapshot together.
+Stale responses cannot override a newer selection. Download/save are disabled
+while an update is pending. Validation/network/stylesheet failures are explicit
+and preserve the previous displayed style and PDF. No-JavaScript Load/Apply
+buttons retain the reload-based workflow.
+
+Changed settings are labeled Custom, with a separate explicit saved-profile target.
+**Update profile** updates that owned row; **Save as new** requires a new name and
+refuses collisions rather than implicitly overwriting. Profile selection, creation,
+update and default selection do not reload the publication with JavaScript enabled.
+The shared Marxist preset stays immutable. No content write accompanies a preview.
+Theme-following contrast uses a transparent browser background and inherited
+theme ink; PDF uses the site's validated `reading_paper`/`reading_ink` palette.
+Existing white/cream/high-contrast options retain their settings.
+
+The PDF
 link binds an exact signed settings snapshot, independent of later profile/default
 changes, and caches separate outputs by validated style digest and presentation
 version. Browser and PDF use the same style generator and font files, not identical
@@ -411,6 +430,13 @@ page wrapping. PDFs show book title at top left, current section title at top
 right (including continuation pages), and current/total page numbers centered
 below. Long running titles occupy separate bounded columns. These margin boxes
 are excluded from body-gap/figure pagination measurements.
+Body heading prefixes are also emitted by the shared live stylesheet, independent
+of an older cached print stylesheet. Presentation-version asset URLs and a new PDF
+cache version prevent earlier cached output hiding these view-only changes.
+The generated contents title and actual H2 section titles share typography.
+Editor outline type labels and fold/content/action buttons occupy one header row,
+with controls right-aligned; title text is below, and hierarchy guides span both
+rows without a controls column interrupting them.
 
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and

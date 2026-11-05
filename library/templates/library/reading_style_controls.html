@@ -19,6 +19,7 @@
         {% for title, fields in reading_style_groups %}
         <details{% if forloop.first %} open{% endif %} class="reading-style-group">
           <summary>{{ title }}</summary>
+          {% if forloop.counter == 2 %}<p class="reading-style-note">Choosing a font here switches to Mixed.</p>{% endif %}
           <div class="reading-style-fields">
             {% for field in fields %}<div class="reading-style-field{% if field.field.widget.input_type == 'checkbox' %} reading-style-switch{% endif %}">{{ field.as_field_group }}</div>{% endfor %}
           </div>
