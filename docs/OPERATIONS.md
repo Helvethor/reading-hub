@@ -1115,6 +1115,19 @@ exclusion, label toggling, alphabet rollover, Roman decimal fallback and reopen.
 Browser actions used dispatched DOM events, not native pointer acceptance.
 No live correction was saved or published.
 
+Heading insertion fix: absent title bindings no longer match absent heading IDs.
+An unbound section keeps its first heading as title when another H3 is added.
+Enter within a numbered heading leaves the preference on the original heading,
+without numbering the new heading. Explicit title bindings are unchanged.
+Existing saved mistakes are not automatically repaired: choose the intended
+title through section properties, or None in the ToC for an unwanted heading
+numbering preference.
+Validation: the two original failures were reproduced in synthetic editor tests;
+after the fix, all 215 frontend tests and the production build pass. The
+regressions dispatch Enter and use the actual H3 context action, checking the
+title binding, navigation, marker placement and Undo/Redo. No live correction
+was edited, and no new native-pointer acceptance is claimed.
+
 Numbering validation: 209 frontend tests, 35 focused backend tests, build and Ruff
 passed. Backend tests exercised real test-database save/reopen and isolated
 publication preserving the preference and unchanged titles. A database-free

@@ -355,6 +355,11 @@ use the bound section-title heading; standalone heading markers use that
 heading. Prefixes follow the whole-document series even when filtering a single
 section, and remain visible when block labels are off. They are view decorations,
 not editable title text, copied prose or additional saved markup.
+An unset or missing section-title binding falls back to the first heading, not
+the first heading without an ID. Adding a later heading does not change that
+title. Enter within a numbered heading retains numbering on the original heading
+but does not copy its preference to the new heading; Enter at the end retains
+the existing new-paragraph behavior.
 
 Numbering is persisted as bounded `data-toc-style` attributes on the actual
 section or heading nodes; None removes the attribute. A multi-entry change is

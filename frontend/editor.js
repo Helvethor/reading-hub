@@ -1,5 +1,5 @@
 import {Editor, Extension, Mark, Node, getSchema} from "@tiptap/core";
-import {baseKeymap} from "@tiptap/pm/commands";
+import {baseKeymap, splitBlockAs} from "@tiptap/pm/commands";
 import {closeHistory, history, undo, redo} from "@tiptap/pm/history";
 import {keymap} from "@tiptap/pm/keymap";
 import {DOMParser as SemanticDOMParser, DOMSerializer, Fragment, Slice} from "@tiptap/pm/model";
@@ -266,8 +266,16 @@ function extensions() {
         }),
         keymap({"Mod-z": undo, "Mod-y": redo, "Mod-Shift-z": redo}),
         keymap({
-          Enter: () => this.editor.state.selection.$from.parent.type.name === "inlineRun" &&
-            this.editor.chain().splitBlock().setNode("p").run(),
+          Enter: (state, dispatch) => {
+            const {$from} = state.selection;
+            if ($from.parent.type.name === "inlineRun") {
+              return this.editor.chain().splitBlock().setNode("p").run();
+            }
+            if (!/^h[2-6]$/.test($from.parent.type.name) || !$from.parentOffset) return false;
+            return splitBlockAs((node, atEnd) => atEnd ? null : {
+              type: node.type, attrs: {...node.attrs, "data-toc-style": null},
+            })(state, dispatch);
+          },
         }),
         keymap(baseKeymap),
       ];

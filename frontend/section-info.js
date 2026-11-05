@@ -9,5 +9,6 @@ export function sectionHeadings(section, from = 0) {
 
 export function sectionHeading(section, from = 0) {
   const headings = sectionHeadings(section, from);
-  return headings.find(item => item.node.attrs.id === section.attrs["data-section-title"]) || headings[0];
+  const target = section.attrs["data-section-title"];
+  return (target && headings.find(item => item.node.attrs.id === target)) || headings[0];
 }

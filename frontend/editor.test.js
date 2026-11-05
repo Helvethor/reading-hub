@@ -1003,6 +1003,53 @@ test("section numbering decorates the bound title rather than the first heading"
   assert(!editor.getHTML().includes("1. Renamed title"));
 });
 
+test("adding an H3 after an identified unbound title keeps the original section title and marker", () => {
+  const form = mountSectionWorkspace('<section id="chapter" data-toc-style="upper-roman">' +
+    '<h3 id="freedom">What Does “Freedom of Criticism” Mean?</h3><p>Body</p></section>');
+  const original = editor.getHTML();
+  const title = "What Does “Freedom of Criticism” Mean?";
+  selectText(title, title.length);
+  editor.commands.setTextSelection(editor.state.selection.to);
+  editor.view.dom.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Enter", bubbles: true}));
+  editor.commands.insertContent("New subheading");
+  form.querySelector('[data-block="h3"]').click();
+  assert.equal(documentParts(editor.state.doc)[0].label, "What Does “Freedom of Criticism” Mean?");
+  assert.equal(editor.view.dom.querySelector(".editor-section-title").id, "freedom");
+  assert.deepEqual([...editor.view.dom.querySelectorAll(".editor-toc-marker")].map(node =>
+    node.parentElement.textContent), ["I. What Does “Freedom of Criticism” Mean?"]);
+  const headings = [...editor.view.dom.querySelectorAll("h3")];
+  assert.equal(headings[1].textContent, "New subheading");
+  assert(!headings[1].hasAttribute("data-toc-style"));
+  assert.equal(form.querySelector(".editor-outline-title").textContent, "I. What Does “Freedom of Criticism” Mean?");
+  while (editor.getHTML() !== original && undo(editor.state, editor.view.dispatch)) {}
+  assert.equal(editor.getHTML(), original);
+});
+
+test("Enter inside a numbered heading does not give the new heading its numbering preference", () => {
+  mountSectionWorkspace('<h3 id="title" data-toc-style="upper-roman">FirstSecond</h3><p>Body</p>');
+  const original = editor.getHTML();
+  selectText("Second");
+  editor.view.dom.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Enter", bubbles: true}));
+  assert.equal(editor.getHTML(),
+    '<h3 id="title" data-toc-style="upper-roman">First</h3><h3>Second</h3><p>Body</p>');
+  assert.equal(editor.view.dom.querySelectorAll(".editor-toc-marker").length, 1);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert(!editor.view.dom.querySelectorAll("h3")[1].hasAttribute("data-toc-style"));
+});
+
+test("section title lookup honors explicit targets and falls back to the first heading, never a missing ID", () => {
+  for (const [binding, expected] of [['', "First"], [' data-section-title="later"', "Later"],
+    [' data-section-title="missing"', "First"]]) {
+    open(`<section id="s"${binding}><h3 id="first">First</h3><h3>No ID</h3>` +
+      '<h3 id="later">Later</h3><p>Body</p></section>');
+    assert.equal(documentParts(editor.state.doc)[0].label, expected);
+    editor.destroy();
+    editor = null;
+  }
+});
+
 test("compact selection tools expose only applicable actions and toggle alignment back to inherited", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Section</h2>' +
     '<p id="text" class="source text-align-center">Text <a href="#s">Back</a></p>' +

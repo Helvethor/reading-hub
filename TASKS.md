@@ -232,6 +232,13 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   build pass. A synthetic browser fixture verified all styles/None, matching
   headings/navigation, history and reorder at desktop/mobile sizes. No live
   corrections were changed; reader/PDF presentation remains unchanged.
+- [x] Fix adding a later heading incorrectly replacing an identified unbound
+  section title: absent bindings now fall back to the first heading rather than
+  matching a missing ID. Enter within a numbered heading no longer copies its
+  numbering preference onto the new heading. Synthetic regressions reproduce
+  both original failures and exercise context-menu H3 conversion, navigation,
+  title/marker preservation, explicit/missing bindings and Undo/Redo.
+  All 215 frontend tests and the build pass; no live correction was changed.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent
