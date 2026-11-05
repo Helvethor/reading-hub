@@ -1093,6 +1093,11 @@ discarding the current set. Context Menu / Shift+F10 opens the same keyboard
 menu; arrows/Home/End choose actions, Escape dismisses it, and Escape in the ToC
 clears selection. Ordinary clicks still navigate. Matching styles count only
 matching siblings in current order, restarting per parent/style.
+These same markers appear read-only before actual editor headings and navigation
+titles, including the Section selector. Sections use their bound title heading;
+headings without a section entry use themselves. Filtering does not restart
+numbering. Markers do not depend on Block labels and are not part of editable
+text, copied prose or saved HTML; edit them through the ToC menu.
 
 Changes are one undoable semantic edit, reset review to partial, and enter
 recovery/saves as `data-toc-style` on sections/headings. None removes the
@@ -1100,6 +1105,15 @@ preference; titles and IDs are not rewritten. View-only generated list markup
 and selection state are never saved. Formatting and numbering-only Undo/Redo
 stay in the ToC; prose history still reveals Sections. Preferences survive
 publication/reopen, but reader/PDF ToC marker rendering is unchanged.
+
+Heading/navigation mirror validation: all 212 frontend tests and the production
+build passed. A database-free rendered editor fixture verified matching Roman
+prefixes across ToC/headings/navigation, one-step Undo/Redo, reordering, all six
+styles and None at 390px, visible marker bounds and unchanged semantic prose.
+Unit coverage includes title bindings, filtering without renumbering, clipboard
+exclusion, label toggling, alphabet rollover, Roman decimal fallback and reopen.
+Browser actions used dispatched DOM events, not native pointer acceptance.
+No live correction was saved or published.
 
 Numbering validation: 209 frontend tests, 35 focused backend tests, build and Ruff
 passed. Backend tests exercised real test-database save/reopen and isolated

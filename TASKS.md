@@ -225,6 +225,13 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   rendered 1200px/390px checks verified 800px growth, 352px/320px minimums,
   internal scrolling and unchanged prose/toolbar geometry. Native drag acceptance
   remains unverified because pointer input did not resize the hidden shared page.
+- [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
+  outline titles and the Section selector, sharing per-parent/style series.
+  Keep title text, clipboard prose and saved markup unchanged; follow title
+  bindings, filtering, reorder, Undo/Redo and reopen. All 212 frontend tests and
+  build pass. A synthetic browser fixture verified all styles/None, matching
+  headings/navigation, history and reorder at desktop/mobile sizes. No live
+  corrections were changed; reader/PDF presentation remains unchanged.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

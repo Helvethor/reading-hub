@@ -1,5 +1,5 @@
 import {outlineHierarchy} from "./outline.js";
-import {applyTocNumbering, tocEntryPosition, tocStyles} from "./toc-numbering.js";
+import {applyTocNumbering, tocEntryPosition, tocNumberingEntries, tocStyles} from "./toc-numbering.js";
 
 const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]];
 
@@ -198,14 +198,11 @@ export function mountBookViews(form, editor, readDocument, navigate, showError) 
     const list = owner.createElement("ol");
     hierarchy = outlineHierarchy(parts);
     const lists = new Map([[-1, list]]);
-    const counts = new Map();
+    const numbering = tocNumberingEntries(editor.state.doc, parts);
     parts.forEach((part, index) => {
       const item = owner.createElement("li");
-      const style = editor.state.doc.nodeAt(tocEntryPosition(part)).attrs["data-toc-style"] || "none";
+      const {style, number} = numbering[index];
       item.style.listStyleType = style;
-      const key = `${hierarchy[index].parent}:${style}`;
-      const number = (counts.get(key) || 0) + 1;
-      if (style !== "none") counts.set(key, number);
       item.value = number;
       const button = element("button", part.label);
       button.type = "button";

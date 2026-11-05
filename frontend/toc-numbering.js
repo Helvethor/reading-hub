@@ -12,6 +12,37 @@ export function tocEntryPosition(part) {
   return part.kind === "Section" ? part.from - 1 : part.from;
 }
 
+export function tocNumberingEntries(doc, parts = documentParts(doc)) {
+  const hierarchy = outlineHierarchy(parts), counts = new Map();
+  return parts.map((part, index) => {
+    const style = doc.nodeAt(tocEntryPosition(part)).attrs["data-toc-style"] || "none";
+    const key = `${hierarchy[index].parent}:${style}`;
+    const number = (counts.get(key) || 0) + 1;
+    if (style !== "none") counts.set(key, number);
+    return {style, number};
+  });
+}
+
+export function tocMarker({style, number}) {
+  if (style === "none") return "";
+  if (style === "disc") return "\u2022";
+  let text = "";
+  if (style.endsWith("alpha")) {
+    while (number > 0) {
+      number--;
+      text = String.fromCharCode(65 + number % 26) + text;
+      number = Math.floor(number / 26);
+    }
+  } else if (style.endsWith("roman") && number < 4000) {
+    for (const [value, letters] of [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+      [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"],
+      [5, "V"], [4, "IV"], [1, "I"]]) {
+      while (number >= value) { text += letters; number -= value; }
+    }
+  } else text = String(number);
+  return `${style.startsWith("lower") ? text.toLowerCase() : text}.`;
+}
+
 export function isTocNumberingChange(before, after) {
   function sameContent(left, right) {
     if (left.eq(right)) return true;

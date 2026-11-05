@@ -136,6 +136,7 @@
 #editor-surface .tiptap, #editor-surface .tiptap * { cursor: url("editor-text-cursor.svg") 12 12, text; caret-color: #302221; }
 #editor-surface:focus-within { box-shadow: inset 0 0 0 2px #486b38; }
 #editor-surface .tiptap:focus { outline: none; }
+#editor-surface .editor-toc-marker { user-select: none; pointer-events: none; }
 #editor-surface .editor-outside-part { display: none !important; }
 #editor-surface .tiptap .editor-labelled-block { position: relative; margin-inline-start: var(--editor-label-gutter); border-inline-start: 1px solid var(--editor-border, #cbd1c4); padding-inline-start: .65rem; }
 #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font: .7rem/1.5 system-ui, sans-serif; letter-spacing: .02em; }

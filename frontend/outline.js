@@ -160,7 +160,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
       badge.setAttribute("aria-label", badge.title);
       const title = owner.createElement("span");
       title.className = "editor-outline-title";
-      title.textContent = part.label;
+      title.textContent = `${part.marker ? `${part.marker} ` : ""}${part.label}`;
       button.replaceChildren(badge, title);
       button.classList.toggle("editor-outline-focused",
         visiblePart(editor)?.from === part.from && visiblePart(editor)?.to === part.to);

@@ -41,7 +41,7 @@ import {
 import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
-import {applyTocNumbering} from "./toc-numbering.js";
+import {applyTocNumbering, tocMarker} from "./toc-numbering.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -865,10 +865,13 @@ test("ToC numbering refuses mixed levels stale documents and unsupported styles;
     applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, style);
     assert.equal(editor.view.dom.querySelectorAll(`h2[data-toc-style="${style}"]`).length, 2);
     assert(!editor.view.dom.querySelector("h3").hasAttribute("data-toc-style"));
+    assert.deepEqual([...editor.view.dom.querySelectorAll(".editor-toc-marker")].map(node => node.textContent),
+      [1, 2].map(number => `${tocMarker({style, number})} `));
   }
   assert.throws(() => applyTocNumbering(editor, proposal, "disc"), /document changed/);
   applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, "none");
   assert.equal(editor.getHTML(), original);
+  assert(!editor.view.dom.querySelector(".editor-toc-marker"));
 });
 
 test("ToC selection rejects a different parent without losing the set and exposes keyboard numbering", () => {
@@ -927,6 +930,77 @@ test("ToC series count only matching styled siblings and follow reorder and head
   assert.equal(entries()[0].title, "Renamed");
   assert.equal(entries()[0].style, "decimal");
   assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 0);
+});
+
+test("ToC markers mirror section titles and headings without entering prose, clipboard or history", () => {
+  const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Body</p>' +
+    '<h3>Nested</h3><p>Detail</p></section><section id="b"><h2>Second</h2><p>End</p></section>');
+  const original = editor.getHTML();
+  const markers = () => [...editor.view.dom.querySelectorAll(".editor-toc-marker")].map(node => node.textContent);
+  const navigation = () => [...form.querySelectorAll(".editor-outline-title")].map(node => node.textContent);
+  assert.deepEqual(markers(), []);
+  applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, "upper-roman");
+  assert.deepEqual(markers(), ["I. ", "II. "]);
+  assert.deepEqual(navigation(), ["I. First", "Nested", "II. Second"]);
+  assert(form.querySelector("#editor-section-filter").textContent.includes("II. Second"));
+  const marker = editor.view.dom.querySelector("#a h2 .editor-toc-marker");
+  assert.equal(marker.getAttribute("contenteditable"), "false");
+  assert.equal(marker.parentElement.textContent, "I. First");
+  assert.equal(editor.state.doc.textContent, "FirstBodyNestedDetailSecondEnd");
+  const saved = editor.getHTML(), json = editor.getJSON();
+  assert(!saved.includes("editor-toc-marker"));
+  selectText("First", 5);
+  const clipboard = editor.view.serializeForClipboard(editor.state.selection.content());
+  assert.equal(clipboard.text, "First");
+  assert(!clipboard.dom.innerHTML.includes("editor-toc-marker"));
+  showBlockLabels(editor, false);
+  assert.deepEqual(markers(), ["I. ", "II. "], "Markers do not depend on structural labels.");
+  assert.deepEqual(editor.getJSON(), json);
+  form.querySelector('[data-book-view="sections"]').click();
+  const parts = documentParts(editor.state.doc);
+  showDocumentPart(editor, parts[2]);
+  assert.deepEqual(markers(), ["II. "], "Filtering must not restart a series.");
+  showDocumentPart(editor, null);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.deepEqual(markers(), []);
+  assert.deepEqual(navigation(), ["First", "Nested", "Second"]);
+  assert.equal(editor.getHTML(), original);
+  assert(redo(editor.state, editor.view.dispatch));
+  applyTocNumbering(editor, {doc: editor.state.doc, indices: [1]}, "lower-alpha");
+  assert.deepEqual(markers(), ["I. ", "a. ", "II. "]);
+  assert.deepEqual(navigation(), ["I. First", "a. Nested", "II. Second"]);
+  moveSection(editor, {doc: editor.state.doc}, 1, "before", 0);
+  assert.deepEqual(markers(), ["I. ", "II. ", "a. "]);
+  assert.deepEqual(navigation(), ["I. Second", "II. First", "a. Nested"]);
+  assert.equal(editor.view.dom.querySelector("#b h2").textContent, "I. Second");
+  editor.destroy();
+  editor = null;
+  mountSectionWorkspace(saved);
+  assert.deepEqual(markers(), ["I. ", "II. "]);
+  assert.equal(editor.getHTML(), saved);
+});
+
+test("ToC marker text matches standard list styles including alphabet rollover and Roman limits", () => {
+  for (const [style, number, expected] of [
+    ["none", 1, ""], ["disc", 1, "\u2022"], ["decimal", 12, "12."],
+    ["upper-alpha", 26, "Z."], ["upper-alpha", 27, "AA."],
+    ["lower-alpha", 703, "aaa."], ["upper-roman", 49, "XLIX."],
+    ["lower-roman", 1999, "mcmxcix."], ["upper-roman", 4000, "4000."],
+  ]) assert.equal(tocMarker({style, number}), expected);
+});
+
+test("section numbering decorates the bound title rather than the first heading", () => {
+  const form = mountSectionWorkspace('<section id="s" data-section-title="title">' +
+    '<h3>Earlier heading</h3><h2 id="title">Bound title</h2><p>Body</p></section>');
+  applyTocNumbering(editor, {doc: editor.state.doc, indices: [0]}, "decimal");
+  assert(!editor.view.dom.querySelector("h3 .editor-toc-marker"));
+  assert.equal(editor.view.dom.querySelector("#title .editor-toc-marker").textContent, "1. ");
+  assert.equal(form.querySelector(".editor-outline-title").textContent, "1. Bound title");
+  selectText("Bound title", 11);
+  editor.commands.insertContent("Renamed title");
+  assert.equal(editor.view.dom.querySelector("#title").textContent, "1. Renamed title");
+  assert.equal(form.querySelector(".editor-outline-title").textContent, "1. Renamed title");
+  assert(!editor.getHTML().includes("1. Renamed title"));
 });
 
 test("compact selection tools expose only applicable actions and toggle alignment back to inherited", () => {

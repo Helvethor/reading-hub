@@ -349,6 +349,12 @@ upper/lower Alphabetical styles. Escape clears a ToC selection or dismisses its
 menu. Each style counts matching styled siblings in current document order,
 starting at one per parent/style; plain entries and other styles do not consume
 that series. Changing order regenerates numbering, not title text.
+The same markers appear as read-only prefixes on the corresponding editor
+headings and navigation titles (including the section filter). Section markers
+use the bound section-title heading; standalone heading markers use that
+heading. Prefixes follow the whole-document series even when filtering a single
+section, and remain visible when block labels are off. They are view decorations,
+not editable title text, copied prose or additional saved markup.
 
 Numbering is persisted as bounded `data-toc-style` attributes on the actual
 section or heading nodes; None removes the attribute. A multi-entry change is
@@ -357,7 +363,8 @@ and saves with the four-key document contract. The generated list/selection/menu
 remain outside saved HTML. Styling and numbering-only Undo/Redo stay in ToC view;
 prose Undo/Redo retains the editor's existing reveal-Sections behavior. Regular ToC clicks still
 navigate. Persisted preferences survive publication, but this increment changes
-only the generated editor ToC, not reader/PDF list presentation.
+the generated editor ToC, heading decorations and navigation, not reader/PDF
+list presentation.
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and
 scroll the editor frame without a content/history change. Unrelated folds remain.

@@ -2,6 +2,7 @@ import {Extension} from "@tiptap/core";
 import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state";
 import {Decoration, DecorationSet} from "@tiptap/pm/view";
 import {sectionHeading} from "./section-info.js";
+import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 
 const workspaceKey = new PluginKey("readingHubWorkspace");
 const headingTypes = new Set(["h2", "h3", "h4", "h5", "h6"]);
@@ -65,6 +66,24 @@ function decorations(doc, scope, labels, folds = []) {
   const result = [];
   const labelDepths = new Map();
   const hidden = folds.map(part => foldBody(doc, part));
+  const parts = documentParts(doc), numbering = tocNumberingEntries(doc, parts);
+  parts.forEach((part, index) => {
+    const marker = tocMarker(numbering[index]);
+    if (!marker) return;
+    const heading = part.kind === "Section" ?
+      sectionHeading(doc.nodeAt(part.from - 1), part.from - 1) :
+      {from: part.from};
+    if (!heading || scope && (heading.from < scope.from || heading.from >= scope.to) ||
+        hidden.some(range => heading.from >= range.from && heading.from < range.to)) return;
+    result.push(Decoration.widget(heading.from + 1, view => {
+      const span = view.dom.ownerDocument.createElement("span");
+      span.className = "editor-toc-marker";
+      span.setAttribute("contenteditable", "false");
+      span.textContent = `${marker} `;
+      return span;
+    }, {side: -1, key: `toc-${index}-${heading.from}-${marker}`,
+      stopEvent: () => true, ignoreSelection: true}));
+  });
   for (const [index, part] of folds.entries()) {
     if (scope && (part.to <= scope.from || part.from >= scope.to)) continue;
     if (hidden.some((range, other) => other !== index &&

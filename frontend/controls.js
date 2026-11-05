@@ -22,7 +22,7 @@ import {mountSectionManagement} from "./section-management.js";
 import {mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
-import {isTocNumberingChange} from "./toc-numbering.js";
+import {isTocNumberingChange, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
   title: form.querySelector('[name="title"]')?.value || initial.document?.title || "",
@@ -152,9 +152,11 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     if (focus) editor.commands.focus();
   }
   function refreshOutline() {
-    parts = documentParts(editor.state.doc).map(part => {
+    const currentParts = documentParts(editor.state.doc);
+    const numbering = tocNumberingEntries(editor.state.doc, currentParts);
+    parts = currentParts.map((part, index) => {
       const original = initial.structure?.parts?.find(source => source.id === part.id);
-      return {...part, role: part.role || original?.role};
+      return {...part, role: part.role || original?.role, marker: tocMarker(numbering[index])};
     });
     const sections = movableSections(editor.state.doc);
     const scope = visiblePart(editor);
@@ -166,7 +168,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     for (const [index, part] of choices.entries()) {
       const value = index ? String(index - 1) : "";
       const current = index ? scope?.from === part.from && scope?.to === part.to : !scope;
-      const label = index ? `${"  ".repeat(Math.min(part.depth, 8))}${part.kind}: ${part.label}` : part.label;
+      const title = `${part.marker ? `${part.marker} ` : ""}${part.label}`;
+      const label = index ? `${"  ".repeat(Math.min(part.depth, 8))}${part.kind}: ${title}` : title;
       if (index) sectionFilter.add(new Option(label, value));
       if (current) sectionFilter.value = value;
       if (current) matched = true;
