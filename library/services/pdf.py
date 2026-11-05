@@ -15,6 +15,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
+PDF_PRESENTATION_VERSION = 2
 
 
 def split_pdf_paragraph(paragraph, fraction):
@@ -202,8 +203,10 @@ def render_pdf(version, destination):
     from weasyprint import CSS, HTML
 
     from library.profile import source_name
+    from library.services.book_views import publication_view
     from library.services.document_metadata import metadata_rows
     from library.services.storage import read_blob
+    from library.views import toc_tree
 
     assets = {
         f"https://reading-hub.invalid/assets/{asset.blob_id}/": asset.blob
@@ -223,6 +226,10 @@ def render_pdf(version, destination):
             raise
         return {"string": data, "mime_type": blob.media_type}
 
+    generated_book = bool(getattr(version, "document_publication", None))
+    projection = publication_view(version.html) if generated_book else {
+        "content_html": version.html, "entries": version.structure.get("toc", []),
+    }
     markup = render_to_string(
         "library/pdf.html",
         {
@@ -230,6 +237,8 @@ def render_pdf(version, destination):
             "display_author": version.metadata.get("author", "").strip()
             or source_name(version.document.url),
             "metadata_rows": metadata_rows(version.metadata),
+            "content_html": projection["content_html"],
+            "toc": toc_tree(projection["entries"]), "generated_book": generated_book,
         },
     )
     # WeasyPrint logs resource failures and continues; never publish a partial success.
@@ -269,7 +278,9 @@ def render_pdf(version, destination):
 def cached_pdf(version):
     directory = settings.DATA_DIR / "pdf"
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-    destination = directory / f"{version.pk}-{version.identity}-{APP_VERSION}.pdf"
+    destination = directory / (
+        f"{version.pk}-{version.identity}-{APP_VERSION}-p{PDF_PRESENTATION_VERSION}.pdf"
+    )
     if destination.exists():
         return destination
     with (directory / "render.lock").open("a") as lock:

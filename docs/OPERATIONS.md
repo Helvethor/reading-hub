@@ -1082,8 +1082,9 @@ invalidate review; edits still reset review to partial. Title/ToC panels remain
 outside the editable semantic document and are absent from saved HTML/JSON and
 recovery. Prose tools are unavailable on generated panels; history or content
 navigation reveals Sections when it changes/selects prose. Sections-group folding
-is navigation-only; Expand outline opens it. Generated editor pages do not change
-reader/PDF rendering or supply print page numbers.
+is navigation-only; Expand outline opens it. Generated editor pages do not supply
+print page numbers. Publication views use the same saved bibliographic values
+and section/heading hierarchy, as described below.
 
 **ToC numbering:** entries start without bullets/numbers. Ctrl/Cmd-click entries
 with the same parent/level, then right-click one of the selected entries to keep
@@ -1103,8 +1104,26 @@ Changes are one undoable semantic edit, reset review to partial, and enter
 recovery/saves as `data-toc-style` on sections/headings. None removes the
 preference; titles and IDs are not rewritten. View-only generated list markup
 and selection state are never saved. Formatting and numbering-only Undo/Redo
-stay in the ToC; prose history still reveals Sections. Preferences survive
-publication/reopen, but reader/PDF ToC marker rendering is unchanged.
+stay in the ToC; prose history still reveals Sections.
+
+**Publication parity:** preview, published reader and PDF render the saved
+editor title, subtitle, contributors/roles, dates/ranges, full language names,
+subjects and retained source link. Published contents follow editor section and
+heading containment, not just heading tags. They carry the same default-None
+or selected per-parent/style markers, as do body heading prefixes and PDF
+bookmarks. PDF contents start after the bibliographic title page and link to
+real document targets; print page numbers are not added.
+
+Publication rules 4 retain the generated ToC but not marker text inside saved
+prose. Heading prefixes use read-only presentation attributes/CSS; article
+textContent and annotation offsets are unchanged. Existing publications also
+receive this projection without record updates or republishing; source editions
+keep their prior reader/PDF behavior. The PDF presentation-version cache key
+bypasses old exports without deleting them. Publication still requires explicit
+saved-revision preview/confirmation; unsaved editor metadata is not published.
+An already-published revision with changed publication rules needs a new saved
+revision, not a rewrite. The ToC right-click menu now uses the same CSS rules
+as canvas and navigation menus.
 
 Heading/navigation mirror validation: all 212 frontend tests and the production
 build passed. A database-free rendered editor fixture verified matching Roman

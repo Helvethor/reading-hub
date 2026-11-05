@@ -44,7 +44,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let linkTargets = [];
   let imageProposal = null;
   let parts = [], menuTarget = null;
-  const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError);
+  const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError,
+    initial.presentation);
   const sectionFilter = bookViews.filter;
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
     () => bookViews.expandNavigation());

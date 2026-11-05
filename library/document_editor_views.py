@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from library.metadata_views import metadata_reviewer_required
 from library.models import DocumentDraftBase, Rendition, ReviewerRun
 from library.profile import get_profile, source_name
+from library.services.book_views import publication_view
 from library.services.document_comparison import compare_documents
 from library.services.document_edits import (
     DocumentEditConflict,
@@ -82,6 +83,15 @@ def workspace(request, pk):
             }
     except (ValueError, ImportFailure) as exc:
         error = str(exc)
+    if initial is not None:
+        from django.conf.locale import LANG_INFO
+        from django.utils.translation import get_language_info
+
+        initial["presentation"] = {
+            "sourceName": source_name(version.document.url),
+            "sourceUrl": version.document.url,
+            "languages": {code: get_language_info(code)["name"] for code in LANG_INFO},
+        }
     response = render(request, "library/document_editor.html", {
         "version": version, "initial": initial, "editor_error": error, "draft": draft,
         "evaluation_run": ReviewerRun.objects.filter(draft=draft, reviewer=request.user).first()
@@ -251,6 +261,7 @@ def publication(request, pk):
             "display_author": version.metadata.get("author", "").strip()
             or source_name(source.document.url),
             "metadata_rows": metadata_rows(version.metadata),
+            "content_html": publication_view(version.html)["content_html"],
         })
     return render(request, "library/document_publication.html", context, status=status)
 

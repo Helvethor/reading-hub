@@ -76,6 +76,10 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Publish this corrected document as a book")
         self.assertContains(response, reverse("content-organization"))
         self.assertEqual(response.context["initial"]["structure"], self.rendition.structure)
+        presentation = response.context["initial"]["presentation"]
+        self.assertEqual(presentation["sourceUrl"], self.rendition.document.url)
+        self.assertEqual(presentation["languages"]["en"], "English")
+        self.assertEqual(presentation["languages"]["fr"], "French")
         self.assertContains(response, "Block labels")
         self.assertContains(response, 'id="editor-selection-path"')
         self.assertContains(response, 'aria-label="Paragraph alignment"')

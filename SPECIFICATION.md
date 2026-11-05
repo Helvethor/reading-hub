@@ -329,16 +329,16 @@ without filtering and reveal editable prose when necessary.
 
 The generated title uses current, including unsaved, bibliographic metadata:
 title, subtitle, author/source attribution, editor/translator/unconfirmed roles,
-typed dates/ranges, language code and subjects. Its edit button opens metadata
+typed dates/ranges, full language name, subjects and retained source link. Its edit button opens metadata
 controls, not duplicate editable title-page prose. The ToC regenerates from actual
 document ranges, titles and order, including heading-only articles, and navigates
-without creating persistent target IDs. These panels are editor-only projections:
+without creating persistent target IDs. These panels are read-only projections:
 they never enter semantic HTML/JSON, saved revisions, recovery payloads or undo
 history, and viewing them does not invalidate review. Generated content does not
 offer prose-selection tools. History/content navigation that changes or selects
 prose reveals Sections rather than editing unseen content. Sections-group folding
-affects navigation only and participates in Expand outline. This is not a new
-print paginator or a change to reader/PDF generation.
+affects navigation only and participates in Expand outline. This is not an
+editor print-page paginator.
 
 The generated editor ToC has no markers by default. Ctrl/Cmd-click toggles
 individual entry selection without navigation; a selection is restricted to
@@ -367,9 +367,24 @@ one history step and an ordinary document edit, so it dirties recovery/review
 and saves with the four-key document contract. The generated list/selection/menu
 remain outside saved HTML. Styling and numbering-only Undo/Redo stay in ToC view;
 prose Undo/Redo retains the editor's existing reveal-Sections behavior. Regular ToC clicks still
-navigate. Persisted preferences survive publication, but this increment changes
-the generated editor ToC, heading decorations and navigation, not reader/PDF
-list presentation.
+navigate. Publication preview, published reader and PDF derive the same
+section/heading hierarchy, titles and per-parent/style series from the saved
+document. The reader includes generated contents after the metadata header;
+PDF puts these contents after its title page, before prose, with internal
+destinations. Heading prefixes and PDF bookmarks carry the same markers.
+Publication title, subtitle, attribution, contributors, typed dates, language
+names, subjects and source link mirror the editor's generated title page.
+Editor unsaved changes are not published until explicitly saved and published.
+
+Publication rules 4 store these ToC entries while keeping markers out of saved
+heading text. Reader/PDF use view-only heading attributes and generated CSS
+prefixes, preserving prose text and annotation offsets. Existing publications
+derive the same views without rewriting their records; imported source editions
+retain their previous ToC/PDF behavior. A PDF presentation cache key prevents
+older cached exports hiding the new view. Already-published revisions remain
+immutable: a changed publication preview still requires a new saved revision.
+The ToC context menu shares the canvas/navigation menus' panel, button,
+selection, hover and keyboard-focus styling.
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and
 scroll the editor frame without a content/history change. Unrelated folds remain.

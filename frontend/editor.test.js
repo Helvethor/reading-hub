@@ -41,7 +41,7 @@ import {
 import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
-import {applyTocNumbering, tocMarker} from "./toc-numbering.js";
+import {applyTocNumbering, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -987,6 +987,35 @@ test("ToC marker text matches standard list styles including alphabet rollover a
     ["lower-alpha", 703, "aaa."], ["upper-roman", 49, "XLIX."],
     ["lower-roman", 1999, "mcmxcix."], ["upper-roman", 4000, "4000."],
   ]) assert.equal(tocMarker({style, number}), expected);
+});
+
+test("editor and publication share hierarchy numbering acceptance examples", () => {
+  const cases = JSON.parse(readFileSync(new URL("./fixtures/book-views.json", import.meta.url), "utf8"));
+  for (const fixture of cases) {
+    open(fixture.html);
+    const parts = documentParts(editor.state.doc), hierarchy = outlineHierarchy(parts);
+    const numbering = tocNumberingEntries(editor.state.doc, parts);
+    assert.deepEqual(parts.map((part, index) => [part.label, hierarchy[index].depth + 2,
+      numbering[index].style, numbering[index].number, tocMarker(numbering[index])]), fixture.entries);
+    editor.destroy();
+    editor = null;
+  }
+});
+
+test("editor title rows use the reader language names and retained source attribution", () => {
+  const presentation = {sourceName: "Example source", sourceUrl: "https://example.org/book",
+    languages: {en: "English", fr: "French"}};
+  assert.deepEqual(titlePageRows({language: "EN-us", author: "", topics: ["History"]}, presentation), [
+    ["Source website", "Example source"], ["Language", "English"], ["Subjects", "History"],
+    ["Source", "https://example.org/book"],
+  ]);
+  const form = mountSectionWorkspace("<p>Body</p>", {presentation}, {
+    readDocument: () => ({title: "Reviewed title", metadata: {author: "", language: "und"}}),
+  });
+  const title = form.querySelector(".editor-title-page");
+  assert(title.textContent.includes("Unknown language"));
+  assert(title.textContent.includes("Example source"));
+  assert.equal(title.querySelector("dd a").href, presentation.sourceUrl);
 });
 
 test("section numbering decorates the bound title rather than the first heading", () => {

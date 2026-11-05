@@ -1,6 +1,6 @@
-<ul>
+<ul{% if nodes.0.editor_entry %} class="editor-document-toc"{% endif %}>
 {% for node in nodes %}
-  <li><a href="#{{ node.id }}">{{ node.title }}</a>
+  <li><a href="#{{ node.id }}">{% if node.marker %}<span class="document-toc-marker">{{ node.marker }} </span>{% endif %}{{ node.title }}</a>
   {% if node.children %}{% include 'library/toc.html' with nodes=node.children %}{% endif %}
   </li>
 {% endfor %}

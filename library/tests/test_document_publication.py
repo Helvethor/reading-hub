@@ -95,6 +95,103 @@ class DocumentPublicationTests(TestCase):
         self.rendition.refresh_from_db()
         self.assertEqual(self.rendition.html, source)
 
+    def test_preview_reader_and_pdf_mirror_editor_numbering_title_and_metadata(self):
+        from library.services.document_metadata import metadata_rows
+
+        markup = (
+            '<section id="a" data-toc-style="upper-roman"><h2 id="first">First</h2>'
+            '<h3 data-toc-style="lower-alpha">Nested</h3><p>Body</p></section>'
+            '<section id="b" data-toc-style="upper-roman"><h2>Second</h2><p>End</p></section>'
+        )
+        metadata = {
+            **self.revision.document["metadata"], "author": "Reviewed writer",
+            "subtitle": "Reviewed subtitle", "language": "fr",
+            "contributors": [{"name": "Reviewed translator", "role": "translator",
+                              "source_name": "Reviewed translator"}],
+            "date_facts": [{"type": "written", "value": "1900", "end_value": "1902"}],
+            "topics": ["History", "Books"],
+        }
+        # Structured author rows derive the author field in the save contract.
+        metadata["contributors"].insert(0, {
+            "name": "Reviewed writer", "role": "author", "source_name": "Reviewed writer",
+        })
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "title": "Reviewed book",
+            "metadata": metadata, "html": markup,
+        }, 1)
+        preview = self.client.get(self.url + f"?draft={self.draft.pk}&revision=2")
+        self.assertContains(preview, "Reviewed book")
+        self.assertContains(preview, 'data-reading-marker="I. "')
+        preview_soup = BeautifulSoup(preview.content, "html.parser")
+        publication = self.publish(2)
+        published = publication.rendition
+        response = self.client.get(reverse("reader", args=[published.pk]))
+        soup = BeautifulSoup(response.content, "html.parser")
+        for page in (preview_soup, soup):
+            entries = page.select(".document-contents a")
+            self.assertEqual([entry.get_text() for entry in entries],
+                             ["I. First", "a. Nested", "II. Second"])
+            self.assertEqual(page.select_one("#first")["data-reading-marker"], "I. ")
+            self.assertEqual(page.select_one(".document-header h1").get_text(), "Reviewed book")
+            header = page.select_one(".document-header")
+            rows = list(zip([node.get_text() for node in header.select("dt")],
+                            [node.get_text() for node in header.select("dd")], strict=True))
+            self.assertEqual(rows, metadata_rows(revision.document["metadata"]) + [
+                ("Source", published.document.url),
+            ])
+            self.assertIn("Reviewed subtitle", header.get_text())
+        stored = published.html
+        self.assertNotIn("data-reading-marker", stored)
+        self.assertEqual(BeautifulSoup(stored, "html.parser").h2.get_text(), "First")
+        output = io.BytesIO()
+        render_pdf(published, output)
+        pdf = PdfReader(output)
+        self.assertEqual(pdf.metadata.title, "Reviewed book")
+        self.assertEqual(pdf.metadata.author, "Reviewed writer")
+        cover = pdf.pages[0].extract_text()
+        for text in ("Reviewed subtitle", "Reviewed translator", "1900 / 1902",
+                     "French", "History, Books"):
+            self.assertIn(text, cover)
+        contents = pdf.pages[1].extract_text()
+        for text in ("Table of contents", "I. First", "a. Nested", "II. Second"):
+            self.assertIn(text, contents)
+        body = "\n".join(page.extract_text() for page in pdf.pages[2:])
+        for text in ("I. First", "a. Nested", "II. Second"):
+            self.assertIn(text, body)
+        def bookmarks(items):
+            return [title for item in items for title in (
+                bookmarks(item) if isinstance(item, list) else [item.title]
+            )]
+        self.assertIn("I. First", bookmarks(pdf.outline))
+        self.assertIn("a. Nested", bookmarks(pdf.outline))
+        self.assertNotIn("Table of contents", bookmarks(pdf.outline))
+        self.assertTrue(any(annotation.get_object().get("/Dest")
+                            for annotation in pdf.pages[1].get("/Annots", [])))
+        published.refresh_from_db()
+        self.assertEqual(published.html, stored)
+
+    def test_existing_publication_gets_read_only_projection_without_republication(self):
+        from library.sources.normalize import heading_toc
+
+        markup = '<section id="a" data-toc-style="upper-roman"><h2>First</h2>' \
+            '<p>Body</p></section>'
+        save_revision(self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1)
+        with patch("library.services.document_publication.PUBLICATION_VERSION", 3), patch(
+            "library.services.document_publication.publication_toc", side_effect=heading_toc,
+        ):
+            publication = self.publish(2)
+        published = publication.rendition
+        stored = published.html
+        toc = deepcopy(published.structure["toc"])
+        self.assertEqual(publication.publication_version, 3)
+        response = self.client.get(reverse("reader", args=[published.pk]))
+        self.assertContains(response, 'data-reading-marker="I. "')
+        self.assertContains(response, 'href="#a"')
+        published.refresh_from_db()
+        self.assertEqual(published.html, stored)
+        self.assertEqual(published.structure["toc"], toc)
+        self.assertEqual(DocumentPublication.objects.count(), 1)
+
     def test_invalid_section_title_binding_is_partial_issue_and_blocks_publication(self):
         markup = '<section id="s" data-section-title="nested"><h2>Title</h2>' \
             '<section id="child"><h3 id="nested">Child</h3></section></section>'
@@ -244,16 +341,17 @@ class DocumentPublicationTests(TestCase):
     def test_preview_is_read_only_and_generates_collision_free_current_toc(self):
         candidate = prepare_publication(self.draft, 1)
         self.assertEqual(candidate["output"]["structure"]["toc"], [
-            {"id": "heading-1-h", "level": 2, "title": "New heading"},
+            {"id": "c1", "level": 2, "title": "New heading", "style": "none",
+             "number": 1, "marker": "", "editor_entry": True},
         ])
-        self.assertIn('<h2 id="heading-1-h">New heading</h2>', candidate["output"]["html"])
+        self.assertIn('<h2>New heading</h2>', candidate["output"]["html"])
         self.assertEqual(Rendition.objects.count(), 1)
         self.assertFalse(DocumentPublication.objects.exists())
         self.assertNotIn("heading-1-h", self.revision.document["html"])
         response = self.client.get(self.url + self.query)
         self.assertContains(response, "Edited title")
         self.assertContains(response, "Not verified as a whole document")
-        self.assertContains(response, 'href="#heading-1-h"')
+        self.assertContains(response, 'href="#c1"')
         self.assertContains(response, reverse("document-comparison", args=[self.rendition.pk])
                             + f"?draft={self.draft.pk}&amp;to=1")
         self.assertEqual(Rendition.objects.count(), 1)
@@ -488,7 +586,7 @@ class DocumentPublicationTests(TestCase):
             response = self.client.get(reverse("reader", args=[result.rendition_id]))
             self.assertContains(response, "Edited text.")
             self.assertContains(response, "Not verified as a whole document")
-            self.assertContains(response, 'href="#heading-1-h"')
+            self.assertContains(response, 'href="#c1"')
             self.assertContains(response, "Original edition")
             css = self.client.get(reverse("reader-css", args=[result.rendition_id]))
             self.assertEqual(css.content.decode(), self.rendition.stylesheet)

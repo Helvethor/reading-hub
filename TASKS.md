@@ -239,6 +239,14 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   both original failures and exercise context-menu H3 conversion, navigation,
   title/marker preservation, explicit/missing bindings and Undo/Redo.
   All 215 frontend tests and the build pass; no live correction was changed.
+- [x] Mirror saved editor title/metadata and ToC hierarchy/numbering in publication
+  preview, reader, PDF contents and numbered heading/bookmark presentation.
+  Keep saved prose and annotation text unchanged, project existing publications
+  without rewriting them, preserve source-edition exports, and invalidate stale
+  PDF presentation caches. Unify ToC right-click styling with the other menus.
+  Shared JS/Python fixtures cover hierarchy, mixed inline flow, title bindings,
+  empty sections and style series; test-database publication exercises actual
+  reader/preview metadata and PDF text, destinations and numbered bookmarks.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

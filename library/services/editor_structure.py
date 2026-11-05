@@ -2,6 +2,8 @@
 
 from copy import deepcopy
 
+from library.services.book_views import section_title
+
 
 def section_structure(soup, original, organization=None):
     structure = deepcopy(original)
@@ -11,14 +13,7 @@ def section_structure(soup, original, organization=None):
         part = deepcopy(originals.get(section["id"], {}))
         for field in ("parent", "use_source_headings", "excerpt", "section", "excerpt_origin"):
             part.pop(field, None)
-        headings = [
-            node for node in section.find_all(["h2", "h3", "h4", "h5", "h6"])
-            if node.find_parent("section") is section
-        ]
-        title_id = section.get("data-section-title")
-        heading = next((node for node in headings if node.get("id") == title_id), None)
-        if heading is None and headings:
-            heading = headings[0]
+        heading = section_title(section)
         part.update({
             "id": section["id"],
             "title": heading.get_text(" ", strip=True) if heading else part.get(

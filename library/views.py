@@ -143,12 +143,16 @@ def toc_tree(entries):
 
 @require_GET
 def reader(request, pk):
+    from library.services.book_views import publication_view
     from library.services.document_metadata import metadata_rows
 
     rendition = get_object_or_404(Rendition.objects.select_related("document", "snapshot"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition)
     if destination:
         return destination
+    projection = publication_view(rendition.html) if getattr(
+        rendition, "document_publication", None,
+    ) else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
     return render(
         request,
         "library/reader.html",
@@ -157,7 +161,9 @@ def reader(request, pk):
             "display_author": rendition.metadata.get("author", "").strip()
             or source_name(rendition.document.url),
             "metadata_rows": metadata_rows(rendition.metadata),
-            "toc": toc_tree(rendition.structure["toc"]),
+            "toc": toc_tree(projection["entries"]),
+            "content_html": projection["content_html"],
+            "generated_book": bool(getattr(rendition, "document_publication", None)),
             "other_versions": rendition.document.renditions.order_by("-created_at"),
             "last_check": rendition.document.checks.order_by("-checked_at").first(),
         },

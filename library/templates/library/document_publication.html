@@ -1,6 +1,7 @@
 {% extends "library/base.html" %}
+{% load static %}
 {% block title %}Review publication | {{ site.name }}{% endblock %}
-{% block head %}{% if candidate %}<link rel="stylesheet" href="?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1">{% endif %}{% endblock %}
+{% block head %}{% if candidate %}<link rel="stylesheet" href="?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}">{% endif %}{% endblock %}
 {% block content %}
 <div class="page-container">
   <h1>Review publication</h1>
@@ -22,7 +23,8 @@
     <div class="reading-column">
       <header class="document-header"><h1>{{ version.title }}</h1>{% include 'library/document_metadata.html' %}</header>
       {% if version.warnings %}<section class="notice"><h2>Retained source warnings</h2><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
-      <article class="reader-content" lang="{{ version.metadata.language|default:'en' }}">{{ version.html|safe }}</article>
+      {% if toc %}{% include 'library/book_contents.html' %}{% endif %}
+      <article class="reader-content" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
     </div>
   </div>
   {% endif %}

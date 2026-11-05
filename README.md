@@ -147,8 +147,11 @@ actual sections/headings live beneath **Sections**. In Sections view, the
 secondary **Section** selector filters one section or heading range, including
 nested parts. Outline/ToC title clicks navigate without filtering.
 Title-page metadata is edited through its metadata button; ToC titles/order
-follow the document automatically. Generated pages are not duplicate saved prose
-or a new reader/PDF paginator. This is view-only: saving/recovery
+follow the document automatically. Publication preview, published reader and PDF
+derive the same title/metadata, section hierarchy and numbering from the saved
+revision. Published PDFs include a generated contents page; heading prefixes and
+PDF bookmarks carry the selected markers. Generated pages are not duplicate saved
+prose or an editor print-page paginator. This is view-only: saving/recovery
 always includes the complete book, and focused editing cannot change hidden parts.
 Metadata and review controls are collapsed by default, not removed.
 

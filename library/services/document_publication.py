@@ -9,14 +9,14 @@ from django.db.models import F
 from library import versions
 from library.models import Blob, DocumentPublication, Rendition, RenditionAsset
 from library.profile import get_profile
+from library.services.book_views import publication_toc
 from library.services.document_edits import DocumentEditConflict, validate_editor_metadata
 from library.services.editor_structure import section_structure
 from library.services.semantic_documents import canonical_document, document_issues, fingerprint
 from library.services.storage import read_blob
 from library.sources.adapters import adapter_for
-from library.sources.normalize import heading_toc
 
-PUBLICATION_VERSION = 3
+PUBLICATION_VERSION = 4
 
 
 def prepare_publication(draft, expected_revision):
@@ -89,7 +89,7 @@ def prepare_publication(draft, expected_revision):
             "size": bindings[digest].size, "media_type": bindings[digest].media_type,
         }:
             raise ValueError(f"Publication asset differs from fresh draft evidence: {digest}")
-    toc = heading_toc(soup)
+    toc = publication_toc(soup)
     structure = {
         **section_structure(soup, evidence["structure"],
                             document["metadata"].get("content_organization")),

@@ -1,0 +1,39 @@
+[
+  {
+    "html": "<section id=\"a\" data-toc-style=\"upper-roman\"><h2 id=\"first\">First</h2><h3 data-toc-style=\"lower-alpha\">Nested</h3><p>Detail</p></section><section id=\"plain\"><h2>Plain</h2><p>Body</p></section><section id=\"b\" data-toc-style=\"upper-roman\"><h2>Second</h2><p>End</p></section><h2 data-toc-style=\"disc\">Bullet</h2><p>End</p>",
+    "entries": [
+      ["First", 2, "upper-roman", 1, "I."],
+      ["Nested", 3, "lower-alpha", 1, "a."],
+      ["Plain", 2, "none", 1, ""],
+      ["Second", 2, "upper-roman", 2, "II."],
+      ["Bullet", 2, "disc", 1, "\u2022"]
+    ]
+  },
+  {
+    "html": "<section id=\"a\" data-section-title=\"bound\" data-toc-style=\"decimal\"><h2 id=\"running\">Running</h2><h3 id=\"bound\">Bound title</h3><p>Body</p><section id=\"child\" data-toc-style=\"lower-roman\"><h4>Child</h4><p>Body</p></section></section><section id=\"empty\" data-toc-style=\"upper-alpha\"><p>No heading</p></section>",
+    "entries": [
+      ["Bound title", 2, "decimal", 1, "1."],
+      ["Running", 3, "none", 1, ""],
+      ["Bound title", 4, "none", 1, ""],
+      ["Child", 3, "lower-roman", 1, "i."],
+      ["empty", 2, "upper-alpha", 1, "A."]
+    ]
+  },
+  {
+    "html": "<section id=\"single\" data-toc-style=\"decimal\"><h3>Only heading</h3></section><h2 data-toc-style=\"lower-alpha\">Standalone</h2><p>Body</p><h3 data-toc-style=\"lower-alpha\">Nested heading</h3><p>Body</p><h2 data-toc-style=\"lower-alpha\">Later</h2><p>Body</p>",
+    "entries": [
+      ["Only heading", 2, "decimal", 1, "1."],
+      ["Standalone", 2, "lower-alpha", 1, "a."],
+      ["Nested heading", 3, "lower-alpha", 1, "a."],
+      ["Later", 2, "lower-alpha", 2, "b."]
+    ]
+  },
+  {
+    "html": "<section id=\"flow\" data-toc-style=\"upper-roman\">Opening text<h2>Title</h2>Closing text</section><section id=\"spaced\">\n<h2>Only heading</h2>\n</section>",
+    "entries": [
+      ["Title", 2, "upper-roman", 1, "I."],
+      ["Title", 3, "none", 1, ""],
+      ["Only heading", 2, "none", 1, ""]
+    ]
+  }
+]

@@ -12,6 +12,7 @@ from weasyprint import CSS, HTML
 
 from library.models import Blob, Document, Rendition, RenditionAsset, Snapshot
 from library.services.pdf import (
+    PDF_PRESENTATION_VERSION,
     STYLES,
     PDFExportError,
     cached_pdf,
@@ -257,6 +258,7 @@ class PrintingTests(TestCase):
 
         with patch("library.services.pdf.subprocess.run", side_effect=build) as run:
             path = cached_pdf(self.version)
+            self.assertTrue(path.name.endswith(f"-p{PDF_PRESENTATION_VERSION}.pdf"))
             self.assertEqual(path.read_bytes(), b"%PDF-test")
             self.assertEqual(cached_pdf(self.version), path)
             run.assert_called_once()

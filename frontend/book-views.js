@@ -3,9 +3,10 @@ import {applyTocNumbering, tocEntryPosition, tocNumberingEntries, tocStyles} fro
 
 const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]];
 
-export function titlePageRows(metadata) {
+export function titlePageRows(metadata, presentation = {}) {
   const rows = [];
-  if (metadata.author) rows.push([metadata.author_is_fallback ? "Source website" : "Author", metadata.author]);
+  const author = metadata.author || presentation.sourceName;
+  if (author) rows.push([!metadata.author || metadata.author_is_fallback ? "Source website" : "Author", author]);
   const roles = {editor: "Editor", translator: "Translator", unknown: "Contributor (role unconfirmed)"};
   for (const person of metadata.contributors || []) {
     if (roles[person.role]) rows.push([roles[person.role], person.name]);
@@ -18,12 +19,18 @@ export function titlePageRows(metadata) {
   if (metadata.published && !metadata.date_facts?.some(date => date.type === "publication")) {
     rows.push(["Published", metadata.published]);
   }
-  if (metadata.language) rows.push(["Language", metadata.language]);
+  if (metadata.language) {
+    const code = metadata.language.toLowerCase().replaceAll("_", "-");
+    const language = code === "und" ? "Unknown language" :
+      presentation.languages?.[code] || presentation.languages?.[code.split("-")[0]] || code;
+    rows.push(["Language", language]);
+  }
   if (metadata.topics?.length) rows.push(["Subjects", metadata.topics.join(", ")]);
+  if (presentation.sourceUrl) rows.push(["Source", presentation.sourceUrl]);
   return rows;
 }
 
-export function mountBookViews(form, editor, readDocument, navigate, showError) {
+export function mountBookViews(form, editor, readDocument, navigate, showError, presentation = {}) {
   const owner = form.ownerDocument;
   const surface = form.querySelector("#editor-surface");
   const primary = form.querySelector("#editor-part");
@@ -181,8 +188,15 @@ export function mountBookViews(form, editor, readDocument, navigate, showError) 
     if (metadata.subtitle) title.append(element("p", metadata.subtitle));
     const rows = owner.createElement("dl");
     rows.className = "document-metadata";
-    for (const [name, value] of titlePageRows(metadata)) {
-      rows.append(element("dt", name), element("dd", value));
+    for (const [name, value] of titlePageRows(metadata, presentation)) {
+      const description = element("dd", value);
+      if (name === "Source") {
+        const link = element("a", value);
+        link.href = value;
+        link.rel = "noopener noreferrer";
+        description.replaceChildren(link);
+      }
+      rows.append(element("dt", name), description);
     }
     title.append(rows);
     const edit = element("button", "Edit title-page metadata");
