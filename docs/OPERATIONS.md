@@ -730,10 +730,25 @@ original target ID, then Apply. This restores a wrapper without copying text.
 For genuinely missing content, **Add / restore section** offers original edition
 parts and retained-page parsed ranges, exact-digest saved excerpts or source
 blocks. Preview and explicitly insert; existing edits are not replaced.
+Original restoration preserves missing descendant target IDs, recovering links
+from existing text; only conflicting descendants remap. Selected empty source
+paragraphs remain in the preview/insertion rather than making a whole range fail.
 URL selection only resolves pages in this edition's retained snapshot; no
 live/unretained fetching occurs here. Unbound media, unsupported conversions,
 stale documents and duplicate restored section targets fail explicitly.
 Save separately; publishing remains an explicit preview/confirmation.
+
+Bounded validation on 2026-11-05 used an isolated database/blob copy, not live
+corrections: edition-80 revision-10 Appendix repair, metadata/order save/reopen,
+explicit publication, and separate original-content restoration passed.
+All 388 original targets, 325 links, images/preformatted markup and text except
+the explicit title edit survived repair. Reader/ToC and PDF checks passed for
+both book paths (120 pages each) and article 52 (28 pages, still an article).
+Retained Notes-range browser insertion and exact Undo passed. Drag destinations
+also have synthetic/browser-dispatched checks; no independent human usability,
+screen-reader or performance acceptance is claimed. Live source and saved
+revision 10 remained unchanged; no live correction was repaired or published
+automatically.
 
 ##### Direct correction and history (0.41.0)
 

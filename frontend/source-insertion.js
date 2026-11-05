@@ -75,7 +75,8 @@ export function applySourceInsertion(editor, target, html, placement, {section =
     if (renamed.has(node.id)) throw new Error("Source selection has duplicate targets.");
     const original = node.id;
     let id = section?.restoreId && node === template.content.firstChild
-      ? section.restoreId : `inserted-${original}`;
+      ? section.restoreId : section?.restoreId && !used.has(original)
+        ? original : `inserted-${original}`;
     while (used.has(id)) id += "-copy";
     renamed.set(original, id);
     used.add(id);

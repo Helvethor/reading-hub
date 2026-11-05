@@ -16,7 +16,8 @@
 .editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: clamp(22rem, 65vh, 52rem); }
 .editor-outline { min-height: 0; overflow: auto; padding: .75rem; background: #f8f9f5; border-right: 1px solid #cbd1c4; }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
-.editor-section-controls { display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; }
+.editor-section-controls { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: #f8f9f5; }
+.editor-outline-help { font-size: .8rem; }
 .editor-section-controls button { font-size: .8rem; padding: .4rem; }
 #editor-surface .editor-section-boundary { border: 1px solid #718b63; border-inline-start: 3px solid #486b38; padding: .5rem .75rem; margin-block: 1rem; }
 #editor-surface .editor-section-edge { display: block; color: #344a2e; background: #edf1e8; font: .75rem/1.5 system-ui, sans-serif; padding: .25rem .4rem; user-select: none; white-space: normal; }

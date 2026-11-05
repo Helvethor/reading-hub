@@ -322,11 +322,14 @@ source mapping or new training labels are claimed.
 heading ranges, current named excerpts bound to the exact retained source digest,
 and individual source blocks. URL selection resolves only pages already in the
 edition's retained snapshot; it never silently fetches a live URL. Original
-section restoration keeps a missing section ID and remaps inserted descendant
-IDs/internal links. Existing content is never replaced automatically. When the
+section restoration keeps a missing section ID and unused original descendant
+IDs, recovering existing inbound links; conflicting descendant IDs and inserted
+internal links remap together. Existing content is never replaced automatically. When the
 Appendix heading/text already exists, boundary repair is the nonduplicating path.
 Inserting explicitly approves previewed conversion repairs; unbound assets and
-stale documents refuse. Adding a live/unretained page and cross-work catalogue
+stale documents refuse. Explicitly selected empty source blocks survive review
+normalization; ordinary edition generation still removes empty containers.
+Adding a live/unretained page and cross-work catalogue
 reassignment are not implied by document-scoped section management.
 
 An explicit **Start fresh from original retained source** preview excludes

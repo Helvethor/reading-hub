@@ -106,6 +106,15 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   derive corrected publication parts/order from HTML, not pinned source order.
   Live/unretained URL capture and cross-work catalogue reassignment remain outside
   this document-scoped workflow.
+  Bounded 2026-11-05 validation used isolated copies: edition-80 revision-10
+  Appendix boundary repair, title/URL/role editing, reordering, save/reopen and
+  explicit publication; original Appendix restoration in a separate missing-content
+  branch; retained Notes-range insertion and exact Undo. All 388 original targets,
+  325 links, images/preformatted markup and text except the explicit title edit
+  survived repair. Repaired/restored book PDFs each have 120 pages; article 52
+  remains an article with a 28-page PDF. Reader/ToC checks pass. Drag destinations
+  have synthetic/browser-dispatched coverage, not independent human usability
+  acceptance. Final focused checks: 171 frontend and 192 backend tests.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

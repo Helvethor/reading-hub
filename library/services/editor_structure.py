@@ -43,8 +43,5 @@ def section_structure(soup, original):
         if not any(item["id"] == target for item in parts):
             parts.append(part)
     structure["parts"] = parts
-    structure["pages"] = len({part["url"] for part in parts if part.get("url")}) or original.get(
-        "pages", 1,
-    )
-    structure["book"] = bool(structure.get("book") or len(parts) > 1)
+    structure["book"] = bool(original.get("book"))
     return structure

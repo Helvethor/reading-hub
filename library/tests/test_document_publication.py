@@ -94,6 +94,22 @@ class DocumentPublicationTests(TestCase):
                     **revision.document, "html": f"<section {attribute}><h2>Title</h2></section>",
                 }, 2)
 
+    def test_article_subsections_do_not_change_article_classification_or_source_page_count(self):
+        from library.services.document_edits import create_draft
+
+        self.rendition.structure.update(book=False, pages=1)
+        self.rendition.save(update_fields=["structure"])
+        draft = create_draft(self.rendition, self.reviewer)
+        save_revision(draft, self.reviewer, {
+            **draft.document,
+            "html": '<section id="article"><h2>Article</h2>'
+            '<section id="notes"><h3>Notes</h3><p>Note.</p></section></section>',
+        }, 0)
+        candidate = prepare_publication(draft, 1)
+        self.assertFalse(candidate["output"]["structure"]["book"])
+        self.assertEqual(candidate["output"]["structure"]["pages"], 1)
+        self.assertEqual(candidate["output"]["structure"]["parts"][1]["parent"], "article")
+
     def test_new_empty_section_persists_and_publishes_with_heading_toc_and_pdf(self):
         markup = '<section id="c1"><h2>Chapter</h2><p id="main">Main text.</p>' \
             '<section id="edited-section"><h3>Endnotes</h3><p></p></section></section>'
@@ -108,6 +124,11 @@ class DocumentPublicationTests(TestCase):
         self.assertIsNotNone(section.p)
         self.assertEqual(section.p.get_text(), "")
         self.assertIn("Endnotes", [item["title"] for item in result.rendition.structure["toc"]])
+        self.assertEqual(result.rendition.structure["book"],
+                         bool(self.draft.evidence["structure"].get("book")))
+        nested = next(part for part in result.rendition.structure["parts"]
+                      if part["id"] == "edited-section")
+        self.assertEqual(nested["parent"], "c1")
         response = self.client.get(reverse("reader", args=[result.rendition.pk]))
         self.assertContains(response, "Endnotes")
         output = io.BytesIO()

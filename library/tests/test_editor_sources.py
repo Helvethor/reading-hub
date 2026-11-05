@@ -79,6 +79,15 @@ class EditorSourceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["binding"]["rendition"], self.rendition.pk)
         self.assertEqual(self.client.get(self.url, {"original_section": "absent"}).status_code, 422)
+        self.rendition.html = (
+            '<section id="c1"><h2>Appendix</h2>'
+            f'<p><img src="/assets/{self.blob.pk}/" alt="Plate"></p></section>'
+        )
+        with self.assertRaisesMessage(ValueError, "not bound"):
+            original_section(self.rendition, "c1", allowed_assets=[])
+        self.assertIn(self.blob.pk, original_section(
+            self.rendition, "c1", allowed_assets=[self.blob.pk],
+        )["html"])
 
     def test_structured_selection_preserves_note_links_targets_and_retained_image(self):
         self.source(
@@ -116,6 +125,17 @@ class EditorSourceTests(TestCase):
         blob_path(self.blob.pk).write_bytes(b"broken image")
         with self.assertRaises(OSError):
             source_page(self.rendition, 0, [0], allowed_assets=[self.blob.pk])
+
+    def test_heading_range_preserves_trailing_empty_selected_paragraph(self):
+        self.source('<h3>Notes</h3><p id="note">Note text.</p><p> </p>')
+        listing = source_page(self.rendition, 0)
+        candidate = listing["candidates"][0]
+        self.assertEqual(candidate["blocks"], [0, 1, 2])
+        selected = source_page(self.rendition, 0, candidate["blocks"])
+        soup = BeautifulSoup(selected["html"], "html.parser")
+        self.assertEqual(soup.find_all("p")[-1].get_text(), " ")
+        self.assertIn("Note text.", soup.get_text())
+        self.assertNotIn("data-excerpt-block", selected["html"])
 
     def test_standalone_anchors_before_notes_survive_selection(self):
         self.source('<p><a href="#endnote">1</a></p>'

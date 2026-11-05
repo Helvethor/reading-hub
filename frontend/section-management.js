@@ -140,6 +140,9 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   const status = insertion.querySelector("[role=status]");
   const blocks = insertion.querySelector("[data-blocks]");
   const apply = insertion.querySelector("[data-apply]");
+  const loadButton = insertion.querySelector("[data-load]");
+  const urlButton = insertion.querySelector("[data-url]");
+  const loadingControls = [source, pageSelect, candidate, sourceUrl, loadButton, urlButton];
   let target, chosen, ticket = 0, listing;
   async function fetchSource(params) {
     const endpoint = new URL(form.querySelector("#editor-source-open").dataset.sourceUrl, location.href);
@@ -165,6 +168,10 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   async function loadPage(number = 0) {
     invalidate();
     const generation = ticket;
+    for (const control of loadingControls) control.disabled = true;
+    blocks.replaceChildren();
+    candidate.replaceChildren();
+    status.textContent = "Loading retained source choices…";
     try {
       const data = await fetchSource({page: String(number)});
       if (ticket !== generation || !insertion.open) return;
@@ -186,7 +193,16 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
         return label;
       }));
       status.textContent = `Retained snapshot ${data.snapshot}. No network fetching or original-source changes.`;
-    } catch (failure) { if (ticket === generation) insertError.textContent = failure.message; }
+    } catch (failure) {
+      if (ticket === generation) {
+        insertError.textContent = failure.message;
+        status.textContent = "Source choices unavailable. Choose an original part or reopen to retry.";
+      }
+    } finally {
+      if (ticket === generation) {
+        for (const control of loadingControls) control.disabled = false;
+      }
+    }
   }
   function openAdd(index = null, originalId = null) {
     whole();
@@ -197,6 +213,9 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     insertTitle.value = "";
     insertRole.value = "chapter";
     placement.value = index === null ? "end" : "after";
+    listing = null;
+    pageSelect.replaceChildren();
+    sourceUrl.value = "";
     insertion.showModal();
     loadPage().then(() => {
       if (originalId && insertion.open) {
@@ -230,14 +249,14 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     } else loadPage(pageSelect.value);
   });
   pageSelect.addEventListener("change", () => { source.value = "retained"; loadPage(pageSelect.value); });
-  insertion.querySelector("[data-url]").addEventListener("click", () => {
+  urlButton.addEventListener("click", () => {
     const match = listing?.pages.find(page => page.url === sourceUrl.value.trim().split("#")[0]);
     if (!match) {
       invalidate();
       insertError.textContent = "This URL is not retained in this edition. Capture it through the existing import workflow first; this editor never fetches live URLs.";
     } else { source.value = "retained"; loadPage(match.number); }
   });
-  insertion.querySelector("[data-load]").addEventListener("click", async () => {
+  loadButton.addEventListener("click", async () => {
     invalidate();
     const generation = ticket;
     try {

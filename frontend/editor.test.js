@@ -171,12 +171,24 @@ test("source section insertion wraps excerpts and remaps an explicit title bindi
   assert.equal(movableSections(editor.state.doc).at(-1).label, "Real title");
 });
 
+test("original restoration recovers missing descendant targets for existing inbound links", () => {
+  open('<p><a href="#note">Missing note</a></p>');
+  applySourceInsertion(editor, sectionInsertionTarget(editor),
+    '<section id="c9" data-section-title="title"><h2 id="title">Appendix</h2>' +
+    '<p id="note">Note <a href="#title">Back</a></p></section>', "end",
+    {section: {restoreId: "c9", title: "Appendix", role: "appendix"}});
+  assert(editor.getHTML().includes('id="note"'));
+  assert(editor.getHTML().includes('data-section-title="title"'));
+  assert(editor.getHTML().includes('href="#title"'));
+});
+
 function mountSectionWorkspace(html, initial = {}) {
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
   document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
     template.indexOf('<dialog id="editor-image"'));
   const form = document.querySelector("#document-editor");
   editor = createBoundedEditor(form.querySelector("#editor-surface"), html);
+  for (const control of form.querySelectorAll("[disabled]")) control.disabled = false;
   editor.commands.focus = () => true;
   editor.view.coordsAtPos = () => ({left: 0, right: 0, top: 0, bottom: 0});
   for (const dialog of document.querySelectorAll("dialog")) {
@@ -246,6 +258,58 @@ test("sidebar context actions edit details and drag sections before inside and a
   assert.equal(editor.state.doc.textContent.replace("Appendix", "B").length,
     "ABody.BNote".length);
   assert(editor.getHTML().includes('href="#n"'));
+});
+
+test("section source dialog clears stale choices and loads only explicitly retained URLs", async t => {
+  const previousFetch = globalThis.fetch;
+  const previousLocation = globalThis.location;
+  globalThis.location = dom.window.location;
+  t.after(() => { globalThis.fetch = previousFetch; globalThis.location = previousLocation; });
+  let release;
+  const first = new Promise(resolve => { release = resolve; });
+  const pages = [{number: 0, url: "https://example.org/index"}, {number: 1, url: "https://example.org/appendix"}];
+  const requests = [];
+  globalThis.fetch = async endpoint => {
+    const url = new URL(endpoint);
+    requests.push(url);
+    if (requests.length === 1) await first;
+    const number = Number(url.searchParams.get("page") || 0);
+    const data = {
+      pages, page: number, url: pages[number].url, snapshot: 1, blocks: [],
+      candidates: [{kind: "Parsed heading range", title: "Appendix", blocks: [0]}],
+    };
+    return {ok: true, headers: new Map([["Content-Type", "application/json"]]), json: async () => data};
+  };
+  const form = mountSectionWorkspace('<section id="main"><h2>Main</h2></section>');
+  form.querySelector("#editor-source-open").dataset.sourceUrl = "/versions/80/editor/source/";
+  const history = document.createElement("a");
+  history.id = "editor-history";
+  history.href = "/versions/80/editor/history/?draft=known-draft";
+  document.body.prepend(history);
+  form.querySelector("#editor-add-section-open").click();
+  const dialog = document.querySelector("#editor-add-section");
+  assert(dialog.querySelector("[data-url]").disabled);
+  assert.equal(dialog.querySelector("[name=page]").options.length, 0);
+  release();
+  await new Promise(setImmediate);
+  assert(!dialog.querySelector("[data-url]").disabled);
+  assert.equal(dialog.querySelector("[name=page]").options.length, 2);
+  dialog.querySelector("[name=url]").value = "https://example.org/unretained";
+  dialog.querySelector("[data-url]").click();
+  assert(dialog.querySelector("[role=alert]").textContent.includes("not retained"));
+  assert.equal(requests.length, 1, "An unretained URL never causes a network fetch.");
+  dialog.querySelector("[name=url]").value = pages[1].url;
+  dialog.querySelector("[data-url]").click();
+  assert(dialog.querySelector("[name=source]").disabled);
+  await new Promise(setImmediate);
+  assert.equal(dialog.querySelector("[name=page]").value, "1");
+  assert.equal(requests[1].searchParams.get("draft"), "known-draft");
+  dialog.querySelector("[data-cancel]").click();
+  form.querySelector("#editor-add-section-open").click();
+  assert.equal(dialog.querySelector("[name=page]").options.length, 0,
+    "Reopening cannot expose stale choices while loading.");
+  await new Promise(setImmediate);
+  assert.equal(dialog.querySelector("[name=page]").value, "0");
 });
 
 test("anchor navigation hands inline target to Target ID and renames every marked run and reference", () => {

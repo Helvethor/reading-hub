@@ -142,10 +142,13 @@ def strip_outer_quotes(node):
         last.replace_with(text[:end] + text[end + 1 :])
 
 
-def discard_empty_containers(body):
+def discard_empty_containers(body, *, review=False):
     preserved = {"br", "hr", "img", "table", "thead", "tbody", "tfoot", "tr", "td", "th"}
     for node in reversed(body.find_all(True)):
-        if node.name in preserved or node.has_attr("id"):
+        if (
+            node.name in preserved or node.has_attr("id")
+            or (review and node.has_attr("data-excerpt-block"))
+        ):
             continue
         if not node.get_text(strip=True) and all(
             child.name == "br" for child in node.find_all(True, recursive=False)
@@ -325,7 +328,7 @@ def normalize(pages, source, assets, *, review=False):
                 anchor["href"] = "#" + (target or page_roots[target_page])
             else:
                 anchor["href"] = urljoin(url, raw)
-    discard_empty_containers(result)
+    discard_empty_containers(result, review=review)
     for heading in result.select("h2, h3, h4, h5, h6"):
         normalize_heading(heading, names, language=source.metadata.get("language", "en"))
     toc = heading_toc(result)

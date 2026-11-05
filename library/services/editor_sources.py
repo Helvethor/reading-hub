@@ -30,6 +30,10 @@ def original_section(rendition, target, *, allowed_assets=None):
     assets = {image["src"].split("/")[2] for image in section.select("img")}
     if allowed_assets is not None and not assets <= set(allowed_assets):
         raise ValueError("This original section uses images not bound to this draft.")
+    bindings = Blob.objects.in_bulk(assets)
+    for digest in assets:
+        if digest not in bindings or len(read_blob(digest)) != bindings[digest].size:
+            raise ValueError("An original section asset failed its integrity check: " + digest)
     part = next(
         (part for part in rendition.structure.get("parts", []) if part.get("id") == target), {},
     )
