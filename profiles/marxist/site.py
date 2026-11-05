@@ -15,6 +15,8 @@ PROFILE = SiteProfile(
     ),
     footer="Marxist ideas. Original sources. A library of your own.",
     theme_css="marxist/theme.css",
+    reading_paper="#faf5ef",
+    reading_ink="#302221",
     admin_theme_css="marxist/admin.css",
     sources=(
         SourceSite(

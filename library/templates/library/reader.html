@@ -1,14 +1,14 @@
 {% extends 'library/base.html' %}
 {% load static %}
 {% block title %}{{ version.title }} | {{ site.name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endblock %}
 {% block content %}
 <div class="reader-toolbar">
   <a href="{% url 'home' %}">&larr; Library</a>
   <a href="{% url 'history' version.document_id %}">Version history ({{ other_versions|length }})</a>
   <form method="post" action="{% url 'refresh' version.document_id %}">{% csrf_token %}<button class="secondary" type="submit">Refresh source</button></form>
   <form method="post" action="{% url 'reformat' version.pk %}">{% csrf_token %}<button class="secondary" type="submit">Reformat stored source</button></form>
-  <a href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}">Download PDF</a>
+  <a href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}" data-reading-pdf>Download PDF</a>
   {% if user.is_authenticated %}<a href="{% url 'preserved-annotations' %}">Preserved annotations</a>{% endif %}
   {% if user.is_authenticated %}<button class="secondary" type="button" id="annotation-toggle" aria-controls="annotation-toolbox" aria-expanded="false" hidden>Private annotations</button>{% else %}<a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in to highlight or underline</a>{% endif %}
 </div>

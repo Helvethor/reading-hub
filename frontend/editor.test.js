@@ -2067,8 +2067,12 @@ test("outline hierarchy uses real containing ranges and independent navigation f
   const cRow = outline.querySelector(`[data-outline-index="${c}"]`);
   assert(cRow.querySelector(".editor-outline-branch.editor-outline-last"));
   const controls = outline.querySelector(`[data-outline-index="${a}"] .editor-outline-row-controls`);
+  assert.equal(controls.parentElement.className, "editor-outline-row-header");
+  assert.equal(controls.previousElementSibling.className, "editor-outline-kind");
+  assert.equal(controls.closest(".editor-outline-row").firstElementChild.className,
+    "editor-outline-guides");
   for (const selector of ["[data-outline-fold]", "[data-content-fold]", "[data-section-actions]"]) {
-    assert(controls.querySelector(selector), `${selector} belongs in the shared control column.`);
+    assert(controls.querySelector(selector), `${selector} belongs in the right-aligned control row.`);
   }
   outline.querySelector(`[data-outline-fold="${a}"]`).click();
   assert(outline.querySelector(`[data-outline-index="${b}"]`).hidden);

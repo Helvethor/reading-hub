@@ -5,6 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
+from xml.etree.ElementTree import SubElement
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
@@ -15,9 +16,10 @@ from weasyprint import HTML
 from weasyprint.formatting_structure.boxes import MarginBox
 
 from library.models import ReadingStyleProfile
-from library.services.pdf import PDFExportError, cached_pdf, render_pdf
+from library.services.pdf import PDFExportError, cached_pdf, pdf_content_boxes, render_pdf
 from library.services.reading_styles import (
     DEFAULTS,
+    STYLE_VERSION,
     style_css,
     style_digest,
     style_token,
@@ -163,6 +165,88 @@ class ReadingStyleTests(TestCase):
             self.assertNotEqual(standard, custom)
             self.assertEqual(cached_pdf(self.version, self.custom), custom)
             self.assertEqual(process.call_count, 2)
+
+    def test_live_snapshot_endpoint_and_theme_following_styles_are_read_only(self):
+        url = reverse("reading-style-preview")
+        settings = {**self.custom, "contrast": "theme"}
+        response = self.client.get(url, {**settings, "style_action": "apply"})
+        self.assertEqual(response.status_code, 200)
+        snapshot = response.json()
+        self.assertEqual(snapshot["settings"], settings)
+        self.assertEqual(token_style(snapshot["token"]), settings)
+        self.assertIn(f"&v={STYLE_VERSION}", snapshot["stylesheet"])
+        self.assertEqual(response["Cache-Control"], "no-store")
+        css = self.client.get(snapshot["stylesheet"])
+        self.assertEqual(css["Cache-Control"], "no-store")
+        self.assertEqual(css.content.decode(), style_css(settings))
+        self.assertIn("background: transparent", css.content.decode())
+        self.assertIn("var(--ink, #302221)", css.content.decode())
+        self.assertIn("background: #faf5ef", css.content.decode())
+        self.assertIn("[data-reading-marker]::before", css.content.decode())
+        self.assertFalse(ReadingStyleProfile.objects.exists())
+        self.assertEqual(self.client.get(url, {"style_action": "apply"}).status_code, 400)
+        self.assertEqual(self.client.get(url, {"style_profile": 999}).status_code, 400)
+        self.assertEqual(self.client.post(url).status_code, 405)
+
+    def test_explicit_profile_update_create_conflicts_and_foreign_update_refusal(self):
+        self.client.force_login(self.user)
+        headers = {"HTTP_ACCEPT": "application/json"}
+        response = self.client.post(self.save_url, {
+            "operation": "create", "profile_name": "Comfort", "style": style_token(DEFAULTS),
+        }, **headers)
+        self.assertEqual(response.status_code, 200)
+        profile = ReadingStyleProfile.objects.get(owner=self.user)
+        self.assertEqual(response.json()["id"], profile.pk)
+        self.assertEqual(response.json()["default"], "marxist")
+        self.client.post(self.default_url, {"style_profile": profile.pk}, **headers)
+        conflict = self.client.post(self.save_url, {
+            "operation": "create", "profile_name": "Comfort", "style": style_token(self.custom),
+            "make_default": "on",
+        }, **headers)
+        self.assertEqual(conflict.status_code, 409)
+        profile.refresh_from_db()
+        self.assertTrue(profile.is_default)
+        self.assertEqual(profile.settings, DEFAULTS)
+        changed = self.client.post(self.save_url, {
+            "operation": "update", "profile_id": profile.pk, "style": style_token(self.custom),
+        }, **headers)
+        self.assertEqual(changed.json()["id"], profile.pk)
+        profile.refresh_from_db()
+        self.assertEqual(profile.settings, self.custom)
+        self.assertEqual(profile.name, "Comfort")
+        self.assertTrue(profile.is_default)
+        self.assertEqual(ReadingStyleProfile.objects.count(), 1)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(self.save_url, {
+            "operation": "update", "profile_id": profile.pk, "style": style_token(DEFAULTS),
+        }, **headers).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.post(self.save_url, {
+            "operation": "update", "profile_id": profile.pk, "style": style_token(DEFAULTS),
+        }, **headers).status_code, 302)
+
+    def test_contents_title_and_section_titles_use_identical_pdf_typography(self):
+        self.version.html = '<section><h2>Section sentinel</h2><p>Body</p></section>'
+        # A generated publication's contents and heading styles are tested in the same layout.
+        original_render = HTML.render
+        headings = {}
+
+        def capture(renderer, *args, **kwargs):
+            renderer_source = renderer.etree_element
+            body = renderer_source.find("body")
+            contents = SubElement(body, "section", {"class": "document-contents"})
+            SubElement(contents, "h2").text = "Table of contents"
+            document = original_render(renderer, *args, **kwargs)
+            for page in document.pages:
+                for box in pdf_content_boxes(page):
+                    if box.element_tag == "h2" and hasattr(box, "text"):
+                        headings[box.text] = (box.style["font_size"], box.style["font_weight"],
+                                              box.style["font_family"], box.style["text_align_all"])
+            return document
+
+        with patch.object(HTML, "render", capture):
+            render_pdf(self.version, io.BytesIO(), {**self.custom, "contrast": "theme"})
+        self.assertEqual(headings["Table of contents"], headings["Section sentinel"])
 
     def test_actual_pdf_headers_footers_selected_font_emphasis_and_unchanged_source(self):
         self.version.title = "Header Book Sentinel"

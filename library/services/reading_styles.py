@@ -38,7 +38,7 @@ DEFAULTS = {
 }
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
-STYLE_VERSION = 1
+STYLE_VERSION = 2
 
 
 class ReadingStyleForm(forms.Form):
@@ -76,6 +76,7 @@ class ReadingStyleForm(forms.Form):
     line_width = forms.IntegerField(label="Maximum line length (characters)", min_value=40,
                                    max_value=100)
     contrast = forms.ChoiceField(label="Page contrast", choices=[
+        ("theme", "Follow theme (transparent page)"),
         ("standard", "Standard: dark on white"), ("cream", "Dark on cream"),
         ("high", "High contrast: black on white"),
     ])
@@ -126,6 +127,10 @@ def profile_key(value):
     return key
 
 
+def stylesheet_url(token):
+    return reverse("reading-style-css") + f"?style={token}&v={STYLE_VERSION}"
+
+
 def selected_style(request):
     if request.GET.get("style"):
         return token_style(request.GET["style"])
@@ -157,15 +162,33 @@ def style_context(request):
         if request.user.is_authenticated else []
     default = next((str(profile.pk) for profile in profiles if profile.is_default), "marxist")
     selected = request.GET.get("style_profile", default)
-    if request.GET.get("style") or request.GET.get("style_action") == "apply":
+    if (request.GET.get("style") or request.GET.get("style_action") == "apply") \
+            and not request.GET.get("style_profile"):
         selected = ""
+    form = ReadingStyleForm(initial=settings)
     return {
         "reading_style": settings, "reading_style_token": token,
-        "reading_style_url": reverse("reading-style-css") + "?style=" + token,
-        "reading_style_form": ReadingStyleForm(initial=settings),
+        "reading_style_url": stylesheet_url(token),
+        "reading_style_form": form,
         "reading_style_profiles": profiles, "reading_style_profile": selected,
         "reading_default_profile": default,
         "reading_preset_name": PRESET_NAME,
+        "reading_style_version": STYLE_VERSION,
+        "reading_style_groups": [
+            ("Typography", [form[key] for key in (
+                "font_mode", "font_size", "paragraph_align", "title_align",
+            )]),
+            ("Fonts by purpose", [form[key] for key in (
+                "body_font", "title_font", "metadata_font", "contents_font", "code_font",
+            )]),
+            ("Spacing & page", [form[key] for key in (
+                "line_height", "paragraph_spacing", "letter_spacing", "word_spacing",
+                "line_width", "contrast",
+            )]),
+            ("Reading aids", [form[key] for key in (
+                "italic_to_bold", "underline_to_bold", "hyphenation",
+            )]),
+        ],
     }
 
 
@@ -179,12 +202,17 @@ def font_css(base):
 
 
 def style_css(settings, font_base="/static/library/fonts/"):
+    from library.profile import get_profile
+
     value = validate_style(settings)
     def family(concern):
         return FONTS[
             value[f"{concern}_font"] if value["font_mode"] == "mixed" else value["font_mode"]
         ][0]
-    ink, paper = {"standard": ("#302221", "#ffffff"), "cream": ("#24201c", "#fff4d8"),
+    profile = get_profile()
+    theme = value["contrast"] == "theme"
+    ink, paper = {"theme": (profile.reading_ink, profile.reading_paper),
+                  "standard": ("#302221", "#ffffff"), "cream": ("#24201c", "#fff4d8"),
                   "high": ("#000000", "#ffffff")}[value["contrast"]]
     scope = ".publication-content"
     text = f"{scope} .reader-content"
@@ -192,7 +220,8 @@ def style_css(settings, font_base="/static/library/fonts/"):
     css = font_css(font_base)
     css += f"""
 {scope} {{
-  color: {ink}; background: {paper}; font-size: {value['font_size']}pt;
+  color: {f'var(--ink, {ink})' if theme else ink};
+  background: {'transparent' if theme else paper}; font-size: {value['font_size']}pt;
   line-height: {value['line_height']}; font-family: {family('body')};
   letter-spacing: {value['letter_spacing']}em; word-spacing: {value['word_spacing']}em;
 }}
@@ -209,6 +238,10 @@ def style_css(settings, font_base="/static/library/fonts/"):
 }}
 {scope} h1 {{ font-size: 2em; }}
 {scope} h2 {{ font-size: 1.6em; }}
+{scope} :is(.document-contents > h2,.reader-content h2) {{
+  font-weight: 600; margin-block: 2.2em .85em;
+}}
+{text} [data-reading-marker]::before {{ content: attr(data-reading-marker); }}
 {scope} h3 {{ font-size: 1.35em; }}
 {scope} h4 {{ font-size: 1.15em; }}
 {scope} :is(h5,h6) {{ font-size: 1em; }}
@@ -228,6 +261,7 @@ def style_css(settings, font_base="/static/library/fonts/"):
 {scope} .reader-content :is(.text-align-justify) {{ text-align: justify; }}
 @media print {{
   html, body {{ background: {paper} !important; }}
+  {scope} {{ color: {ink}; }}
   @page {{
     background: {paper}; color: {ink};
     @top-left {{ font-family: {family('metadata')}; }}

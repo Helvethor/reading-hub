@@ -50,6 +50,8 @@ class SiteProfile:
     author_locations: tuple[str, ...] = ()
     corpus_service: str = ""
     catalogue_redirects: dict[str, str] = field(default_factory=dict)
+    reading_paper: str = "#f8f6f0"
+    reading_ink: str = "#282c28"
 
     def validate(self):
         def fail(message):
@@ -57,6 +59,9 @@ class SiteProfile:
 
         if not re.fullmatch(r"[a-z][a-z0-9-]*", self.key):
             fail("key must be a lowercase slug")
+        if any(not re.fullmatch(r"#[0-9a-fA-F]{6}", color)
+               for color in (self.reading_paper, self.reading_ink)):
+            fail("reading colors must be six-digit hexadecimal colors")
         if self.corpus_service:
             service = import_string(self.corpus_service)
             if not all(

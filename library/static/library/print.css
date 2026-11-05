@@ -4,14 +4,31 @@
 .document-contents > .editor-document-toc { padding-inline-start: 0; }
 .document-contents { margin-block: 2rem; }
 .document-contents h2 { bookmark-level: none; }
-.reading-style-controls { margin: 1rem auto; padding: 1rem; max-width: 70rem; border: 1px solid var(--line, #ccc); }
-.reading-style-controls summary { cursor: pointer; font-weight: bold; }
-.reading-style-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .75rem; }
-.reading-style-fields p { margin: .25rem 0; }
-.reading-style-fields label { display: block; }
-.reading-style-fields :is(input:not([type=checkbox]), select) { max-width: 100%; }
-.reading-style-fields .helptext { display: block; font-size: .85rem; }
-.reading-style-controls fieldset, .reading-style-controls form { margin-block: .75rem; }
+.reading-style-controls { margin: .6rem auto 1rem; max-width: 78rem; border: 1px solid var(--line, #ccc); border-radius: .5rem; background: var(--paper, #fff); color: var(--ink, #282c28); font: .8rem/1.45 system-ui, sans-serif; }
+.reading-style-controls summary { cursor: pointer; font-weight: 600; padding: .5rem .65rem; }
+.reading-style-summary { color: var(--muted); font-weight: 400; font-size: .75rem; margin-inline-start: .5rem; }
+.reading-style-panel { padding: 0 .65rem .6rem; }
+.reading-style-intro, .reading-style-note { font-size: .75rem; margin-block: .35rem; color: var(--muted); }
+.reading-style-profile-bar { display: flex; flex-wrap: wrap; align-items: end; gap: .4rem; margin-block: .4rem; }
+.reading-style-profile-bar label { flex: 1 1 12rem; min-width: 0; }
+.reading-style-controls :is(input:not([type=checkbox]),select) { display: block; width: 100%; min-width: 0; padding: .3rem .4rem; border: 1px solid var(--line); border-radius: .25rem; background: var(--editor-paper, var(--paper)); color: var(--ink); font: inherit; }
+.reading-style-controls button { padding: .3rem .6rem; font-size: .75rem; min-height: 1.9rem; }
+.reading-style-groups { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 15rem),1fr)); gap: .5rem; align-items: start; }
+.reading-style-group { min-width: 0; border: 1px solid var(--line); border-radius: .3rem; }
+.reading-style-group summary { padding: .35rem .5rem; }
+.reading-style-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .4rem; padding: .2rem .5rem .5rem; }
+.reading-style-field { min-width: 0; }
+.reading-style-field label { display: block; font-size: .72rem; }
+.reading-style-fields .helptext { display: block; font-size: .68rem; color: var(--muted); }
+.reading-style-switch { grid-column: 1 / -1; }
+.reading-style-switch label { display: inline; }
+.reading-style-switch input { accent-color: var(--accent); }
+.reading-style-profiles { border-block: 1px solid var(--line); display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,20rem),1fr)); gap: .6rem; margin-block: .5rem; }
+.reading-style-new > summary { padding: .25rem 0; color: var(--accent); }
+.reading-style-status { margin-block: .4rem; font-size: .75rem; }
+.reading-style-error { border-inline-start: 3px solid var(--accent); padding-inline-start: .5rem; }
+.reading-style-live .reading-style-fallback { display: none; }
+[data-reading-pdf][aria-disabled=true] { opacity: .5; cursor: wait; }
 .reader-content [data-reading-marker]::before { content: attr(data-reading-marker); }
 @media print {
   @page {

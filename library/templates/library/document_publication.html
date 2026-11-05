@@ -1,7 +1,7 @@
 {% extends "library/base.html" %}
 {% load static %}
 {% block title %}Review publication | {{ site.name }}{% endblock %}
-{% block head %}{% if candidate %}<link rel="stylesheet" href="?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}">{% endif %}{% endblock %}
+{% block head %}{% if candidate %}<link rel="stylesheet" href="?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}{% endblock %}
 {% block content %}
 <div class="page-container">
   <h1>Review publication</h1>

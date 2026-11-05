@@ -18,6 +18,7 @@ from library import (
 )
 
 urlpatterns = [
+    path("reading-style/preview/", reading_style_views.preview, name="reading-style-preview"),
     path("reading-style.css", reading_style_views.stylesheet, name="reading-style-css"),
     path("versions/<int:pk>/reading-style/save/", reading_style_views.save_profile,
          name="reading-style-save"),

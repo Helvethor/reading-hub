@@ -151,7 +151,9 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
       }
       const controls = owner.createElement("span");
       controls.className = "editor-outline-row-controls";
-      row.append(guides, controls, button);
+      const header = owner.createElement("div");
+      header.className = "editor-outline-row-header";
+      row.append(guides, header, button);
       const badge = owner.createElement("span");
       badge.className = "editor-outline-kind";
       badge.textContent = part.kind === "Section"
@@ -161,7 +163,8 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
       const title = owner.createElement("span");
       title.className = "editor-outline-title";
       title.textContent = `${part.marker ? `${part.marker} ` : ""}${part.label}`;
-      button.replaceChildren(badge, title);
+      header.append(badge, controls);
+      button.replaceChildren(title);
       button.classList.toggle("editor-outline-focused",
         visiblePart(editor)?.from === part.from && visiblePart(editor)?.to === part.to);
       if (hierarchy[index].children) {
