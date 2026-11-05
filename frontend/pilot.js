@@ -33,6 +33,7 @@ if (form) {
   let editor, dirty = false, saving = false;
   let recoverable = null;
   let structuredMetadata = null;
+  let workspace = null;
   const metadata = () => {
     const result = {...initial.document.metadata};
     for (const field of metadataFields) {
@@ -187,15 +188,17 @@ if (form) {
     form.elements.editorial.checked = initial.editorial;
     form.elements.editorial.addEventListener("change", remember);
     updatePublication();
-    mountWorkspace(form, editor, showError, initial);
     function metadataChanged() {
       selectReview("partial");
       refreshSections([]);
       remember();
+      workspace?.refreshGenerated();
     }
     title.addEventListener("input", metadataChanged);
     for (const field of metadataFields) field.addEventListener("input", metadataChanged);
     structuredMetadata = mountMetadata(form, initial.document.metadata, metadataChanged);
+    workspace = mountWorkspace(form, editor, showError, initial,
+      () => ({title: title.value.trim(), metadata: metadata()}));
     function clearPaste() {
       pendingPaste = null;
       pasteText.textContent = "";
@@ -260,6 +263,7 @@ if (form) {
         title.value = recoverable.document.title;
         populateMetadata(recoverable.document.metadata);
         structuredMetadata.restore(recoverable.document.metadata);
+        workspace.refreshGenerated();
         selectReview(recoverable.review || "partial");
         refreshSections(Array.isArray(recoverable.verified_sections)
           ? recoverable.verified_sections : []);
@@ -320,6 +324,7 @@ if (form) {
         if (!dirty) {
           title.value = result.document.title;
           populateMetadata(result.document.metadata);
+          workspace.refreshGenerated();
           selectReview("partial");
           refreshSections([]);
         }

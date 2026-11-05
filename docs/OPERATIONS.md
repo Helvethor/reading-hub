@@ -101,7 +101,7 @@ content/IDs/links, certify review or create an undo step. Expand hidden content
 before editing or undoing actions that touch it. Choosing a part expands its
 overlapping folds; Whole book expands all content folds.
 Outline title clicks now scroll to the target without hiding other parts,
-clearing any existing part filter. Use the part selector when explicitly
+clearing any existing part filter. Use the secondary Section selector in Sections view when explicitly
 filtering to one part. Borderless §/H-level labels leave more room for titles.
 Ctrl/Cmd-click follows editor links: internal anchors reveal/scroll to their
 exact target; external links open a new tab. Ordinary clicks remain for editing.
@@ -1057,13 +1057,28 @@ or multi-block selections. IDs, unrelated classes,
 inline markup and selection direction are preserved; each change is separately
 undoable and resets next-revision review to partial.
 
-The outline and **Show** selector focus one section or heading range at a time,
-or show **Whole book**. Nested sections and heading-only documents are supported;
+**Show** has four choices: **Whole book**, **Title**, **ToC**, **Sections**.
+Whole book shows a generated title page (live title/subtitle, author, contributor
+roles, date facts/ranges, language and subjects), a generated table of contents,
+then editable prose. The outline places Title, ToC and Sections at the same
+hierarchical level under the book, with real sections/headings below Sections.
+Use **Edit title-page metadata** for bibliographic changes; edit actual section
+titles/order to change the ToC. ToC buttons navigate to existing document ranges,
+including headings without IDs, without generating targets.
+
+Only **Sections** exposes the secondary **Section** filter. Primary view changes
+clear that filter. Outline and ToC destination clicks navigate without filtering.
+Nested sections and heading-only documents are supported;
 empty/uneditable ranges report an error. These filters are view state, not review
 certification: saving/recovery retains the entire document. Focused Select All
 selects only the visible part. Changes/undo/moves reaching hidden parts are refused
 with a message to show the whole book. View changes do not dirty the draft or
-invalidate review; edits still reset review to partial.
+invalidate review; edits still reset review to partial. Title/ToC panels remain
+outside the editable semantic document and are absent from saved HTML/JSON and
+recovery. Prose tools are unavailable on generated panels; history or content
+navigation reveals Sections when it changes/selects prose. Sections-group folding
+is navigation-only; Expand outline opens it. Generated editor pages do not change
+reader/PDF rendering or supply print page numbers.
 Optional left-gutter **Block labels** show text/heading/list-item/table/media types;
 the container/target path of the current block is shown below the canvas (including
 table cells). Labels and filter classes are decorations only, absent from saved

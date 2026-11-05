@@ -317,8 +317,28 @@ Focusing a part expands overlapping content folds, and Whole book expands all.
 Since 0.49.1, clicking an outline title navigates the full document to that
 range without filtering; any existing one-part filter is cleared. Overlapping
 content folds expand to reveal the destination, while unrelated folds remain.
-The part selector retains explicit filtering. Type labels are borderless,
+The secondary Section selector retains explicit filtering. Type labels are borderless,
 abbreviating Section as § with the full name accessible by label/tooltip.
+The Show selector now has four choices: Whole book, Title, ToC and Sections.
+Whole book displays a generated title page, generated table of contents and the
+editable document. The other choices isolate one of those three groups, which
+are siblings under the book root in navigation; actual sections/headings nest
+under Sections. Only Sections exposes the secondary Section filter. Switching
+primary views clears an existing part filter; outline/ToC destinations navigate
+without filtering and reveal editable prose when necessary.
+
+The generated title uses current, including unsaved, bibliographic metadata:
+title, subtitle, author/source attribution, editor/translator/unconfirmed roles,
+typed dates/ranges, language code and subjects. Its edit button opens metadata
+controls, not duplicate editable title-page prose. The ToC regenerates from actual
+document ranges, titles and order, including heading-only articles, and navigates
+without creating persistent target IDs. These panels are editor-only projections:
+they never enter semantic HTML/JSON, saved revisions, recovery payloads or undo
+history, and viewing them does not invalidate review. Generated content does not
+offer prose-selection tools. History/content navigation that changes or selects
+prose reveals Sections rather than editing unseen content. Sections-group folding
+affects navigation only and participates in Expand outline. This is not a new
+print paginator or a change to reader/PDF generation.
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and
 scroll the editor frame without a content/history change. Unrelated folds remain.

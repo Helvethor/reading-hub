@@ -21,8 +21,12 @@ import {mountTargets} from "./targets.js";
 import {mountSectionManagement} from "./section-management.js";
 import {mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection} from "./block-selection.js";
+import {mountBookViews} from "./book-views.js";
 
-export function mountWorkspace(form, editor, showError, initial = {}) {
+export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
+  title: form.querySelector('[name="title"]')?.value || initial.document?.title || "",
+  metadata: initial.document?.metadata || {},
+})) {
   const owner = form.ownerDocument;
   const surface = form.querySelector("#editor-surface");
   const partSelect = form.querySelector("#editor-part");
@@ -39,7 +43,10 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   let linkTargets = [];
   let imageProposal = null;
   let parts = [], menuTarget = null;
-  const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError);
+  const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index));
+  const sectionFilter = bookViews.filter;
+  const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
+    () => bookViews.expandNavigation());
   mountSectionBoundaries(form, editor, showError, initial.structure?.parts || []);
   mountTargets(form, editor, showError);
 
@@ -150,7 +157,8 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     });
     const sections = movableSections(editor.state.doc);
     const scope = visiblePart(editor);
-    partSelect.replaceChildren(new Option("Whole book", ""));
+    if (scope && bookViews.view !== "sections") bookViews.show("sections");
+    sectionFilter.replaceChildren(new Option("All sections", ""));
     outline.replaceChildren();
     let matched = !scope;
     const choices = [{label: "Whole book", depth: 0}, ...parts];
@@ -158,8 +166,8 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
       const value = index ? String(index - 1) : "";
       const current = index ? scope?.from === part.from && scope?.to === part.to : !scope;
       const label = index ? `${"  ".repeat(Math.min(part.depth, 8))}${part.kind}: ${part.label}` : part.label;
-      if (index) partSelect.add(new Option(label, value));
-      if (current) partSelect.value = value;
+      if (index) sectionFilter.add(new Option(label, value));
+      if (current) sectionFilter.value = value;
       if (current) matched = true;
       const button = owner.createElement("button");
       button.type = "button";
@@ -181,13 +189,18 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     if (!matched) {
       const option = new Option(`Focused range: ${scope.label}`, "focused-range");
       option.disabled = true;
-      partSelect.add(option);
-      partSelect.value = option.value;
+      sectionFilter.add(option);
+      sectionFilter.value = option.value;
     }
     dynamicOutline.render(parts);
+    bookViews.navigation(outline);
+    bookViews.refresh(parts);
     viewNotice.textContent = scope
       ? `Showing only: ${scope.label}. Other parts are hidden, not deleted. Saving includes the whole book.`
-      : "Whole book. Saving always includes all parts.";
+      : bookViews.view === "book"
+        ? "Whole book: generated title page, table of contents and all sections. Saving always includes all document content."
+        : bookViews.view === "sections" ? "All sections. Saving always includes all document content."
+          : `${bookViews.view === "title" ? "Title page" : "Table of contents"} generated from current metadata and structure. Saving always includes all document content.`;
     const folds = foldedDocumentParts(editor);
     if (folds.length) viewNotice.textContent +=
       ` ${folds.length} content range${folds.length === 1 ? "" : "s"} collapsed; saving still includes their text.`;
@@ -196,6 +209,7 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     try {
       showError("");
       closeMenu();
+      bookViews.show("sections");
       showDocumentPart(editor, value === "" ? null : parts[Number(value)]);
       surface.scrollTop = 0;
       editor.commands.focus();
@@ -204,32 +218,55 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     }
     refreshOutline();
   }
-  partSelect.addEventListener("change", () => choosePart(partSelect.value));
-  outline.addEventListener("click", event => {
-    const button = event.target.closest("[data-part]");
-    if (!button) return;
-    if (button.dataset.part === "") {
-      choosePart("");
-      return;
-    }
+  function chooseView(value) {
     try {
       showError("");
       closeMenu();
-      const part = parts[Number(button.dataset.part)];
+      bookViews.show(value);
+      showDocumentPart(editor, null);
+      surface.scrollTop = 0;
+      refreshOutline();
+    } catch (failure) { showError(failure.message); }
+  }
+  partSelect.addEventListener("change", () => chooseView(partSelect.value));
+  sectionFilter.addEventListener("change", () => choosePart(sectionFilter.value));
+  function navigatePart(index) {
+    try {
+      showError("");
+      closeMenu();
+      const part = parts[index];
+      if (!["book", "sections"].includes(bookViews.view)) bookViews.show("sections");
       showDocumentPart(editor, part, {filter: false});
+      refreshOutline();
       const target = editor.view.nodeDOM(part.kind === "Section" ? part.from - 1 : part.from);
       if (target instanceof owner.defaultView.HTMLElement) {
         surface.scrollTop += target.getBoundingClientRect().top - surface.getBoundingClientRect().top;
       }
       editor.view.focus();
-    } catch (failure) {
-      showError(failure.message);
+    } catch (failure) { showError(failure.message); }
+  }
+  outline.addEventListener("click", event => {
+    const view = event.target.closest("[data-book-view]");
+    if (view) {
+      const value = view.dataset.bookView;
+      chooseView(value);
+      outline.querySelector(`[data-book-view="${value}"]`)?.focus({preventScroll: true});
+      return;
     }
+    const button = event.target.closest("[data-part]");
+    if (!button) return;
+    if (button.dataset.part === "") {
+      chooseView("book");
+      return;
+    }
+    navigatePart(Number(button.dataset.part));
   });
   form.querySelector("#editor-block-labels").addEventListener("change", event => {
     showBlockLabels(editor, event.target.checked);
   });
   function updateTools() {
+    const prose = ["book", "sections"].includes(bookViews.view);
+    trigger.disabled = !prose;
     const {selection} = editor.state;
     const textSelection = selection instanceof TextSelection;
     const blockSelection = selection instanceof BlockSelection ||
@@ -242,8 +279,8 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
       selection.$from.depth > 1 &&
       selection.$from.node(selection.$from.depth - 1) === selection.$to.node(selection.$to.depth - 1);
     function available(button, applicable, enabled = applicable) {
-      button.hidden = !applicable;
-      button.disabled = !enabled;
+      button.hidden = !applicable || !prose;
+      button.disabled = !enabled || !prose;
     }
     const contentMove = form.querySelector("#editor-content-move-open");
     if (contentMove) available(contentMove, !selection.empty && (textSelection || blockSelection));
@@ -329,12 +366,14 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   }
   trigger.addEventListener("click", openAtSelection);
   function preserveContextSelection(event) {
-    if (event.button === 2 && !editor.state.selection.empty) event.preventDefault();
+    if (editor.view.dom.contains(event.target) &&
+        event.button === 2 && !editor.state.selection.empty) event.preventDefault();
   }
   // Run before ProseMirror's target listener, not after it has replaced the selection.
   surface.addEventListener("pointerdown", preserveContextSelection, true);
   surface.addEventListener("mousedown", preserveContextSelection, true);
   surface.addEventListener("contextmenu", event => {
+    if ((event.target !== surface && !editor.view.dom.contains(event.target)) || editor.view.dom.hidden) return;
     if (event.shiftKey) return;
     event.preventDefault();
     const image = event.target.closest("img");
@@ -360,6 +399,7 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     openMenu(event.clientX, event.clientY);
   });
   surface.addEventListener("keydown", event => {
+    if (!editor.view.dom.contains(event.target) || editor.view.dom.hidden) return;
     if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
       event.preventDefault();
       openAtSelection();
@@ -470,11 +510,14 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     closeMenu();
     showError("");
     const target = event.target;
+    const bookView = target.closest("[data-book-view]")?.dataset.bookView;
     const partButton = target.closest(".editor-outline-row")?.querySelector("[data-part]");
     const part = partButton ? parts[Number(partButton.dataset.part)] : null;
     const command = key === "y" || event.shiftKey ? redo : undo;
     command(editor.state, editor.view.dispatch);
-    if (!target.isConnected && partButton) {
+    if (!target.isConnected && bookView) {
+      outline.querySelector(`[data-book-view="${bookView}"]`)?.focus({preventScroll: true});
+    } else if (!target.isConnected && partButton) {
       const index = parts.findIndex(candidate => candidate.kind === part.kind &&
         (part.id ? candidate.id === part.id : candidate.from === part.from));
       (outline.querySelector(`[data-part="${index}"]`) ||
@@ -582,11 +625,14 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   let lastScope = visiblePart(editor);
   let lastFolds = foldedDocumentParts(editor);
   editor.on("transaction", ({transaction}) => {
+    const revealProse = (transaction.docChanged || transaction.selectionSet) &&
+      !["book", "sections"].includes(bookViews.view);
+    if (revealProse) bookViews.show("sections");
     if (transaction.docChanged) closeMenu();
     updateTools();
     const scope = visiblePart(editor);
     const folds = foldedDocumentParts(editor);
-    if (transaction.docChanged || scope !== lastScope || folds !== lastFolds) refreshOutline();
+    if (transaction.docChanged || scope !== lastScope || folds !== lastFolds || revealProse) refreshOutline();
     lastScope = scope;
     lastFolds = folds;
   });
@@ -602,4 +648,5 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   mountSectionExcerpts(form, editor, showError, initial.structure?.parts || []);
   refreshOutline();
   updateTools();
+  return {refreshGenerated: () => bookViews.refresh(parts)};
 }

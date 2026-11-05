@@ -71,7 +71,8 @@
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
         <button type="button" data-history="undo" disabled>Undo</button>
         <button type="button" data-history="redo" disabled>Redo</button>
-        <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="">Whole book</option></select></label>
+        <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option></select></label>
+        <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" aria-describedby="editor-view-notice" disabled><option value="">All sections</option></select></label>
         <label><input id="editor-block-labels" type="checkbox" checked disabled> Block labels</label>
         <button type="submit" disabled>Save corrected version</button>
         <button type="button" id="editor-mark-reviewed" disabled>Mark reviewed</button>

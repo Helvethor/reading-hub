@@ -20,7 +20,7 @@ export function outlineHierarchy(parts) {
   });
 }
 
-export function mountDynamicOutline(editor, outline, surface, showError) {
+export function mountDynamicOutline(editor, outline, surface, showError, expandGroups = () => {}) {
   const owner = outline.ownerDocument;
   const collapsed = new Set();
   let parts = [], hierarchy = [], frame = null, lastActive = null;
@@ -209,7 +209,7 @@ export function mountDynamicOutline(editor, outline, surface, showError) {
     } catch (failure) { showError(failure.message); }
   }
   outline.addEventListener("click", click);
-  expand.addEventListener("click", () => { collapsed.clear(); visibility(); schedule(); });
+  expand.addEventListener("click", () => { collapsed.clear(); expandGroups(); visibility(); schedule(); });
   expandContent.addEventListener("click", () => expandDocumentFolds(editor));
   follow.addEventListener("change", () => { lastActive = null; schedule(); });
   const mobileToggle = surface.closest("form")?.querySelector("#editor-outline-toggle");

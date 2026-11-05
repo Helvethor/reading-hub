@@ -173,6 +173,15 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   staged two-paragraph browser-CSS paste with exact Undo. Browser clipboard and
   key events were dispatched, not native OS clipboard/pointer acceptance.
   No live document was saved or published.
+- [x] Add Whole book / Title / ToC / Sections views with generated metadata/title
+  and current-structure ToC panels, three sibling navigation groups and a
+  secondary section/heading filter. Keep generated panels out of semantic
+  HTML/JSON, history, review/recovery and saves. Support live metadata refresh,
+  ToC navigation without new IDs, navigation-group folding and content/history
+  reveal from generated views. Validated with 202 frontend and 25 editor-view
+  regressions, production build and Ruff. Synthetic DOM checks cover article,
+  multi-section book, order/title/undo updates, explicit metadata clears and
+  no-change view switching. Browser workflow validation remains pending.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

@@ -60,6 +60,11 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Shift+F10")
         self.assertContains(response, 'aria-label="Book parts"')
         self.assertContains(response, "Whole book")
+        for value, label in (("book", "Whole book"), ("title", "Title"),
+                             ("toc", "ToC"), ("sections", "Sections")):
+            self.assertContains(response, f'<option value="{value}">{label}</option>')
+        self.assertContains(response, 'id="editor-section-filter"')
+        self.assertContains(response, '<option value="">All sections</option>')
         self.assertContains(response, "Book structure")
         self.assertContains(response, "Add / restore section")
         self.assertContains(response, "Section title, URL and role")

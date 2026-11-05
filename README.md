@@ -134,8 +134,15 @@ command bar and a book outline. Right-click selected text, press **Shift+F10** o
 use **Selection tools** for formatting, paragraph types and moves at the selection.
 The menu supports arrow keys, Home/End and Escape. **Block labels** shows semantic
 types in the left gutter; the current block's container path appears below the
-canvas. **Show** or the outline switches between the whole book and one section
-or heading range, including nested parts. This is view-only: saving/recovery
+canvas. **Show** offers **Whole book**, **Title**, **ToC** and **Sections**.
+Whole book includes a generated title page with current metadata, a generated
+table of contents and editable prose. These are three sibling outline groups;
+actual sections/headings live beneath **Sections**. In Sections view, the
+secondary **Section** selector filters one section or heading range, including
+nested parts. Outline/ToC title clicks navigate without filtering.
+Title-page metadata is edited through its metadata button; ToC titles/order
+follow the document automatically. Generated pages are not duplicate saved prose
+or a new reader/PDF paginator. This is view-only: saving/recovery
 always includes the complete book, and focused editing cannot change hidden parts.
 Metadata and review controls are collapsed by default, not removed.
 
@@ -192,7 +199,7 @@ saved text, IDs, links, review status and undo history are unchanged. Expand a
 fold before edits or undo operations that touch its hidden content.
 
 Since 0.49.1, outline title clicks scroll to the target without filtering out
-other parts; the part selector remains the explicit one-part filter. Borderless
+other parts; the secondary Section selector remains the explicit one-part filter. Borderless
 **§** and **H3**-style labels keep more horizontal room for titles.
 
 Since 0.49.2, **Ctrl/Cmd-click** follows editor links: internal anchors reveal

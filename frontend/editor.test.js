@@ -40,6 +40,7 @@ import {
 } from "./section-management.js";
 import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
+import {titlePageRows} from "./book-views.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -454,7 +455,7 @@ test("selection context menu separates paragraphs and exposes excerpt origins an
   const form = mountSectionWorkspace('<section id="parent"><h2>Parent</h2>' +
     '<p>First paragraph.</p><p>Second paragraph.</p></section>');
   selectParagraphs("First paragraph.", "Second paragraph.");
-  form.querySelector("#editor-surface p").dispatchEvent(
+  form.querySelector("#editor-surface .tiptap p").dispatchEvent(
     new dom.window.MouseEvent("contextmenu", {bubbles: true, clientX: 20, clientY: 20}),
   );
   assert(!form.querySelector("#editor-context-menu").hidden);
@@ -615,7 +616,7 @@ test("original restoration recovers missing descendant targets for existing inbo
   assert(editor.getHTML().includes('href="#title"'));
 });
 
-function mountSectionWorkspace(html, initial = {}) {
+function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace} = {}) {
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
   document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
     template.indexOf('<dialog id="editor-image"'));
@@ -628,9 +629,182 @@ function mountSectionWorkspace(html, initial = {}) {
     dialog.showModal = () => { dialog.open = true; };
     dialog.close = () => { dialog.open = false; dialog.dispatchEvent(new dom.window.Event("close")); };
   }
-  mountWorkspace(form, editor, message => { if (message) assert.fail(message); }, initial);
+  const workspace = mountWorkspace(form, editor, message => { if (message) assert.fail(message); },
+    initial, readDocument);
+  onWorkspace?.(workspace);
   return form;
 }
+
+test("book views have exactly four choices, three navigation groups and a separate section filter", () => {
+  const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Opening.</p>' +
+    '<h3>Detail</h3><p>Details.</p></section><section id="b"><h2>Second</h2><p>Ending.</p></section>');
+  const primary = form.querySelector("#editor-part");
+  const filter = form.querySelector("#editor-section-filter");
+  const outline = form.querySelector("#editor-outline-items");
+  const original = editor.getHTML(), json = editor.getJSON();
+  assert.deepEqual([...primary.options].map(option => [option.value, option.textContent]),
+    [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]]);
+  assert.deepEqual([...outline.querySelectorAll("[data-book-group]")].map(group => group.dataset.bookGroup),
+    ["title", "toc", "sections"]);
+  assert.equal(outline.querySelectorAll(".editor-book-sections [data-part]").length,
+    documentParts(editor.state.doc).length);
+  assert(!outline.querySelector('[data-book-group="title"] [data-part]'));
+  assert(!outline.querySelector('[data-book-group="toc"] [data-part]'));
+  assert.equal(filter.value, "");
+  const title = form.querySelector(".editor-title-page"), toc = form.querySelector(".editor-toc-page");
+  assert(!title.hidden && !toc.hidden && !editor.view.dom.hidden);
+  assert(filter.closest("label").hidden);
+  let updates = 0;
+  editor.on("update", () => updates++);
+  for (const [view, titleHidden, tocHidden, proseHidden] of [
+    ["title", false, true, true], ["toc", true, false, true],
+    ["sections", true, true, false], ["book", false, false, false],
+  ]) {
+    primary.value = view;
+    primary.dispatchEvent(new dom.window.Event("change"));
+    assert.equal(title.hidden, titleHidden);
+    assert.equal(toc.hidden, tocHidden);
+    assert.equal(editor.view.dom.hidden, proseHidden);
+    assert.equal(filter.closest("label").hidden, view !== "sections");
+    assert.equal(outline.querySelector("[data-book-view][aria-current=page]").dataset.bookView, view);
+    assert.equal(form.querySelector("#editor-tools").disabled, proseHidden);
+    assert.equal(editor.getHTML(), original);
+    assert.deepEqual(editor.getJSON(), json);
+  }
+  assert.equal(updates, 0, "Views must not dirty prose, reset review or create recovery writes.");
+  assert(!undo(editor.state), "Viewing generated pages must not add document history.");
+  primary.value = "sections";
+  primary.dispatchEvent(new dom.window.Event("change"));
+  filter.value = "0";
+  filter.dispatchEvent(new dom.window.Event("change"));
+  assert.equal(visiblePart(editor).id, "a");
+  outline.querySelector('[data-book-view="toc"]').click();
+  assert.equal(primary.value, "toc");
+  assert.equal(visiblePart(editor), null);
+  form.querySelector('[data-toc-part="0"]').click();
+  assert.equal(primary.value, "sections");
+  assert.equal(visiblePart(editor), null, "ToC navigation reveals rather than filters content.");
+  assert(!editor.view.dom.hidden);
+  assert.equal(editor.getHTML(), original);
+});
+
+test("generated title reflects live metadata and explicit clears without inserting title-page prose", () => {
+  let value = {title: "A <Book>", metadata: {
+    author: "Writer", subtitle: "An edition", contributors: [
+      {name: "Translator", role: "translator"}, {name: "Editor", role: "editor"},
+      {name: "Uncertain", role: "unknown"}, {name: "Excluded", role: "exclude"},
+    ], date_facts: [
+      {type: "written", value: "1900", end_value: "1902"},
+      {type: "publication", value: "1903"}, {type: "online_edition", value: "2020-01-02"},
+      {type: "unknown", value: "1910"},
+    ], published: "duplicate", language: "en", topics: ["History", "Books"],
+  }};
+  let workspace;
+  const form = mountSectionWorkspace("<p>Article body</p>", {}, {
+    readDocument: () => value, onWorkspace: result => { workspace = result; },
+  });
+  const title = form.querySelector(".editor-title-page");
+  assert.equal(title.querySelector("h1").textContent, "A <Book>");
+  assert(!title.querySelector("book"), "Metadata is text, never injected HTML.");
+  assert.deepEqual([...title.querySelectorAll("dt")].map(row => row.textContent),
+    ["Author", "Translator", "Editor", "Contributor (role unconfirmed)", "Written", "Published",
+      "Online edition", "Date (role unconfirmed)", "Language", "Subjects"]);
+  assert(title.textContent.includes("1900 / 1902"));
+  assert(title.textContent.includes("History, Books"));
+  assert(!title.textContent.includes("Excluded"));
+  assert(!title.textContent.includes("duplicate"));
+  assert.deepEqual(titlePageRows({author: "Site", author_is_fallback: true, published: "1900"}),
+    [["Source website", "Site"], ["Published", "1900"]]);
+  const original = editor.getHTML(), doc = editor.state.doc;
+  value = {title: "Recovered title", metadata: {author: "Recovered author"}};
+  workspace.refreshGenerated();
+  assert(title.textContent.includes("Recovered author"));
+  assert(!title.textContent.includes("1903"));
+  value = {title: "", metadata: {}};
+  workspace.refreshGenerated();
+  assert.equal(title.querySelector("h1").textContent, "Untitled document");
+  assert.equal(title.querySelectorAll("dt").length, 0);
+  title.querySelector("button").click();
+  assert(form.querySelector(".editor-metadata").open);
+  assert.equal(document.activeElement, form.elements.title);
+  assert.equal(editor.state.doc, doc);
+  assert.equal(editor.getHTML(), original);
+});
+
+test("ToC regenerates after section reorder, rename, undo and article replacement without adding targets", () => {
+  const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>First body.</p></section>' +
+    '<section id="b"><h2>Second</h2><p>Second body.</p></section>');
+  const labels = () => [...form.querySelectorAll("[data-toc-part]")].map(button => button.textContent);
+  assert.deepEqual(labels(), ["First", "Second"]);
+  const original = editor.getHTML();
+  moveSection(editor, {doc: editor.state.doc}, 1, "before", 0);
+  assert.deepEqual(labels(), ["Second", "First"]);
+  selectText("Second", 6);
+  editor.commands.insertContent("Renamed");
+  assert.deepEqual(labels(), ["Renamed", "First"]);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.deepEqual(labels(), ["Second", "First"]);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.deepEqual(labels(), ["First", "Second"]);
+  assert.equal(editor.getHTML(), original);
+  editor.commands.setContent("<h2>Article</h2><p>Article body.</p><h3>Detail</h3><p>More.</p>");
+  assert.deepEqual(labels(), ["Article", "Detail"]);
+  form.querySelector('[data-book-view="toc"]').click();
+  form.querySelector('[data-toc-part="1"]').click();
+  assert.equal(form.querySelector("#editor-part").value, "sections");
+  assert.equal(editor.getHTML(), "<h2>Article</h2><p>Article body.</p><h3>Detail</h3><p>More.</p>");
+  editor.commands.setContent("<p>Unsectioned article.</p>");
+  assert.deepEqual(labels(), []);
+  assert(form.querySelector(".editor-toc-page").textContent.includes("No sections or headings"));
+});
+
+test("generated views never route context actions to hidden prose and history reveals changed sections", () => {
+  const form = mountSectionWorkspace("<p>Original.</p>");
+  selectText("Original", 8);
+  editor.commands.insertContent("Changed");
+  const primary = form.querySelector("#editor-part");
+  primary.value = "title";
+  primary.dispatchEvent(new dom.window.Event("change"));
+  const title = form.querySelector(".editor-title-page");
+  const context = new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true});
+  title.querySelector("h1").dispatchEvent(context);
+  assert(!context.defaultPrevented);
+  assert(form.querySelector("#editor-context-menu").hidden);
+  const keyboard = new dom.window.KeyboardEvent("keydown", {key: "F10", shiftKey: true,
+    bubbles: true, cancelable: true});
+  title.querySelector("button").dispatchEvent(keyboard);
+  assert(!keyboard.defaultPrevented);
+  assert(form.querySelector("#editor-context-menu").hidden);
+  const nav = form.querySelector('[data-book-view="title"]');
+  nav.focus();
+  nav.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "z", ctrlKey: true, bubbles: true}));
+  assert.equal(editor.getHTML(), "<p>Original.</p>");
+  assert.equal(primary.value, "sections");
+  assert(!editor.view.dom.hidden);
+  assert.equal(document.activeElement.dataset.bookView, "title",
+    "History retains navigation focus even when changed prose is revealed.");
+  primary.value = "toc";
+  primary.dispatchEvent(new dom.window.Event("change"));
+  showDocumentPart(editor, null);
+  assert.equal(primary.value, "toc", "Scope-only refresh must not accidentally reveal prose.");
+  editor.commands.setTextSelection(1);
+  assert.equal(primary.value, "sections", "Programmatic content navigation reveals the canvas.");
+});
+
+test("Sections group folds independently and remains folded across content updates", () => {
+  const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
+  const fold = () => form.querySelector("[data-book-group-fold]");
+  fold().click();
+  assert.equal(fold().getAttribute("aria-expanded"), "false");
+  assert(form.querySelector(".editor-book-sections").hidden);
+  assert(!editor.view.dom.hidden, "Navigation folding does not hide document content.");
+  selectText("Text", 4);
+  editor.commands.insertContent("Changed");
+  assert(form.querySelector(".editor-book-sections").hidden);
+  fold().click();
+  assert(!form.querySelector(".editor-book-sections").hidden);
+  assert.equal(fold().getAttribute("aria-expanded"), "true");
+});
 
 test("compact selection tools expose only applicable actions and toggle alignment back to inherited", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Section</h2>' +
@@ -2082,9 +2256,9 @@ test("workspace mounts section moves immediately and outline targets nested sect
   assert.equal(editor.view.dom.querySelectorAll(".editor-outside-part").length, 0);
   assert.equal(editor.getHTML(), original);
   const focused = documentParts(editor.state.doc)[0];
-  form.querySelector("#editor-part").value = "0";
-  form.querySelector("#editor-part").dispatchEvent(new dom.window.Event("change"));
-  assert.equal(visiblePart(editor).from, focused.from, "The selector still explicitly filters.");
+  form.querySelector("#editor-section-filter").value = "0";
+  form.querySelector("#editor-section-filter").dispatchEvent(new dom.window.Event("change"));
+  assert.equal(visiblePart(editor).from, focused.from, "The secondary selector explicitly filters.");
   form.querySelector('[data-part=""]').click();
   const currentItem = form.querySelector('[data-section-move="1"]');
   currentItem.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, shiftKey: true}));
