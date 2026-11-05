@@ -1,0 +1,287 @@
+import io
+import json
+import subprocess
+from copy import deepcopy
+from pathlib import Path
+from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
+
+from bs4 import BeautifulSoup
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
+from django.urls import reverse
+from pypdf import PdfReader
+from weasyprint import HTML
+from weasyprint.formatting_structure.boxes import MarginBox
+
+from library.models import ReadingStyleProfile
+from library.services.pdf import PDFExportError, cached_pdf, render_pdf
+from library.services.reading_styles import (
+    DEFAULTS,
+    style_css,
+    style_digest,
+    style_token,
+    token_style,
+    validate_style,
+)
+from library.tests import test_printing
+
+
+class ReadingStyleTests(TestCase):
+    def setUp(self):
+        test_printing.PrintingTests.setUp(self)
+        self.user = get_user_model().objects.create_user("style-owner", password="test-password")
+        self.other = get_user_model().objects.create_user("other-reader", password="test-password")
+        self.url = reverse("reader", args=[self.version.pk])
+        self.save_url = reverse("reading-style-save", args=[self.version.pk])
+        self.default_url = reverse("reading-style-default", args=[self.version.pk])
+        self.custom = {**DEFAULTS, "font_mode": "dyslexic", "font_size": 18,
+                       "paragraph_align": "justify", "title_align": "center",
+                       "letter_spacing": .06, "word_spacing": .2, "line_height": 1.8,
+                       "italic_to_bold": True, "underline_to_bold": True}
+
+    def test_strict_settings_and_signed_snapshots_refuse_invalid_input(self):
+        self.assertEqual(validate_style(self.custom), self.custom)
+        self.assertEqual(token_style(style_token(self.custom)), self.custom)
+        self.assertNotEqual(style_digest(DEFAULTS), style_digest(self.custom))
+        for key, value in (
+            ("font_size", 100), ("font_size", float("nan")), ("line_height", .1),
+            ("letter_spacing", -1), ("word_spacing", 1), ("paragraph_align", "inherit"),
+            ("body_font", 'url("https://example.org/font")'), ("contrast", "red"),
+            ("italic_to_bold", "false"), ("font_mode", "custom"),
+        ):
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                validate_style({**DEFAULTS, key: value})
+        with self.assertRaises(ValueError):
+            validate_style({**DEFAULTS, "css": "body{}"})
+        with self.assertRaises(ValueError):
+            token_style("tampered")
+        self.assertEqual(self.client.get(self.url, {"style": "tampered"}).status_code, 400)
+        self.assertEqual(self.client.get(reverse("reading-style-css"),
+                                         {"style": "tampered"}).status_code, 400)
+        self.assertEqual(self.client.get(reverse("reader-pdf", args=[self.version.pk]),
+                                         {"style": "tampered"}).status_code, 400)
+
+    def test_anonymous_preset_apply_and_pdf_share_exact_settings_without_mutating_prose(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "Marxist")
+        self.assertEqual(response.context["reading_style"], DEFAULTS)
+        self.assertIn("font-src 'self'", response["Content-Security-Policy"])
+        applied = self.client.get(self.url, {**self.custom, "style_action": "apply"})
+        self.assertEqual(applied.status_code, 200)
+        soup = BeautifulSoup(applied.content, "html.parser")
+        self.assertEqual(soup.select_one("article").decode_contents(), self.version.html)
+        self.assertEqual(applied.context["reading_style"], self.custom)
+        self.assertNotIn("csrfmiddlewaretoken", [
+            node.get("name") for node in soup.select("form[method=get] input")
+        ])
+        token = applied.context["reading_style_token"]
+        stylesheet = self.client.get(applied.context["reading_style_url"])
+        self.assertEqual(stylesheet.content.decode(), style_css(self.custom))
+        pdf_link = soup.find("a", string="Download PDF")["href"]
+        self.assertEqual(token_style(parse_qs(urlsplit(pdf_link).query)["style"][0]), self.custom)
+        path = Path(self.temp.name) / "download.pdf"
+        path.write_bytes(b"%PDF-test")
+        with patch("library.views.cached_pdf", return_value=path) as exporter:
+            response = self.client.get(pdf_link)
+            self.assertEqual(response.status_code, 200)
+            exporter.assert_called_once()
+            self.assertEqual(exporter.call_args.args[1], self.custom)
+            response.close()
+        self.version.refresh_from_db()
+        self.assertNotIn("OpenDyslexic", self.version.html)
+        self.assertEqual(token_style(token), self.custom)
+        self.assertFalse(ReadingStyleProfile.objects.exists())
+
+    def test_personal_profile_creation_reuse_replacement_default_and_ownership(self):
+        self.client.force_login(self.user)
+        saved = self.client.post(self.save_url, {
+            "profile_name": "Comfort", "style": style_token(self.custom), "make_default": "on",
+        })
+        self.assertEqual(saved.status_code, 302)
+        profile = ReadingStyleProfile.objects.get(owner=self.user)
+        self.assertTrue(profile.is_default)
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["reading_style"], self.custom)
+        second = deepcopy(self.version)
+        second.pk = None
+        second.identity = "d" * 64
+        second.save()
+        reused = self.client.get(reverse("reader", args=[second.pk]),
+                                 {"style_profile": profile.pk})
+        self.assertEqual(reused.context["reading_style"], self.custom)
+        # Snapshot URLs remain exact even when the named profile is later replaced.
+        old_token = reused.context["reading_style_token"]
+        self.client.post(self.save_url, {"profile_name": "Comfort", "style": style_token(DEFAULTS)})
+        profile.refresh_from_db()
+        self.assertEqual(profile.settings, DEFAULTS)
+        self.assertTrue(profile.is_default)
+        self.assertEqual(token_style(old_token), self.custom)
+        self.assertEqual(ReadingStyleProfile.objects.count(), 1)
+        self.client.post(self.default_url, {"style_profile": "marxist"})
+        profile.refresh_from_db()
+        self.assertFalse(profile.is_default)
+        self.assertEqual(self.client.get(self.url).context["reading_style"], DEFAULTS)
+        self.client.post(self.default_url, {"style_profile": profile.pk})
+        profile.refresh_from_db()
+        self.assertTrue(profile.is_default)
+        self.client.force_login(self.other)
+        self.assertNotContains(self.client.get(self.url), "Comfort")
+        self.assertEqual(self.client.get(self.url, {"style_profile": profile.pk}).status_code, 400)
+        self.assertEqual(self.client.post(self.default_url,
+                                          {"style_profile": profile.pk}).status_code, 404)
+        for invalid in ("", "0", "9999999999999999999999", "Ⅳ"):
+            self.assertEqual(self.client.post(self.default_url,
+                                              {"style_profile": invalid}).status_code, 400)
+        self.assertEqual(self.client.get(self.url, {"style_profile": "9" * 100}).status_code, 400)
+        self.assertEqual(self.client.get(self.url, {"style_profile": "marxist"})
+                         .context["reading_style"], DEFAULTS)
+        self.assertEqual(self.client.post(self.save_url, {
+            "profile_name": "marxist", "style": style_token(self.custom),
+        }).status_code, 400)
+        self.assertEqual(ReadingStyleProfile.objects.count(), 1)
+        self.client.logout()
+        self.assertEqual(self.client.post(self.save_url, {}).status_code, 302)
+        protected = Client(enforce_csrf_checks=True)
+        protected.force_login(self.user)
+        with self.assertLogs("library", level="WARNING"):
+            self.assertEqual(protected.post(self.save_url, {
+                "profile_name": "Other", "style": style_token(DEFAULTS),
+            }).status_code, 403)
+
+    def test_style_digest_cache_binding_and_subprocess_transport(self):
+        def build(command, **kwargs):
+            self.assertEqual(json.loads(command[-2]), self.expected)
+            Path(command[-1]).write_bytes(b"%PDF-test")
+            return subprocess.CompletedProcess(command, 0)
+
+        with patch("library.services.pdf.subprocess.run", side_effect=build) as process:
+            self.expected = DEFAULTS
+            standard = cached_pdf(self.version, DEFAULTS)
+            self.expected = self.custom
+            custom = cached_pdf(self.version, self.custom)
+            self.assertNotEqual(standard, custom)
+            self.assertEqual(cached_pdf(self.version, self.custom), custom)
+            self.assertEqual(process.call_count, 2)
+
+    def test_actual_pdf_headers_footers_selected_font_emphasis_and_unchanged_source(self):
+        self.version.title = "Header Book Sentinel"
+        self.version.html = (
+            '<section><h2>First Section Sentinel</h2><p>'
+            '<em>ItalicSentinel</em> <u>UnderlineSentinel</u> '
+            '<a href="#second">LinkSentinel</a></p>'
+            '<figure class="quotation"><blockquote><p>Quotation sentinel.</p></blockquote>'
+            '<figcaption>Caption sentinel.</figcaption></figure>'
+            '<p>Readable prose fills a page. ' +
+            'Words in original order. ' * 60 + '</p>'
+        ) + (
+            '<p>More words. ' + 'Continued readable text. ' * 70 + '</p></section>'
+            '<section><h2 id="second" style="break-before:page">Second Section Sentinel</h2>'
+            '<p>Final body sentinel.</p></section>'
+        )
+        original = self.version.html
+        output = io.BytesIO()
+        render_pdf(self.version, output, self.custom)
+        pdf = PdfReader(output)
+        total = len(pdf.pages)
+        self.assertGreaterEqual(total, 4)
+        for index, page in enumerate(pdf.pages, 1):
+            text = page.extract_text()
+            self.assertIn("Header Book Sentinel", text)
+            self.assertIn(f"{index} / {total}", text)
+            running = []
+            page.extract_text(visitor_text=lambda text, cm, tm, font, size, running=running:
+                              running.append((
+                text.strip(), size * abs(cm[0]), cm[0] * tm[4] + cm[4],
+                cm[3] * tm[5] + cm[5],
+            )) if text.strip() else None)
+            book = next(item for item in running if item[0] == self.version.title
+                        and abs(item[1] - 8) < .1)
+            self.assertLess(book[2], 60)
+            self.assertGreater(book[3], float(page.mediabox.height) - 40)
+            footer = next(item for item in running if item[0] == f"{index} / {total}")
+            self.assertLess(footer[3], 40)
+            self.assertLess(abs(footer[2] - float(page.mediabox.width) / 2), 25)
+            if index > 1:
+                section = next(item for item in running if "Section Sentinel" in item[0]
+                               and abs(item[1] - 8) < .1)
+                self.assertGreater(section[2], float(page.mediabox.width) / 2)
+                self.assertEqual(section[0], "Second Section Sentinel" if index == total
+                                 else "First Section Sentinel")
+        last = pdf.pages[-1].extract_text()
+        self.assertIn("Second Section Sentinel", last)
+        self.assertIn("Final body sentinel.", " ".join(last.split()))
+        fonts = {
+            font.get_object().get("/BaseFont", "")
+            for page in pdf.pages for font in page["/Resources"]["/Font"].get_object().values()
+        }
+        self.assertTrue(any("OpenDyslexic" in font for font in fonts), fonts)
+        self.assertTrue(all("OpenDyslexic" in font for font in fonts), fonts)
+        emphasis = []
+        for page in pdf.pages:
+            page.extract_text(visitor_text=lambda text, cm, tm, font, size: emphasis.append(
+                (text, font.get("/BaseFont", "") if font else "", size),
+            ) if "ItalicSentinel" in text or "UnderlineSentinel" in text else None)
+        self.assertTrue(emphasis)
+        self.assertTrue(all("Bold" in str(font) for _, font, _ in emphasis), emphasis)
+        self.assertTrue(all(
+            abs(size * .75 - self.custom["font_size"]) < .1 for _, _, size in emphasis
+        ))
+        self.assertEqual(self.version.html, original)
+
+    def test_long_running_titles_have_separate_nonoverlapping_columns(self):
+        self.version.title = "An unusually long book title " * 5
+        self.version.html = (
+            "<section><h2>" + "A long section title " * 6 +
+            "</h2><p>Prose remains intact.</p></section>"
+        )
+        layouts = []
+        original_render = HTML.render
+
+        def capture(renderer, *args, **kwargs):
+            document = original_render(renderer, *args, **kwargs)
+            layouts.append(document)
+            return document
+
+        with patch.object(HTML, "render", capture):
+            render_pdf(self.version, io.BytesIO())
+        for page in layouts[-1].pages:
+            margins = {
+                box.at_keyword: box for box in page._page_box.children
+                if isinstance(box, MarginBox)
+            }
+            left, right = margins["@top-left"], margins["@top-right"]
+            self.assertLessEqual(left.position_x + left.width, right.position_x)
+            self.assertLessEqual(left.height, 12 * 96 / 25.4 + 1)
+            self.assertLessEqual(right.height, 12 * 96 / 25.4 + 1)
+
+    def test_all_bundled_font_faces_embed_and_missing_fonts_refuse_partial_pdf(self):
+        self.version.html = (
+            "<p>RegularSentinel <strong>BoldSentinel</strong> <em>ItalicSentinel</em> "
+            "<strong><em>BoldItalicSentinel</em></strong></p>"
+        )
+        style = {**DEFAULTS, "font_mode": "dyslexic"}
+        output = io.BytesIO()
+        render_pdf(self.version, output, style)
+        pdf = PdfReader(output)
+        fonts = {
+            str(font.get_object().get("/BaseFont", ""))
+            for page in pdf.pages for font in page["/Resources"]["/Font"].get_object().values()
+        }
+        self.assertEqual({font.split("+")[-1] for font in fonts}, {
+            "OpenDyslexic", "OpenDyslexic-Bold", "OpenDyslexic-Italic", "OpenDyslexic-Bold-Italic",
+        })
+        for page in pdf.pages:
+            for font in page["/Resources"]["/Font"].get_object().values():
+                descendant = font.get_object()["/DescendantFonts"][0].get_object()
+                descriptor = descendant["/FontDescriptor"]
+                self.assertGreater(len(descriptor["/FontFile3"].get_object().get_data()), 1000)
+        read_bytes = Path.read_bytes
+
+        def missing(path):
+            if path.name == "OpenDyslexic-Regular.otf":
+                raise FileNotFoundError("test missing bundled font")
+            return read_bytes(path)
+
+        with patch.object(Path, "read_bytes", missing), self.assertRaises(PDFExportError):
+            render_pdf(self.version, io.BytesIO(), style)

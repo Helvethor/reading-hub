@@ -134,7 +134,11 @@ class PrintingTests(TestCase):
         self.assertNotIn("Contents", [item.title for item in outline if not isinstance(item, list)])
         text = "\n".join(page.extract_text() for page in reader.pages)
         self.assertNotIn("Contents", text)
-        self.assertEqual(text.count("A section"), 1)
+        body_text = []
+        for page in reader.pages:
+            page.extract_text(visitor_text=lambda text, cm, tm, font, size:
+                              body_text.append(text) if size * abs(cm[0]) > 9 else None)
+        self.assertEqual("\n".join(body_text).count("A section"), 1)
         self.assertEqual(text.count("A subsection"), 1)
 
     def test_title_based_filename_preserves_unicode_and_is_filesystem_safe(self):
@@ -394,7 +398,7 @@ class PrintingTests(TestCase):
             positions = []
 
             def visit(text, cm, tm, font, size):
-                if text.strip():
+                if text.strip() and size * abs(cm[0]) > 9:
                     positions.append(cm[3] * tm[5] + cm[5])
 
             page.extract_text(visitor_text=visit)

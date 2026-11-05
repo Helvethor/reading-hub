@@ -222,6 +222,7 @@ def fresh_draft(request, pk):
 @metadata_reviewer_required
 def publication(request, pk):
     from library.services.document_metadata import metadata_rows
+    from library.services.reading_styles import style_context
     from library.views import toc_tree
 
     source = get_version(pk)
@@ -242,20 +243,24 @@ def publication(request, pk):
             return HttpResponse(
                 candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
             )
+        reading_style = style_context(request)
     except DocumentEditConflict as exc:
         error, status = str(exc), 409
     except (ValueError, ImportFailure) as exc:
-        error, status = str(exc), 422
+        error, status, candidate = str(exc), 422, None
     except OperationalError as exc:
         if "locked" not in str(exc).lower():
             raise
-        error, status = "Another writer is active. Reload the publication preview.", 409
+        error, status, candidate = (
+            "Another writer is active. Reload the publication preview.", 409, None,
+        )
     context = {"source": source, "publication_error": error}
     if candidate:
         version = Rendition(
             document=source.document, snapshot=source.snapshot, **candidate["output"],
         )
         context.update({
+            **reading_style, "style_preview": True,
             "version": version, "candidate": candidate,
             "toc": toc_tree(version.structure["toc"]),
             "display_author": version.metadata.get("author", "").strip()

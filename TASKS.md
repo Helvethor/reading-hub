@@ -251,6 +251,23 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   Rendered 1200px/390px fixtures match title metadata, heading markers and ToC
   targets, and computed ToC-menu styling/bounds match the themed context menus.
   Browser actions were synthetic; no live correction was saved or published.
+- [x] Add reusable private reading/PDF profiles, personal defaults and a shared
+  immutable Marxist preset. Bind PDF downloads to the exact applied style,
+  including typography, alignment, spacing, contrast and emphasis conversion;
+  bundle licensed Liberation/OpenDyslexic faces. Add nonoverlapping book/section
+  running headers and centered current/total page footers. Preserve saved prose,
+  explicit block alignment, annotations and figure pagination. All 97 focused
+  backend tests pass, including actual font embedding, missing-font refusal,
+  continuation-page running matter, profile ownership/default/reuse, snapshot
+  caching, publication preview and existing editor/reader/PDF preservation.
+  Isolated article/book fixtures at 1200px/390px verified loaded local fonts,
+  per-concern choices, applied typography, preserved explicit alignment/link/
+  strikethrough, no horizontal overflow, profile save/default/reuse and resetting
+  to Marxist. A real HTTP download generated a 42-page styled book with correct
+  book headers and current/total footers on every page, generated contents and
+  the last section's running title. Actions were synthetic; native-pointer and
+  representative accessibility/reviewer acceptance remain unverified. No live
+  correction or publication was edited to obtain this evidence.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

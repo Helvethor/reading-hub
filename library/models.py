@@ -76,6 +76,21 @@ class RenditionAsset(models.Model):
             models.UniqueConstraint(fields=["rendition", "blob"], name="unique_rendition_asset")
         ]
 
+class ReadingStyleProfile(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    settings = models.JSONField()
+    is_default = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name", "pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "name"], name="unique_reading_style_name"),
+            models.UniqueConstraint(fields=["owner"], condition=Q(is_default=True),
+                                    name="one_default_reading_style"),
+        ]
+
 
 class ImmutableDocumentEvidenceQuerySet(models.QuerySet):
     def update(self, **kwargs):

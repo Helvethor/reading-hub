@@ -1,17 +1,18 @@
 {% extends 'library/base.html' %}
 {% load static %}
 {% block title %}{{ version.title }} | {{ site.name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}">{% endblock %}
 {% block content %}
 <div class="reader-toolbar">
   <a href="{% url 'home' %}">&larr; Library</a>
   <a href="{% url 'history' version.document_id %}">Version history ({{ other_versions|length }})</a>
   <form method="post" action="{% url 'refresh' version.document_id %}">{% csrf_token %}<button class="secondary" type="submit">Refresh source</button></form>
   <form method="post" action="{% url 'reformat' version.pk %}">{% csrf_token %}<button class="secondary" type="submit">Reformat stored source</button></form>
-  <a href="{% url 'reader-pdf' version.pk %}">Download PDF</a>
+  <a href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}">Download PDF</a>
   {% if user.is_authenticated %}<a href="{% url 'preserved-annotations' %}">Preserved annotations</a>{% endif %}
   {% if user.is_authenticated %}<button class="secondary" type="button" id="annotation-toggle" aria-controls="annotation-toolbox" aria-expanded="false" hidden>Private annotations</button>{% else %}<a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in to highlight or underline</a>{% endif %}
 </div>
+{% include 'library/reading_style_controls.html' %}
 {% if user.is_staff or perms.library.review_metadata %}
 <div class="reader-review-entry"><a href="{% url 'work-review' %}?review_version={{ version.pk }}">Review this work</a><span class="muted">Parsing, organization and metadata</span></div>
 {% endif %}
@@ -43,6 +44,7 @@
     </section>
     <noscript><p class="notice">Private highlighting requires JavaScript. Reading the saved article does not.</p></noscript>
     {% endif %}
+    <div class="publication-content">
     <header class="document-header">
       <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
       <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
@@ -56,6 +58,7 @@
     {% endif %}
     {% if generated_book and toc %}{% include 'library/book_contents.html' %}{% endif %}
     <article class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+    </div>
     <section class="version-details" aria-label="Cached version details">
       <h2>About this cached version</h2>
       <dl>

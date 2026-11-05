@@ -385,6 +385,33 @@ older cached exports hiding the new view. Already-published revisions remain
 immutable: a changed publication preview still requires a new saved revision.
 The ToC context menu shares the canvas/navigation menus' panel, button,
 selection, hover and keyboard-focus styling.
+
+Publication and preview expose **Reading & PDF style**. Applying bounded settings
+changes presentation, never document HTML, metadata, review status or annotation
+offsets. The shared read-only Marxist preset uses left alignment, mixed serif/sans
+fonts and standard contrast/spacing. Everyone can apply settings; authenticated
+readers can save/replace their own named profiles and choose one personal default
+across publications, or restore Marxist as their default. Profiles are private,
+not publication-wide editorial settings. Migration 0027 adds their separate table.
+
+Settings include paragraph/title alignment, all-serif/all-sans/all-OpenDyslexic or
+per-concern prose/heading/metadata/contents/code fonts, general point size, line
+height, letter/word/paragraph spacing, maximum line length, contrast/background
+and hyphenation. Optional italic/underline-to-bold display leaves links underlined
+and strikethrough visible. Explicit block alignment remains authoritative.
+Liberation and OpenDyslexic regular/bold/italic/bold-italic faces are bundled locally
+under their OFL licenses. Missing glyphs still depend on system fallback; neither
+the font nor these controls imply validated dyslexia/accessibility outcomes.
+
+Apply reloads the publication; unapplied controls do not change its PDF. Its PDF
+link binds an exact signed settings snapshot, independent of later profile/default
+changes, and caches separate outputs by validated style digest and presentation
+version. Browser and PDF use the same style generator and font files, not identical
+page wrapping. PDFs show book title at top left, current section title at top
+right (including continuation pages), and current/total page numbers centered
+below. Long running titles occupy separate bounded columns. These margin boxes
+are excluded from body-gap/figure pagination measurements.
+
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and
 scroll the editor frame without a content/history change. Unrelated folds remain.

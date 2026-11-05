@@ -1,6 +1,7 @@
 """Cached, bounded PDF export with no network or arbitrary filesystem resources."""
 
 import fcntl
+import json
 import logging
 import os
 import re
@@ -15,7 +16,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 2
+PDF_PRESENTATION_VERSION = 3
 
 
 def split_pdf_paragraph(paragraph, fraction):
@@ -60,6 +61,14 @@ def split_pdf_paragraph(paragraph, fraction):
     return before
 
 
+def pdf_content_boxes(page):
+    from weasyprint.formatting_structure.boxes import MarginBox
+
+    for child in page._page_box.children:
+        if not isinstance(child, MarginBox):
+            yield from child.descendants()
+
+
 def defer_pdf_figures(markup, document):
     """Fill figure-induced gaps within their chapter, preserving prose order."""
     from bs4 import BeautifulSoup, Tag
@@ -68,7 +77,7 @@ def defer_pdf_figures(markup, document):
     soup = BeautifulSoup(markup, "html.parser")
     positions = {}
     for page_number, page in enumerate(document.pages):
-        for box in page._page_box.descendants():
+        for box in pdf_content_boxes(page):
             if isinstance(box, BlockBox) and box.element is not None:
                 key = box.element.get("data-pdf-flow")
                 if key:
@@ -84,10 +93,10 @@ def defer_pdf_figures(markup, document):
         page_number = locations[0][0]
         if page_number == 0:
             continue
-        current = document.pages[page_number]._page_box
+        current = document.pages[page_number]
         heading_elements = {
             element
-            for box in current.descendants()
+            for box in pdf_content_boxes(current)
             if box.element_tag in {"h1", "h2", "h3", "h4", "h5", "h6"} and box.element is not None
             for element in box.element.iter()
         }
@@ -96,14 +105,15 @@ def defer_pdf_figures(markup, document):
             and box.position_y < locations[0][2]
             and box.element not in heading_elements
             and box.text.strip()
-            for box in current.descendants()
+            for box in pdf_content_boxes(current)
         ):
             continue
-        previous = document.pages[page_number - 1]._page_box
+        previous_page = document.pages[page_number - 1]
+        previous = previous_page._page_box
         bottom = max(
             (
                 box.position_y + box.height
-                for box in previous.descendants()
+                for box in pdf_content_boxes(previous_page)
                 if isinstance(box, TextBox) or box.element_tag == "img"
             ),
             default=previous.content_box_y(),
@@ -198,16 +208,41 @@ class RenderErrors(logging.Handler):
         self.messages.append(record.getMessage())
 
 
-def render_pdf(version, destination):
+def running_sections(markup):
+    from bs4 import BeautifulSoup
+
+    from library.services.book_views import section_title
+
+    soup = BeautifulSoup(markup, "html.parser")
+    for section in soup.select(".reader-content section"):
+        title = section_title(section)
+        if title is not None:
+            title["data-pdf-section"] = title.get("data-reading-marker", "") + title.get_text(
+                " ", strip=True,
+            )
+        else:
+            section["data-pdf-section"] = section.get("id", "Untitled section")
+    for heading in soup.select(".reader-content h2, .reader-content h3"):
+        if heading.find_parent("section") is None:
+            heading["data-pdf-section"] = heading.get("data-reading-marker", "") + heading.get_text(
+                " ", strip=True,
+            )
+    return str(soup)
+
+
+def render_pdf(version, destination, reading_style=None):
     from django.template.loader import render_to_string
     from weasyprint import CSS, HTML
+    from weasyprint.text.fonts import FontConfiguration
 
     from library.profile import source_name
     from library.services.book_views import publication_view
     from library.services.document_metadata import metadata_rows
+    from library.services.reading_styles import DEFAULTS, FONT_FILES, style_css, validate_style
     from library.services.storage import read_blob
     from library.views import toc_tree
 
+    reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
     assets = {
         f"https://reading-hub.invalid/assets/{asset.blob_id}/": asset.blob
         for asset in version.assets.select_related("blob")
@@ -215,6 +250,17 @@ def render_pdf(version, destination):
     failures = []
 
     def fetch(url, *args, **kwargs):
+        prefix = "https://reading-hub.invalid/static/library/fonts/"
+        if url.startswith(prefix) and url.removeprefix(prefix) in FONT_FILES:
+            path = STYLES / "fonts" / url.removeprefix(prefix)
+            try:
+                data = path.read_bytes()
+            except OSError as exc:
+                failures.append(f"Bundled PDF font unavailable: {path.name}")
+                raise ValueError(failures[-1]) from exc
+            return {
+                "string": data, "mime_type": "font/otf" if path.suffix == ".otf" else "font/ttf",
+            }
         blob = assets.get(url)
         if blob is None:
             failures.append(f"PDF resource is not an image belonging to this version: {url}")
@@ -246,17 +292,21 @@ def render_pdf(version, destination):
     renderer_logger = logging.getLogger("weasyprint")
     renderer_logger.addHandler(errors)
     try:
+        font_config = FontConfiguration()
         stylesheets = [
             CSS(string=version.stylesheet, url_fetcher=fetch),
             CSS(filename=str(STYLES / "print.css"), url_fetcher=fetch),
+            CSS(string=style_css(
+                reading_style, font_base="https://reading-hub.invalid/static/library/fonts/",
+            ), url_fetcher=fetch, font_config=font_config),
         ]
-        markup = mark_pdf_flow(markup)
+        markup = mark_pdf_flow(running_sections(markup))
         # Moves are forward-only; remeasure after each layout rather than treating
         # an earlier move as proof that later image gaps have been filled.
         for attempt in range(32):
             document = HTML(
                 string=markup, base_url="https://reading-hub.invalid/", url_fetcher=fetch
-            ).render(stylesheets=stylesheets)
+            ).render(stylesheets=stylesheets, font_config=font_config)
             if failures or errors.messages:
                 raise PDFExportError("; ".join(failures + errors.messages))
             if attempt == 31:
@@ -275,11 +325,15 @@ def render_pdf(version, destination):
         errors.close()
 
 
-def cached_pdf(version):
+def cached_pdf(version, reading_style=None):
+    from library.services.reading_styles import DEFAULTS, style_digest, validate_style
+
+    reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
     directory = settings.DATA_DIR / "pdf"
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     destination = directory / (
-        f"{version.pk}-{version.identity}-{APP_VERSION}-p{PDF_PRESENTATION_VERSION}.pdf"
+        f"{version.pk}-{version.identity}-{APP_VERSION}-{style_digest(reading_style)}"
+        f"-p{PDF_PRESENTATION_VERSION}.pdf"
     )
     if destination.exists():
         return destination
@@ -300,6 +354,7 @@ def cached_pdf(version):
                     "-m",
                     "library.services.pdf",
                     str(version.pk),
+                    json.dumps(reading_style, sort_keys=True),
                     name,
                 ],
                 cwd=settings.BASE_DIR,
@@ -344,8 +399,12 @@ def main():
 
     django.setup()
     from library.models import Rendition
+    from library.services.reading_styles import validate_style
 
-    render_pdf(Rendition.objects.select_related("document").get(pk=int(sys.argv[1])), sys.argv[2])
+    render_pdf(
+        Rendition.objects.select_related("document").get(pk=int(sys.argv[1])), sys.argv[3],
+        validate_style(json.loads(sys.argv[2])),
+    )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+<details class="reading-style-controls">
+  <summary>Reading &amp; PDF style</summary>
+  <p>Changes affect presentation only, not the saved edition or review status. Apply settings first: Download PDF uses exactly the settings currently shown in the publication. Font sizes and spacing apply to print too; page wrapping will differ.</p>
+  <form method="get">
+    {% if style_preview %}<input type="hidden" name="draft" value="{{ request.GET.draft }}"><input type="hidden" name="revision" value="{{ candidate.revision.revision }}">{% endif %}
+    <label>Reusable profile
+      <select name="style_profile">
+        {% if not reading_style_profile %}<option value="">Current applied settings (choose a profile to load)</option>{% endif %}
+        <option value="marxist"{% if reading_style_profile == 'marxist' %} selected{% endif %}>{{ reading_preset_name }}</option>
+        {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}"{% if reading_style_profile == profile.pk|stringformat:'s' %} selected{% endif %}>{{ profile.name }}{% if profile.is_default %} (your default){% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" name="style_action" value="load">Load selected profile</button>
+    <div class="reading-style-fields">{{ reading_style_form.as_p }}</div>
+    <button type="submit" name="style_action" value="apply">Apply to publication &amp; PDF</button>
+  </form>
+    {% if user.is_authenticated and not style_preview %}
+    <form method="post" action="{% url 'reading-style-save' version.pk %}">
+    {% csrf_token %}<input type="hidden" name="style" value="{{ reading_style_token }}">
+    <fieldset><legend>Save or replace a personal profile</legend>
+      <p>Save the currently applied settings. The shared Marxist preset is read-only. Save your changes under your own name; the same personal name replaces your saved profile.</p>
+      <label>Profile name <input name="profile_name" maxlength="100"></label>
+      <label><input type="checkbox" name="make_default"> Also make this my default for other publications</label>
+      <button type="submit">Save my profile</button>
+    </fieldset>
+    </form>
+    <form method="post" action="{% url 'reading-style-default' version.pk %}">
+      {% csrf_token %}
+      <label>Default for all your publications <select name="style_profile">
+        <option value="marxist"{% if reading_default_profile == 'marxist' %} selected{% endif %}>{{ reading_preset_name }}</option>
+        {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}"{% if profile.is_default %} selected{% endif %}>{{ profile.name }}{% if profile.is_default %} (your default){% endif %}</option>{% endfor %}
+      </select></label>
+      <button type="submit">Make selected profile my default</button>
+    </form>
+    {% elif not user.is_authenticated %}<p>Sign in to save profiles and choose a personal default. Applying settings and downloading styled PDFs do not require an account.</p>{% endif %}
+  <p>OpenDyslexic is an optional preference, not a treatment or guarantee of easier reading. Font support varies by language. Liberation and OpenDyslexic are bundled under the SIL Open Font License; unsupported glyphs may use system fallback fonts.</p>
+</details>

@@ -1611,6 +1611,36 @@ Cached exports exclude private annotations; browser printing may include marks
 visible to their owner. Only one uncached render runs at a time; busy/resource/
 timeout errors leave cached reading intact.
 
+Migration `0027_reading_style_profiles` adds private per-user style profiles and
+a unique personal default. It does not update corrections, publications or their
+content. Apply migrations before restarting a local instance with these controls.
+The shared Marxist preset lives in code and cannot be overwritten by a profile.
+Reader/preview settings and PDF use the same validated, bounded CSS generator.
+The PDF link snapshots applied settings in a signed token; the cache includes the
+style digest and presentation version 3. No cache deletion or edition rewrite is
+needed. Default changes only affect subsequent views without an explicit style.
+
+PDF running matter uses top-left book title, top-right current section title and
+centered current/total footer. Separate bounded header columns avoid overlap.
+Body-gap measurements exclude margin boxes so these strings do not interfere
+with figure deferral. Downloads remain free of private annotations.
+
+Fonts are served locally under CSP `font-src 'self'`; PDF fetching permits only
+the exact bundled font filenames and this rendition's bound images. Both CSS and
+WeasyPrint layout share one font configuration so font-face declarations actually
+embed, rather than silently falling back. Missing required font bytes fail export
+explicitly. Bundled unmodified fonts:
+
+- Liberation Serif/Sans/Mono 2.1.5, regular/bold/italic/bold-italic, from the installed
+  `ttf-liberation` distribution; see
+  [Liberation OFL](../library/static/library/fonts/Liberation-OFL.txt).
+- OpenDyslexic 0.990, the same four faces, from
+  [antijingoist/opendyslexic at 1824da5c](https://github.com/antijingoist/opendyslexic/tree/1824da5c0e41dc3e13ffc7f3a636dcaf695d61b7/compiled);
+  see [OpenDyslexic OFL](../library/static/library/fonts/OFL.txt).
+
+Unsupported glyphs may still use installed language fallback fonts. These
+preferences are not an accessibility certification or a dyslexia treatment.
+
 Further queue/pagination/performance changes are explicitly deferred in
 [TASKS](../TASKS.md). Do not treat historical tuning notes as a request for
 more exporter development.

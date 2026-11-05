@@ -10,6 +10,7 @@ from library import (
     document_editor_views,
     metadata_views,
     organization_views,
+    reading_style_views,
     review_views,
     reviewer_evaluation_views,
     views,
@@ -17,6 +18,11 @@ from library import (
 )
 
 urlpatterns = [
+    path("reading-style.css", reading_style_views.stylesheet, name="reading-style-css"),
+    path("versions/<int:pk>/reading-style/save/", reading_style_views.save_profile,
+         name="reading-style-save"),
+    path("versions/<int:pk>/reading-style/default/", reading_style_views.default_profile,
+         name="reading-style-default"),
     path("review/", review_views.overview, name="work-review"),
     path("", views.home, name="home"),
     path("accounts/signup/", account_views.signup, name="signup"),

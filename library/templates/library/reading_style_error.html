@@ -1,0 +1,9 @@
+{% extends 'library/base.html' %}
+{% block title %}Reading style error | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Reading style could not be saved</h1>
+  <ul role="alert">{% for error in style_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+  <p>Use your browser's Back button to correct the settings, or <a href="{% url 'reader' version.pk %}">return to the publication</a>. The saved edition is unchanged.</p>
+</div>
+{% endblock %}

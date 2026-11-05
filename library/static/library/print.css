@@ -4,10 +4,26 @@
 .document-contents > .editor-document-toc { padding-inline-start: 0; }
 .document-contents { margin-block: 2rem; }
 .document-contents h2 { bookmark-level: none; }
+.reading-style-controls { margin: 1rem auto; padding: 1rem; max-width: 70rem; border: 1px solid var(--line, #ccc); }
+.reading-style-controls summary { cursor: pointer; font-weight: bold; }
+.reading-style-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .75rem; }
+.reading-style-fields p { margin: .25rem 0; }
+.reading-style-fields label { display: block; }
+.reading-style-fields :is(input:not([type=checkbox]), select) { max-width: 100%; }
+.reading-style-fields .helptext { display: block; font-size: .85rem; }
+.reading-style-controls fieldset, .reading-style-controls form { margin-block: .75rem; }
 .reader-content [data-reading-marker]::before { content: attr(data-reading-marker); }
 @media print {
+  @page {
+    @top-left { content: string(book-title); width: 48%; text-align: left; font: 8pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @top-right { content: string(section-title); width: 48%; text-align: right; font: 8pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @bottom-center { content: counter(page) " / " counter(pages); font: 9pt "Liberation Sans", sans-serif; }
+  }
+  .document-header h1 { string-set: book-title content(); }
+  .document-contents h2 { string-set: section-title content(); }
+  [data-pdf-section] { string-set: section-title attr(data-pdf-section); }
   html, body { background: white !important; color: black; }
-  .site-header, .site-footer, .reader-toolbar, .reader-review-entry, .review-navigation, .toc-panel, .version-details,
+  .site-header, .site-footer, .reader-toolbar, .reader-review-entry, .review-navigation, .toc-panel, .version-details, .reading-style-controls,
   .annotation-toolbox, .site-messages, .skip-link, .print-options, .reading-column > noscript { display: none !important; }
   .reader-layout, .reading-column { display: block; max-width: none; margin: 0; padding: 0; }
   .document-header { padding: 0 0 6mm; margin: 0 0 6mm; break-inside: avoid; break-after: page; page-break-after: always; }

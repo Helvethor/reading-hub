@@ -161,8 +161,23 @@ to select a set, then right-click (or **Shift+F10**) to choose **None**, **Bulle
 on the selected set keeps it selected. Each style numbers its matching siblings
 in current order; other styles and unnumbered entries are skipped. These choices
 are saved entry properties, undoable together, without adding prefixes to titles.
-Ordinary clicks navigate; Escape clears selection. Reader/PDF presentation is
-unchanged.
+Ordinary clicks navigate; Escape clears selection. Published contents, heading
+prefixes and PDF bookmarks carry the same numbering without rewriting titles.
+
+On a publication, expand **Reading & PDF style**, select/load a profile or adjust
+settings, then **Apply to publication & PDF**. Download PDF uses those applied
+settings, even if a saved profile changes later. Choose paragraph/title alignment,
+fonts (including bundled OpenDyslexic), size, spacing, line length, contrast,
+hyphenation and optional italic/underline-to-bold display. Explicit block alignment
+is preserved. Page wrapping differs between browser and PDF.
+
+Sign in to save or replace a named personal profile, reuse it on another
+publication, or make it your personal default. The shared **Marxist** profile is
+read-only and available to everyone; changes never alter the saved edition or
+another reader's settings. Apply before saving: the save form stores the currently
+displayed settings, not unapplied inputs. PDFs have book/section running headers
+and a centered current/total page footer. OpenDyslexic is an optional preference,
+not a guarantee of easier reading.
 
 **Paragraph alignment** in Selection tools sets left, center, right or justified
 alignment on the current paragraph, heading or preformatted block. Click an

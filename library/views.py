@@ -145,11 +145,16 @@ def toc_tree(entries):
 def reader(request, pk):
     from library.services.book_views import publication_view
     from library.services.document_metadata import metadata_rows
+    from library.services.reading_styles import style_context
 
     rendition = get_object_or_404(Rendition.objects.select_related("document", "snapshot"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition)
     if destination:
         return destination
+    try:
+        reading_style = style_context(request)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type="text/plain")
     projection = publication_view(rendition.html, rendition.structure["toc"]) if getattr(
         rendition, "document_publication", None,
     ) else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
@@ -157,6 +162,7 @@ def reader(request, pk):
         request,
         "library/reader.html",
         {
+            **reading_style,
             "version": rendition,
             "display_author": rendition.metadata.get("author", "").strip()
             or source_name(rendition.document.url),
@@ -240,12 +246,17 @@ def reader_stylesheet(request, pk):
 
 @require_GET
 def reader_pdf(request, pk):
+    from library.services.reading_styles import selected_style
     rendition = get_object_or_404(Rendition.objects.select_related("document"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition, pdf=True)
     if destination:
         return destination
     try:
-        path = cached_pdf(rendition)
+        reading_style = selected_style(request)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type="text/plain")
+    try:
+        path = cached_pdf(rendition, reading_style)
         return FileResponse(
             path.open("rb"),
             content_type="application/pdf",

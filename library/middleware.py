@@ -6,7 +6,7 @@ class ReaderPolicyMiddleware:
         response = self.get_response(request)
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; style-src 'self'; script-src 'self'; "
-            "img-src 'self'; connect-src 'self'; form-action 'self'; "
+            "img-src 'self'; font-src 'self'; connect-src 'self'; form-action 'self'; "
             "base-uri 'none'; frame-ancestors 'none'"
         )
         response.headers["Referrer-Policy"] = "same-origin"

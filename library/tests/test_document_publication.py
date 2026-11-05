@@ -359,6 +359,30 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(css.content.decode(), self.rendition.stylesheet)
         self.assertEqual(css["Content-Type"], "text/css; charset=utf-8")
 
+    def test_preview_styles_match_reader_and_invalid_styles_do_not_render_partial_candidate(self):
+        from django.db import OperationalError
+
+        from library.services.reading_styles import DEFAULTS, style_token
+
+        settings = {**DEFAULTS, "font_mode": "dyslexic", "font_size": 18}
+        response = self.client.get(self.url + self.query + "&style=" + style_token(settings))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reading_style"], settings)
+        self.assertContains(response, "Apply to publication &amp; PDF")
+        self.assertNotContains(response, "Save my profile")
+        self.assertContains(response, 'name="revision" value="1"')
+        invalid = self.client.get(self.url + self.query + "&style=tampered")
+        self.assertEqual(invalid.status_code, 422)
+        self.assertContains(invalid, "Reading style link is invalid", status_code=422)
+        self.assertFalse(invalid.context.get("candidate"))
+        with patch("library.services.reading_styles.style_context",
+                   side_effect=OperationalError("database is locked")):
+            locked = self.client.get(self.url + self.query)
+        self.assertEqual(locked.status_code, 409)
+        self.assertFalse(locked.context.get("candidate"))
+        self.assertEqual(Rendition.objects.count(), 1)
+        self.assertFalse(DocumentPublication.objects.exists())
+
     def test_publish_is_idempotent_preserves_evidence_and_does_not_verify(self):
         result = self.publish()
         self.assertEqual(self.publish().pk, result.pk)
