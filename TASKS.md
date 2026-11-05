@@ -121,8 +121,15 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   movable excerpt section with persistent origin ID/URL, distinct from current
   containment. Preserve exact selected nodes, Undo, save/recovery/comparison and
   publication; block missing/cyclic origins at certification/publication.
-  Frontend/backend regression checks pass; copied real-book browser acceptance
-  is pending for this increment.
+  Bounded 2026-11-05 acceptance: an isolated copy of edition-80 revision 10
+  passed browser-driven extraction, exact paragraph-node preservation,
+  independent movement, Undo/Redo, origin/metadata save/reopen, deletion guards
+  and boundary-only removal/Undo. All 388 original targets, 325 links,
+  media/preformatted markup and original text survived; only the new excerpt
+  heading adds text. Reader/ToC/PDF checks passed for the book (120 pages) and
+  article 52 (28 pages, still an article). Article extraction was service-driven;
+  browser selection/menus used programmatic events, not independent human
+  usability/accessibility acceptance. Live source/corrections were unchanged.
 - [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
   overwriting corrected documents. These remain explicit legacy source-graph
   operations, not ordinary editor-save effects.

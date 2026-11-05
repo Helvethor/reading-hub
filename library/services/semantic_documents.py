@@ -134,7 +134,9 @@ class SemanticParser(HTMLParser):
             if name in {"data-section-title", "data-excerpt-parent"} and (
                 not value or re.search(r"[\s\x00-\x1f]", value)
             ):
-                raise ValueError("Section title bindings require a heading target ID.")
+                raise ValueError(
+                    "Section bindings require a nonempty target ID without whitespace."
+                )
             if name == "data-section-group" and (
                 len(value) > 1000 or re.search(r"[\x00-\x1f\x7f]", value)
             ):

@@ -759,6 +759,18 @@ certification/publication. No raw-source excerpt definition is changed.
 Cross-work catalogue attach/detach remains a separate legacy operation; deleting
 a document section does not publish it as another work.
 
+The authoritative-section/excerpt increment was checked on 2026-11-05 with
+181 frontend and 147 focused backend regressions. An isolated edition-80
+revision-10 branch passed browser-driven paragraph extraction, independent
+movement to document end, exact selected-node/Undo/Redo preservation, group/role
+changes, origin save/reopen, blocked parent deletion and unwrap/Undo.
+All 388 original targets, 325 links, media/preformatted markup and original text
+were preserved. Book reader/ToC and PDF (120 pages) passed; service-driven
+article-52 extraction also passed reader/ToC/PDF (28 pages) without changing its
+article classification. Browser selection/actions used programmatic events;
+these results are not independent human usability or accessibility acceptance.
+The live original editions and saved correction remained unchanged.
+
 Bounded validation on 2026-11-05 used an isolated database/blob copy, not live
 corrections: edition-80 revision-10 Appendix repair, metadata/order save/reopen,
 explicit publication, and separate original-content restoration passed.

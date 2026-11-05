@@ -544,6 +544,31 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(candidate["output"]["structure"]["parts"], [])
         self.assertEqual(draft.evidence["structure"]["parts"][0]["id"], "c1")
 
+    def test_unwrapped_target_and_cleared_properties_do_not_restore_source_organization(self):
+        from library.services.document_edits import create_draft
+
+        self.rendition.structure["parts"] = [{
+            "id": "c1", "url": "https://example.org/source", "title": "Original",
+            "group": "Old group", "use_source_headings": True,
+            "section": "raw-source-section", "excerpt": {"historical": "selector"},
+        }]
+        self.rendition.save(update_fields=["structure"])
+        draft = create_draft(self.rendition, self.reviewer)
+        save_revision(draft, self.reviewer, {
+            **draft.document,
+            "html": '<section id="c1" data-section-url="" data-section-group="">'
+            '<h2>Corrected</h2><p>Content.</p></section>',
+        }, 0)
+        part = prepare_publication(draft, 1)["output"]["structure"]["parts"][0]
+        self.assertEqual(part, {"id": "c1", "title": "Corrected", "role": "chapter"})
+        save_revision(draft, self.reviewer, {
+            **draft.document,
+            "html": '<span id="c1"></span><h2>Corrected</h2>'
+            '<p>Content. <a href="#c1">Return</a></p>',
+        }, 1)
+        candidate = prepare_publication(draft, 2)
+        self.assertEqual(candidate["output"]["structure"]["parts"], [])
+
     def test_excerpt_origin_survives_move_save_reopen_publication_and_pdf(self):
         markup = (
             '<section id="origin"><h2>Parent</h2><p>Remaining.</p></section>'
