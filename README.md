@@ -129,7 +129,8 @@ block past one adjacent text block in the same container. Links, targets and the
 text selection are preserved; moves are separately undoable and reset review
 scope to partial. Cross-container moves and structural/media moves remain planned.
 
-The editor workspace has a fixed-height scrolling canvas, a persistent compact
+The editor workspace has a vertically resizable scrolling canvas (drag its
+bottom-right handle), a persistent compact
 command bar and a book outline. Right-click selected text, press **Shift+F10** or
 use **Selection tools** for formatting, paragraph types and moves at the selection.
 The menu supports arrow keys, Home/End and Escape. **Block labels** shows semantic

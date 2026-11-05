@@ -60,6 +60,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Shift+F10")
         self.assertContains(response, 'aria-label="Book parts"')
         self.assertContains(response, "Whole book")
+        self.assertContains(response, "bottom-right resize handle")
         for value, label in (("book", "Whole book"), ("title", "Title"),
                              ("toc", "ToC"), ("sections", "Sections")):
             self.assertContains(response, f'<option value="{value}">{label}</option>')

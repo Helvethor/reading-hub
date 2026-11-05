@@ -13,7 +13,7 @@
 .editor-workspace { border: 1px solid #98a48e; border-radius: .4rem; overflow: hidden; }
 #editor-status, #editor-error { margin: 0; padding: .4rem .75rem; font-size: .85rem; }
 #editor-error:empty { display: none; }
-.editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: clamp(22rem, 65vh, 52rem); }
+.editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: clamp(22rem, 65vh, 52rem); min-height: 22rem; resize: vertical; overflow: hidden; }
 .editor-outline { min-height: 0; overflow: auto; overflow-anchor: none; padding: .75rem; background: #f8f9f5; border-right: 1px solid #cbd1c4; }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
 .editor-section-controls { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: #f8f9f5; }
@@ -176,7 +176,7 @@
 #editor-link-targets { max-height: 12rem; overflow: auto; }
 #editor-link-targets button { display: block; width: 100%; text-align: start; white-space: normal; overflow-wrap: anywhere; margin-block: .3rem; }
 @media (max-width: 760px) {
-  .editor-workspace-body { grid-template-columns: minmax(0, 1fr); height: clamp(20rem, 65vh, 40rem); }
+  .editor-workspace-body { grid-template-columns: minmax(0, 1fr); height: clamp(20rem, 65vh, 40rem); min-height: 20rem; }
   .editor-outline { display: none; }
   #editor-outline-toggle { display: inline-block; }
   .editor-workspace-body.editor-outline-open { grid-template-rows: 11rem minmax(0, 1fr); }

@@ -1015,7 +1015,12 @@ recovery, but session storage is not a durable server save or cross-device backu
 Browser storage failures and save failures are shown explicitly. Disabling the
 flag hides the workspace without deleting retained draft/revision evidence.
 
-The editor uses a fixed-height internally scrolling canvas; its compact command
+The editor uses a vertically resizable internally scrolling canvas. Drag the
+bottom-right handle to resize the outline and canvas together, independently of
+the toolbar. The initial viewport-based height is retained until resized, with a
+22rem desktop / 20rem mobile minimum. The height is tab-local layout, not saved
+document content.
+Its compact command
 bar stays outside the content scroll. Metadata and review details start collapsed.
 Select text and right-click for **Selection tools** at the pointer; **Shift+F10**
 or the command-bar button offers the same menu for keyboard/touch users. Arrow keys,

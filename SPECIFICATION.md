@@ -1005,7 +1005,7 @@ insertion rather than inventing conversions. General cross-block replacement
 remains unavailable.
 
 The editor uses a self-hosted outlined I-beam pointer and an explicit dark caret
-on its white canvas. The workspace has a fixed-height internally scrolling canvas,
+on its white canvas. The workspace has a vertically resizable internally scrolling canvas,
 compact always-available command bar, collapsible metadata/review controls, and a
 book outline. Right-click, Shift+F10 and a keyboard/touch Selection tools button
 open the same viewport-bounded menu, pinned to the current selection. Styling

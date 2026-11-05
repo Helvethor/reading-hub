@@ -219,6 +219,12 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   exact original prose, one-step Undo/Redo with ToC view/focus retained, keyboard
   menu/Escape and a themed menu fitting the 390px viewport. Events were dispatched,
   not native OS pointer acceptance; live corrections were not saved or published.
+- [x] Allow vertical resizing of the editor body using the browser's bottom-right
+  handle, with outline/canvas resizing together and a desktop/mobile minimum.
+  The toolbar stays outside the resizable area. All 26 editor-view tests pass;
+  rendered 1200px/390px checks verified 800px growth, 352px/320px minimums,
+  internal scrolling and unchanged prose/toolbar geometry. Native drag acceptance
+  remains unverified because pointer input did not resize the hidden shared page.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent
