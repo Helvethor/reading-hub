@@ -122,7 +122,7 @@
 #editor-sections[hidden] { display: none; }
 #editor-publication { display: inline-block; margin: .75rem 0; font-weight: 700; }
 #editor-publication[hidden] { display: none; }
-#editor-surface .tiptap { position: relative; min-height: 100%; box-sizing: border-box; padding: 1.2rem 1.2rem 1.2rem 5rem; background: white; color: #302221; white-space: pre-wrap; }
+#editor-surface .tiptap { --editor-label-gutter: 3.2rem; position: relative; min-height: 100%; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
 /* Keep the editor root's caret policy, but render source HTML spacing like the reader. */
 #editor-surface .tiptap > * { white-space: normal; }
 #editor-surface .tiptap pre { white-space: pre-wrap; }
@@ -130,7 +130,10 @@
 #editor-surface:focus-within { box-shadow: inset 0 0 0 2px #486b38; }
 #editor-surface .tiptap:focus { outline: none; }
 #editor-surface .editor-outside-part { display: none !important; }
-#editor-surface .editor-labelled-block::before { content: attr(data-editor-block) / ""; position: absolute; left: .4rem; width: 3.8rem; margin-top: .3em; padding: .1rem; border-inline-end: 1px solid #cbd1c4; font: .75rem/1.5 system-ui, sans-serif; letter-spacing: .02em; text-align: start; color: #4c554b; pointer-events: none; user-select: none; }
+#editor-surface .tiptap .editor-labelled-block { position: relative; margin-inline-start: var(--editor-label-gutter); border-inline-start: 1px solid var(--editor-border, #cbd1c4); padding-inline-start: .65rem; }
+#editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before { content: attr(data-editor-block) / ""; position: absolute; inset-inline-end: calc(100% + .35rem); top: 0; box-sizing: border-box; width: calc(var(--editor-label-gutter) - .55rem); padding-block-start: .2rem; font: .7rem/1.5 system-ui, sans-serif; letter-spacing: .02em; text-align: end; color: var(--muted, #4c554b); pointer-events: none; user-select: none; }
+#editor-surface .editor-leaf-label { display: block; position: relative; height: 0; width: 0; margin-inline-start: var(--editor-label-gutter); pointer-events: none; user-select: none; }
+#editor-surface .tiptap .editor-external-block-label { margin-block-start: 0; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu) { box-sizing: border-box; position: fixed; z-index: 1000; width: min(19rem, calc(100vw - 1rem)); max-height: min(38rem, calc(100dvh - 1rem)); overflow: auto; padding: .4rem; border: 1px solid #98a48e; border-radius: .4rem; background: #fff; color: #302221; box-shadow: 0 .3rem 1.5rem #0003; }
@@ -171,8 +174,8 @@
   .editor-outline-open .editor-outline { display: block; border-right: 0; border-bottom: 1px solid #cbd1c4; }
   .editor-part-control { order: 1; flex-basis: 100%; }
   #editor-part { width: calc(100% - 3rem); }
-  #editor-surface .tiptap { padding-inline-end: .7rem; padding-inline-start: 3.8rem; }
-  #editor-surface .editor-labelled-block::before { width: 2.8rem; font-size: .7rem; }
+  #editor-surface .tiptap { --editor-label-gutter: 2.7rem; padding-inline: .7rem; }
+  #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before { font-size: .65rem; }
 }
 #editor-quotation { width: min(38rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; }
 #editor-quotation textarea { width: 100%; box-sizing: border-box; }
@@ -181,19 +184,15 @@
 #editor-figure-preview p { margin: .4rem 0; }
 #editor-figure-preview img { display: block; max-width: 100%; max-height: 10rem; margin: .5rem auto; }
 #editor-surface .tiptap .editor-figure-group { position: relative; border-inline-start: 2px solid #718968; padding-inline-start: .8rem; margin-block: 1.5rem; }
-#editor-surface .tiptap .editor-figure-handle { display: block; width: fit-content; max-width: 100%; margin: 0 0 .5rem -4.6rem; padding: .2rem .35rem; border: 1px solid #718968; background: #edf3e8; color: #263d22; font: 700 .7rem/1.4 system-ui, sans-serif; cursor: pointer; white-space: normal; }
+#editor-surface .tiptap .editor-figure-handle { display: block; width: fit-content; max-width: 100%; margin: 0 0 .5rem; padding: .2rem .35rem; border: 1px solid #718968; background: #edf3e8; color: #263d22; font: 700 .7rem/1.4 system-ui, sans-serif; cursor: pointer; white-space: normal; }
 #editor-surface .tiptap .editor-figure-handle:focus-visible { outline: 3px solid #486b38; outline-offset: 2px; }
-#editor-surface .tiptap .editor-figure-group .editor-labelled-block::before { left: -4rem; width: 3.2rem; font-size: .65rem; }
 #editor-surface .tiptap cite { text-decoration: underline dotted #718968; text-underline-offset: .2em; }
-@media (max-width: 760px) {
-  #editor-surface .tiptap .editor-figure-handle { margin-inline-start: -3.4rem; font-size: .65rem; }
-  #editor-surface .tiptap .editor-figure-group .editor-labelled-block::before { left: -3.1rem; width: 2.5rem; font-size: .6rem; }
-}
 #editor-quotation::backdrop { background: rgb(0 0 0 / .35); }
-#editor-surface .tiptap figure.quotation { margin: 1.5rem 0; }
-#editor-surface .tiptap .quotation blockquote { margin: 0; padding-left: 1.2rem; border-left: 3px solid #a9b7a1; }
-#editor-surface .tiptap .quotation figcaption { margin-top: .65rem; padding-left: 1.2rem; font-size: .9em; }
-#editor-surface .tiptap .quotation figcaption p { margin: 0; }
+#editor-surface .tiptap figure.quotation { margin-block: 1.5rem; }
+#editor-surface .tiptap .quotation blockquote:not(.editor-labelled-block) { margin: 0; padding-left: 1.2rem; border-left: 3px solid #a9b7a1; }
+#editor-surface .tiptap .quotation figcaption { margin-top: .65rem; font-size: .9em; }
+#editor-surface .tiptap .quotation figcaption:not(.editor-labelled-block) { padding-left: 1.2rem; }
+#editor-surface .tiptap .quotation figcaption p { margin-block: 0; }
 #editor-source {
   max-width: min(54rem, 90vw);
   max-height: 85vh;

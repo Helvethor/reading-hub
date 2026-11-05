@@ -2718,11 +2718,60 @@ test("figure grouping decorations and edit handles never enter saved HTML", () =
   open('<figure><blockquote><p>Words</p></blockquote><figcaption>Source <cite>Work</cite></figcaption></figure>');
   assert.equal(editor.view.dom.querySelector(".editor-figure-handle").textContent, "FIGURE 1 · edit");
   assert(editor.view.dom.querySelector('[data-editor-block="QUOTE"]'));
-  assert(editor.view.dom.querySelector('[data-editor-block="CAPTION"]'));
+  assert(editor.view.dom.querySelector('[data-editor-block="CAP"][data-editor-block-type="CAPTION"]'));
   assert(!editor.getHTML().includes("editor-figure"));
   assert(!editor.getHTML().includes("FIGURE 1"));
   showBlockLabels(editor, false);
   assert(!editor.view.dom.querySelector(".editor-figure-handle"));
+});
+
+test("nested block labels identify their own hierarchy instead of inheriting quote or caption labels", () => {
+  const html = '<section id="s"><h2>Heading</h2><p>Outer paragraph.</p>' +
+    '<figure class="quotation"><blockquote><p id="quote-p">Quoted paragraph.</p>' +
+    '<blockquote id="inner">Nested quote.</blockquote></blockquote>' +
+    '<figcaption><p id="caption-p">Caption paragraph.</p></figcaption></figure></section>';
+  open(html);
+  const original = editor.getHTML(), json = editor.getJSON();
+  for (const [selector, label, full] of [
+    ["h2", "H2", "H2"], ["section > p", "P", "P"], ["figure", "FIG", "FIGURE"],
+    ["figure > blockquote", "QUOTE", "QUOTE"], ["#quote-p", "P", "P"],
+    ["#inner", "QUOTE", "QUOTE"], ["figcaption", "CAP", "CAPTION"], ["#caption-p", "P", "P"],
+  ]) {
+    const node = editor.view.dom.querySelector(selector);
+    assert.equal(node.dataset.editorBlock, label, selector);
+    assert.equal(node.dataset.editorBlockType, full, selector);
+    assert(node.classList.contains("editor-labelled-block"));
+  }
+  assert.match(editor.view.dom.querySelector("#caption-p").dataset.editorStructure, /figcaption \/ P/);
+  assert.equal(editor.getHTML(), original);
+  assert.deepEqual(editor.getJSON(), json);
+  assert(!undo(editor.state));
+  showBlockLabels(editor, false);
+  assert(!editor.view.dom.querySelector(".editor-labelled-block, .editor-leaf-label"));
+  assert.equal(editor.getHTML(), original);
+  showBlockLabels(editor, true);
+  assert.equal(editor.view.dom.querySelector("figcaption").dataset.editorBlock, "CAP");
+});
+
+test("image and table block labels have view-only anchors outside replaced or scrolling content", () => {
+  open('<img id="bare-image" src="/assets/' + "a".repeat(64) + '/" alt="Bare">' +
+    '<p id="image-p"><img src="/assets/' + "a".repeat(64) + '/" alt="Wrapped"></p>' +
+    '<table id="table"><tbody><tr><td><p>Cell</p></td></tr></tbody></table><hr>');
+  const original = editor.getHTML(), json = editor.getJSON();
+  for (const [selector, label] of [["#bare-image", "IMG"], ["#table", "TABLE"], ["hr", "HR"]]) {
+    const block = editor.view.dom.querySelector(selector);
+    assert(block.classList.contains("editor-external-block-label"));
+    assert.equal(block.previousElementSibling.className.includes("editor-leaf-label"), true);
+    assert.equal(block.previousElementSibling.dataset.editorBlock, label);
+    assert.equal(block.previousElementSibling.getAttribute("contenteditable"), "false");
+  }
+  assert.equal(editor.view.dom.querySelector("#image-p").dataset.editorBlock, "IMG");
+  assert(!editor.view.dom.querySelector("td [data-editor-block]"), "Table cells must not gain overlapping gutters.");
+  assert.equal(editor.getHTML(), original);
+  assert.deepEqual(editor.getJSON(), json);
+  showBlockLabels(editor, false);
+  assert(!editor.view.dom.querySelector(".editor-leaf-label"));
+  assert.equal(editor.getHTML(), original);
 });
 
 test("standalone images and image-only paragraphs gain captions without replacing the asset", () => {

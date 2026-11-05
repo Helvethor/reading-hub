@@ -190,6 +190,17 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   was an in-memory echo: its four-key document payload and recovery contained
   exact original prose without generated markup. Events were dispatched, not
   native-pointer acceptance; no live correction was saved or published.
+- [x] Place block-type labels immediately left of their own vertical guides,
+  yielding nested columns for figure/quote/caption/paragraph hierarchy.
+  Keep paragraph labels distinct from their containing quote/caption, abbreviate
+  names longer than five characters to three letters, and identify image-only
+  blocks as IMG. Add view-only anchors for replaced blocks/scrolling tables.
+  All 204 frontend tests and the build pass. A database-free browser fixture
+  measured 17 labelled blocks at 1200px and 390px: each label ends at least 3px
+  before its guide, its text fits its column, nested guides move at least one
+  gutter inward, and neither viewport had horizontal surface overflow. Label
+  toggles and typing/Undo preserved exact original HTML/JSON; no live data was
+  saved. Native pointer usability and arbitrary-depth layout are not certified.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

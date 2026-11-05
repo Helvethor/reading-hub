@@ -995,7 +995,15 @@ disabled for cross-block selections. The menu exposes checked state, arrow-key/
 Home/End navigation, Escape dismissal and focus restoration. Shift+right-click
 leaves the native browser menu available.
 
-Optional left-gutter block-type labels and a current-container/target path expose
+Optional block-type labels sit immediately left of each block's own vertical
+guide, rather than sharing a single outer gutter. Nested figure/quote/caption/
+paragraph blocks therefore form nested label columns. Paragraphs inside quotes
+and captions retain P labels; the containing block owns QUOTE or CAP. Names longer
+than five characters use three-letter shorthand (FIG, CAP); full type names remain
+in the structure path/decorations. Image-only blocks use IMG. Replaced leaf blocks
+and scrolling tables use view-only label anchors, and table-cell descendants are
+not given overlapping gutters. Disabling Block labels removes guides/anchors too.
+A current-container/target path also exposes
 document structure without inserting semantic content. Navigation shows the whole
 book or focuses one section/heading range, including nested parts and heading-only
 documents. Hiding is decoration-only: full-document serialization, tab recovery,

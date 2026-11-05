@@ -142,7 +142,8 @@ function decorations(doc, scope, labels, folds = []) {
     }
     const inTable = Array.from({length: resolved.depth}, (_, index) =>
       resolved.node(index + 1).type.name).includes("table");
-    if (labels && !inTable && (node.isTextblock || node.isLeaf || node.type.name === "table")) {
+    if (labels && !inTable && (node.isTextblock || node.isLeaf ||
+        ["table", "figure", "blockquote", "figcaption", "div", "li", "dd"].includes(node.type.name))) {
       let tag = node.type.name === "inlineRun" ? "Text" :
         node.type.name === "wrapperBlock" ? node.attrs.tag :
           node.type.name.replace(/Text$|Block$/g, "").toUpperCase();
@@ -152,15 +153,28 @@ function decorations(doc, scope, labels, folds = []) {
         ancestors.push(ancestor.type.name.replace(/Text$/g, "") +
           (ancestor.attrs.id ? ` #${ancestor.attrs.id}` : ""));
       }
-      if (ancestors.some(value => value.startsWith("figcaption")) ||
-          node.type.name.startsWith("figcaption")) tag = "CAPTION";
-      else if (ancestors.some(value => value.startsWith("blockquote"))) tag = "QUOTE";
-      else if (node.type.name === "inlineRun" && node.childCount === 1 &&
-          node.firstChild.type.name === "img") tag = "IMAGE";
+      if (node.type.name.startsWith("figcaption")) tag = "CAPTION";
+      else if (node.type.name.startsWith("blockquote")) tag = "QUOTE";
+      else if (node.isTextblock && node.childCount === 1 &&
+          node.firstChild.type.name === "img") tag = "IMG";
+      const short = {CAPTION: "CAP", FIGURE: "FIG", BLOCKQUOTE: "QUO",
+        EMPTYBLOCKTARGET: "TGT"}[tag] || (tag.length > 5 ? tag.slice(0, 3) : tag);
+      // Replaced nodes and scrolling tables cannot paint a label outside their box.
+      const externalLabel = node.isLeaf || node.type.name === "table";
       result.push(Decoration.node(pos, end, {
-        class: "editor-labelled-block", "data-editor-block": tag,
+        class: `editor-labelled-block${externalLabel ? " editor-external-block-label" : ""}`,
+        "data-editor-block": short, "data-editor-block-type": tag,
         "data-editor-structure": [...ancestors, tag + (node.attrs.id ? ` #${node.attrs.id}` : "")].join(" / "),
       }));
+      if (externalLabel) result.push(Decoration.widget(pos, view => {
+        const label = view.dom.ownerDocument.createElement("span");
+        label.className = "editor-leaf-label";
+        label.dataset.editorBlock = short;
+        label.title = tag;
+        label.setAttribute("contenteditable", "false");
+        label.setAttribute("aria-hidden", "true");
+        return label;
+      }, {side: -1, key: `block-label-${pos}-${tag}`, stopEvent: () => true}));
     }
   });
   return DecorationSet.create(doc, result);

@@ -1093,12 +1093,29 @@ only echoed in memory: the observed payload retained the four-key contract and
 exact prose, with no generated markup. Browser events were dispatched rather
 than native pointer input. No live correction was saved or published, and this
 does not validate a new printed ToC or pagination.
-Optional left-gutter **Block labels** show text/heading/list-item/table/media types;
+Optional **Block labels** sit left of each block's own vertical guide. Nested
+figures, quotes, captions and paragraphs get nested columns instead of a single
+outer column. QUOTE/CAP name the container; its paragraph children stay P.
+Names longer than five characters use three-letter shorthand (FIG, CAP), while
+the full type remains in the structure path. Image-only blocks use IMG; leaf
+and table labels have non-editable view-only anchors outside their content.
+Table-cell descendants do not gain extra gutters. Labels/guides disappear when
+Block labels is off.
+These labels show text/heading/list-item/table/media types;
 the container/target path of the current block is shown below the canvas (including
 table cells). Labels and filter classes are decorations only, absent from saved
 HTML/JSON and reader/PDF output. Direct typing, paragraph split/join and undo/redo
 remain available. Arbitrary canvas drag/drop is disabled; outline section
 drag/drop uses the section-management workflow above.
+Hierarchical-label checks: 204 frontend regressions and the production build
+passed. A database-free browser fixture measured all 17 labels across nested
+quotes, figure captions, paragraphs, image-only/standalone images, a table,
+rule and list at 1200px and 390px. Labels ended at least 3px left of their own
+guides, text fit the reserved columns, and nested guide positions advanced by at
+least one gutter without horizontal surface overflow. Toggling labels and
+typing/Undo retained exact original HTML/JSON. These are rendered/synthetic
+checks, not native-pointer acceptance or a guarantee for arbitrarily deep
+nesting. No live correction was saved or published.
 The text pointer is a self-hosted dark I-beam with a white outline, with an explicit
 dark typing caret. **Move paragraph up/down** moves the whole current paragraph,
 heading or preformatted block past one adjacent text block within its immediate
