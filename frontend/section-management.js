@@ -522,6 +522,14 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     for (const button of outline.querySelectorAll("[data-section-drop]")) delete button.dataset.sectionDrop;
     dropNotice.textContent = "";
   }
+  function dropTarget(event) {
+    const row = event.target.closest(".editor-outline-row");
+    const button = row?.querySelector("[data-section-move]");
+    if (!button) return null;
+    const rect = row.getBoundingClientRect();
+    const fraction = rect.height ? (event.clientY - rect.top) / rect.height : 0;
+    return {row, button, placement: fraction < .33 ? "before" : fraction > .67 ? "after" : "inside"};
+  }
   outline.addEventListener("dragstart", event => {
     const button = event.target.closest("[data-section-move]");
     if (!button) return;
@@ -530,32 +538,31 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     event.dataTransfer.effectAllowed = "move";
   });
   outline.addEventListener("dragover", event => {
-    const button = event.target.closest("[data-section-move]");
-    if (!dragged || !button) return;
+    if (!dragged) return;
+    const target = dropTarget(event);
+    if (!target) { clearDrop(); return; }
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
     clearDrop();
-    const rect = button.getBoundingClientRect();
-    const fraction = rect.height ? (event.clientY - rect.top) / rect.height : 0;
-    const placement = fraction < .33 ? "before" : fraction > .67 ? "after" : "inside";
-    button.dataset.sectionDrop = placement;
-    dropNotice.textContent = `Drop ${placement}: ${selectedPart(button).part.label}`;
+    target.row.dataset.sectionDrop = target.placement;
+    dropNotice.textContent = `Drop ${target.placement}: ${selectedPart(target.button).part.label}`;
   });
   outline.addEventListener("drop", event => {
     if (!dragged) return;
     event.preventDefault();
     try {
-      const button = event.target.closest("[data-section-move]");
-      if (!button) throw new Error("Drop onto a section title.");
-      const destination = selectedPart(button);
-      const rect = button.getBoundingClientRect();
-      const fraction = rect.height ? (event.clientY - rect.top) / rect.height : 0;
+      const target = dropTarget(event);
+      if (!target) throw new Error("Drop onto a section row.");
+      const destination = selectedPart(target.button);
       whole();
       moveSection(editor, {doc: dragged.doc}, dragged.index,
-        fraction < .33 ? "before" : fraction > .67 ? "after" : "inside", destination.index);
+        target.placement, destination.index);
     } catch (failure) { showError(failure.message); }
     dragged = null;
     clearDrop();
+  });
+  outline.addEventListener("dragleave", event => {
+    if (!outline.contains(event.relatedTarget)) clearDrop();
   });
   outline.addEventListener("dragend", () => { dragged = null; clearDrop(); });
   editor.on("transaction", ({transaction}) => {

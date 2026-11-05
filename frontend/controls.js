@@ -308,9 +308,12 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     openMenu(visible ? coords.left : fallback.left, visible ? coords.bottom : fallback.bottom);
   }
   trigger.addEventListener("click", openAtSelection);
-  surface.addEventListener("mousedown", event => {
+  function preserveContextSelection(event) {
     if (event.button === 2 && !editor.state.selection.empty) event.preventDefault();
-  });
+  }
+  // Run before ProseMirror's target listener, not after it has replaced the selection.
+  surface.addEventListener("pointerdown", preserveContextSelection, true);
+  surface.addEventListener("mousedown", preserveContextSelection, true);
   surface.addEventListener("contextmenu", event => {
     if (event.shiftKey) return;
     event.preventDefault();

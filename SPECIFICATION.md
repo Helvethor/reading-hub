@@ -101,7 +101,13 @@ canonical identity binding. Save/recovery, comparison and explicit publication
 retain these values; reader and PDF use the same metadata presentation.
 The editor's left Book outline now owns corrected section management: drag/drop
 before/inside/after, accessible move dialogs and up/down actions, add/restore,
-heading-boundary repair, and title/source-URL/role editing. Missing original
+heading-boundary repair, and title/source-URL/role editing. Branching guide lines
+trace the book/section/heading hierarchy. Outline fold, editor-content fold and
+section-action buttons share one column beside the title. Highlighting keeps
+font metrics and row geometry unchanged. The entire destination section row
+accepts a drop: upper/middle/lower thirds mean before/inside/after, with
+non-resizing insertion lines or an inset outline and a reserved feedback area.
+Missing original
 boundaries are diagnosed; an existing title heading can restore its missing
 section target without copying text. Section borders, start/end labels and the
 chosen title heading are editor-only decorations. Explicit title bindings, URL
@@ -123,7 +129,9 @@ rules and other semantic blocks. Ctrl/Cmd-click toggles whole blocks without
 editing or creating history; clicks inside a container select its section-level
 block. Selection outlines and block-count/gap status are view-only. A normal
 click, Escape or an arrow key returns to ordinary editing. Ctrl/Cmd-click links
-retains navigation. Right-click on selected media/links preserves the block set.
+retains navigation. Secondary-button down events are intercepted before editor
+pointer selection, so right-click on text, media or links preserves the block
+set through opening the context menu.
 Noncontiguous selections are permitted as a selection state, but extraction and
 document edits refuse until gaps are selected or the set is cleared. Complete
 range/individual block selections are also accepted. Partial blocks,

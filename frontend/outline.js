@@ -15,7 +15,8 @@ export function outlineHierarchy(parts) {
   }).map((entry, index, hierarchy) => {
     let depth = 0, parent = entry.parent;
     while (parent >= 0) { depth++; parent = hierarchy[parent].parent; }
-    return {...entry, depth, children: hierarchy.some(child => child.parent === index)};
+    return {...entry, depth, children: hierarchy.some(child => child.parent === index),
+      last: !hierarchy.some((child, other) => other > index && child.parent === entry.parent)};
   });
 }
 
@@ -125,13 +126,32 @@ export function mountDynamicOutline(editor, outline, surface, showError) {
     for (const id of collapsed) if (!currentKeys.has(id)) collapsed.delete(id);
     const folds = foldedDocumentParts(editor);
     for (const button of [...outline.querySelectorAll("[data-part]")]) {
-      if (button.dataset.part === "") continue;
+      if (button.dataset.part === "") {
+        const root = owner.createElement("div");
+        root.className = "editor-outline-root";
+        button.before(root);
+        root.append(button);
+        continue;
+      }
       const index = Number(button.dataset.part), part = parts[index];
       const row = owner.createElement("div");
       row.className = "editor-outline-row";
       row.dataset.outlineIndex = String(index);
-      row.style.setProperty("--outline-depth", String(Math.min(hierarchy[index].depth, 8)));
       button.before(row);
+      const guides = owner.createElement("span");
+      guides.className = "editor-outline-guides";
+      guides.setAttribute("aria-hidden", "true");
+      const lineage = [index];
+      while (hierarchy[lineage[0]].parent >= 0) lineage.unshift(hierarchy[lineage[0]].parent);
+      for (const ancestor of lineage) {
+        const guide = owner.createElement("span");
+        guide.className = ancestor === index ? "editor-outline-branch" : "editor-outline-continuation";
+        if (hierarchy[ancestor].last) guide.classList.add("editor-outline-last");
+        guides.append(guide);
+      }
+      const controls = owner.createElement("span");
+      controls.className = "editor-outline-row-controls";
+      row.append(guides, controls, button);
       const badge = owner.createElement("span");
       badge.className = "editor-outline-kind";
       badge.textContent = part.kind === "Section"
@@ -148,11 +168,11 @@ export function mountDynamicOutline(editor, outline, surface, showError) {
         const toggle = owner.createElement("button");
         toggle.type = "button";
         toggle.dataset.outlineFold = String(index);
-        row.append(toggle);
+        controls.append(toggle);
       } else {
         const spacer = owner.createElement("span");
         spacer.className = "editor-outline-spacer";
-        row.append(spacer);
+        controls.append(spacer);
       }
       const content = owner.createElement("button");
       content.type = "button";
@@ -161,13 +181,13 @@ export function mountDynamicOutline(editor, outline, surface, showError) {
       content.textContent = folded ? "\u25b8" : "\u25be";
       content.setAttribute("aria-expanded", String(!folded));
       content.setAttribute("aria-label", `${folded ? "Expand" : "Collapse"} editor content: ${part.label}`);
-      row.append(button, content);
+      controls.append(content);
       const actions = owner.createElement("button");
       actions.type = "button";
       actions.dataset.sectionActions = String(index);
       actions.textContent = "…";
       actions.setAttribute("aria-label", `Section actions: ${part.label}`);
-      row.append(actions);
+      controls.append(actions);
     }
     visibility();
     schedule();

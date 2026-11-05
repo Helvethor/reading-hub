@@ -713,8 +713,14 @@ feature parity is implemented; do not apply an ad-hoc database wipe.
 
 Use the left **Book outline** for corrected section structure. Open a row's
 **...** action button, right-click, or press Shift+F10. Move by dialog, up/down,
-or drag a section title to another title's top (before), middle (inside) or bottom
-(after). Drop feedback names the destination. Moves keep content, IDs, links and
+or drag a section title onto another section's row: upper third (before),
+middle third (inside), lower third (after). The whole row, including its control
+column, accepts the drop. Insertion lines mark before/after; an inset outline
+marks inside. The reserved feedback area names the destination without moving
+the targets. Branch lines trace the book/section/heading hierarchy; outline
+fold (+/−), editor-content fold (triangle), and actions (...) are stacked in one
+column beside each title. Hover/current/focus highlights do not change font
+weight or row dimensions. Moves keep content, IDs, links and
 retained assets together and are independently undoable.
 
 **Edit title / URL / role** selects the actual owned heading used as the title,
@@ -754,7 +760,9 @@ normal click, Escape or an arrow key clears the set. Link Ctrl/Cmd-click remains
 navigation, so click another part of its block for selection.
 All selected blocks must be contiguous; select intervening blocks to close gaps.
 The editor outlines each selected block and announces the count/gap status.
-Right-click even over selected media/links keeps the block set. Use **Selection
+Right-click even over selected media/links keeps the block set: secondary-button
+down is intercepted before editor pointer selection, not just at menu opening.
+Use **Selection
 tools → Separate as excerpt section**, review the block/origin preview,
 enter a title and confirm. Complete text ranges and individually selected whole
 blocks also work; partial blocks and gaps refuse.
@@ -781,6 +789,20 @@ original block content changed. Native pointer delivery was unavailable in the
 hidden browser tool page: dispatched events are not independent native-pointer,
 human usability or accessibility acceptance. No live correction was saved or
 published during this check.
+
+The subsequent context-menu/outline correction passed 190 frontend and 25
+editor-view regressions.
+An isolated, database-free synthetic browser fixture dispatched complete
+secondary-button down/context-menu/up sequences over text, links, tables and
+quotations: all three selected blocks remained selected, excerpt extraction
+preserved their exact nodes, and Undo/Redo was exact. Rendered row/title
+rectangles stayed identical across current/focus highlights and all drop
+indicators, including a before/inside/after/before sweep. All three placements
+moved a nested excerpt correctly with unchanged origin and exact Undo; disabling
+native scroll anchoring also prevented target jumps after Undo. Branch guides
+and the single control column were checked in rendered DOM. These remain
+dispatched-event/rendered-geometry checks, not independent native-pointer,
+human usability or accessibility acceptance. No live document was modified.
 
 The earlier authoritative-section/excerpt increment was checked on 2026-11-05 with
 181 frontend and 147 focused backend regressions. An isolated edition-80

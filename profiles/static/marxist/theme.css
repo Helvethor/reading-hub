@@ -61,8 +61,8 @@ button:hover, .button:hover { background: #7a1616; }
 #editor-outline-items button { color: var(--ink); }
 #editor-outline-items button:hover { background: var(--editor-hover); }
 #editor-outline-items button[aria-current="true"] { background: var(--editor-selected); color: #fffaf5; }
-.editor-outline-row { border-inline-start-color: var(--editor-border); }
-.editor-outline-visible { border-inline-start-color: var(--accent); background: var(--editor-hover); }
+.editor-outline { --editor-tree-line: var(--editor-border); --editor-drop-line: var(--accent); }
+.editor-outline-visible { background: var(--editor-hover); }
 #editor-outline-items .editor-outline-active > [data-part] { background: var(--editor-selected); color: #fffaf5; }
 #editor-surface .tiptap .editor-fold-placeholder { border-color: var(--accent); background: var(--editor-hover); color: var(--ink); }
 .editor-page :is(input, select, textarea),

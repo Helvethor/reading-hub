@@ -322,7 +322,7 @@ test("Ctrl-click selects container blocks while links keep navigation and Escape
   assert.equal(navigatedDocumentTarget(editor), "end");
 });
 
-test("right-clicking an image or link retains Ctrl-selected mixed blocks for excerpt creation", () => {
+test("full right-click sequences retain Ctrl-selected mixed blocks for excerpt creation", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Section</h2>' +
     '<p id="p">Text <a href="#s">Back</a></p><figure id="f">' +
     '<img src="/assets/' + "a".repeat(64) + '/" alt="Plate"><figcaption>Caption</figcaption>' +
@@ -330,13 +330,22 @@ test("right-clicking an image or link retains Ctrl-selected mixed blocks for exc
   ctrlClickBlock("#p");
   ctrlClickBlock("#f img");
   const selection = editor.state.selection;
-  for (const selector of ["#f img", "#p a"]) {
-    form.querySelector(`#editor-surface ${selector}`).dispatchEvent(new dom.window.MouseEvent(
-      "contextmenu", {bubbles: true, cancelable: true, clientX: 20, clientY: 20},
-    ));
+  let pointerSelectionReads = 0;
+  editor.view.posAtCoords = () => { pointerSelectionReads++; return null; };
+  for (const selector of ["#p", "#f img", "#p a"]) {
+    const target = form.querySelector(`#editor-surface ${selector}`);
+    for (const type of ["pointerdown", "mousedown", "mouseup", "contextmenu"]) {
+      const event = new dom.window.MouseEvent(type, {
+        button: 2, bubbles: true, cancelable: true, clientX: 20, clientY: 20,
+      });
+      target.dispatchEvent(event);
+      if (["pointerdown", "mousedown"].includes(type)) assert(event.defaultPrevented);
+      assert(editor.state.selection.eq(selection), `${type} must retain all selected blocks.`);
+    }
     assert(editor.state.selection.eq(selection));
     assert(form.querySelector("#editor-menu-target").textContent.includes("2 whole block(s)"));
   }
+  assert.equal(pointerSelectionReads, 0, "Right-click must not enter ProseMirror's pointer selection handler.");
   form.querySelector("#editor-section-excerpt-open").click();
   const dialog = document.querySelector("#editor-section-excerpt");
   assert(dialog.open);
@@ -652,12 +661,21 @@ test("sidebar context actions edit details and drag sections before inside and a
     const dataTransfer = {setData() {}};
     const from = form.querySelector(`[data-section-move="${source}"]`);
     const to = form.querySelector(`[data-section-move="${destination}"]`);
-    to.getBoundingClientRect = () => ({top: 0, height: 100});
-    for (const [node, type] of [[from, "dragstart"], [to, "drop"]]) {
+    const row = to.closest(".editor-outline-row");
+    row.getBoundingClientRect = () => ({top: 0, height: 100});
+    const placement = clientY < 33 ? "before" : clientY > 67 ? "after" : "inside";
+    for (const [node, type] of [[from, "dragstart"], [row, "dragover"], [row, "drop"]]) {
       const event = new dom.window.MouseEvent(type, {bubbles: true, cancelable: true, clientY});
       Object.defineProperty(event, "dataTransfer", {value: dataTransfer});
       node.dispatchEvent(event);
+      if (type === "dragover") {
+        assert(event.defaultPrevented);
+        assert.equal(row.dataset.sectionDrop, placement);
+        assert.match(form.querySelector(".editor-section-drop-notice").textContent,
+          new RegExp(`Drop ${placement}:`));
+      }
     }
+    assert(!form.querySelector("[data-section-drop]"));
   }
   const item = form.querySelector('[data-section-move="1"]');
   assert(item.draggable);
@@ -670,14 +688,14 @@ test("sidebar context actions edit details and drag sections before inside and a
   dialog.querySelector("[data-apply]").click();
   assert.equal(movableSections(editor.state.doc)[1].label, "Appendix");
   const detailed = editor.getHTML();
-  drag(1, 0, 0);
+  drag(1, 0, 20);
   assert.equal(movableSections(editor.state.doc)[0].node.attrs.id, "b");
   assert(undo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), detailed);
   drag(1, 0, 50);
   assert.equal(movableSections(editor.state.doc)[1].depth, 1);
   assert(undo(editor.state, editor.view.dispatch));
-  drag(0, 1, 100);
+  drag(0, 1, 80);
   assert.equal(movableSections(editor.state.doc)[0].node.attrs.id, "b");
   assert.equal(editor.state.doc.textContent.replace("Appendix", "B").length,
     "ABody.BNote".length);
@@ -1410,6 +1428,17 @@ test("outline hierarchy uses real containing ranges and independent navigation f
   assert.equal(outline.querySelector(".editor-outline-kind").textContent, "§");
   assert.equal(outline.querySelector(".editor-outline-kind").getAttribute("aria-label"), "Section");
   assert.equal(outline.querySelector(".editor-outline-title").textContent, "A");
+  assert.equal(hierarchy[a].last, false);
+  assert.equal(hierarchy[c].last, true);
+  const bRow = outline.querySelector(`[data-outline-index="${b}"]`);
+  assert.equal(bRow.querySelectorAll(".editor-outline-guides > span").length, hierarchy[b].depth + 1);
+  assert(bRow.querySelector(".editor-outline-continuation:not(.editor-outline-last)"));
+  const cRow = outline.querySelector(`[data-outline-index="${c}"]`);
+  assert(cRow.querySelector(".editor-outline-branch.editor-outline-last"));
+  const controls = outline.querySelector(`[data-outline-index="${a}"] .editor-outline-row-controls`);
+  for (const selector of ["[data-outline-fold]", "[data-content-fold]", "[data-section-actions]"]) {
+    assert(controls.querySelector(selector), `${selector} belongs in the shared control column.`);
+  }
   outline.querySelector(`[data-outline-fold="${a}"]`).click();
   assert(outline.querySelector(`[data-outline-index="${b}"]`).hidden);
   assert(!outline.querySelector(`[data-outline-index="${c}"]`).hidden);

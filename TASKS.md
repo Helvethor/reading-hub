@@ -144,6 +144,16 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   and PDF text/image checks (2 pages). Browser pointer delivery was unavailable
   in the hidden tool page; native pointer usability is not independently
   validated. Live source/corrections were unchanged.
+- [x] Preserve multi-block selection from secondary-button down through context
+  menu opening, rather than only preserving the later context-menu event.
+  Stabilize outline typography, scroll anchoring and drop feedback; use
+  whole-row before/inside/after zones, branching hierarchy guides and one
+  stacked control column. All 190 frontend and 25 editor-view regressions pass. A database-free
+  synthetic browser fixture passed full dispatched right-click sequences,
+  exact mixed-block extraction/Undo/Redo, identical rendered row/title geometry
+  across current/focus/drop states, and independent excerpt moves in all three
+  placements with origin preserved and exact Undo. Native-pointer usability
+  remains unvalidated; live corrections were not changed.
 - [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
   overwriting corrected documents. These remain explicit legacy source-graph
   operations, not ordinary editor-save effects.
