@@ -41,6 +41,7 @@ import {
 import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
+import {applyTocNumbering} from "./toc-numbering.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -616,7 +617,7 @@ test("original restoration recovers missing descendant targets for existing inbo
   assert(editor.getHTML().includes('href="#title"'));
 });
 
-function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace} = {}) {
+function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace, showError} = {}) {
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
   document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
     template.indexOf('<dialog id="editor-image"'));
@@ -629,7 +630,7 @@ function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace} =
     dialog.showModal = () => { dialog.open = true; };
     dialog.close = () => { dialog.open = false; dialog.dispatchEvent(new dom.window.Event("close")); };
   }
-  const workspace = mountWorkspace(form, editor, message => { if (message) assert.fail(message); },
+  const workspace = mountWorkspace(form, editor, showError || (message => { if (message) assert.fail(message); }),
     initial, readDocument);
   onWorkspace?.(workspace);
   return form;
@@ -812,6 +813,115 @@ test("Sections group folds independently and remains folded across content updat
   [...form.querySelectorAll(".editor-outline-options button")]
     .find(button => button.textContent === "Expand outline").click();
   assert(!form.querySelector(".editor-book-sections").hidden);
+});
+
+test("ToC entries default to none and Ctrl-click sibling selections retain right-click numbering", () => {
+  const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Body</p><h3>Nested</h3>' +
+    '<p>Detail</p></section><section id="b"><h2>Second</h2><p>End</p></section>');
+  form.querySelector('[data-book-view="toc"]').click();
+  const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
+  assert([...form.querySelectorAll("[data-toc-part]")].every(button =>
+    button.parentElement.style.listStyleType === "none"));
+  const original = editor.getHTML();
+  for (const index of [0, 2]) entry(index).dispatchEvent(new dom.window.MouseEvent("click",
+    {ctrlKey: true, bubbles: true}));
+  assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 2);
+  assert.equal(editor.getHTML(), original);
+  assert(!undo(editor.state));
+  entry(0).dispatchEvent(new dom.window.MouseEvent("mousedown", {button: 2, bubbles: true}));
+  entry(0).dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  const menu = form.querySelector("#editor-toc-menu");
+  assert(!menu.hidden);
+  assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 2);
+  assert.deepEqual([...menu.querySelectorAll("[data-toc-style]")].map(button => button.dataset.tocStyle),
+    ["none", "disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"]);
+  menu.querySelector('[data-toc-style="upper-roman"]').click();
+  assert.equal(form.querySelector("#editor-part").value, "toc", "Formatting must keep the ToC visible.");
+  assert.equal(entry(0).parentElement.style.listStyleType, "upper-roman");
+  assert.equal(entry(2).parentElement.style.listStyleType, "upper-roman");
+  assert.equal(entry(0).parentElement.value, 1);
+  assert.equal(entry(2).parentElement.value, 2);
+  assert.equal(entry(1).parentElement.style.listStyleType, "none");
+  assert.equal(editor.view.dom.querySelector("#a").getAttribute("data-toc-style"), "upper-roman");
+  assert(!editor.getHTML().includes("editor-toc"));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original, "One undo removes formatting from the whole set.");
+  assert(redo(editor.state, editor.view.dispatch));
+  const saved = editor.getHTML();
+  editor.destroy();
+  editor = null;
+  const reopened = mountSectionWorkspace(saved);
+  assert.equal(reopened.querySelector('[data-toc-part="2"]').parentElement.style.listStyleType, "upper-roman");
+});
+
+test("ToC numbering refuses mixed levels stale documents and unsupported styles; None clears persisted format", () => {
+  open('<h2>First</h2><p>Body</p><h3>Nested</h3><p>Detail</p><h2>Second</h2><p>End</p>');
+  const proposal = {doc: editor.state.doc, indices: [0, 2]};
+  assert.throws(() => applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 1]}, "disc"), /same parent and level/);
+  assert.throws(() => applyTocNumbering(editor, proposal, "bad"), /supported/);
+  const original = editor.getHTML();
+  for (const style of ["disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"]) {
+    applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, style);
+    assert.equal(editor.view.dom.querySelectorAll(`h2[data-toc-style="${style}"]`).length, 2);
+    assert(!editor.view.dom.querySelector("h3").hasAttribute("data-toc-style"));
+  }
+  assert.throws(() => applyTocNumbering(editor, proposal, "disc"), /document changed/);
+  applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, "none");
+  assert.equal(editor.getHTML(), original);
+});
+
+test("ToC selection rejects a different parent without losing the set and exposes keyboard numbering", () => {
+  const errors = [];
+  const form = mountSectionWorkspace('<h2>First</h2><p>Body</p><h3>Nested</h3>' +
+    '<p>Detail</p><h2>Second</h2><p>End</p>', {}, {showError: message => { if (message) errors.push(message); }});
+  const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
+  form.querySelector('[data-book-view="toc"]').click();
+  for (const index of [0, 1]) entry(index).dispatchEvent(new dom.window.MouseEvent("click",
+    {ctrlKey: true, bubbles: true}));
+  assert.match(errors[0], /same parent and level/);
+  assert.equal(entry(0).getAttribute("aria-pressed"), "true");
+  assert.equal(entry(1).getAttribute("aria-pressed"), "false");
+  entry(2).dispatchEvent(new dom.window.MouseEvent("click", {metaKey: true, bubbles: true}));
+  entry(0).dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "F10", shiftKey: true, bubbles: true}));
+  const menu = form.querySelector("#editor-toc-menu");
+  assert(!menu.hidden);
+  menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "End", bubbles: true}));
+  assert.equal(document.activeElement.dataset.tocStyle, "lower-alpha");
+  menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
+  assert(menu.hidden);
+  assert.equal(document.activeElement, entry(0));
+  entry(0).dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  menu.querySelector('[data-toc-style="decimal"]').click();
+  entry(2).dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  assert.equal(menu.querySelector('[aria-checked="true"]').dataset.tocStyle, "decimal");
+  menu.querySelector('[data-toc-style="none"]').click();
+  assert(!editor.getHTML().includes("data-toc-style"));
+  entry(0).dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
+  assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 0);
+});
+
+test("ToC series count only matching styled siblings and follow reorder and heading edits", () => {
+  const form = mountSectionWorkspace('<section id="a" data-toc-style="decimal"><h2>First</h2>' +
+    '<h3 data-toc-style="lower-alpha">Nested</h3><p>Detail</p></section>' +
+    '<section id="plain"><h2>Plain</h2><p>Body</p></section>' +
+    '<section id="b" data-toc-style="decimal"><h2>Second</h2><p>End</p></section>' +
+    '<section id="bullet" data-toc-style="disc"><h2>Bullet</h2><p>End</p></section>');
+  const entries = () => [...form.querySelectorAll("[data-toc-part]")].map(button => ({
+    title: button.textContent, style: button.parentElement.style.listStyleType, value: button.parentElement.value,
+  }));
+  assert.deepEqual(entries(), [
+    {title: "First", style: "decimal", value: 1}, {title: "Nested", style: "lower-alpha", value: 1},
+    {title: "Plain", style: "none", value: 1}, {title: "Second", style: "decimal", value: 2},
+    {title: "Bullet", style: "disc", value: 1},
+  ]);
+  moveSection(editor, {doc: editor.state.doc}, 2, "before", 0);
+  assert.deepEqual(entries().filter(entry => entry.style === "decimal").map(entry => [entry.title, entry.value]),
+    [["Second", 1], ["First", 2]]);
+  selectText("Second", 6);
+  editor.commands.insertContent("Renamed");
+  assert.equal(entries()[0].title, "Renamed");
+  assert.equal(entries()[0].style, "decimal");
+  assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 0);
 });
 
 test("compact selection tools expose only applicable actions and toggle alignment back to inherited", () => {

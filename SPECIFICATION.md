@@ -339,6 +339,25 @@ offer prose-selection tools. History/content navigation that changes or selects
 prose reveals Sections rather than editing unseen content. Sections-group folding
 affects navigation only and participates in Expand outline. This is not a new
 print paginator or a change to reader/PDF generation.
+
+The generated editor ToC has no markers by default. Ctrl/Cmd-click toggles
+individual entry selection without navigation; a selection is restricted to
+siblings under one outline parent. Right-click on a selected entry preserves
+the set; right-click on another selects it alone. Its numbering menu (also
+Context Menu / Shift+F10) offers None, Bullets, Decimal, upper/lower Roman and
+upper/lower Alphabetical styles. Escape clears a ToC selection or dismisses its
+menu. Each style counts matching styled siblings in current document order,
+starting at one per parent/style; plain entries and other styles do not consume
+that series. Changing order regenerates numbering, not title text.
+
+Numbering is persisted as bounded `data-toc-style` attributes on the actual
+section or heading nodes; None removes the attribute. A multi-entry change is
+one history step and an ordinary document edit, so it dirties recovery/review
+and saves with the four-key document contract. The generated list/selection/menu
+remain outside saved HTML. Styling stays in ToC view; prose Undo/Redo retains
+the editor's existing reveal-Sections behavior. Regular ToC clicks still
+navigate. Persisted preferences survive publication, but this increment changes
+only the generated editor ToC, not reader/PDF list presentation.
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and
 scroll the editor frame without a content/history change. Unrelated folds remain.

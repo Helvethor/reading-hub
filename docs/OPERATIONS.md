@@ -1080,6 +1080,22 @@ navigation reveals Sections when it changes/selects prose. Sections-group foldin
 is navigation-only; Expand outline opens it. Generated editor pages do not change
 reader/PDF rendering or supply print page numbers.
 
+**ToC numbering:** entries start without bullets/numbers. Ctrl/Cmd-click entries
+with the same parent/level, then right-click one of the selected entries to keep
+the whole set and choose None, Bullets, Decimal, Roman (upper/lower), or
+Alphabetical (upper/lower). A different-parent addition reports an error without
+discarding the current set. Context Menu / Shift+F10 opens the same keyboard
+menu; arrows/Home/End choose actions, Escape dismisses it, and Escape in the ToC
+clears selection. Ordinary clicks still navigate. Matching styles count only
+matching siblings in current order, restarting per parent/style.
+
+Changes are one undoable semantic edit, reset review to partial, and enter
+recovery/saves as `data-toc-style` on sections/headings. None removes the
+preference; titles and IDs are not rewritten. View-only generated list markup
+and selection state are never saved. Formatting stays in the ToC; Undo/Redo
+can reveal Sections under the existing history policy. Preferences survive
+publication/reopen, but reader/PDF ToC marker rendering is unchanged.
+
 Generated-view validation: 202 frontend tests and 26 focused backend tests passed,
 including the existing metadata save/reopen/comparison/publication/reader/PDF
 preservation test, plus build and Ruff. A database-free rendered browser fixture

@@ -43,7 +43,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let linkTargets = [];
   let imageProposal = null;
   let parts = [], menuTarget = null;
-  const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index));
+  const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError);
   const sectionFilter = bookViews.filter;
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
     () => bookViews.expandNavigation());
@@ -511,11 +511,14 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     showError("");
     const target = event.target;
     const bookView = target.closest("[data-book-view]")?.dataset.bookView;
+    const tocPart = target.closest("[data-toc-part]")?.dataset.tocPart;
     const partButton = target.closest(".editor-outline-row")?.querySelector("[data-part]");
     const part = partButton ? parts[Number(partButton.dataset.part)] : null;
     const command = key === "y" || event.shiftKey ? redo : undo;
     command(editor.state, editor.view.dispatch);
-    if (!target.isConnected && bookView) {
+    if (!target.isConnected && tocPart !== undefined) {
+      form.querySelector(`[data-toc-part="${tocPart}"]`)?.focus({preventScroll: true});
+    } else if (!target.isConnected && bookView) {
       outline.querySelector(`[data-book-view="${bookView}"]`)?.focus({preventScroll: true});
     } else if (!target.isConnected && partButton) {
       const index = parts.findIndex(candidate => candidate.kind === part.kind &&
@@ -625,7 +628,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let lastScope = visiblePart(editor);
   let lastFolds = foldedDocumentParts(editor);
   editor.on("transaction", ({transaction}) => {
-    const revealProse = (transaction.docChanged || transaction.selectionSet) &&
+    const revealProse = !transaction.getMeta("readingHubToc") && (transaction.docChanged || transaction.selectionSet) &&
       !["book", "sections"].includes(bookViews.view);
     if (revealProse) bookViews.show("sections");
     if (transaction.docChanged) closeMenu();

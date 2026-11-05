@@ -207,6 +207,13 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   off. All 205 frontend tests and build pass. Database-free rendered checks at
   1200px/390px observed independent 46/46/22px and 43/43/22px columns; filtering
   shrank only the affected column, and typing/Undo preserved exact HTML/JSON.
+- [x] Default generated ToC entries to no markers; add sibling Ctrl/Cmd-click
+  selection, selection-preserving context menu and None/Bullets/Decimal/
+  upper/lower Roman/Alphabetical styles. Persist bounded preferences on
+  sections/headings, preserve title text/targets, group each change into one
+  undo step, and regenerate per-parent/style series after reordering.
+  209 frontend and 35 focused backend tests pass, including actual save/reopen
+  and isolated publication preservation. Browser marker validation pending.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

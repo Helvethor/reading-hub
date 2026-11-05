@@ -151,6 +151,15 @@ or a new reader/PDF paginator. This is view-only: saving/recovery
 always includes the complete book, and focused editing cannot change hidden parts.
 Metadata and review controls are collapsed by default, not removed.
 
+The generated **ToC** is unnumbered by default. **Ctrl/Cmd-click** sibling entries
+to select a set, then right-click (or **Shift+F10**) to choose **None**, **Bullets**,
+**Decimal**, **Roman upper/lower**, or **Alphabetical upper/lower**. A right-click
+on the selected set keeps it selected. Each style numbers its matching siblings
+in current order; other styles and unnumbered entries are skipped. These choices
+are saved entry properties, undoable together, without adding prefixes to titles.
+Ordinary clicks navigate; Escape clears selection. Reader/PDF presentation is
+unchanged.
+
 **Paragraph alignment** in Selection tools sets left, center, right or justified
 alignment on the current paragraph, heading or preformatted block. Click an
 already selected alignment icon again to inherit ancestor formatting.

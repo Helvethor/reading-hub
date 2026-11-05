@@ -76,6 +76,25 @@ class DocumentPublicationTests(TestCase):
         self.assertContains(self.client.get(reverse("reader", args=[rendition.pk])),
                             "Reviewed Appendix")
 
+    def test_toc_numbering_preferences_survive_publication_without_title_prefixes(self):
+        source = self.rendition.html
+        markup = (
+            '<section id="a" data-toc-style="upper-roman"><h2>First</h2>'
+            '<h3 data-toc-style="lower-alpha">Nested</h3><p>Body</p></section>'
+            '<section id="b" data-toc-style="upper-roman"><h2>Second</h2><p>End</p></section>'
+        )
+        save_revision(self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1)
+        published = self.publish(2).rendition
+        soup = BeautifulSoup(published.html, "html.parser")
+        self.assertEqual(soup.select_one("#a")["data-toc-style"], "upper-roman")
+        self.assertEqual(soup.h3["data-toc-style"], "lower-alpha")
+        self.assertEqual(soup.h2.get_text(), "First")
+        self.assertEqual(
+            [part["title"] for part in published.structure["parts"]], ["First", "Second"],
+        )
+        self.rendition.refresh_from_db()
+        self.assertEqual(self.rendition.html, source)
+
     def test_invalid_section_title_binding_is_partial_issue_and_blocks_publication(self):
         markup = '<section id="s" data-section-title="nested"><h2>Title</h2>' \
             '<section id="child"><h3 id="nested">Child</h3></section></section>'

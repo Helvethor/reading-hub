@@ -50,6 +50,24 @@ def document(html=HTML):
 
 
 class SemanticDocumentTests(SimpleTestCase):
+    def test_toc_numbering_attributes_are_bounded_and_round_trip_without_changing_titles(self):
+        for style in (
+            "disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha",
+        ):
+            markup = (f'<section id="s" data-toc-style="{style}"><h2>Title</h2>'
+                      f'<h3 data-toc-style="{style}">Subheading</h3><p>Body</p></section>')
+            with self.subTest(style=style):
+                result = canonical_document(document(markup))
+                self.assertEqual(canonical_document(result), result)
+                self.assertIn(f'data-toc-style="{style}"', result["html"])
+                self.assertIn("<h2>Title</h2>", result["html"])
+        for markup in (
+            '<h2 data-toc-style="none">Title</h2>', '<h2 data-toc-style="bad">Title</h2>',
+            '<p data-toc-style="decimal">Body</p>',
+        ):
+            with self.subTest(markup=markup), self.assertRaises(ValueError):
+                canonical_document(document(markup))
+
     def test_round_trip_preserves_semantics_text_and_assets(self):
         result = canonical_document(document())
         self.assertEqual(canonical_document(result), result)

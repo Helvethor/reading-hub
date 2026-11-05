@@ -119,6 +119,22 @@ class DocumentEditorViewTests(TestCase):
         self.rendition.refresh_from_db()
         self.assertEqual(self.rendition.html, original)
 
+    def test_toc_styles_save_and_reopen_without_changing_titles_or_original(self):
+        original = self.rendition.html
+        markup = (
+            '<section id="a" data-toc-style="upper-roman"><h2>First</h2>'
+            '<h3 data-toc-style="lower-alpha">Nested</h3><p>Body</p></section>'
+            '<section id="b" data-toc-style="upper-roman"><h2>Second</h2><p>End</p></section>'
+        )
+        value = canonical_document({**self.draft.document, "html": markup})
+        response = self.post(document=value)
+        self.assertEqual(response.status_code, 200)
+        saved = response.json()
+        reopened = self.client.get(self.url, {"draft": saved["draft"]})
+        self.assertEqual(reopened.context["initial"]["document"], value)
+        self.rendition.refresh_from_db()
+        self.assertEqual(self.rendition.html, original)
+
     def test_created_link_saves_and_reopens_preserving_nested_and_inline_targets(self):
         initial = self.client.get(self.url).context["initial"]
         original = self.rendition.html
