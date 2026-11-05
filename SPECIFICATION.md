@@ -937,7 +937,9 @@ links with optional titles, optionally wrapped in attribute-free paragraphs.
 Plain root div containers are normalized to paragraphs. Supported browser CSS
 font weight/style, underline/strike decoration and super/sub vertical alignment
 are converted to semantic inline tags; normal/baseline values add no emphasis.
-StartFragment/EndFragment comments are recognized. It refuses IDs, classes,
+StartFragment/EndFragment comments are recognized. Conflicting declarations and
+resets of inherited emphasis refuse instead of changing their meaning.
+It refuses IDs, classes,
 other CSS, event attributes, other comments, media, local/relative
 links, non-paragraph block structures and other unsupported nodes/attributes rather than
 silently stripping them. A reason is shown while plain insertion remains an

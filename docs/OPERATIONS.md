@@ -1035,6 +1035,19 @@ Ctrl/Cmd+Z, Ctrl+Y and Ctrl/Cmd+Shift+Z work while navigation or command buttons
 have focus. Outline focus survives history redraws; text fields and dialogs
 retain their native history.
 
+The compact-controls/clipboard correction passed 197 frontend and 25 editor-view
+regressions. A database-free synthetic browser fixture measured a 304px-wide
+text-selection menu (about 449px tall) and image/block menus about 195px tall.
+Representative italic rendering, four alignment icons/toggle-off inheritance,
+hidden unrelated actions and identical outline/canvas menu colors, borders,
+padding and button fonts were observed. Dispatched Copy/Paste retained a styled
+note and remapped its self-link without changing the source; outline shortcut
+Undo/Redo restored exact HTML and navigation focus. External two-paragraph
+browser-CSS paste stayed staged until application and undid exactly. Clipboard
+and key events used browser-dispatched synthetic data, not native OS clipboard
+acceptance. No live document was saved/published; general Office/RTF import,
+cross-tab trusted clipboard transfer and independent usability remain unvalidated.
+
 **Paragraph alignment** changes the whole containing paragraph/heading/preformatted
 block, even when only some of its text is selected. Left, center, right and justify
 use the canonical reader/PDF classes, not inline CSS. Click the already selected
@@ -1080,6 +1093,7 @@ semantic tags: `font-weight` (normal/bold/100–900), `font-style`
 (normal/italic/oblique), `text-decoration`/`text-decoration-line`
 (none/underline/line-through), and `vertical-align` (baseline/super/sub).
 Standard StartFragment/EndFragment comments are recognized. Other CSS, classes,
+conflicting CSS declarations, inherited emphasis resets,
 IDs, event attributes, other comments, media, local/relative links and non-paragraph blocks
 are explicitly refused, not stripped. The reason is displayed and plain text
 remains an explicit option. General word-processor HTML import is not available.

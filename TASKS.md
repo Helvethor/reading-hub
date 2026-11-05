@@ -165,7 +165,14 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   and retained destination IDs; preserve existing Cut/Paste behavior.
   Convert a bounded browser emphasis-CSS subset and plain div paragraphs in
   external paste previews. General Office/RTF/structural import remains excluded.
-  Automated regressions pass; isolated browser acceptance is pending.
+  Final checks: 197 frontend and 25 editor-view regressions pass. A database-free
+  browser fixture checked a compact 304px-wide menu, representative italic text,
+  four alignment icons/toggle-off inheritance, type-specific image/block menus,
+  matching outline/canvas menu metrics/theme, direct copied-note paste with
+  remapped IDs/links, exact outline-shortcut Undo/Redo with restored focus, and
+  staged two-paragraph browser-CSS paste with exact Undo. Browser clipboard and
+  key events were dispatched, not native OS clipboard/pointer acceptance.
+  No live document was saved or published.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

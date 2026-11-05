@@ -795,6 +795,16 @@ export function prepareFormattedPaste(editor, clipboard, proposal) {
   const owner = editor.view.dom.ownerDocument;
   const template = owner.createElement("template");
   template.innerHTML = raw;
+  function inheritedStyle(node, tags, property, active) {
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      const declaration = parent.getAttribute("style")?.match(
+        new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([^;]+)`, "i"),
+      );
+      if (declaration) return active.test(declaration[1].trim());
+      if (tags.includes(parent.localName)) return true;
+    }
+    return false;
+  }
   const normalize = (parent, depth = 0, budget = {nodes: 0}) => {
     if (depth > 50) throw new Error("Formatted paste supports at most 50 nesting levels.");
     for (const node of [...parent.childNodes]) {
@@ -808,16 +818,30 @@ export function prepareFormattedPaste(editor, clipboard, proposal) {
       let tag = node.localName;
       const wrappers = [];
       if (node.hasAttribute("style")) {
+        const properties = new Set();
         for (const declaration of node.getAttribute("style").split(";").filter(value => value.trim())) {
           const match = declaration.match(/^\s*([a-z-]+)\s*:\s*([a-z0-9 -]+?)\s*$/i);
           if (!match) throw new Error("Unsupported clipboard CSS declaration.");
           const property = match[1].toLowerCase(), value = match[2].trim().toLowerCase();
+          const canonical = property === "text-decoration-line" ? "text-decoration" : property;
+          if (properties.has(canonical)) throw new Error("Unsupported clipboard CSS: repeated formatting declarations.");
+          properties.add(canonical);
           if (property === "font-weight" && /^(normal|bold|[1-9]00)$/.test(value)) {
             if (value === "bold" || Number(value) >= 600) wrappers.push("strong");
-            else if (["b", "strong"].includes(tag)) tag = "span";
+            else {
+              if (inheritedStyle(node, ["b", "strong"], "font-weight", /^(bold|[6-9]00)$/i)) {
+                throw new Error("Unsupported clipboard CSS: resetting inherited font weight.");
+              }
+              if (["b", "strong"].includes(tag)) tag = "span";
+            }
           } else if (property === "font-style" && /^(normal|italic|oblique)$/.test(value)) {
             if (value !== "normal") wrappers.push("em");
-            else if (["i", "em"].includes(tag)) tag = "span";
+            else {
+              if (inheritedStyle(node, ["i", "em"], "font-style", /^(italic|oblique)$/i)) {
+                throw new Error("Unsupported clipboard CSS: resetting inherited font style.");
+              }
+              if (["i", "em"].includes(tag)) tag = "span";
+            }
           } else if (["text-decoration", "text-decoration-line"].includes(property) &&
               /^(none|underline|line-through|underline line-through|line-through underline)$/.test(value)) {
             if (value.includes("underline")) wrappers.push("u");

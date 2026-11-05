@@ -3509,8 +3509,13 @@ test("common browser HTML and CSS paste previews retain supported emphasis with 
   assert(!html.includes("<b>Plain"));
   assert(html.includes("Plain"));
   for (const style of ["font-weight:garbage", "background-image:url(https://example.org/pixel)",
-    "font-style:italic;position:absolute", "font-weight:700;bad", "color:red"]) {
+    "font-style:italic;position:absolute", "font-weight:700;bad", "color:red",
+    "font-weight:bold;font-weight:normal"]) {
     assert.throws(() => formattedProposal(`<span style="${style}">Text</span>`), /Unsupported clipboard CSS/);
+  }
+  for (const html of ['<strong>Bold<span style="font-weight:normal">Reset</span></strong>',
+    '<span style="font-style:italic">Italic<span style="font-style:normal">Reset</span></span>']) {
+    assert.throws(() => formattedProposal(html), /resetting inherited/);
   }
 });
 
