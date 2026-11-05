@@ -3,18 +3,14 @@
 from copy import deepcopy
 
 
-def section_structure(soup, original):
+def section_structure(soup, original, organization=None):
     structure = deepcopy(original)
     originals = {part["id"]: part for part in structure.get("parts", []) if part.get("id")}
-    ids = {node["id"] for node in soup.select("[id]")}
-    missing = originals.keys() - ids
-    if missing:
-        raise ValueError(
-            "Retain source part targets before publishing: " + ", ".join(sorted(missing))
-        )
     parts = []
     for section in soup.select("section[id]"):
         part = deepcopy(originals.get(section["id"], {}))
+        for field in ("parent", "use_source_headings", "excerpt", "section", "excerpt_origin"):
+            part.pop(field, None)
         headings = [
             node for node in section.find_all(["h2", "h3", "h4", "h5", "h6"])
             if node.find_parent("section") is section
@@ -30,18 +26,23 @@ def section_structure(soup, original):
             ),
             "role": section.get("data-section-role", part.get("role", "chapter")),
         })
-        if section.get("data-section-url"):
-            part["url"] = section["data-section-url"]
+        for attribute, field in (("data-section-url", "url"), ("data-section-group", "group")):
+            if section.has_attr(attribute):
+                part.pop(field, None)
+                if section[attribute]:
+                    part[field] = section[attribute]
+        if section.get("data-excerpt-parent"):
+            part["excerpt_origin"] = {"section": section["data-excerpt-parent"]}
+            if section.get("data-excerpt-url"):
+                part["excerpt_origin"]["url"] = section["data-excerpt-url"]
         parent = section.find_parent("section", id=True)
         if parent:
             part["parent"] = parent["id"]
         else:
             part.pop("parent", None)
         parts.append(part)
-    # Historical documents can retain a source-part target on a non-section node.
-    for target, part in originals.items():
-        if not any(item["id"] == target for item in parts):
-            parts.append(part)
     structure["parts"] = parts
-    structure["book"] = bool(original.get("book"))
+    structure["book"] = organization["book"] if organization is not None else bool(
+        original.get("book"),
+    )
     return structure

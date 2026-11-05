@@ -19,6 +19,7 @@ import {mountSectionCreation} from "./section-creation.js";
 import {mountSectionBoundaries} from "./section-boundaries.js";
 import {mountTargets} from "./targets.js";
 import {mountSectionManagement} from "./section-management.js";
+import {mountSectionExcerpts} from "./section-excerpts.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}) {
   const owner = form.ownerDocument;
@@ -230,6 +231,8 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   function updateTools() {
     const contentMove = form.querySelector("#editor-content-move-open");
     if (contentMove) contentMove.disabled = editor.state.selection.empty;
+    const excerpt = form.querySelector("#editor-section-excerpt-open");
+    if (excerpt) excerpt.disabled = editor.state.selection.empty;
     for (const button of form.querySelectorAll("[data-quotation]")) {
       button.disabled = !canEditFigure(editor);
     }
@@ -539,6 +542,7 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
   const sectionCreation = mountSectionCreation(form, editor, showError);
   mountSectionManagement(form, editor, showError, sectionMoves, sectionCreation, initial);
   mountContentMoves(form, editor, showError);
+  mountSectionExcerpts(form, editor, showError, initial.structure?.parts || []);
   refreshOutline();
   updateTools();
 }

@@ -22,6 +22,7 @@ export function documentParts(doc) {
           label: heading.trim().slice(0, 120) || node.attrs.id || "Untitled section",
           kind: "Section", id: node.attrs.id,
           role: node.attrs["data-section-role"],
+          excerptParent: node.attrs["data-excerpt-parent"],
         });
       } else if (headingTypes.has(node.type.name)) {
         const next = children.slice(index + 1).find(({node: sibling}) =>
@@ -95,9 +96,11 @@ function decorations(doc, scope, labels, folds = []) {
     if (node.type.name === "section") {
       const heading = sectionHeading(node, pos);
       const label = heading?.node.textContent || node.attrs.id || "Untitled section";
+      const origin = node.attrs["data-excerpt-parent"];
       result.push(Decoration.node(pos, end, {class: "editor-section-boundary"}));
       for (const [at, text, edge] of [
-        [pos + 1, `Section: ${label} · #${node.attrs.id || "no target"}`, "start"],
+        [pos + 1, `${origin ? "Excerpt" : "Section"}: ${label} · #${node.attrs.id || "no target"}` +
+          (origin ? ` · Origin: #${origin}` : ""), "start"],
         [end - 1, `End section: ${label}`, "end"],
       ]) {
         result.push(Decoration.widget(at, view => {

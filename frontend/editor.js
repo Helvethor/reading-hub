@@ -17,7 +17,8 @@ const attrs = {
   class: {default: null},
 };
 const tagAttrs = {
-  section: ["data-section-url", "data-section-role", "data-section-title"],
+  section: ["data-section-url", "data-section-role", "data-section-title",
+    "data-section-group", "data-excerpt-parent", "data-excerpt-url"],
   a: ["href", "title", "aria-label", "rel"],
   img: ["src", "alt", "loading", "decoding"],
   td: ["colspan", "rowspan"],

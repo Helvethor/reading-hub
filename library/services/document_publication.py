@@ -16,7 +16,7 @@ from library.services.storage import read_blob
 from library.sources.adapters import adapter_for
 from library.sources.normalize import heading_toc
 
-PUBLICATION_VERSION = 2
+PUBLICATION_VERSION = 3
 
 
 def prepare_publication(draft, expected_revision):
@@ -90,7 +90,11 @@ def prepare_publication(draft, expected_revision):
         }:
             raise ValueError(f"Publication asset differs from fresh draft evidence: {digest}")
     toc = heading_toc(soup)
-    structure = {**section_structure(soup, evidence["structure"]), "toc": toc}
+    structure = {
+        **section_structure(soup, evidence["structure"],
+                            document["metadata"].get("content_organization")),
+        "toc": toc,
+    }
     html = canonical_document({**document, "html": str(soup)})["html"]
     output = {
         "title": document["title"], "metadata": document["metadata"], "html": html,

@@ -106,11 +106,34 @@ boundaries are diagnosed; an existing title heading can restore its missing
 section target without copying text. Section borders, start/end labels and the
 chosen title heading are editor-only decorations. Explicit title bindings, URL
 and role are validated semantic section attributes, saved/recovered/compared with
-HTML. Publication version 2 derives part titles, roles, containment and order
-from the corrected document instead of copying the pinned source order.
-The unchanged source structure remains available separately. Advanced cross-work
-catalogue organization still rebuilds from source and never overlays editor
-revisions. Reciprocal note/media repair and broader consolidation remain open;
+HTML. Publication version 3 derives parts, titles, roles, groups, containment
+and order from actual corrected sections. Removed/unwrap-only source parts are
+not silently reinstated; the pinned source structure remains immutable evidence.
+Extraction-only source heading/range selectors do not control corrected output.
+The editor permits explicit book/article classification in
+`metadata.content_organization.book`, independently of section count; retained
+source-page count remains unchanged. Section removal is explicit: unwrap retains
+content and the old target anchor; deletion refuses external inbound target
+references or excerpt origins. Both are independently undoable document edits.
+
+**Separate as excerpt section** in the selection context menu takes complete
+contiguous sibling paragraphs directly inside one section. Partial paragraphs,
+cross-section selections, nested list/table/quotation content, non-paragraph
+blocks, stale proposals and hidden selected content refuse explicitly.
+The paragraphs become a titled child section at their original position, without
+copying/rebuilding their text, marks, targets, links or bound images.
+`data-excerpt-parent` records the originating section ID and `data-excerpt-url`
+its known source URL; these are distinct from current containment and citation.
+Movement does not rewrite origin, while explicit target renaming updates the
+parent binding atomically. Save/recovery/comparison and publication retain the
+attributes; published parts expose `excerpt_origin` separately from `parent`.
+Missing/cyclic origin relationships are partial-save issues and block review
+certification/publication. No raw-source range definition or training label is
+inferred from a selection of corrected document content.
+The unchanged source structure remains available separately. Legacy cross-work
+catalogue membership still rebuilds from source and never overlays editor
+revisions. It is not authoritative for an existing corrected document.
+Cross-work attach/detach consolidation, reciprocal note/media repair and broader consolidation remain open;
 legacy retirement and the authorized destructive reset have not happened.
 
 ## 1. Purpose and scope

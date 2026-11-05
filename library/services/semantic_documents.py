@@ -27,7 +27,10 @@ CLASSES = {
     ) for state in ("on", "off")),
 }
 ATTRIBUTES = {
-    "section": {"data-section-url", "data-section-role", "data-section-title"},
+    "section": {
+        "data-section-url", "data-section-role", "data-section-title",
+        "data-section-group", "data-excerpt-parent", "data-excerpt-url",
+    },
     "a": {"href", "title", "aria-label", "rel"},
     "img": {"src", "alt", "loading", "decoding"},
     "th": {"colspan", "rowspan"},
@@ -118,7 +121,9 @@ class SemanticParser(HTMLParser):
                 raise ValueError("Images must reference a retained local asset.")
             if name == "href":
                 self.validate_link(value)
-            if name == "data-section-url":
+            if name in {"data-section-url", "data-excerpt-url"}:
+                if name == "data-section-url" and not value:
+                    continue
                 self.validate_link(value)
                 if urlsplit(value).scheme not in {"http", "https"}:
                     raise ValueError("Section URLs require an explicit HTTP(S) URL.")
@@ -126,10 +131,14 @@ class SemanticParser(HTMLParser):
                 "preface", "chapter", "appendix", "postscript",
             }:
                 raise ValueError("Choose a supported section role.")
-            if name == "data-section-title" and (
+            if name in {"data-section-title", "data-excerpt-parent"} and (
                 not value or re.search(r"[\s\x00-\x1f]", value)
             ):
                 raise ValueError("Section title bindings require a heading target ID.")
+            if name == "data-section-group" and (
+                len(value) > 1000 or re.search(r"[\x00-\x1f\x7f]", value)
+            ):
+                raise ValueError("Section groups support at most 1000 characters without controls.")
             if name == "rel" and not set(value.split()) <= {"noopener", "noreferrer"}:
                 raise ValueError("Unsupported link relationship.")
             if name == "loading" and value not in {"lazy", "eager"}:
@@ -219,6 +228,21 @@ def document_issues(document, asset_digests):
     soup = BeautifulSoup(document["html"], "html.parser")
     ids = {node["id"] for node in soup.select("[id]")}
     issues = []
+    for section in soup.select("section[data-excerpt-parent], section[data-excerpt-url]"):
+        parent_id = section.get("data-excerpt-parent")
+        parent = soup.find("section", id=parent_id) if parent_id else None
+        if parent is None or parent is section:
+            issues.append(
+                "Excerpt origin must identify another section: " + (parent_id or "(none)")
+            )
+        visited = {id(section)}
+        while parent is not None:
+            if id(parent) in visited:
+                issues.append("Excerpt origin linkage must not contain a cycle.")
+                break
+            visited.add(id(parent))
+            target = parent.get("data-excerpt-parent")
+            parent = soup.find("section", id=target) if target else None
     for section in soup.select("section[data-section-title]"):
         heading = soup.find(id=section["data-section-title"])
         if (

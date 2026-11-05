@@ -79,6 +79,7 @@ def validate_editor_metadata(original, submitted):
     editable = {
         "author", "author_is_fallback", "authors", "contributors", "subtitle",
         "language", "date_facts", "published", "topics", "topic",
+        "content_organization",
     }
     if (
         set(original) - editable != set(submitted) - editable
@@ -87,7 +88,16 @@ def validate_editor_metadata(original, submitted):
             for key in set(original) & set(submitted) - editable
         )
     ):
-        raise ValueError("Only bibliographic metadata can be changed in this editor.")
+        raise ValueError(
+            "Only bibliographic and content organization metadata can be changed here."
+        )
+    if "content_organization" in result:
+        organization = result["content_organization"]
+        if (
+            not isinstance(organization, dict) or set(organization) != {"book"}
+            or type(organization["book"]) is not bool
+        ):
+            raise ValueError("Content organization requires exactly a boolean book classification.")
     from library.services.corrections import validate_expected
 
     groups = (

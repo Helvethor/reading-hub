@@ -9,7 +9,7 @@
 {% block content %}
 <div class="page-container editor-page">
   <h1>Document editor pilot</h1>
-  <p class="notice">Editing version {{ version.pk }} creates immutable saved revisions. Each saved revision is explicitly partial, section-verified or whole-document verified. Publication is a separate action. Source corrections, organization, old editions and annotations are unchanged.</p>
+  <p class="notice">The corrected document is authoritative for its sections, order, containment, properties and excerpt origins. Editing version {{ version.pk }} creates immutable saved revisions; publication is separate. Retained source evidence, catalogue membership, old editions and annotations are unchanged.</p>
   <p><a href="{% url 'reader' version.pk %}">Back to the original edition</a> · <a href="{% url 'work-review' %}?review_version={{ version.pk }}">Existing reviewer tools</a></p>
   <p><a href="{% url 'document-fresh-draft' version.pk %}" target="_blank" rel="noopener">Preview regeneration from retained source as a separate draft (new tab)</a></p>
   <p><a href="{% url 'document-fresh-draft' version.pk %}?inputs=original" target="_blank" rel="noopener">Start fresh from original retained source, without previous corrections (new tab)</a></p>
@@ -31,7 +31,7 @@
       <li>Part details are unavailable in this edition’s structure.</li>
       {% endfor %}
     </ol>
-    <p><a class="editor-structure-link" href="{% url 'content-organization' %}?url={{ version.document.url|urlencode }}" target="_blank" rel="noopener">Advanced source organization / cross-work membership (new tab)</a>. This separate source rebuild does not replay saved or unsaved editor revisions.</p>
+    <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'content-organization' %}?url={{ version.document.url|urlencode }}" target="_blank" rel="noopener">Legacy catalogue membership / source-rebuild tools (new tab)</a> remain separate and do not replay editor revisions.</p>
   </details>
   <p class="editor-book-title">{{ initial.document.title }}</p>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" novalidate>
@@ -43,6 +43,8 @@
       <label>Subtitle <input name="subtitle" maxlength="1000" value="{{ initial.document.metadata.subtitle|default:'' }}" disabled></label>
       <label>Language code <input name="language" maxlength="35" value="{{ initial.document.metadata.language|default:'' }}" placeholder="en, en-us, fr, und" disabled></label>
       <p>Changes belong to this corrected document, not the original source or catalogue. Use contributor rows for multiple authors and roles; once these are edited, Author is derived from their author roles.</p>
+      <label><input id="editor-organization-book" type="checkbox"{% if initial.structure.book %} checked{% endif %} disabled> Publish this corrected document as a book</label>
+      <p>Classification is independent of the number of sections. The document title and actual canvas sections define its organization; retained source-page count is unchanged.</p>
       <details><summary>Contributors and roles</summary>
         <div id="editor-contributors"></div>
         <button type="button" id="editor-add-contributor" disabled>Add contributor</button>
@@ -136,6 +138,7 @@
       <button type="button" role="menuitem" data-move="-1" disabled>Move paragraph up</button>
       <button type="button" role="menuitem" data-move="1" disabled>Move paragraph down</button>
       <button type="button" role="menuitem" id="editor-content-move-open" disabled>Move selected content…</button>
+      <button type="button" role="menuitem" id="editor-section-excerpt-open" disabled>Separate as excerpt section…</button>
       <button type="button" role="menuitem" data-history="undo" disabled>Undo</button>
       <button type="button" role="menuitem" data-history="redo" disabled>Redo</button>
       <button type="button" role="menuitem" id="editor-menu-close">Close menu</button>
@@ -164,9 +167,33 @@
     <label>Title <input name="title" maxlength="500"></label>
     <label>Source URL <input name="url" type="url"></label>
     <label>Role <select name="role"><option value="chapter">Chapter</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
+    <label>Group label <input name="group" maxlength="1000"></label>
+    <p data-origin></p>
     <p>The selected heading is labeled in the canvas. Changing URL records a citation only; it does not fetch or replace content. Targets, links and all other sections are preserved. One undo step; save and publish separately.</p>
     <p role="alert" class="error"></p>
     <button type="button" data-apply>Apply section details</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-section-remove" aria-labelledby="editor-section-remove-heading">
+    <h2 id="editor-section-remove-heading">Remove section</h2>
+    <p data-summary></p>
+    <label>Operation <select name="mode">
+      <option value="unwrap">Remove boundary only; keep all content and the section target anchor</option>
+      <option value="delete">Delete section and all its content from this corrected document</option>
+    </select></label>
+    <p>Other content's links and excerpt origins must remain valid. Deletion is refused when it would break them. Nothing changes in the retained source or catalogue; a removed page is not automatically made a separate work. One Undo step; save and publish separately.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Apply removal</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
+  <dialog id="editor-section-excerpt" aria-labelledby="editor-section-excerpt-heading">
+    <h2 id="editor-section-excerpt-heading">Separate paragraphs as an excerpt section</h2>
+    <p data-origin></p>
+    <label>Excerpt title <input name="title" maxlength="500"></label>
+    <pre data-preview></pre>
+    <p>The complete selected paragraphs become a titled child section at their current position, without copying or changing their text, formatting, targets, links or images. Move the new section independently using the outline. Its original parent section and source URL remain attached after movement. This edits the current document, not a raw-source excerpt definition. One Undo step; save and publish separately.</p>
+    <p role="alert" class="error"></p>
+    <button type="button" data-apply>Separate excerpt</button>
     <button type="button" data-cancel>Cancel</button>
   </dialog>
   <dialog id="editor-add-section" aria-labelledby="editor-add-section-heading">

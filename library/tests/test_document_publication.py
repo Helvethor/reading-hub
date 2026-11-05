@@ -529,7 +529,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(Rendition.objects.count(), 1)
         self.assertFalse(DocumentPublication.objects.exists())
 
-    def test_removing_source_part_target_requires_organization_workflow(self):
+    def test_saved_document_is_authoritative_when_original_section_is_removed(self):
         from library.services.document_edits import create_draft
 
         self.rendition.structure["parts"] = [
@@ -540,8 +540,81 @@ class DocumentPublicationTests(TestCase):
         save_revision(
             draft, self.reviewer, {**draft.document, "html": "<p>Removed chapter target.</p>"}, 0,
         )
-        with self.assertRaisesMessage(ValueError, "Retain source part targets"):
-            prepare_publication(draft, 1)
+        candidate = prepare_publication(draft, 1)
+        self.assertEqual(candidate["output"]["structure"]["parts"], [])
+        self.assertEqual(draft.evidence["structure"]["parts"][0]["id"], "c1")
+
+    def test_excerpt_origin_survives_move_save_reopen_publication_and_pdf(self):
+        markup = (
+            '<section id="origin"><h2>Parent</h2><p>Remaining.</p></section>'
+            '<section id="destination"><h2>Destination</h2>'
+            '<section id="excerpt" data-section-title="excerpt-title" '
+            'data-section-group="Editorial" data-excerpt-parent="origin" '
+            'data-excerpt-url="https://example.org/source">'
+            '<h3 id="excerpt-title">Selected paragraphs</h3>'
+            '<p id="note">Exact <em>note</em>. <a href="#origin">Return</a></p>'
+            '</section></section>'
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+            "metadata": {
+                **self.revision.document["metadata"], "content_organization": {"book": True},
+            },
+        }, 1)
+        self.assertEqual(revision.issues, [])
+        result = self.publish(2)
+        part = result.rendition.structure["parts"][2]
+        self.assertEqual(part["parent"], "destination")
+        self.assertEqual(part["excerpt_origin"], {
+            "section": "origin", "url": "https://example.org/source",
+        })
+        self.assertEqual(part["group"], "Editorial")
+        self.assertTrue(result.rendition.structure["book"])
+        reopened = self.client.get(reverse("document-editor", args=[self.rendition.pk]),
+                                   {"draft": self.draft.pk})
+        self.assertEqual(reopened.context["initial"]["document"]["html"], revision.document["html"])
+        reader = self.client.get(reverse("reader", args=[result.rendition.pk]))
+        self.assertContains(reader, 'data-excerpt-parent="origin"')
+        output = io.BytesIO()
+        render_pdf(result.rendition, output)
+        self.assertIn("Selected paragraphs", " ".join(
+            page.extract_text() for page in PdfReader(output).pages
+        ))
+
+    def test_excerpt_missing_or_cyclic_origins_block_publication_not_partial_save(self):
+        for markup in (
+            '<section id="e" data-excerpt-parent="missing"><p>Text.</p></section>',
+            '<section id="a" data-excerpt-parent="b"><p>A.</p></section>'
+            '<section id="b" data-excerpt-parent="a"><p>B.</p></section>',
+            '<section id="a" data-excerpt-url="https://example.org/"><p>A.</p></section>',
+        ):
+            with self.subTest(markup=markup):
+                current = self.draft.revisions.first().revision
+                revision = save_revision(self.draft, self.reviewer, {
+                    **self.revision.document, "html": markup,
+                }, current)
+                self.assertTrue(any("Excerpt origin" in issue for issue in revision.issues))
+                with self.assertRaisesMessage(ValueError, "Excerpt origin"):
+                    self.publish(revision.revision)
+
+    def test_organization_metadata_and_excerpt_attributes_are_strict(self):
+        for value in ({"book": "true"}, {"book": True, "parts": []}, [], None):
+            with self.subTest(value=value), self.assertRaisesMessage(ValueError, "organization"):
+                save_revision(self.draft, self.reviewer, {
+                    **self.revision.document,
+                    "metadata": {
+                        **self.revision.document["metadata"], "content_organization": value,
+                    },
+                }, 1)
+        for attribute in (
+            'data-excerpt-parent=""', 'data-excerpt-parent="two targets"',
+            'data-excerpt-url="javascript:alert(1)"', 'data-section-group="&#10;"',
+        ):
+            with self.subTest(attribute=attribute), self.assertRaises(ValueError):
+                save_revision(self.draft, self.reviewer, {
+                    **self.revision.document,
+                    "html": f"<section {attribute}><p>Text.</p></section>",
+                }, 1)
 
     def test_changed_publication_rules_cannot_reuse_a_different_preview(self):
         self.publish()

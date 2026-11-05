@@ -738,6 +738,27 @@ live/unretained fetching occurs here. Unbound media, unsupported conversions,
 stale documents and duplicate restored section targets fail explicitly.
 Save separately; publishing remains an explicit preview/confirmation.
 
+The corrected document is authoritative for its organization. Publication
+version 3 lists actual saved sections only; it does not restore omitted source
+parts or reinterpret raw-source selectors. The section menu's **Remove section**
+offers boundary-only removal (content/target anchor retained) or explicit
+content deletion. External inbound links and excerpt-origin relationships must
+be repaired first. Group labels are editable in section properties; explicit
+book/article classification is under bibliographic metadata.
+
+To separate an excerpt, select from the start of the first paragraph to the end
+of the last, all direct children of one section. Right-click or use **Selection
+tools → Separate as excerpt section**, review the paragraph/origin preview,
+enter a title and confirm. The paragraphs become a titled child section at that
+position without duplication. Move it normally in the outline. Properties and
+canvas labels show its original section ID/URL, independently of current
+containment/citation. Parent target renaming updates the linkage, but movement
+does not. Extraction and movement have separate Undo steps. Saving, recovery,
+comparison and publication keep the origin; missing/cyclic origins block
+certification/publication. No raw-source excerpt definition is changed.
+Cross-work catalogue attach/detach remains a separate legacy operation; deleting
+a document section does not publish it as another work.
+
 Bounded validation on 2026-11-05 used an isolated database/blob copy, not live
 corrections: edition-80 revision-10 Appendix repair, metadata/order save/reopen,
 explicit publication, and separate original-content restoration passed.

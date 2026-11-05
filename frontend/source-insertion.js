@@ -87,6 +87,13 @@ export function applySourceInsertion(editor, target, html, placement, {section =
     if (!renamed.has(target)) throw new Error("The inserted section title heading is missing.");
     node.setAttribute("data-section-title", renamed.get(target));
   }
+  for (const node of template.content.querySelectorAll("[data-excerpt-parent]")) {
+    const parent = node.getAttribute("data-excerpt-parent");
+    if (renamed.has(parent)) node.setAttribute("data-excerpt-parent", renamed.get(parent));
+    else if (!used.has(parent)) {
+      throw new Error("The excerpt origin section is missing. Insert its parent section as well.");
+    }
+  }
   for (const link of template.content.querySelectorAll('a[href^="#"]')) {
     let id;
     try { id = decodeURIComponent(link.getAttribute("href").slice(1)); }

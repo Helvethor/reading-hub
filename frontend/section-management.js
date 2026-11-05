@@ -1,4 +1,5 @@
 import {TextSelection} from "@tiptap/pm/state";
+import {Fragment} from "@tiptap/pm/model";
 import {closeHistory} from "@tiptap/pm/history";
 import {movableSections, moveSection} from "./section-moves.js";
 import {sectionHeading, sectionHeadings} from "./section-info.js";
@@ -24,12 +25,19 @@ export function prepareSectionDetails(editor, index, originals = []) {
   return {
     ...section, doc: editor.state.doc, headings: sectionHeadings(section.node, section.from),
     titleFrom: heading?.from, title: heading?.node.textContent || "",
-    url: section.node.attrs["data-section-url"] || original?.url || "",
+    url: section.node.attrs["data-section-url"] ?? original?.url ?? "",
     role: section.node.attrs["data-section-role"] || original?.role || "chapter",
+    group: section.node.attrs["data-section-group"] ?? original?.group ?? "",
+    origin: section.node.attrs["data-excerpt-parent"] ? {
+      section: section.node.attrs["data-excerpt-parent"],
+      url: section.node.attrs["data-excerpt-url"] || "",
+    } : null,
   };
 }
 
-export function applySectionDetails(editor, proposal, {title, url, role, titleFrom}) {
+export function applySectionDetails(editor, proposal, {
+  title, url, role, titleFrom, group = proposal?.group || "",
+}) {
   if (!proposal || proposal.doc !== editor.state.doc) {
     throw new Error("The document changed. Open section details again.");
   }
@@ -46,6 +54,10 @@ export function applySectionDetails(editor, proposal, {title, url, role, titleFr
   }
   if (!["preface", "chapter", "appendix", "postscript"].includes(role)) {
     throw new Error("Choose a supported section role.");
+  }
+  group = group.trim();
+  if (group.length > 1000 || /[\x00-\x1f\x7f]/.test(group)) {
+    throw new Error("Enter a group of at most 1000 characters without control characters.");
   }
   const heading = proposal.headings.find(item => item.from === titleFrom);
   if (proposal.headings.length && !heading) throw new Error("Choose a heading owned by this section.");
@@ -67,11 +79,61 @@ export function applySectionDetails(editor, proposal, {title, url, role, titleFr
   }
   tr.setNodeMarkup(proposal.from, undefined, {
     ...proposal.node.attrs, "data-section-title": id,
-    "data-section-url": url || null, "data-section-role": role,
+    "data-section-url": url, "data-section-role": role, "data-section-group": group,
   });
   tr.doc.check();
   editor.view.dispatch(tr.scrollIntoView());
   if (editor.state.doc !== tr.doc) throw new Error("Expand the affected content before changing section details.");
+  editor.view.dispatch(closeHistory(editor.state.tr));
+}
+
+export function prepareSectionRemoval(editor, index) {
+  const section = movableSections(editor.state.doc)[index];
+  if (!section) throw new Error("Choose a section container.");
+  return {...section, doc: editor.state.doc};
+}
+
+export function applySectionRemoval(editor, proposal, mode) {
+  if (!proposal || proposal.doc !== editor.state.doc) {
+    throw new Error("The document changed. Open Remove section again.");
+  }
+  if (!["delete", "unwrap"].includes(mode)) throw new Error("Choose how to remove the section.");
+  const scope = documentParts(editor.state.doc).find(part =>
+    part.from === proposal.from + 1 && part.to === proposal.to - 1);
+  if (!scope) throw new Error("The section no longer exists.");
+  const removedIds = new Set(mode === "unwrap" || !proposal.node.attrs.id ? [] : [proposal.node.attrs.id]);
+  if (mode === "delete") proposal.node.descendants(node => {
+    if (node.attrs.id) removedIds.add(node.attrs.id);
+    for (const mark of node.marks) if (mark.attrs.id) removedIds.add(mark.attrs.id);
+  });
+  let blocked = false;
+  editor.state.doc.descendants((node, at) => {
+    if (mode === "delete" && at >= proposal.from && at < proposal.to) return false;
+    if (proposal.node.attrs.id && node.attrs["data-excerpt-parent"] === proposal.node.attrs.id ||
+        removedIds.has(node.attrs["data-excerpt-parent"]) ||
+        removedIds.has(node.attrs["data-section-title"])) blocked = true;
+    for (const href of [node.attrs.href, ...node.marks.map(mark => mark.attrs.href)]) {
+      if (!href?.startsWith("#")) continue;
+      let id;
+      try { id = decodeURIComponent(href.slice(1)); }
+      catch { throw new Error("Repair invalid internal link encoding before removing a section."); }
+      if (removedIds.has(id)) blocked = true;
+    }
+  });
+  if (blocked) {
+    throw new Error("Other content links to this section, its targets or its excerpt origin. Move or repair those relationships first.");
+  }
+  let replacement = Fragment.empty;
+  if (mode === "unwrap") {
+    const anchor = proposal.node.attrs.id ? Fragment.from(editor.schema.nodes.emptyBlockTarget.create({
+      tag: "span", id: proposal.node.attrs.id,
+    })) : Fragment.empty;
+    replacement = anchor.append(proposal.node.content);
+  }
+  const tr = closeHistory(editor.state.tr).replaceWith(proposal.from, proposal.to, replacement);
+  tr.doc.check();
+  editor.view.dispatch(tr.scrollIntoView());
+  if (editor.state.doc !== tr.doc) throw new Error("Show and expand the affected content before removing the section.");
   editor.view.dispatch(closeHistory(editor.state.tr));
 }
 
@@ -94,6 +156,8 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   const title = details.querySelector("[name=title]");
   const url = details.querySelector("[name=url]");
   const role = details.querySelector("[name=role]");
+  const group = details.querySelector("[name=group]");
+  const origin = details.querySelector("[data-origin]");
   const heading = details.querySelector("[name=heading]");
   const detailError = details.querySelector('[role=alert]');
   let proposal;
@@ -107,6 +171,10 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     title.value = proposal.title;
     url.value = proposal.url;
     role.value = proposal.role;
+    group.value = proposal.group;
+    origin.textContent = proposal.origin
+      ? `Excerpt origin: #${proposal.origin.section}${proposal.origin.url ? ` — ${proposal.origin.url}` : ""}. Moving this section does not change its origin.`
+      : "Ordinary section (no excerpt origin).";
     heading.replaceChildren(...proposal.headings.map(item =>
       new Option(`${item.node.type.name.toUpperCase()}: ${item.node.textContent}`,
         String(item.from))));
@@ -122,11 +190,32 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     try {
       applySectionDetails(editor, proposal, {
         title: title.value, url: url.value, role: role.value, titleFrom: Number(heading.value),
+        group: group.value,
       });
       details.close();
     } catch (failure) { detailError.textContent = failure.message; }
   });
   details.querySelector("[data-cancel]").addEventListener("click", () => details.close());
+
+  const removal = owner.querySelector("#editor-section-remove");
+  let removalProposal;
+  function remove(index) {
+    whole();
+    removalProposal = prepareSectionRemoval(editor, index);
+    removal.querySelector("[data-summary]").textContent =
+      `${removalProposal.label} (#${removalProposal.node.attrs.id || "no target"}): ` +
+      removalProposal.node.textContent.slice(0, 1000);
+    removal.querySelector("[name=mode]").value = "unwrap";
+    removal.querySelector("[role=alert]").textContent = "";
+    removal.showModal();
+  }
+  removal.querySelector("[data-apply]").addEventListener("click", () => {
+    try {
+      applySectionRemoval(editor, removalProposal, removal.querySelector("[name=mode]").value);
+      removal.close();
+    } catch (failure) { removal.querySelector("[role=alert]").textContent = failure.message; }
+  });
+  removal.querySelector("[data-cancel]").addEventListener("click", () => removal.close());
 
   const source = insertion.querySelector("[name=source]");
   const pageSelect = insertion.querySelector("[name=page]");
@@ -371,6 +460,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     selected = selectedPart(button);
     menu.replaceChildren();
     action("Edit title / URL / role…", () => edit(selected.index), selected.index >= 0);
+    action("Remove section…", () => remove(selected.index), selected.index >= 0);
     action("Move section…", () => moves.open(selected.index), selected.index >= 0);
     for (const [label, direction] of [["Move section up", -1], ["Move section down", 1]]) {
       action(label, () => {

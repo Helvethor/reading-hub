@@ -34,7 +34,11 @@ import {outlineHierarchy, mountDynamicOutline} from "./outline.js";
 import {prepareSectionCreation, buildSectionCreation, applySectionCreation, mountSectionCreation} from "./section-creation.js";
 import {prepareSectionBoundary, buildSectionBoundary, applySectionBoundary, mountSectionBoundaries} from "./section-boundaries.js";
 import {prepareTargetEdit, buildTargetEdit, applyTargetEdit, mountTargets} from "./targets.js";
-import {prepareSectionDetails, applySectionDetails, sectionInsertionTarget} from "./section-management.js";
+import {
+  prepareSectionDetails, applySectionDetails, sectionInsertionTarget,
+  prepareSectionRemoval, applySectionRemoval,
+} from "./section-management.js";
+import {prepareSectionExcerpt, applySectionExcerpt} from "./section-excerpts.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -63,6 +67,196 @@ function selectText(text, length = 0) {
   assert.notEqual(position, undefined, text);
   editor.commands.setTextSelection({from: position, to: position + length});
 }
+
+function selectParagraphs(first, last = first) {
+  let from, to;
+  editor.state.doc.descendants((node, at) => {
+    if (node.type.name !== "p") return;
+    if (node.textContent === first && from === undefined) from = at + 1;
+    if (node.textContent === last) to = at + node.nodeSize - 1;
+  });
+  assert.notEqual(from, undefined);
+  assert.notEqual(to, undefined);
+  editor.commands.setTextSelection({from, to});
+}
+
+test("separating contiguous paragraphs preserves exact content and independent origin across moves and reopen", () => {
+  const html = '<section id="parent" data-section-url="https://example.org/source"><h2>Parent</h2>' +
+    '<p>Before.</p><p id="a">Selected <em>one</em>. <a href="#b">Next</a></p>' +
+    '<p id="b"><span id="target">Selected two.</span><img src="/assets/' + "a".repeat(64) +
+    '/" alt="Plate"></p><p>After.</p></section><section id="other"><h2>Other</h2></section>';
+  open(html);
+  const original = editor.getHTML();
+  selectParagraphs("Selected one. Next", "Selected two.");
+  const proposal = prepareSectionExcerpt(editor);
+  assert.equal(proposal.fragment.childCount, 2);
+  const id = applySectionExcerpt(editor, proposal, "Extracted note");
+  const extracted = editor.getHTML();
+  const root = document.createElement("div");
+  root.innerHTML = extracted;
+  assert.equal(root.querySelector(`#${id}`).getAttribute("data-excerpt-parent"), "parent");
+  assert.equal(root.querySelector(`#${id}`).getAttribute("data-excerpt-url"), "https://example.org/source");
+  assert.equal(root.querySelector(`#${id} h3`).textContent, "Extracted note");
+  for (const target of ["a", "b"]) {
+    const before = document.createElement("div");
+    before.innerHTML = original;
+    assert.equal(root.querySelector(`#${target}`).outerHTML, before.querySelector(`#${target}`).outerHTML);
+  }
+  assert.equal(root.querySelectorAll("#a").length, 1);
+  const sections = movableSections(editor.state.doc);
+  moveSection(editor, {doc: editor.state.doc}, sections.findIndex(s => s.node.attrs.id === id),
+    "inside", sections.findIndex(s => s.node.attrs.id === "other"));
+  const moved = editor.getHTML();
+  assert(editor.view.dom.querySelector(`#other #${id}`));
+  assert.equal(editor.view.dom.querySelector(`#${id}`).getAttribute("data-excerpt-parent"), "parent");
+  assert(editor.view.dom.querySelector(`#${id} .editor-section-start`).textContent.includes("Origin: #parent"));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), extracted);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), moved);
+  editor.destroy();
+  open(moved);
+  assert.equal(prepareSectionDetails(editor, 2).origin.section, "parent");
+});
+
+test("excerpt selection rejects partial paragraphs cross-sections nested containers and mixed blocks", () => {
+  open('<section id="a"><h2>A</h2><p>First.</p><hr><p>Second.</p>' +
+    '<blockquote><p>Quoted.</p></blockquote></section>' +
+    '<section id="b"><p>Third.</p></section>');
+  const before = editor.getHTML();
+  selectText("First", 2);
+  assert.throws(() => prepareSectionExcerpt(editor), /first paragraph/);
+  selectParagraphs("First.", "Second.");
+  assert.throws(() => prepareSectionExcerpt(editor), /Only contiguous paragraphs/);
+  selectParagraphs("Second.", "Third.");
+  assert.throws(() => prepareSectionExcerpt(editor), /one section/);
+  selectParagraphs("Quoted.");
+  assert.throws(() => prepareSectionExcerpt(editor), /direct children/);
+  selectText("First");
+  assert.throws(() => prepareSectionExcerpt(editor), /complete contiguous/);
+  assert.equal(editor.getHTML(), before);
+});
+
+test("excerpt assigns anonymous parent an undoable target and inherits pinned source URL", () => {
+  open('<section><p>Anonymous.</p></section>');
+  const before = editor.getHTML();
+  selectParagraphs("Anonymous.");
+  const proposal = prepareSectionExcerpt(editor);
+  applySectionExcerpt(editor, proposal, "Excerpt");
+  assert(editor.getHTML().includes('data-excerpt-parent="excerpt-parent"'));
+  assert(editor.getHTML().includes('<section id="excerpt-parent">'));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+  editor.destroy();
+  open('<section id="c1"><h2>Source</h2><p>Retained.</p></section>');
+  selectParagraphs("Retained.");
+  const bound = prepareSectionExcerpt(editor, [{id: "c1", url: "https://example.org/retained"}]);
+  applySectionExcerpt(editor, bound, "Excerpt");
+  assert(editor.getHTML().includes('data-excerpt-url="https://example.org/retained"'));
+});
+
+test("excerpt rejects stale proposals title errors and changed or folded visibility", () => {
+  open('<section id="a"><h2>A</h2><p>Selected.</p></section>');
+  selectParagraphs("Selected.");
+  const proposal = prepareSectionExcerpt(editor);
+  assert.throws(() => applySectionExcerpt(editor, proposal, ""), /title/);
+  showDocumentPart(editor, documentParts(editor.state.doc)[0]);
+  assert.throws(() => applySectionExcerpt(editor, proposal, "Title"), /visible content changed/);
+  showDocumentPart(editor, null);
+  toggleDocumentFold(editor, documentParts(editor.state.doc)[0]);
+  assert.throws(() => applySectionExcerpt(editor, proposal, "Title"), /visible content changed/);
+  toggleDocumentFold(editor, documentParts(editor.state.doc)[0]);
+  editor.commands.insertContent("Changed");
+  assert.throws(() => applySectionExcerpt(editor, proposal, "Title"), /document changed/);
+});
+
+test("renaming an origin target updates excerpt lineage and preserves origin URL", () => {
+  open('<section id="parent"><h2>Parent</h2><p>Text.</p></section>' +
+    '<section id="e" data-excerpt-parent="parent" data-excerpt-url="https://example.org/original"><p>Excerpt.</p></section>');
+  editor.commands.setNodeSelection(0);
+  applyTargetEdit(editor, prepareTargetEdit(editor), "renamed-parent");
+  assert(editor.getHTML().includes('data-excerpt-parent="renamed-parent"'));
+  assert(editor.getHTML().includes('data-excerpt-url="https://example.org/original"'));
+});
+
+test("removing a boundary keeps targets and content without resurrecting a section", () => {
+  open('<section id="remove"><h2>Title</h2><p id="note">Exact <em>text</em>.</p></section>' +
+    '<p><a href="#remove">Link</a></p>');
+  const original = editor.getHTML();
+  applySectionRemoval(editor, prepareSectionRemoval(editor, 0), "unwrap");
+  assert.equal(movableSections(editor.state.doc).length, 0);
+  assert(editor.getHTML().includes('<span id="remove"></span><h2>Title</h2>'));
+  assert(editor.getHTML().includes('<p id="note">Exact <em>text</em>.</p>'));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert.throws(() => applySectionRemoval(editor, prepareSectionRemoval(editor, 0), "delete"), /links/);
+});
+
+test("section deletion is atomic and refuses dangling excerpt origins nested targets and stale proposals", () => {
+  open('<section id="parent"><h2>Parent</h2><p id="note">Text.</p></section>' +
+    '<section id="e" data-excerpt-parent="parent"><h2>Excerpt</h2><p>Selected.</p></section>');
+  assert.throws(() => applySectionRemoval(editor, prepareSectionRemoval(editor, 0), "delete"), /origin/);
+  assert.throws(() => applySectionRemoval(editor, prepareSectionRemoval(editor, 0), "unwrap"), /origin/);
+  const original = editor.getHTML();
+  applySectionRemoval(editor, prepareSectionRemoval(editor, 1), "delete");
+  assert.equal(movableSections(editor.state.doc).length, 1);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  const stale = prepareSectionRemoval(editor, 1);
+  selectText("Text");
+  editor.commands.insertContent("edit");
+  assert.throws(() => applySectionRemoval(editor, stale, "delete"), /changed/);
+});
+
+test("selection context menu separates paragraphs and exposes excerpt origins and removal in outline actions", () => {
+  const form = mountSectionWorkspace('<section id="parent"><h2>Parent</h2>' +
+    '<p>First paragraph.</p><p>Second paragraph.</p></section>');
+  selectParagraphs("First paragraph.", "Second paragraph.");
+  form.querySelector("#editor-surface p").dispatchEvent(
+    new dom.window.MouseEvent("contextmenu", {bubbles: true, clientX: 20, clientY: 20}),
+  );
+  assert(!form.querySelector("#editor-context-menu").hidden);
+  form.querySelector("#editor-section-excerpt-open").click();
+  const dialog = document.querySelector("#editor-section-excerpt");
+  assert(dialog.open);
+  assert(dialog.querySelector("[data-origin]").textContent.includes("#parent"));
+  const title = dialog.querySelector("[name=title]");
+  title.value = "Independent excerpt";
+  title.dispatchEvent(new dom.window.Event("input", {bubbles: true}));
+  assert(!dialog.querySelector("[data-apply]").disabled);
+  dialog.querySelector("[data-apply]").click();
+  assert(!dialog.open);
+  assert(form.querySelector("#editor-outline-items").textContent.includes("Excerpt"));
+  const excerpt = [...form.querySelectorAll("[data-section-move]")]
+    .find(button => button.textContent.includes("Independent excerpt"));
+  excerpt.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  const actions = document.querySelector("#editor-section-actions");
+  [...actions.querySelectorAll("button")].find(button => button.textContent.startsWith("Edit title")).click();
+  assert(document.querySelector("#editor-section-details [data-origin]").textContent.includes("#parent"));
+  document.querySelector("#editor-section-details [data-cancel]").click();
+  excerpt.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  [...actions.querySelectorAll("button")].find(button => button.textContent === "Remove section…").click();
+  const removal = document.querySelector("#editor-section-remove");
+  removal.querySelector("[name=mode]").value = "delete";
+  removal.querySelector("[data-apply]").click();
+  assert(!removal.open);
+  assert.equal(movableSections(editor.state.doc).length, 1);
+});
+
+test("cleared source URL and group remain explicitly cleared against pinned source defaults", () => {
+  open('<section id="a"><h2>Title</h2><p>Text.</p></section>');
+  const originals = [{id: "a", url: "https://example.org/source", group: "Old group"}];
+  const proposal = prepareSectionDetails(editor, 0, originals);
+  assert.equal(proposal.group, "Old group");
+  applySectionDetails(editor, proposal, {
+    title: proposal.title, titleFrom: proposal.titleFrom, role: "chapter", url: "", group: "",
+  });
+  assert.equal(prepareSectionDetails(editor, 0, originals).url, "");
+  assert.equal(prepareSectionDetails(editor, 0, originals).group, "");
+});
 
 test("Appendix boundary repair restores the missing original target without copying or losing edits", () => {
   const html = '<section id="c8"><h2>Conclusion</h2><p>Corrected prose.</p>' +
@@ -1193,13 +1387,28 @@ function metadataForm(value) {
   document.body.innerHTML = '<form><input name="author"><div id="editor-contributors"></div>' +
     '<button type="button" id="editor-add-contributor">Add contributor</button>' +
     '<div id="editor-dates"></div><button type="button" id="editor-add-date">Add date</button>' +
-    '<textarea name="subjects"></textarea></form>';
+    '<textarea name="subjects"></textarea><input type="checkbox" id="editor-organization-book"></form>';
   const form = document.querySelector("form");
   form.elements.author.value = value.author || "";
   let changes = 0;
   const control = mountMetadata(form, value, () => changes++);
   return {form, control, changes: () => changes};
 }
+
+test("book classification is an explicit document edit preserved by metadata recovery", () => {
+  const {form, control, changes} = metadataForm({language: "en"});
+  const book = form.querySelector("#editor-organization-book");
+  assert.deepEqual(control.read({language: "en"}), {language: "en"});
+  book.checked = true;
+  book.dispatchEvent(new dom.window.Event("change", {bubbles: true}));
+  assert.equal(changes(), 1);
+  assert.deepEqual(control.read({language: "en"}).content_organization, {book: true});
+  control.restore({language: "en", content_organization: {book: false}});
+  assert.equal(book.checked, false);
+  assert.deepEqual(control.read({language: "en"}).content_organization, {book: false});
+  control.populate({language: "en", content_organization: {book: true}});
+  assert.equal(book.checked, true);
+});
 
 test("inline content relocates into a new section preserving reciprocal and nested note links", () => {
   const html = '<section id="chapter"><h2>Chapter</h2><p id="main">Main ' +

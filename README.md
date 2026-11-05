@@ -93,6 +93,21 @@ only URLs already in this edition's retained snapshot are available.
 Section start/end borders and the chosen title heading are visible in the canvas
 but are not saved as content. Corrected order and metadata save with the document;
 publication remains separate, and original editions/source organization are unchanged.
+The saved document is now authoritative for corrected organization: publication
+derives only actual sections and does not resurrect removed source parts.
+The section menu includes **Remove section** (unwrap while retaining targets,
+or explicitly delete content with inbound-link/origin guards), and properties
+include a group label. Book/article classification can be changed explicitly
+under bibliographic metadata without changing retained source-page count.
+Select complete contiguous paragraphs that are direct children of one section,
+then right-click (or use Selection tools) → **Separate as excerpt section**.
+Give it a title; the paragraphs become an independently movable child section,
+not a copy. Its original parent section ID and source URL remain attached after
+movement and through save/recovery/publication; properties and canvas labels
+show that origin separately from current containment. Each extraction/move is
+independently undoable. These are document excerpts, not raw-source definitions.
+Cross-work catalogue attach/detach and donor rebuilding remain legacy operations;
+ordinary editor saves do not change another work or catalogue membership.
 The editor uses an outlined, high-contrast text pointer and an explicit dark caret.
 **Move paragraph up/down** reorders the current paragraph, heading or preformatted
 block past one adjacent text block in the same container. Links, targets and the

@@ -115,6 +115,17 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   remains an article with a 28-page PDF. Reader/ToC checks pass. Drag destinations
   have synthetic/browser-dispatched coverage, not independent human usability
   acceptance. Final focused checks: 171 frontend and 192 backend tests.
+- [x] Make saved document sections authoritative for corrected publication;
+  permit guarded delete/unwrap, group labels and explicit book classification.
+  Separate contiguous complete paragraphs in one section into an independently
+  movable excerpt section with persistent origin ID/URL, distinct from current
+  containment. Preserve exact selected nodes, Undo, save/recovery/comparison and
+  publication; block missing/cyclic origins at certification/publication.
+  Frontend/backend regression checks pass; copied real-book browser acceptance
+  is pending for this increment.
+- [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
+  overwriting corrected documents. These remain explicit legacy source-graph
+  operations, not ordinary editor-save effects.
 - [x] Add direct semantic Ctrl+X/Ctrl+V at arbitrary cursor positions, including
   partial multi-block and cross-container ranges. Cut removes immediately;
   paste/replacement keeps semantic marks, IDs, links and media with independent

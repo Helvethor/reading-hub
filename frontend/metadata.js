@@ -3,7 +3,10 @@ export function mountMetadata(form, initial, changed) {
   const dates = form.querySelector("#editor-dates");
   const topics = form.elements.subjects;
   const author = form.elements.author;
+  const book = form.querySelector("#editor-organization-book");
+  const originalBook = book?.checked;
   let peopleTouched = false, datesTouched = false, topicsTouched = false;
+  let organizationTouched = false;
   function input(label, value, maximum) {
     const wrapper = document.createElement("label");
     wrapper.append(document.createTextNode(label));
@@ -76,6 +79,8 @@ export function mountMetadata(form, initial, changed) {
   }
   function populate(value) {
     peopleTouched = datesTouched = topicsTouched = false;
+    organizationTouched = false;
+    if (book) book.checked = value.content_organization?.book ?? originalBook;
     people.replaceChildren();
     dates.replaceChildren();
     for (const person of value.contributors || []) addPerson(person);
@@ -90,6 +95,7 @@ export function mountMetadata(form, initial, changed) {
     author.readOnly = false;
   }
   function read(value) {
+    if (organizationTouched) value.content_organization = {book: book.checked};
     if (peopleTouched) {
       value.contributors = [...people.children].map(row => {
         const name = row.editorFields.name.value.trim();
@@ -129,6 +135,8 @@ export function mountMetadata(form, initial, changed) {
     peopleTouched = JSON.stringify(value.contributors) !== JSON.stringify(initial.contributors);
     datesTouched = JSON.stringify(value.date_facts) !== JSON.stringify(initial.date_facts);
     topicsTouched = JSON.stringify(value.topics) !== JSON.stringify(initial.topics);
+    organizationTouched = JSON.stringify(value.content_organization) !==
+      JSON.stringify(initial.content_organization);
     if (peopleTouched) syncAuthors();
   }
   form.querySelector("#editor-add-contributor").addEventListener("click", () => {
@@ -147,6 +155,7 @@ export function mountMetadata(form, initial, changed) {
     dates.lastElementChild.querySelector("input").focus();
   });
   topics.addEventListener("input", () => { topicsTouched = true; changed(); });
+  book?.addEventListener("change", () => { organizationTouched = true; changed(); });
   populate(initial);
   return {read, populate, restore};
 }
