@@ -2,7 +2,8 @@ import {Fragment} from "@tiptap/pm/model";
 import {NodeSelection, TextSelection} from "@tiptap/pm/state";
 import {closeHistory} from "@tiptap/pm/history";
 import {documentLinkTargets} from "./editor.js";
-import {prepareContentMove} from "./content-moves.js";
+import {assertCompleteMoveTargets} from "./content-moves.js";
+import {BlockSelection} from "./block-selection.js";
 import {sectionHeading} from "./section-info.js";
 import {visiblePart, foldedDocumentParts} from "./workspace.js";
 
@@ -14,34 +15,36 @@ function uniqueId(doc, base) {
 
 export function prepareSectionExcerpt(editor, originals = []) {
   const {doc, selection} = editor.state;
-  if (selection.empty) throw new Error("Select complete contiguous paragraphs in one section.");
+  if (selection.empty) throw new Error("Select complete contiguous blocks in one section.");
   let from, to;
-  if (selection instanceof NodeSelection && selection.node.type.name === "p") {
+  if (selection instanceof BlockSelection) {
+    if (!selection.contiguous) {
+      throw new Error("Selected blocks have gaps. Ctrl-click the intervening blocks to make one contiguous excerpt.");
+    }
+    ({from, to} = selection);
+  } else if (selection instanceof NodeSelection && selection.node.isBlock) {
     ({from, to} = selection);
   } else {
     const a = selection.$from, b = selection.$to;
-    if (a.parent.type.name !== "p" || b.parent.type.name !== "p" ||
+    if (!a.parent.isTextblock || !b.parent.isTextblock ||
         a.parentOffset !== 0 || b.parentOffset !== b.parent.content.size ||
         a.depth !== b.depth || a.node(a.depth - 1) !== b.node(b.depth - 1)) {
-      throw new Error("Select from the first paragraph's start to the last paragraph's end within one section.");
+      throw new Error("Select whole blocks with Ctrl-click, or a range from the first block's start to the last block's end within one section.");
     }
     from = a.before();
     to = b.after();
   }
   const start = doc.resolve(from), end = doc.resolve(to);
   if (!start.sameParent(end) || start.parent.type.name !== "section") {
-    throw new Error("Excerpt paragraphs must be direct children of a single section, not a list, table or quotation.");
+    throw new Error("Excerpt blocks must be direct children of a single section. Ctrl-click selects an entire list, table, figure or quotation.");
   }
   const fragment = doc.slice(from, to).content;
-  fragment.forEach(node => {
-    if (node.type.name !== "p") throw new Error("Only contiguous paragraphs may be separated as an excerpt.");
-  });
   const scope = visiblePart(editor);
   if (scope && (from < scope.from || to > scope.to) ||
       foldedDocumentParts(editor).some(part => from < part.to && to > part.from)) {
     throw new Error("Show the selected section and expand its content before separating an excerpt.");
   }
-  prepareContentMove(editor);
+  assertCompleteMoveTargets(doc, from, to, fragment);
   const parent = start.parent, parentFrom = start.before();
   const original = originals.find(part => part.id === parent.attrs.id);
   let url = parent.attrs["data-section-url"] || original?.url || "";
@@ -62,13 +65,13 @@ export function prepareSectionExcerpt(editor, originals = []) {
 
 export function buildSectionExcerpt(editor, proposal, title) {
   if (!proposal || proposal.doc !== editor.state.doc) {
-    throw new Error("The document changed. Select the paragraphs and open Separate excerpt again.");
+    throw new Error("The document changed. Select the blocks and open Separate excerpt again.");
   }
   const scope = visiblePart(editor);
   if (JSON.stringify(scope ? {from: scope.from, to: scope.to} : null) !==
       JSON.stringify(proposal.scope) || foldedDocumentParts(editor).some(part =>
         proposal.from < part.to && proposal.to > part.from)) {
-    throw new Error("The visible content changed. Select the paragraphs again.");
+    throw new Error("The visible content changed. Select the blocks again.");
   }
   title = title.trim();
   if (!title || title.length > 500 || /[\x00-\x1f\x7f]/.test(title)) {
@@ -86,9 +89,13 @@ export function buildSectionExcerpt(editor, proposal, title) {
     "data-section-url": proposal.url || null,
   }, Fragment.from(heading).append(proposal.fragment));
   const tr = closeHistory(editor.state.tr);
-  if (!proposal.parent.attrs.id) {
-    tr.setNodeMarkup(proposal.parentFrom, undefined, {...proposal.parent.attrs, id: proposal.parentId});
+  const parentAttrs = {...proposal.parent.attrs, id: proposal.parentId};
+  if (parentAttrs["data-section-title"]) {
+    proposal.fragment.descendants(node => {
+      if (node.attrs.id === parentAttrs["data-section-title"]) parentAttrs["data-section-title"] = null;
+    });
   }
+  tr.setNodeMarkup(proposal.parentFrom, undefined, parentAttrs);
   tr.replaceWith(proposal.from, proposal.to, section);
   tr.doc.check();
   tr.setSelection(TextSelection.near(tr.doc.resolve(proposal.from + 1)));
@@ -127,10 +134,14 @@ export function mountSectionExcerpts(form, editor, showError, originals = []) {
       form.querySelector("#editor-menu-close").click();
       title.value = "";
       dialog.querySelector("[data-origin]").textContent =
-        `${proposal.fragment.childCount} paragraph(s) from ${proposal.parentTitle} ` +
+        `${proposal.fragment.childCount} whole block(s) from ${proposal.parentTitle} ` +
         `(#${proposal.parentId})${proposal.url ? ` — ${proposal.url}` : ""}.`;
       dialog.querySelector("[data-preview]").textContent =
-        proposal.fragment.textBetween(0, proposal.fragment.size, "\n\n", "[image]").slice(0, 4000);
+        [...Array(proposal.fragment.childCount)].map((_, index) => {
+          const block = proposal.fragment.child(index);
+          return `${block.type.name.replace(/Text$|Block$/g, "")}: ` +
+            (block.textContent || block.attrs.alt || "(non-text block)");
+        }).join("\n\n").slice(0, 4000);
       preview();
       dialog.showModal();
       title.focus();

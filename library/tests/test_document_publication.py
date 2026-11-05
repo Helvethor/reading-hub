@@ -622,6 +622,38 @@ class DocumentPublicationTests(TestCase):
                 with self.assertRaisesMessage(ValueError, "Excerpt origin"):
                     self.publish(revision.revision)
 
+    def test_mixed_whole_block_excerpt_save_reopen_and_publication_keep_every_container(self):
+        blocks = (
+            '<p id="p">Text <a href="#parent">Back</a></p><h4 id="h">Heading</h4>'
+            '<table id="table"><tbody><tr><td>Cell</td></tr></tbody></table>'
+            '<ul id="list"><li>Item</li></ul>'
+            '<figure id="figure"><blockquote><p>Quote</p></blockquote>'
+            '<figcaption>Credit</figcaption></figure>'
+            '<pre id="pre">  exact\n spacing</pre><hr id="rule"/>'
+        )
+        markup = (
+            '<section id="parent"><h2>Parent</h2><p>Remaining</p></section>'
+            '<section id="excerpt" data-excerpt-parent="parent">'
+            '<h3>Mixed excerpt</h3>' + blocks + '</section>'
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": markup,
+        }, 1)
+        self.assertEqual(revision.issues, [])
+        result = self.publish(2)
+        soup = BeautifulSoup(result.rendition.html, "html.parser")
+        self.assertEqual(
+            [node.name for node in soup.select_one("#excerpt").find_all(recursive=False)],
+            ["h3", "p", "h4", "table", "ul", "figure", "pre", "hr"],
+        )
+        expected = BeautifulSoup(revision.document["html"], "html.parser").select_one("#excerpt")
+        for node in expected.select("[id]"):
+            self.assertEqual(str(soup.find(id=node["id"])), str(node))
+        reopened = self.client.get(reverse("document-editor", args=[self.rendition.pk]),
+                                   {"draft": self.draft.pk})
+        self.assertEqual(reopened.context["initial"]["document"]["html"],
+                         revision.document["html"])
+
     def test_organization_metadata_and_excerpt_attributes_are_strict(self):
         for value in ({"book": "true"}, {"book": True, "parts": []}, [], None):
             with self.subTest(value=value), self.assertRaisesMessage(ValueError, "organization"):

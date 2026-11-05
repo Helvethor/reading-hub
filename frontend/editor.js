@@ -6,6 +6,7 @@ import {DOMParser as SemanticDOMParser, DOMSerializer, Fragment, Slice} from "@t
 import {EditorState, NodeSelection, Plugin, TextSelection} from "@tiptap/pm/state";
 import {revealDocumentPosition, workspaceExtension, visiblePart} from "./workspace.js";
 import {mountSemanticClipboard} from "./semantic-clipboard.js";
+import {BlockSelection, blockSelectionExtension} from "./block-selection.js";
 
 const inlineTags = new Set([
   "strong", "b", "em", "i", "u", "s", "small", "sup", "sub", "a", "span",
@@ -1048,7 +1049,8 @@ export function createBoundedEditor(element, html, onUpdate = () => {}) {
   let semanticClipboard;
   const editor = new BoundedEditor({
     element,
-    extensions: [...editorExtensions, workspaceExtension(message => onUpdate({error: message}))],
+    extensions: [...editorExtensions, workspaceExtension(message => onUpdate({error: message})),
+      blockSelectionExtension(message => onUpdate({error: message}))],
     content: parsedFlow.toJSON(),
     parseOptions: {preserveWhitespace: "full"},
     injectCSS: false,
@@ -1061,6 +1063,10 @@ export function createBoundedEditor(element, html, onUpdate = () => {}) {
       handleDOMEvents: {
         cut: (view, event) => {
           try {
+            if (view.state.selection instanceof BlockSelection && !view.state.selection.contiguous) {
+              event.preventDefault();
+              throw new Error("Selected blocks have gaps. Select the intervening blocks before cutting.");
+            }
             return semanticClipboard.cut(view, event);
           } catch (failure) {
             onUpdate({error: failure.message});

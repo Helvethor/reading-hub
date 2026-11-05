@@ -20,6 +20,7 @@ import {mountSectionBoundaries} from "./section-boundaries.js";
 import {mountTargets} from "./targets.js";
 import {mountSectionManagement} from "./section-management.js";
 import {mountSectionExcerpts} from "./section-excerpts.js";
+import {BlockSelection} from "./block-selection.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}) {
   const owner = form.ownerDocument;
@@ -274,6 +275,10 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
         (node.attrs.id ? ` #${node.attrs.id}` : ""));
     }
     path.textContent = `Current block: ${ancestors.join(" / ") || "Document"}`;
+    if (selection instanceof BlockSelection) path.textContent =
+      `${selection.positions.length} whole block(s) selected` +
+      (selection.contiguous ? " (contiguous)." : " (gaps: select intervening blocks before extracting).") +
+      " Ctrl-click toggles blocks; Escape clears selection.";
     if (selectedImage(editor)) path.textContent += " / Image";
   }
   function openMenu(x, y) {
@@ -281,7 +286,9 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     menuTarget = {doc: editor.state.doc, bookmark: editor.state.selection.getBookmark()};
     updateTools();
     const {selection} = editor.state;
-    form.querySelector("#editor-menu-target").textContent = selectedImage(editor)
+    form.querySelector("#editor-menu-target").textContent = selection instanceof BlockSelection
+      ? `${selection.positions.length} whole block(s) selected${selection.contiguous ? "" : " with gaps"}. Separate as excerpt uses only contiguous blocks.`
+      : selectedImage(editor)
       ? "Selected image: edit alternative text without replacing its retained asset"
       : selectedLink(editor) ? "Existing link: edit the whole link's destination and title, preserving its text"
       : selection.empty
@@ -309,7 +316,9 @@ export function mountWorkspace(form, editor, showError, initial = {}) {
     event.preventDefault();
     const image = event.target.closest("img");
     const link = event.target.closest("a[href]");
-    if (image && surface.contains(image)) {
+    if (editor.state.selection instanceof BlockSelection) {
+      // Keep the explicit block set even when right-click lands on its image or link.
+    } else if (image && surface.contains(image)) {
       const position = editor.view.posAtDOM(image, 0);
       editor.view.dispatch(editor.state.tr.setSelection(
         NodeSelection.create(editor.state.doc, position),

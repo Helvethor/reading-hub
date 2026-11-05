@@ -117,11 +117,21 @@ content and the old target anchor; deletion refuses external inbound target
 references or excerpt origins. Both are independently undoable document edits.
 
 **Separate as excerpt section** in the selection context menu takes complete
-contiguous sibling paragraphs directly inside one section. Partial paragraphs,
-cross-section selections, nested list/table/quotation content, non-paragraph
-blocks, stale proposals and hidden selected content refuse explicitly.
-The paragraphs become a titled child section at their original position, without
+contiguous sibling blocks directly inside one section, in any combination:
+paragraphs, headings, lists, tables, figures, quotations, preformatted text,
+rules and other semantic blocks. Ctrl/Cmd-click toggles whole blocks without
+editing or creating history; clicks inside a container select its section-level
+block. Selection outlines and block-count/gap status are view-only. A normal
+click, Escape or an arrow key returns to ordinary editing. Ctrl/Cmd-click links
+retains navigation. Right-click on selected media/links preserves the block set.
+Noncontiguous selections are permitted as a selection state, but extraction and
+document edits refuse until gaps are selected or the set is cleared. Complete
+range/individual block selections are also accepted. Partial blocks,
+cross-section selections, stale proposals and hidden content refuse explicitly.
+The blocks become a titled child section at their original position, without
 copying/rebuilding their text, marks, targets, links or bound images.
+Extracting a bound title heading clears its old parent-title binding so it
+cannot incorrectly identify a heading now owned by the excerpt.
 `data-excerpt-parent` records the originating section ID and `data-excerpt-url`
 its known source URL; these are distinct from current containment and citation.
 Movement does not rewrite origin, while explicit target renaming updates the

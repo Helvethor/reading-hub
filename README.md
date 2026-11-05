@@ -99,9 +99,16 @@ The section menu includes **Remove section** (unwrap while retaining targets,
 or explicitly delete content with inbound-link/origin guards), and properties
 include a group label. Book/article classification can be changed explicitly
 under bibliographic metadata without changing retained source-page count.
-Select complete contiguous paragraphs that are direct children of one section,
+Ctrl/Cmd-click to select whole blocks that are direct children of one section,
 then right-click (or use Selection tools) → **Separate as excerpt section**.
-Give it a title; the paragraphs become an independently movable child section,
+Any combination of paragraphs, headings, lists, tables, figures, quotations,
+preformatted text, rules and other blocks is supported. Clicking within a
+container selects the entire section-level block, not just its inner paragraph.
+Ctrl/Cmd-click toggles each highlighted block; click normally or press Escape
+to clear. The selected blocks must be contiguous: gaps and partial blocks
+refuse rather than including unselected content. Ctrl/Cmd-click on a link still
+navigates; click another part of its block to select it.
+Give it a title; the blocks become an independently movable child section,
 not a copy. Its original parent section ID and source URL remain attached after
 movement and through save/recovery/publication; properties and canvas labels
 show that origin separately from current containment. Each extraction/move is

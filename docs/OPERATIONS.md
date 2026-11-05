@@ -746,10 +746,19 @@ content deletion. External inbound links and excerpt-origin relationships must
 be repaired first. Group labels are editable in section properties; explicit
 book/article classification is under bibliographic metadata.
 
-To separate an excerpt, select from the start of the first paragraph to the end
-of the last, all direct children of one section. Right-click or use **Selection
-tools → Separate as excerpt section**, review the paragraph/origin preview,
-enter a title and confirm. The paragraphs become a titled child section at that
+To separate an excerpt, Ctrl/Cmd-click whole blocks within one section.
+Paragraphs, headings, lists, tables, figures, quotations, preformatted text,
+rules and other blocks may be combined. A click inside a list/table/figure
+selects the whole section-level container. Ctrl/Cmd-click toggles a block; a
+normal click, Escape or an arrow key clears the set. Link Ctrl/Cmd-click remains
+navigation, so click another part of its block for selection.
+All selected blocks must be contiguous; select intervening blocks to close gaps.
+The editor outlines each selected block and announces the count/gap status.
+Right-click even over selected media/links keeps the block set. Use **Selection
+tools → Separate as excerpt section**, review the block/origin preview,
+enter a title and confirm. Complete text ranges and individually selected whole
+blocks also work; partial blocks and gaps refuse.
+The blocks become a titled child section at that
 position without duplication. Move it normally in the outline. Properties and
 canvas labels show its original section ID/URL, independently of current
 containment/citation. Parent target renaming updates the linkage, but movement

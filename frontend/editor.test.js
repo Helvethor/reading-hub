@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
 import {undo, redo} from "@tiptap/pm/history";
-import {NodeSelection} from "@tiptap/pm/state";
+import {NodeSelection, Selection} from "@tiptap/pm/state";
 import {
   createBoundedEditor, contentSignature, isInlineStyleActive, toggleInlineStyle,
   applyPlainTextPaste, preparePlainTextPaste, MAX_PASTE_BYTES,
@@ -39,6 +39,7 @@ import {
   prepareSectionRemoval, applySectionRemoval,
 } from "./section-management.js";
 import {prepareSectionExcerpt, applySectionExcerpt} from "./section-excerpts.js";
+import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -122,15 +123,15 @@ test("separating contiguous paragraphs preserves exact content and independent o
   assert.equal(prepareSectionDetails(editor, 2).origin.section, "parent");
 });
 
-test("excerpt selection rejects partial paragraphs cross-sections nested containers and mixed blocks", () => {
+test("excerpt range selection rejects partial blocks and cross-sections but accepts mixed whole blocks", () => {
   open('<section id="a"><h2>A</h2><p>First.</p><hr><p>Second.</p>' +
     '<blockquote><p>Quoted.</p></blockquote></section>' +
     '<section id="b"><p>Third.</p></section>');
   const before = editor.getHTML();
   selectText("First", 2);
-  assert.throws(() => prepareSectionExcerpt(editor), /first paragraph/);
+  assert.throws(() => prepareSectionExcerpt(editor), /whole blocks/);
   selectParagraphs("First.", "Second.");
-  assert.throws(() => prepareSectionExcerpt(editor), /Only contiguous paragraphs/);
+  assert.equal(prepareSectionExcerpt(editor).fragment.childCount, 3);
   selectParagraphs("Second.", "Third.");
   assert.throws(() => prepareSectionExcerpt(editor), /one section/);
   selectParagraphs("Quoted.");
@@ -138,6 +139,203 @@ test("excerpt selection rejects partial paragraphs cross-sections nested contain
   selectText("First");
   assert.throws(() => prepareSectionExcerpt(editor), /complete contiguous/);
   assert.equal(editor.getHTML(), before);
+});
+
+function ctrlClickBlock(selector, options = {}) {
+  const element = editor.view.dom.querySelector(selector);
+  assert(element, selector);
+  element.dispatchEvent(new dom.window.MouseEvent("mousedown", {
+    bubbles: true, cancelable: true, button: 0, ctrlKey: true, ...options,
+  }));
+  element.dispatchEvent(new dom.window.MouseEvent("click", {
+    bubbles: true, cancelable: true, button: 0, ctrlKey: true, ...options,
+  }));
+}
+
+test("Ctrl-click toggles whole blocks without document changes or losing the selected set", () => {
+  open('<section id="s"><h2>Title</h2><p id="a">One <em>nested</em>.</p>' +
+    '<blockquote id="q"><p>Quoted.</p></blockquote><hr id="rule"><p>Tail.</p></section>');
+  const before = editor.getHTML();
+  ctrlClickBlock("#a em");
+  assert(editor.state.selection instanceof BlockSelection);
+  assert.equal(editor.state.selection.positions.length, 1);
+  ctrlClickBlock("#q p");
+  ctrlClickBlock("#rule");
+  assert.equal(editor.state.selection.positions.length, 3);
+  assert(editor.state.selection.contiguous);
+  assert.deepEqual([...editor.view.dom.querySelectorAll(".editor-selected-block")].map(el => el.id),
+    ["a", "q", "rule"]);
+  ctrlClickBlock("#q p");
+  assert.equal(editor.state.selection.positions.length, 2);
+  assert(!editor.state.selection.contiguous);
+  assert(!editor.view.dom.querySelector("#q").classList.contains("editor-selected-block"));
+  ctrlClickBlock("#a");
+  ctrlClickBlock("#rule");
+  assert(!(editor.state.selection instanceof BlockSelection));
+  assert.equal(editor.view.dom.querySelectorAll(".editor-selected-block").length, 0);
+  assert.equal(editor.getHTML(), before);
+  assert(!undo(editor.state, editor.view.dispatch), "Selection changes must not create edit history.");
+});
+
+test("mixed block excerpts preserve exact heading table list figure pre rule and nested section nodes", () => {
+  const html = '<section id="parent" data-section-title="title" data-section-url="https://example.org/source">' +
+    '<h2 id="title">Parent title</h2><p id="p">Text <a href="#title">Back</a></p>' +
+    '<table id="table"><tbody><tr><td>Cell</td></tr></tbody></table>' +
+    '<ul id="list"><li><p>Item</p></li></ul>' +
+    '<figure id="fig"><img src="/assets/' + "a".repeat(64) + '/" alt="Plate"><figcaption>Caption</figcaption></figure>' +
+    '<pre id="pre">  exact\n spacing</pre><hr id="rule">' +
+    '<section id="nested"><h3>Nested</h3><p>Child</p></section></section>';
+  open(html);
+  const original = editor.getHTML();
+  const parent = editor.state.doc.firstChild;
+  const expected = parent.content.toJSON();
+  let at = 1;
+  parent.forEach(node => { toggleBlockSelection(editor, at); at += node.nodeSize; });
+  const proposal = prepareSectionExcerpt(editor);
+  assert.equal(proposal.fragment.childCount, 8);
+  const id = applySectionExcerpt(editor, proposal, "Mixed excerpt");
+  const excerpt = movableSections(editor.state.doc).find(s => s.node.attrs.id === id).node;
+  assert.deepEqual(excerpt.content.toJSON().slice(1), expected);
+  assert.equal(editor.state.doc.firstChild.attrs["data-section-title"], null,
+    "Moving the bound title must not leave the original section pointing into its child.");
+  assert.equal(excerpt.attrs["data-excerpt-parent"], "parent");
+  assert.equal(excerpt.attrs["data-excerpt-url"], "https://example.org/source");
+  assert(!editor.getHTML().includes("editor-selected-block"));
+  const after = editor.getHTML();
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), after);
+  editor.destroy();
+  open(after);
+  assert.equal(prepareSectionDetails(editor, 1).origin.section, "parent");
+});
+
+test("gapped block selections refuse excerpts and destructive edits without touching clipboard or document", () => {
+  const errors = [];
+  open('<section id="s"><p id="a">First</p><p id="b">Middle</p><p id="c">Last</p></section>',
+    update => { if (update.error) errors.push(update.error); });
+  ctrlClickBlock("#c");
+  ctrlClickBlock("#a");
+  const before = editor.getHTML();
+  assert.throws(() => prepareSectionExcerpt(editor), /gaps/);
+  editor.view.dispatch(editor.state.tr.delete(editor.state.selection.from, editor.state.selection.to));
+  assert.equal(editor.getHTML(), before);
+  assert(errors.at(-1).includes("gaps"));
+  const cut = new dom.window.Event("cut", {bubbles: true, cancelable: true});
+  Object.defineProperty(cut, "clipboardData", {value: {setData: () => assert.fail("Nothing should be cut")}});
+  editor.view.dom.dispatchEvent(cut);
+  assert(errors.at(-1).includes("gaps"));
+  assert.equal(editor.getHTML(), before);
+  ctrlClickBlock("#b");
+  assert(editor.state.selection.contiguous);
+  assert.equal(prepareSectionExcerpt(editor).fragment.childCount, 3);
+});
+
+test("block selection bookmarks serialization and document mapping preserve exact chosen blocks", () => {
+  open('<section><p id="a">A</p><p id="b">B</p><p id="c">C</p></section>');
+  ctrlClickBlock("#a");
+  ctrlClickBlock("#b");
+  const selection = editor.state.selection;
+  assert(Selection.fromJSON(editor.state.doc, selection.toJSON()).eq(selection));
+  assert(selection.getBookmark().resolve(editor.state.doc).eq(selection));
+  editor.view.dispatch(editor.state.tr.insertText("prefix ", selection.to + 1));
+  assert(editor.state.selection instanceof BlockSelection);
+  assert.deepEqual(editor.state.selection.positions.map(at => editor.state.doc.nodeAt(at).attrs.id),
+    ["a", "b"]);
+});
+
+test("Ctrl-selected mixed blocks use the existing independent content move and semantic cut paths", () => {
+  const html = '<section id="s"><h2>Source</h2><p id="a">One</p><hr id="rule"></section>' +
+    '<section id="d"><h2>Destination</h2><p>End</p></section>';
+  open(html);
+  const before = editor.getHTML();
+  ctrlClickBlock("#a");
+  ctrlClickBlock("#rule");
+  const proposal = prepareContentMove(editor);
+  assert.equal(proposal.fragment.childCount, 2);
+  applyContentMove(editor, proposal, 1, "section-end");
+  assert(editor.view.dom.querySelector("#d #a"));
+  assert(editor.view.dom.querySelector("#d #rule"));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+  selectText("Source");
+  ctrlClickBlock("#a");
+  ctrlClickBlock("#rule");
+  const cut = new dom.window.Event("cut", {bubbles: true, cancelable: true});
+  const clipboard = new Map();
+  Object.defineProperty(cut, "clipboardData", {value: {setData: (type, value) => clipboard.set(type, value)}});
+  editor.view.dom.dispatchEvent(cut);
+  assert(!editor.view.dom.querySelector("#a"));
+  assert(!editor.view.dom.querySelector("#rule"));
+  assert(clipboard.get("text/plain").includes("One"));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), before);
+});
+
+test("Ctrl-click selects container blocks while links keep navigation and Escape clears selection", () => {
+  open('<section id="s"><p id="first">First <a href="#end">Go</a></p>' +
+    '<table id="table"><tbody><tr><td>Cell <em>nested</em></td></tr></tbody></table>' +
+    '<p id="end">End</p></section>');
+  ctrlClickBlock("#table em", {ctrlKey: false, metaKey: true});
+  assert.deepEqual(editor.state.selection.positions.map(at => editor.state.doc.nodeAt(at).attrs.id), ["table"]);
+  editor.view.dom.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "Escape", bubbles: true, cancelable: true,
+  }));
+  assert(!(editor.state.selection instanceof BlockSelection));
+  const node = editor.view.dom.querySelector("#end");
+  node.scrollIntoView = () => {};
+  ctrlClickBlock("#first a");
+  assert(!(editor.state.selection instanceof BlockSelection));
+  assert.equal(navigatedDocumentTarget(editor), "end");
+});
+
+test("right-clicking an image or link retains Ctrl-selected mixed blocks for excerpt creation", () => {
+  const form = mountSectionWorkspace('<section id="s"><h2>Section</h2>' +
+    '<p id="p">Text <a href="#s">Back</a></p><figure id="f">' +
+    '<img src="/assets/' + "a".repeat(64) + '/" alt="Plate"><figcaption>Caption</figcaption>' +
+    '</figure><p>Tail</p></section>');
+  ctrlClickBlock("#p");
+  ctrlClickBlock("#f img");
+  const selection = editor.state.selection;
+  for (const selector of ["#f img", "#p a"]) {
+    form.querySelector(`#editor-surface ${selector}`).dispatchEvent(new dom.window.MouseEvent(
+      "contextmenu", {bubbles: true, cancelable: true, clientX: 20, clientY: 20},
+    ));
+    assert(editor.state.selection.eq(selection));
+    assert(form.querySelector("#editor-menu-target").textContent.includes("2 whole block(s)"));
+  }
+  form.querySelector("#editor-section-excerpt-open").click();
+  const dialog = document.querySelector("#editor-section-excerpt");
+  assert(dialog.open);
+  assert(dialog.querySelector("[data-origin]").textContent.includes("2 whole block(s)"));
+  assert(dialog.querySelector("[data-preview]").textContent.includes("figure: Caption"));
+  dialog.querySelector("[name=title]").value = "Mixed";
+  dialog.querySelector("[name=title]").dispatchEvent(new dom.window.Event("input"));
+  dialog.querySelector("[data-apply]").click();
+  assert.equal(editor.view.dom.querySelectorAll("section[data-excerpt-parent] > p").length, 1);
+  assert.equal(editor.view.dom.querySelectorAll("section[data-excerpt-parent] > figure").length, 1);
+});
+
+test("Ctrl-click refuses cross-section accumulation and hidden or collapsed blocks", () => {
+  const errors = [];
+  open('<section id="a"><h2>A</h2><p id="one">One</p></section>' +
+    '<section id="b"><h2>B</h2><p id="two">Two</p></section>',
+  update => { if (update.error) errors.push(update.error); });
+  ctrlClickBlock("#one");
+  const selection = editor.state.selection;
+  ctrlClickBlock("#two");
+  assert(editor.state.selection.eq(selection));
+  assert(errors.at(-1).includes("same section"));
+  showDocumentPart(editor, documentParts(editor.state.doc).find(part => part.id === "a"));
+  ctrlClickBlock("#two");
+  assert(!(editor.state.selection instanceof BlockSelection));
+  assert(errors.at(-1).includes("visible part"));
+  showDocumentPart(editor, null);
+  toggleDocumentFold(editor, documentParts(editor.state.doc).find(part => part.id === "b"));
+  ctrlClickBlock("#two");
+  assert(!(editor.state.selection instanceof BlockSelection));
+  assert(errors.at(-1).includes("folded"));
 });
 
 test("excerpt assigns anonymous parent an undoable target and inherits pinned source URL", () => {

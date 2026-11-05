@@ -117,7 +117,7 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   acceptance. Final focused checks: 171 frontend and 192 backend tests.
 - [x] Make saved document sections authoritative for corrected publication;
   permit guarded delete/unwrap, group labels and explicit book classification.
-  Separate contiguous complete paragraphs in one section into an independently
+  Separate contiguous complete blocks in one section into an independently
   movable excerpt section with persistent origin ID/URL, distinct from current
   containment. Preserve exact selected nodes, Undo, save/recovery/comparison and
   publication; block missing/cyclic origins at certification/publication.
@@ -130,6 +130,13 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   article 52 (28 pages, still an article). Article extraction was service-driven;
   browser selection/menus used programmatic events, not independent human
   usability/accessibility acceptance. Live source/corrections were unchanged.
+- [x] Support Ctrl/Cmd-click toggled whole-block multiselection, with visible
+  selected blocks and gap status; preserve link navigation and the selection
+  when right-click lands on media or a link. Excerpts accept any combination
+  of contiguous sibling blocks, not just paragraphs, retaining whole container
+  nodes. Refuse gaps rather than including unselected intervening blocks.
+  Selection changes are view-only, with Escape/normal-click clearing.
+  Current automated checks pass; browser whole-block acceptance is pending.
 - [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
   overwriting corrected documents. These remain explicit legacy source-graph
   operations, not ordinary editor-save effects.

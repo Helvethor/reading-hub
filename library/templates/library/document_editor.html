@@ -101,7 +101,7 @@
         </div>
       </div>
     </div>
-    <p id="editor-help" class="editor-help">Select text and right-click for formatting, or press Shift+F10. Selection tools provides the same menu by keyboard or touch. Ctrl/Cmd-click a link to follow it: internal anchors scroll to their target; external links open a new tab. Ordinary clicks remain for editing. Ctrl+X cuts semantic content; Ctrl+V pastes it at the cursor in this editor, preserving formatting, links and retained images without a dialog. Cut removes immediately; Ctrl+Z restores it. Paste before closing or reloading the editor. Use the outline to reach another chapter, or Whole document for cross-chapter selections. External clipboard paste still opens a preview. Shift+right-click opens the native browser menu.</p>
+    <p id="editor-help" class="editor-help">Ctrl/Cmd-click blocks to toggle whole-block selection within one section: paragraphs, headings, lists, tables, figures, quotations and other blocks can be combined. Selected blocks are outlined; click normally or press Escape to clear. Right-click → Separate as excerpt section requires contiguous blocks (no gaps); it never includes unselected intervening blocks. Click within a list/table/figure to select that whole section-level block. Ctrl/Cmd-click on a link still follows it; use another part of its block to select the block. Select text and right-click for formatting, or press Shift+F10. Selection tools provides the same menu by keyboard or touch. Ctrl+X cuts semantic content; Ctrl+V pastes it at the cursor in this editor, preserving formatting, links and retained images without a dialog. Cut removes immediately; Ctrl+Z restores it. Paste before closing or reloading the editor. Use the outline to reach another chapter, or Whole document for cross-chapter selections. External clipboard paste still opens a preview. Shift+right-click opens the native browser menu.</p>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
       <p id="editor-menu-target"></p>
       <div role="group" aria-label="Text styling" class="editor-menu-group">
@@ -187,11 +187,11 @@
     <button type="button" data-cancel>Cancel</button>
   </dialog>
   <dialog id="editor-section-excerpt" aria-labelledby="editor-section-excerpt-heading">
-    <h2 id="editor-section-excerpt-heading">Separate paragraphs as an excerpt section</h2>
+    <h2 id="editor-section-excerpt-heading">Separate whole blocks as an excerpt section</h2>
     <p data-origin></p>
     <label>Excerpt title <input name="title" maxlength="500"></label>
     <pre data-preview></pre>
-    <p>The complete selected paragraphs become a titled child section at their current position, without copying or changing their text, formatting, targets, links or images. Move the new section independently using the outline. Its original parent section and source URL remain attached after movement. This edits the current document, not a raw-source excerpt definition. One Undo step; save and publish separately.</p>
+    <p>The complete selected blocks become a titled child section at their current position, without copying or changing their text, formatting, targets, links or images. Any combination of sibling blocks is supported, including headings, lists, tables, figures, quotations, preformatted text and rules. Ctrl/Cmd-click toggles whole blocks; selected blocks must be contiguous within one section. Partial blocks and gaps are refused. Move the new section independently using the outline. Its original parent section and source URL remain attached after movement. This edits the current document, not a raw-source excerpt definition. One Undo step; save and publish separately.</p>
     <p role="alert" class="error"></p>
     <button type="button" data-apply>Separate excerpt</button>
     <button type="button" data-cancel>Cancel</button>

@@ -96,6 +96,7 @@ button:hover, .button:hover { background: #7a1616; }
 #editor-surface .editor-section-boundary, #editor-surface .editor-section-title { border-color: var(--editor-border); outline-color: var(--accent); }
 #editor-surface .editor-section-edge, #editor-surface .editor-section-title::after { background: var(--editor-panel); color: var(--ink); border-color: var(--editor-border); }
 .editor-section-controls { background: var(--editor-panel); }
+#editor-surface .editor-selected-block { outline-color: var(--accent); background: var(--editor-hover); }
 #editor-outline-items [data-section-drop] { border-color: var(--accent); outline-color: var(--accent); }
 #editor-outline-items [data-section-drop=inside] { background: var(--editor-hover); }
 #editor-surface .tiptap .quotation blockquote { border-color: var(--editor-border); }

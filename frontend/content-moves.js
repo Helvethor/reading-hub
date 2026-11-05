@@ -3,13 +3,17 @@ import {NodeSelection, TextSelection} from "@tiptap/pm/state";
 import {closeHistory} from "@tiptap/pm/history";
 import {movableSections} from "./section-moves.js";
 import {showDocumentPart, visiblePart} from "./workspace.js";
+import {BlockSelection} from "./block-selection.js";
 
 export function prepareContentMove(editor) {
   const {doc, selection} = editor.state;
   if (selection.empty) throw new Error("Select the content to move first.");
   let {from, to} = selection;
   let fragment, seam = "", sourceText = null;
-  if (selection instanceof NodeSelection) {
+  if (selection instanceof BlockSelection) {
+    if (!selection.contiguous) throw new Error("Selected blocks have gaps. Select the intervening blocks before moving.");
+    fragment = selection.content().content;
+  } else if (selection instanceof NodeSelection) {
     if (!selection.node.isBlock) throw new Error("Select inline text or complete blocks.");
     fragment = Fragment.from(selection.node);
   } else if (selection.$from.sameParent(selection.$to) && selection.$from.parent.inlineContent) {
@@ -51,6 +55,11 @@ export function prepareContentMove(editor) {
     ? Fragment.from(editor.schema.text(seam)) : Fragment.empty)) {
     throw new Error("Removing these blocks would invalidate their source container.");
   }
+  assertCompleteMoveTargets(doc, from, to, fragment);
+  return {doc, from, to, fragment, seam, sourceText};
+}
+
+export function assertCompleteMoveTargets(doc, from, to, fragment) {
   const selectedTargets = new Set();
   fragment.descendants(node => {
     if (node.attrs.id) selectedTargets.add(node.attrs.id);
@@ -63,7 +72,6 @@ export function prepareContentMove(editor) {
       }
     }
   });
-  return {doc, from, to, fragment, seam, sourceText};
 }
 
 export function buildContentMove(editor, proposal, destinationIndex, placement, title = "") {
