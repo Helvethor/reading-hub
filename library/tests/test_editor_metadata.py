@@ -8,7 +8,7 @@ from pypdf import PdfReader
 
 from library.models import CanonicalAuthor
 from library.services.document_edits import save_revision, validate_editor_metadata
-from library.services.document_metadata import metadata_entries, metadata_rows
+from library.services.document_metadata import book_pages, metadata_entries, metadata_rows, page_preset
 from library.services.document_publication import prepare_publication, publish_revision
 from library.services.pdf import render_pdf
 from library.tests import test_document_edits as foundation
@@ -50,10 +50,14 @@ class EditorMetadataTests(TestCase):
         self.assertFalse(value["author_is_fallback"])
         self.assertEqual(validate_editor_metadata(self.draft.document["metadata"], value), value)
         rows = metadata_rows(value)
-        self.assertIn(("Translator", "A Translator"), rows)
-        self.assertIn(("Editor", "An Editor"), rows)
-        self.assertIn(("Written", "1891 / 1892"), rows)
-        self.assertNotIn(("Author", "Not an author"), rows)
+        self.assertEqual(rows, [
+            ("Author", "First Writer, Second Writer"), ("Translator", "A Translator"),
+            ("Written", "1891 / 1892"), ("Published", "1902-03"),
+        ], "The title page is synthetic by default.")
+        entries = [(label, text) for _, label, text in metadata_entries(value)]
+        self.assertIn(("Editor", "An Editor"), entries)
+        self.assertIn(("Online edition", "2026-10-25"), entries)
+        self.assertNotIn(("Author", "Not an author"), entries)
 
     def test_bibliographic_text_fields_and_original_language_are_editable(self):
         original = self.draft.document["metadata"]
@@ -64,10 +68,11 @@ class EditorMetadataTests(TestCase):
         self.assertEqual(value["original_title"], "Das Kapital")
         self.assertEqual(value["original_language"], "de-AT")
         self.assertEqual(validate_editor_metadata(original, value), value)
-        rows = metadata_rows(value)
+        entries = [(label, text) for _, label, text in metadata_entries(value)]
         for row in (("Original title", "Das Kapital"), ("Publisher", "Verlag"),
                     ("Series", "Collected Works 35"), ("Original language", "German")):
-            self.assertIn(row, rows)
+            self.assertIn(row, entries)
+            self.assertNotIn(row, metadata_rows(value))
         cleared = validate_editor_metadata(value, {**value, "publisher": " ", "original_language": ""})
         self.assertNotIn("publisher", cleared)
         self.assertNotIn("original_language", cleared)
@@ -95,16 +100,19 @@ class EditorMetadataTests(TestCase):
         self.assertEqual(value["notes"], "Signed: N. Lenin\nDelivered: 12 May 1920")
         self.assertEqual(validate_editor_metadata(original, value), value)
         rows = metadata_rows(value)
+        self.assertEqual(rows, [
+            ("Delivered", "1920-05-12"), ("Rights", "Public Domain: Lenin Internet Archive (1999)."),
+        ], "The synthetic title page keeps dates, rights and source only.")
+        entries = [(label, text) for _, label, text in metadata_entries(value)]
         for row in (
-            ("Delivered", "1920-05-12"),
             ("Publication history", "First published as a separate work in March 1902."),
             ("Source edition", "Collected Works, Volume 5, pp. 347-530."),
             ("Translation", "Joe Fineberg and George Hanna."),
         ):
-            self.assertIn(row, rows)
-        hidden = {"Online version", "Transcription/markup", "Proofreading", "Rights", "Other notes"}
+            self.assertIn(row, entries)
+        hidden = {"Online version", "Transcription/markup", "Proofreading", "Other notes"}
         self.assertFalse(hidden & {label for label, _ in rows}, "Credits are hidden by default.")
-        self.assertTrue(hidden <= {label for _, label, _ in metadata_entries(value)})
+        self.assertTrue(hidden <= {label for label, _ in entries})
         chosen = validate_editor_metadata(original, {
             **value, "title_page_fields": ["notes", "delivered", "rights"],
         })
@@ -122,6 +130,29 @@ class EditorMetadataTests(TestCase):
             with self.subTest(key=key, invalid=invalid[:20]), self.assertRaises(ValueError):
                 validate_editor_metadata(original, {**original, key: invalid})
 
+    def test_work_type_and_page_settings_validate_and_override_presets(self):
+        original = self.draft.document["metadata"]
+        self.assertEqual(page_preset(None, False),
+                         {"title_layout": "compact", "contents_page": False, "metadata_page": True})
+        self.assertEqual(page_preset(None, True)["title_layout"], "full")
+        self.assertEqual(page_preset("letter", True)["title_layout"], "compact")
+        self.assertTrue(page_preset("pamphlet", False)["contents_page"])
+        value = validate_editor_metadata(original, {
+            **original, "work_type": "speech", "title_layout": "full", "contents_page": True,
+            "metadata_page": False,
+        })
+        self.assertEqual(book_pages(value), {"title_layout": "full", "contents_page": True, "metadata_page": False})
+        self.assertEqual(metadata_entries(value)[0], ("work_type", "Type", "Speech"))
+        self.assertEqual(validate_editor_metadata(original, value), value)
+        for key, invalid in (
+            ("work_type", "novel"), ("title_layout", "tiny"), ("contents_page", "yes"), ("metadata_page", 1),
+        ):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_editor_metadata(original, {**original, key: invalid})
+        editor = self.client.get(reverse("document-editor", args=[self.rendition.pk]))
+        self.assertContains(editor, '<option value="letter">Letter</option>', html=False)
+        self.assertContains(editor, 'id="editor-tab-metadata"')
+
     def test_title_page_selection_controls_reader_rows_and_source_link(self):
         metadata = {**self.values(), "rights": "Public Domain", "title_page_fields": ["rights"]}
         row = save_revision(
@@ -132,7 +163,13 @@ class EditorMetadataTests(TestCase):
         reader = self.client.get(reverse("reader", args=[published.rendition_id]))
         self.assertContains(reader, "<dt>Rights</dt><dd>Public Domain</dd>", html=False)
         self.assertNotContains(reader, "<dt>Translator</dt>")
-        self.assertNotContains(reader, 'class="source-link"')
+        html = reader.content.decode()
+        header = html[html.index('<header class="document-header'):]
+        header = header[:header.index("</header>")]
+        self.assertNotIn('class="source-link"', header, "Unselected source stays off the title page.")
+        page = html[html.index('id="document-metadata"'):]
+        self.assertIn('class="source-link"', page, "The metadata page still records the source.")
+        self.assertIn("<th scope=\"row\">Translator</th>", page)
 
     def test_register_person_creates_or_reuses_a_registered_author(self):
         url = reverse("document-editor-register-person")

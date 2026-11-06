@@ -45,7 +45,7 @@
     <noscript><p class="notice">Private highlighting requires JavaScript. Reading the saved article does not.</p></noscript>
     {% endif %}
     <div class="publication-content">
-    <header class="document-header">
+    <header class="document-header document-header-{{ book_pages.title_layout }}">
       <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
       <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
       {% include 'library/document_metadata.html' %}
@@ -56,8 +56,9 @@
       <ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
     </section>
     {% endif %}
-    {% if generated_book and contents_toc %}{% include 'library/book_contents.html' %}{% endif %}
+    {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
     <article class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+    {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
     </div>
     <section class="version-details" aria-label="Cached version details">
       <h2>About this cached version</h2>

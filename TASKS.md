@@ -318,6 +318,17 @@ acceptance. Historical counts below describe their original slices.
   fields from its actual note without touching content; menus verified via DOM
   state. Registration and search were exercised only with mocked/test data; the
   logged-in live page was not browsed.
+- [x] Split the editor into Editor / Metadata / Review & publish tabs; make the
+  Title page a synthetic summary with full or compact layout; add an optional
+  closing Metadata page and a ToC page toggle (navigation right-click, reset to
+  preset); add an explicit work Type whose presets (book-like: full title + ToC;
+  others: compact, no ToC; Metadata page on) fall back to the book/article
+  classification. Reader, publication and PDF follow the settings (PDF
+  presentation v10; compact first PDF page has no running header). 267 frontend
+  and 236 backend tests and the build pass; the real draft rendered read-only
+  server-side with tabs/Type/Metadata page present. Interactive behaviour was
+  verified only in jsdom tests; the logged-in live page was not browsed and no
+  live record was changed. Existing articles now default to the compact title.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

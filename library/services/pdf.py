@@ -17,7 +17,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 9
+PDF_PRESENTATION_VERSION = 10
 
 
 def split_pdf_paragraph(paragraph, fraction):
@@ -238,7 +238,7 @@ def render_pdf(version, destination, reading_style=None, theme=""):
 
     from library.profile import source_name
     from library.services.book_views import publication_view
-    from library.services.document_metadata import metadata_rows
+    from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import DEFAULTS, FONT_FILES, style_css, validate_style
     from library.services.storage import read_blob
     from library.themes import profile_for_theme
@@ -284,9 +284,13 @@ def render_pdf(version, destination, reading_style=None, theme=""):
             "version": version,
             "display_author": version.metadata.get("author", "").strip()
             or source_name(version.document.url),
-            "metadata_rows": metadata_rows(version.metadata),
+            **metadata_context(version.metadata, version.title, version.metadata.get(
+                "author", "").strip() or source_name(version.document.url),
+                version.structure.get("book")),
             "content_html": projection["content_html"],
-            "toc": toc_tree(projection["entries"]), "generated_book": generated_book,
+            "toc": toc_tree(with_metadata_page(
+                projection["entries"], version.metadata, version.structure.get("book"))),
+            "generated_book": generated_book,
             "contents_toc": contents_tree(projection["entries"]),
         },
     )

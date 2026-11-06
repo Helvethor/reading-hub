@@ -12,15 +12,24 @@ export const dateFields = {
   publication: ["publication", "Published"], online_edition: ["online_edition", "Online edition"],
   unknown: ["date", "Date (role unconfirmed)"],
 };
+export const workTypes = [
+  ["book", "Book"], ["pamphlet", "Pamphlet"], ["article", "Article"], ["essay", "Essay"],
+  ["letter", "Letter"], ["speech", "Speech"], ["interview", "Interview"],
+  ["report", "Report"], ["resolution", "Resolution"], ["other", "Other"],
+];
+const bookLike = new Set(["book", "pamphlet", "report"]);
+export const titleLayouts = ["full", "compact"];
 export const titlePageFields = [
-  "original_title", "author", "editor", "translator", "contributor", "publisher", "series",
+  "work_type", "original_title", "author", "editor", "translator", "contributor", "publisher", "series",
   "written", "delivered", "publication", "online_edition", "date", "publication_note",
   "source_edition", "translation_note", "online_version", "transcription", "proofreading",
   "rights", "notes", "language", "original_language", "subjects", "source_url",
 ];
-export const defaultHidden = new Set(["online_version", "transcription", "proofreading", "rights", "notes"]);
+// The title page is synthetic by default; the end-of-book metadata page lists everything.
+export const defaultShown = new Set(["author", "translator", "written", "delivered", "publication", "rights",
+  "source_url"]);
 export const fieldLabels = {
-  ...Object.fromEntries(textFields), author: "Author", editor: "Editor", translator: "Translator",
+  ...Object.fromEntries(textFields), work_type: "Type", author: "Author", editor: "Editor", translator: "Translator",
   contributor: "Contributor", ...Object.fromEntries(Object.values(dateFields)),
   language: "Language", original_language: "Original language", subjects: "Subjects", source_url: "Source URL",
 };
@@ -28,13 +37,31 @@ export const fieldLabels = {
 export function titlePageSelection(metadata) {
   return Array.isArray(metadata.title_page_fields)
     ? new Set(metadata.title_page_fields)
-    : new Set(titlePageFields.filter(key => !defaultHidden.has(key)));
+    : new Set(defaultShown);
+}
+
+// Book-like works open with a full title page and a contents page; shorter works start
+// right below a compact title block. Without a work type the book classification decides.
+export function pagePreset(workType, book) {
+  const full = workType ? bookLike.has(workType) : Boolean(book);
+  return {title_layout: full ? "full" : "compact", contents_page: full, metadata_page: true};
+}
+
+export function bookPages(metadata, book) {
+  const pages = pagePreset(metadata.work_type, book);
+  if (titleLayouts.includes(metadata.title_layout)) pages.title_layout = metadata.title_layout;
+  for (const key of ["contents_page", "metadata_page"]) {
+    if (typeof metadata[key] === "boolean") pages[key] = metadata[key];
+  }
+  return pages;
 }
 
 const textValue = value => value.split("\n").map(line => line.trim()).filter(Boolean).join("; ");
 
 export function metadataEntries(metadata, presentation = {}) {
   const entries = [];
+  const type = workTypes.find(([key]) => key === metadata.work_type);
+  if (type) entries.push(["work_type", "Type", type[1]]);
   if (metadata.original_title) entries.push(["original_title", "Original title", metadata.original_title]);
   const author = metadata.author || presentation.sourceName;
   if (author) entries.push(["author", !metadata.author || metadata.author_is_fallback ? "Source website" : "Author", author]);

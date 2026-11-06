@@ -9,9 +9,11 @@ import {mountMetadata} from "./metadata.js";
 import {textFields} from "./metadata-fields.js";
 import {mountDifferenceControls} from "./diff-controls.js";
 import {mountWorkflowPanels} from "./workflow-panels.js";
+import {mountEditorTabs} from "./editor-tabs.js";
 
 const form = document.querySelector("#document-editor");
 if (form) {
+  mountEditorTabs(form);
   const initial = JSON.parse(document.querySelector("#document-editor-initial").textContent);
   const status = document.querySelector("#editor-status");
   const error = document.querySelector("#editor-error");
@@ -22,7 +24,7 @@ if (form) {
   const historyLink = document.querySelector("#editor-history");
   const markReviewed = document.querySelector("#editor-mark-reviewed");
   const title = form.elements.title;
-  const metadataFields = ["author", "subtitle", ...textFields.map(([name]) => name), "language",
+  const metadataFields = ["author", "subtitle", "work_type", ...textFields.map(([name]) => name), "language",
     "original_language"].map(name => form.elements[name]).filter(Boolean);
   const sectionList = document.querySelector("#editor-sections");
   const pasteDialog = document.querySelector("#editor-paste");

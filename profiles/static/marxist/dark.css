@@ -64,7 +64,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 
 dialog, .help-popover, .preview-block-menu, .preview-submenu,
 .editor-page dialog,
-:is(#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) {
+:is(#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) {
   color: var(--ink);
   background: var(--editor-paper);
   border: 1px solid var(--editor-border);
@@ -74,7 +74,7 @@ dialog, .help-popover, .preview-block-menu, .preview-submenu,
 dialog::backdrop, .editor-page dialog::backdrop { background: #0009; }
 :is(.preview-block-menu, .preview-submenu) button:hover,
 :is(.preview-block-menu, .preview-submenu) button:focus-visible { background: var(--editor-hover); color: var(--ink); }
-:is(#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+:is(#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 #editor-surface, #editor-surface .tiptap { color: inherit; background: transparent; }
 /* Native light/dark I-beams remain visible on personal reading-style palettes. */

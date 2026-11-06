@@ -150,7 +150,7 @@ def contents_tree(entries):
 @require_GET
 def reader(request, pk):
     from library.services.book_views import publication_view
-    from library.services.document_metadata import metadata_rows
+    from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
 
     rendition = get_object_or_404(Rendition.objects.select_related("document", "snapshot"), pk=pk)
@@ -164,6 +164,9 @@ def reader(request, pk):
     projection = publication_view(rendition.html, rendition.structure["toc"]) if getattr(
         rendition, "document_publication", None,
     ) else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
+    display_author = rendition.metadata.get("author", "").strip() or source_name(
+        rendition.document.url)
+    book = rendition.structure.get("book")
     return render(
         request,
         "library/reader.html",
@@ -171,10 +174,9 @@ def reader(request, pk):
             **reading_style,
             "version": rendition,
             "editor_pilot": settings.READING_HUB_EDITOR_PILOT,
-            "display_author": rendition.metadata.get("author", "").strip()
-            or source_name(rendition.document.url),
-            "metadata_rows": metadata_rows(rendition.metadata),
-            "toc": toc_tree(projection["entries"]),
+            "display_author": display_author,
+            **metadata_context(rendition.metadata, rendition.title, display_author, book),
+            "toc": toc_tree(with_metadata_page(projection["entries"], rendition.metadata, book)),
             "contents_toc": contents_tree(projection["entries"]),
             "content_html": projection["content_html"],
             "generated_book": bool(getattr(rendition, "document_publication", None)),

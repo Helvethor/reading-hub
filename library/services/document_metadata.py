@@ -27,19 +27,53 @@ DATE_FIELDS = {
 }
 # Ordered keys a reviewer can show on or hide from the generated title page.
 TITLE_PAGE_FIELDS = (
-    "original_title", "author", "editor", "translator", "contributor", "publisher", "series",
+    "work_type", "original_title", "author", "editor", "translator", "contributor", "publisher", "series",
     "written", "delivered", "publication", "online_edition", "date", "publication_note",
     "source_edition", "translation_note", "online_version", "transcription", "proofreading",
     "rights", "notes", "language", "original_language", "subjects", "source_url",
 )
-DEFAULT_HIDDEN = frozenset({"online_version", "transcription", "proofreading", "rights", "notes"})
+# The title page is synthetic by default; the end-of-book metadata page lists everything.
+DEFAULT_SHOWN = frozenset({
+    "author", "translator", "written", "delivered", "publication", "rights", "source_url",
+})
+TITLE_LAYOUTS = ("full", "compact")
+WORK_TYPES = (
+    ("book", "Book"), ("pamphlet", "Pamphlet"), ("article", "Article"), ("essay", "Essay"),
+    ("letter", "Letter"), ("speech", "Speech"), ("interview", "Interview"),
+    ("report", "Report"), ("resolution", "Resolution"), ("other", "Other"),
+)
+# Book-like works open with a full title page and a contents page; shorter works start
+# their text right below a compact title block. Explicit choices override these presets.
+BOOK_LIKE = frozenset({"book", "pamphlet", "report"})
+
+
+def page_preset(work_type, book):
+    book_like = work_type in BOOK_LIKE if work_type else bool(book)
+    return {
+        "title_layout": "full" if book_like else "compact",
+        "contents_page": book_like,
+        "metadata_page": True,
+    }
+METADATA_PAGE_ID = "document-metadata"
+METADATA_PAGE_TITLE = "Metadata"
 
 
 def title_page_selection(metadata):
     chosen = metadata.get("title_page_fields")
     if isinstance(chosen, list):
         return set(chosen)
-    return set(TITLE_PAGE_FIELDS) - DEFAULT_HIDDEN
+    return set(DEFAULT_SHOWN)
+
+
+def book_pages(metadata, book=False):
+    """Title layout and ToC/metadata page inclusion: explicit values, else the type preset."""
+    pages = page_preset(metadata.get("work_type"), book)
+    if metadata.get("title_layout") in TITLE_LAYOUTS:
+        pages["title_layout"] = metadata["title_layout"]
+    for key in ("contents_page", "metadata_page"):
+        if isinstance(metadata.get(key), bool):
+            pages[key] = metadata[key]
+    return pages
 
 
 def language_name(code):
@@ -57,6 +91,8 @@ def text_value(metadata, key):
 def metadata_entries(metadata):
     """Return (selection key, label, value) for every filled bibliographic field."""
     entries = []
+    if metadata.get("work_type") in dict(WORK_TYPES):
+        entries.append(("work_type", "Type", dict(WORK_TYPES)[metadata["work_type"]]))
     if metadata.get("original_title"):
         entries.append(("original_title", "Original title", metadata["original_title"]))
     if metadata.get("author") and not metadata.get("author_is_fallback"):
@@ -99,3 +135,33 @@ def metadata_rows(metadata):
 
 def source_url_shown(metadata):
     return "source_url" in title_page_selection(metadata)
+
+
+def metadata_page_rows(metadata, title, display_author):
+    """Every available field for the end-of-book metadata page (source link rendered apart)."""
+    rows = [("Title", title)]
+    if metadata.get("subtitle"):
+        rows.append(("Subtitle", metadata["subtitle"]))
+    if not metadata.get("author") or metadata.get("author_is_fallback"):
+        rows.append(("Source website", display_author))
+    return rows + [(label, value) for _key, label, value in metadata_entries(metadata)]
+
+
+def metadata_context(metadata, title, display_author, book=False):
+    return {
+        "metadata_rows": metadata_rows(metadata),
+        "metadata_page_rows": metadata_page_rows(metadata, title, display_author),
+        "book_pages": book_pages(metadata, book),
+        "metadata_page_id": METADATA_PAGE_ID,
+        "metadata_page_title": METADATA_PAGE_TITLE,
+    }
+
+
+def with_metadata_page(entries, metadata, book=False, editor_entry=False):
+    """Navigation lists the metadata page last; the generated contents page omits it."""
+    if not book_pages(metadata, book)["metadata_page"]:
+        return list(entries)
+    return [*entries, {
+        "id": METADATA_PAGE_ID, "title": METADATA_PAGE_TITLE, "level": 2, "in_toc": False,
+        "editor_entry": editor_entry, "style": "none", "number": 1, "marker": "",
+    }]

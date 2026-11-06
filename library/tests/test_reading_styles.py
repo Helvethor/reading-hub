@@ -32,6 +32,8 @@ from library.tests import test_printing
 class ReadingStyleTests(TestCase):
     def setUp(self):
         test_printing.PrintingTests.setUp(self)
+        self.version.metadata.update(title_layout="full", metadata_page=False)
+        self.version.save(update_fields=["metadata"])
         self.user = get_user_model().objects.create_user("style-owner", password="test-password")
         self.other = get_user_model().objects.create_user("other-reader", password="test-password")
         self.url = reverse("reader", args=[self.version.pk])

@@ -224,7 +224,9 @@ class ReaderCorrectionTests(TestCase):
         self.assertEqual(article.get_text(), retained.get_text())
         self.assertEqual(len(article.select(":scope > section")), 3)
         self.assertEqual(article.get_text().count(PARAGRAPH), 2)
-        self.assertEqual(len(page.select(".toc-panel a")), len(version.structure["toc"]))
+        self.assertEqual(len(page.select(".toc-panel a")), len(version.structure["toc"]) + 1,
+                         "Navigation adds the generated metadata page.")
+        self.assertEqual(page.select(".toc-panel a")[-1]["href"], "#document-metadata")
         links = [
             link
             for link in page.select(".reader-review-entry a")

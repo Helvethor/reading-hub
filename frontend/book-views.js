@@ -1,11 +1,16 @@
-import {metadataEntries, titlePageFields, titlePageRows, titlePageSelection} from "./metadata-fields.js";
+import {bookPages, metadataEntries, pagePreset, titleLayouts, titlePageFields, titlePageRows,
+  titlePageSelection, workTypes} from "./metadata-fields.js";
 import {outlineHierarchy} from "./outline.js";
 import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
   tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
 
 export {titlePageRows};
 
-const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]];
+const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"],
+  ["metadata", "Metadata page"]];
+const pageSettings = {
+  title: "title_layout", toc: "contents_page", metadata: "metadata_page",
+};
 
 export function mountBookViews(form, editor, readDocument, navigate, showError, presentation = {}) {
   const owner = form.ownerDocument;
@@ -32,6 +37,14 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   toc.className = "editor-generated-page editor-toc-page";
   toc.setAttribute("aria-label", "Generated table of contents");
   surface.prepend(title, toc);
+  const metadataPage = owner.createElement("section");
+  metadataPage.className = "editor-generated-page editor-metadata-page";
+  metadataPage.setAttribute("aria-label", "Generated metadata page");
+  editor.view.dom.after(metadataPage);
+  function pages() {
+    const book = form.querySelector("#editor-organization-book");
+    return bookPages(readDocument().metadata || {}, book ? book.checked : Boolean(presentation.book));
+  }
   const menu = owner.createElement("div");
   menu.id = "editor-toc-menu";
   menu.setAttribute("role", "menu");
@@ -156,7 +169,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   function openFieldMenu(event) {
     if (event.shiftKey && event.type === "contextmenu") return;
     event.preventDefault();
-    fieldReturn = event.target;
+    fieldReturn = pageReturn = event.target;
     const metadata = readDocument().metadata || {};
     const shown = titlePageSelection(metadata);
     const entries = metadataEntries(metadata, presentation);
@@ -185,6 +198,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       item(`Show ${label}`, titlePageFields.filter(field => shown.has(field) || field === name), {titleShow: name});
     }
     if (Array.isArray(metadata.title_page_fields)) item("Reset to default fields", null, {titleReset: ""});
+    pageItems(fieldMenu, "title", () => { fieldMenu.hidden = true; });
     fieldMenu.hidden = false;
     const target = event.target.getBoundingClientRect(), bounds = fieldMenu.getBoundingClientRect();
     const x = event.type === "keydown" ? target.left : event.clientX;
@@ -215,13 +229,130 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       }
     }
   });
+  // Generated page settings: title layout and whether the ToC and metadata pages are
+  // part of the book. Explicit choices override the preset derived from the work type.
+  const pageMenu = owner.createElement("div");
+  pageMenu.id = "editor-page-menu";
+  pageMenu.setAttribute("role", "menu");
+  pageMenu.setAttribute("aria-label", "Generated page settings");
+  pageMenu.hidden = true;
+  form.append(pageMenu);
+  let pageReturn = null;
+  function setPage(key, value) {
+    form.dispatchEvent(new owner.defaultView.CustomEvent("editor-book-pages", {detail: {key, value}}));
+  }
+  function presetLabel() {
+    const metadata = readDocument().metadata || {};
+    const type = workTypes.find(([key]) => key === metadata.work_type);
+    if (type) return type[1].toLowerCase();
+    const book = form.querySelector("#editor-organization-book");
+    return (book ? book.checked : presentation.book) ? "book" : "article";
+  }
+  function pageItems(container, page, close) {
+    const metadata = readDocument().metadata || {}, current = pages(), key = pageSettings[page];
+    const book = form.querySelector("#editor-organization-book");
+    const preset = pagePreset(metadata.work_type, book ? book.checked : Boolean(presentation.book))[key];
+    const button = (label, role, checked, value, data) => {
+      const item = element("button", label);
+      item.type = "button";
+      item.setAttribute("role", role);
+      if (checked !== null) item.setAttribute("aria-checked", String(checked));
+      Object.assign(item.dataset, data);
+      item.addEventListener("click", () => {
+        close();
+        setPage(key, value);
+        pageReturn?.focus?.({preventScroll: true});
+      });
+      container.append(item);
+    };
+    if (page === "title") {
+      container.append(element("p", "Title layout"));
+      const names = {full: "Full title page (page break after)", compact: "Compact title (content follows)"};
+      for (const layout of titleLayouts) {
+        button(names[layout], "menuitemradio", current.title_layout === layout, layout, {pageLayout: layout});
+      }
+    } else {
+      const names = {toc: "Include table of contents page", metadata: "Include metadata page at the end"};
+      button(names[page], "menuitemcheckbox", current[key], !current[key], {pageInclude: page});
+    }
+    const explicit = key === "title_layout" ? titleLayouts.includes(metadata[key]) : typeof metadata[key] === "boolean";
+    if (explicit) {
+      const value = key === "title_layout" ? preset : preset ? "included" : "omitted";
+      button(`Reset to ${presetLabel()} preset (${value})`, "menuitem", null, null, {pageReset: page});
+    }
+  }
+  function placeMenu(target, event) {
+    target.hidden = false;
+    const anchor = event.target.getBoundingClientRect(), box = target.getBoundingClientRect();
+    const x = event.type === "keydown" ? anchor.left : event.clientX;
+    const y = event.type === "keydown" ? anchor.bottom : event.clientY;
+    target.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - box.width - 8))}px`;
+    target.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - box.height - 8))}px`;
+    target.querySelector("button")?.focus();
+  }
+  function openPageMenu(event, page) {
+    if (event.shiftKey && event.type === "contextmenu") return;
+    event.preventDefault();
+    closeMenus();
+    pageReturn = event.target.closest("button, [tabindex]") || event.target;
+    const names = {title: "Title page", toc: "Table of contents page", metadata: "Metadata page"};
+    pageMenu.replaceChildren(element("p", names[page]));
+    pageItems(pageMenu, page, () => { pageMenu.hidden = true; });
+    if (page === "metadata") {
+      const edit = element("button", "Edit complete metadata\u2026");
+      edit.type = "button";
+      edit.setAttribute("role", "menuitem");
+      edit.dataset.pageEdit = "metadata";
+      edit.addEventListener("click", () => {
+        pageMenu.hidden = true;
+        showMetadataTab();
+      });
+      pageMenu.append(edit);
+    }
+    placeMenu(pageMenu, event);
+  }
+  function showMetadataTab() {
+    form.dispatchEvent(new owner.defaultView.CustomEvent("editor-show-tab", {detail: {tab: "metadata", focus: true}}));
+  }
+  const menuKey = event => event.key === "ContextMenu" || event.shiftKey && event.key === "F10";
+  title.addEventListener("contextmenu", event => {
+    if (!event.target.closest(".document-metadata")) openPageMenu(event, "title");
+  });
+  title.addEventListener("keydown", event => {
+    if (menuKey(event) && !event.target.closest(".document-metadata")) openPageMenu(event, "title");
+  });
+  toc.addEventListener("contextmenu", event => {
+    if (!event.target.closest("[data-toc-part]")) openPageMenu(event, "toc");
+  });
+  toc.addEventListener("keydown", event => {
+    if (menuKey(event) && !event.target.closest("[data-toc-part]")) openPageMenu(event, "toc");
+  });
+  metadataPage.addEventListener("contextmenu", event => openPageMenu(event, "metadata"));
+  metadataPage.addEventListener("keydown", event => { if (menuKey(event)) openPageMenu(event, "metadata"); });
+  pageMenu.addEventListener("keydown", event => {
+    const buttons = [...pageMenu.querySelectorAll("button")], index = buttons.indexOf(owner.activeElement);
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      buttons[event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 :
+        (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length].focus();
+    }
+    if (["Escape", "Tab"].includes(event.key)) {
+      pageMenu.hidden = true;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        pageReturn?.focus();
+      }
+    }
+  });
   function outside(event) {
     if (!menu.contains(event.target)) closeMenu();
     if (!fieldMenu.contains(event.target)) fieldMenu.hidden = true;
+    if (!pageMenu.contains(event.target)) pageMenu.hidden = true;
   }
   function closeMenus() {
     closeMenu();
     fieldMenu.hidden = true;
+    pageMenu.hidden = true;
   }
   owner.addEventListener("pointerdown", outside);
   owner.addEventListener("scroll", outside, true);
@@ -232,6 +363,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     owner.defaultView.removeEventListener("resize", closeMenus);
     menu.remove();
     fieldMenu.remove();
+    pageMenu.remove();
+    metadataPage.remove();
   });
   editor.on("transaction", ({transaction}) => {
     if (transaction.docChanged) {
@@ -245,6 +378,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     primary.value = view;
     title.hidden = !["book", "title"].includes(view);
     toc.hidden = !["book", "toc"].includes(view);
+    metadataPage.hidden = !["book", "metadata"].includes(view);
     editor.view.dom.hidden = !["book", "sections"].includes(view);
     filter.closest("label").hidden = view !== "sections";
     for (const button of form.querySelectorAll("[data-book-view]")) {
@@ -258,30 +392,62 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     selectionDoc = editor.state.doc;
     const document = readDocument();
     const metadata = document.metadata || {};
-    const label = element("p", "Generated from current document metadata");
+    const layout = pages();
+    title.classList.toggle("editor-title-compact", layout.title_layout === "compact");
+    title.classList.toggle("editor-title-full", layout.title_layout === "full");
+    const label = element("p", layout.title_layout === "compact"
+      ? "Compact title generated from current metadata; the book continues on the same page. Right-click to change the layout."
+      : "Full title page generated from current metadata; a page break follows. Right-click to change the layout.");
     label.className = "editor-generated-notice";
     const heading = element("h1", document.title || "Untitled document");
     preview.replaceChildren(label, heading);
     if (metadata.subtitle) preview.append(element("p", metadata.subtitle));
-    const rows = owner.createElement("dl");
-    rows.className = "document-metadata";
+    const compact = layout.title_layout === "compact";
+    const rows = owner.createElement(compact ? "p" : "dl");
+    rows.className = compact ? "document-metadata document-facts" : "document-metadata";
     rows.tabIndex = 0;
     rows.title = "Right-click (Shift+F10) to choose which filled fields appear on the title page";
     const shown = titlePageSelection(metadata);
     for (const [key, name, value] of metadataEntries(metadata, presentation)) {
       if (!shown.has(key)) continue;
-      const description = element("dd", value);
+      const description = element(compact ? "span" : "dd", value);
       if (key === "source_url") {
         const link = element("a", value);
         link.href = value;
         link.rel = "noopener noreferrer";
         description.replaceChildren(link);
       }
+      if (compact) {
+        const fact = owner.createElement("span");
+        fact.className = key === "author" ? "document-fact document-fact-author" : "document-fact";
+        fact.dataset.field = key;
+        const term = element("span", name);
+        term.className = "document-fact-label";
+        description.removeAttribute("data-field");
+        fact.append(term, " ", ...description.childNodes);
+        rows.append(fact);
+        continue;
+      }
       const term = element("dt", name);
       term.dataset.field = description.dataset.field = key;
       rows.append(term, description);
     }
     preview.append(rows);
+    renderMetadataPage(document, metadata, layout.metadata_page);
+    if (!layout.contents_page) {
+      toc.classList.add("editor-page-disabled");
+      const stub = element("p", "Not included in this book: navigation and the PDF outline still list every section. Right-click to include the table of contents page.");
+      stub.className = "editor-generated-notice";
+      toc.replaceChildren(element("h2", "Table of contents"), stub);
+      toc.tabIndex = 0;
+      hierarchy = outlineHierarchy(parts);
+      updateSelection();
+      pageStates();
+      applyView();
+      return;
+    }
+    toc.classList.remove("editor-page-disabled");
+    toc.removeAttribute("tabindex");
     toc.replaceChildren(element("h2", "Table of contents"),
       element("p", "Ctrl-click sibling entries to select them; right-click to set numbering or hide entries from the published contents (navigation keeps them). Ordinary clicks navigate. Edit titles/order in the outline."));
     const list = owner.createElement("ol");
@@ -320,7 +486,44 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     if (parts.length) toc.append(list);
     else toc.append(element("p", "No sections or headings yet."));
     updateSelection();
+    pageStates();
     applyView();
+  }
+  function renderMetadataPage(document, metadata, included) {
+    metadataPage.classList.toggle("editor-page-disabled", !included);
+    metadataPage.tabIndex = 0;
+    const heading = element("h2", "Metadata");
+    const notice = element("p", included
+      ? "Generated at the end of the book from the complete metadata. Right-click to omit this page."
+      : "Not included in this book. Right-click to include the metadata page at the end.");
+    notice.className = "editor-generated-notice";
+    const edit = element("button", "Edit complete metadata");
+    edit.type = "button";
+    edit.className = "editor-metadata-page-edit";
+    edit.addEventListener("click", showMetadataTab);
+    metadataPage.replaceChildren(heading, notice, edit);
+    if (!included) return;
+    const table = owner.createElement("table");
+    table.className = "document-metadata-table";
+    const body = owner.createElement("tbody");
+    const rows = [["title", "Title", document.title || "Untitled document"]];
+    if (metadata.subtitle) rows.push(["subtitle", "Subtitle", metadata.subtitle]);
+    rows.push(...metadataEntries(metadata, presentation));
+    for (const [key, name, value] of rows) {
+      const row = owner.createElement("tr");
+      row.dataset.field = key;
+      const cell = element("td", value);
+      if (key === "source_url") {
+        const link = element("a", value);
+        link.href = value;
+        link.rel = "noopener noreferrer";
+        cell.replaceChildren(link);
+      }
+      row.append(element("th", name), cell);
+      body.append(row);
+    }
+    table.append(body);
+    metadataPage.append(table);
   }
   // Book-level entries use the same row component as section rows: tree guides, a
   // kind badge, a controls column and a title button that navigates within the book.
@@ -375,6 +578,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   }
   // The navigation tree starts with the generated pages and the content; the
   // whole book is the default view, not a navigation destination of its own.
+  let outlineMenus = null;
   function navigation(outline) {
     const rows = [...outline.querySelectorAll(".editor-outline-row")];
     const groups = [];
@@ -393,14 +597,48 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
           return sectionsCollapsed;
         });
         fold.dataset.bookGroupFold = "sections";
-        group.append(bookRow(value, label, "Content", {last: true, fold}), children);
+        group.append(bookRow(value, label, "Content", {fold}), children);
       } else {
-        group.append(bookRow(value, label, "Page"));
+        const row = bookRow(value, value === "metadata" ? "Metadata" : label, "Page", {last: value === "metadata"});
+        row.querySelector("button").title += ". Right-click (Shift+F10) for page settings.";
+        group.append(row);
       }
       groups.push(group);
     }
     outline.prepend(...groups);
+    pageStates();
+    if (outlineMenus !== outline) {
+      outlineMenus = outline;
+      const page = event => {
+        const row = event.target.closest("[data-book-row]");
+        return row && row.dataset.bookRow in pageSettings ? row.dataset.bookRow : null;
+      };
+      outline.addEventListener("contextmenu", event => {
+        const value = page(event);
+        if (value) openPageMenu(event, value);
+      });
+      outline.addEventListener("keydown", event => {
+        const value = page(event);
+        if (value && menuKey(event)) openPageMenu(event, value);
+      });
+    }
     applyView();
+  }
+  // Navigation rows show whether a generated page is compact or omitted from the book.
+  function pageStates() {
+    const layout = pages();
+    const states = {
+      title: layout.title_layout === "compact" ? "compact" : "",
+      toc: layout.contents_page ? "" : "not included",
+      metadata: layout.metadata_page ? "" : "not included",
+    };
+    const names = {title: "Title", toc: "ToC", metadata: "Metadata"};
+    for (const [value, state] of Object.entries(states)) {
+      const row = form.querySelector(`[data-book-row="${value}"]`);
+      if (!row) continue;
+      row.querySelector(".editor-outline-title").textContent = state ? `${names[value]} (${state})` : names[value];
+      row.classList.toggle("editor-book-row-disabled", value !== "title" && Boolean(state));
+    }
   }
   function bounds(element) {
     if (element.hidden || !element.isConnected || !element.getClientRects().length) return null;
@@ -408,8 +646,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   }
   // Bounding boxes of the book-level entries, so the outline can relate them to the viewport.
   function targets() {
-    const pages = {title: bounds(title), toc: bounds(toc), sections: bounds(editor.view.dom)};
-    return pages;
+    return {title: bounds(title), toc: bounds(toc), sections: bounds(editor.view.dom), metadata: bounds(metadataPage)};
   }
   function element(tag, text) {
     const node = owner.createElement(tag);
@@ -419,7 +656,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   return {
     filter, refresh, navigation, targets,
     target(value) {
-      return {title, toc, sections: editor.view.dom}[value];
+      return {title, toc, sections: editor.view.dom, metadata: metadataPage}[value];
     },
     expandNavigation() {
       if (sectionsCollapsed) form.querySelector('[data-book-group-fold="sections"]')?.click();
@@ -428,8 +665,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     show(value) {
       if (!views.some(([key]) => key === value)) throw new Error("Choose a supported book view.");
       view = value;
-      closeMenu();
+      closeMenus();
       applyView();
     },
+    get pages() { return pages(); },
   };
 }

@@ -11,7 +11,10 @@ const dateChoices = [
 ];
 const dateLabels = {publication: "Publication date", written: "Written date", delivered: "Delivered date",
   online_edition: "Online edition date", unknown: "Date (role unconfirmed)"};
-const fixedFields = new Set(["title", "book"]);
+const fixedFields = new Set(["title", "book", "work_type"]);
+const pageKeys = ["title_layout", "contents_page", "metadata_page"];
+const explicitPages = value => Object.fromEntries(pageKeys.filter(key => key === "title_layout"
+  ? ["full", "compact"].includes(value[key]) : typeof value[key] === "boolean").map(key => [key, value[key]]));
 const storedDate = /^(\d{4}(?:-\d{2}){0,2})(?:\s*\/\s*(\d{4}(?:-\d{2}){0,2}))?$/;
 
 function personRows(value) {
@@ -52,7 +55,7 @@ export function mountMetadata(form, initial, changed) {
   const sheet = people.closest("table") || people.parentElement;
   const section = sheet.closest(".editor-metadata") || form;
   const originalBook = book?.checked;
-  let baseline = {}, organizationRestored = false, titleFields = null;
+  let baseline = {}, organizationRestored = false, titleFields = null, pages = {};
 
   function field(tag, value, label, maximum, placeholder = "") {
     const control = owner.createElement(tag);
@@ -126,6 +129,7 @@ export function mountMetadata(form, initial, changed) {
   const topicsChanged = () => JSON.stringify(topicList(topics.value)) !== baseline.topics;
   const bookChanged = () => Boolean(book) && (organizationRestored || book.checked !== baseline.book);
   const titleFieldsChanged = () => JSON.stringify(titleFields) !== baseline.titleFields;
+  const pagesChanged = () => JSON.stringify(pages) !== baseline.pages;
   function syncAuthors() {
     author.value = peopleChanged()
       ? currentPeople().filter(row => row.role === "author" && row.name.trim())
@@ -143,6 +147,7 @@ export function mountMetadata(form, initial, changed) {
       topics: JSON.stringify(topicList((value.topics || []).join("\n"))), author: value.author || "",
       book: value.content_organization?.book ?? originalBook,
       titleFields: JSON.stringify(value.title_page_fields ?? null),
+      pages: JSON.stringify(explicitPages(value)),
     };
   }
   function populate(value) {
@@ -154,6 +159,7 @@ export function mountMetadata(form, initial, changed) {
     for (const date of dateRows(value)) addDate(date);
     topics.value = (value.topics || []).join("\n");
     titleFields = Array.isArray(value.title_page_fields) ? [...value.title_page_fields] : null;
+    pages = explicitPages(value);
     for (const row of sheet.querySelectorAll("tr[data-metadata-field]")) row.hidden = false;
     markTitleRows();
     const publication = form.querySelector("#editor-original-publication");
@@ -198,6 +204,12 @@ export function mountMetadata(form, initial, changed) {
       if (titleFields) value.title_page_fields = [...titleFields];
       else delete value.title_page_fields;
     }
+    if (pagesChanged()) {
+      for (const key of pageKeys) {
+        if (key in pages) value[key] = pages[key];
+        else delete value[key];
+      }
+    }
     return value;
   }
   function rowKey(row) {
@@ -223,6 +235,16 @@ export function mountMetadata(form, initial, changed) {
     changed();
   }
   form.addEventListener("editor-title-fields", event => setTitleFields(event.detail.fields));
+  // Generated page settings: a null value returns that setting to the work-type preset.
+  form.addEventListener("editor-book-pages", event => {
+    const {key, value} = event.detail;
+    if (!pageKeys.includes(key)) return;
+    pages = {...pages};
+    if (value === null) delete pages[key];
+    else pages[key] = value;
+    pages = explicitPages(pages);
+    changed();
+  });
   function restore(value) {
     populate(value);
     setBaseline(initial);

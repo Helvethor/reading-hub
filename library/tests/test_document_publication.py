@@ -149,9 +149,12 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(pdf.metadata.title, "Reviewed book")
         self.assertEqual(pdf.metadata.author, "Reviewed writer")
         cover = pdf.pages[0].extract_text()
-        for text in ("Reviewed subtitle", "Reviewed translator", "1900 / 1902",
-                     "French", "History, Books"):
+        for text in ("Reviewed subtitle", "Reviewed translator", "1900 / 1902"):
             self.assertIn(text, cover)
+        self.assertNotIn("History, Books", cover, "Secondary fields move to the metadata page.")
+        final = pdf.pages[-1].extract_text()
+        for text in ("Metadata", "Reviewed translator", "French", "History, Books", published.document.url):
+            self.assertIn(text, final)
         contents = pdf.pages[1].extract_text()
         for text in ("Table of contents", "I. First", "a. Nested", "II. Second"):
             self.assertIn(text, contents)
@@ -165,6 +168,7 @@ class DocumentPublicationTests(TestCase):
         self.assertIn("I. First", bookmarks(pdf.outline))
         self.assertIn("a. Nested", bookmarks(pdf.outline))
         self.assertNotIn("Table of contents", bookmarks(pdf.outline))
+        self.assertIn("Metadata", bookmarks(pdf.outline))
         self.assertTrue(any(annotation.get_object().get("/Dest")
                             for annotation in pdf.pages[1].get("/Annots", [])))
         published.refresh_from_db()
@@ -500,7 +504,9 @@ class DocumentPublicationTests(TestCase):
                 ["Opening", "Endnotes"],
             )
             self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
-                              if link["href"].startswith("#")], everything)
+                              if link["href"].startswith("#")], everything + ["Metadata"],
+                             "Navigation lists the generated metadata page last.")
+            self.assertNotIn("Metadata", [link.get_text() for link in soup.select(".document-contents a")])
         output = io.BytesIO()
         render_pdf(publication.rendition, output)
         pdf = PdfReader(output)
@@ -533,7 +539,7 @@ class DocumentPublicationTests(TestCase):
         reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
         soup = BeautifulSoup(reader.content, "html.parser")
         self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
-                          if link["href"].startswith("#")], ["Appendix", "Group and Dyelo"])
+                          if link["href"].startswith("#")], ["Appendix", "Group and Dyelo", "Metadata"])
         self.assertEqual([link.get_text() for link in soup.select(".document-contents a")],
                          ["Appendix", "Group and Dyelo"])
         self.assertEqual(soup.select_one(".reader-content h2").get_text(), "Appendix[8]")

@@ -2,7 +2,7 @@
 <html lang="{{ version.metadata.language|default:'en' }}">
 <head><meta charset="utf-8"><title>{{ version.title }}</title><meta name="author" content="{{ display_author }}"></head>
 <body class="publication-content">
-<header class="document-header">
+<header class="document-header document-header-{{ book_pages.title_layout }}">
   <h1>{{ version.title }}</h1>
   {% include 'library/document_metadata.html' %}
   {% include 'library/document_review_status.html' with revision=version.document_publication.revision %}
@@ -10,7 +10,8 @@
   {% if version.document_publication %}<p>Document publication rules {{ version.document_publication.publication_version }}.</p>{% endif %}
 </header>
 {% if version.warnings %}<section><p>Import warnings:</p><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
-{% if generated_book and contents_toc %}{% include 'library/book_contents.html' %}{% endif %}
+{% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
 <article class="reader-content">{{ content_html|safe }}</article>
+{% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
 </body>
 </html>

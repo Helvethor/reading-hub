@@ -16,6 +16,7 @@ from library.models import CanonicalAuthor, DocumentDraftBase, Rendition, Review
 from library.profile import get_profile, source_name
 from library.services.book_views import publication_view
 from library.services.document_comparison import compare_documents
+from library.services.document_metadata import WORK_TYPES
 from library.services.document_edits import (
     DocumentEditConflict,
     branch_draft,
@@ -114,6 +115,7 @@ def workspace(request, pk):
             "sourceName": source_name(version.document.url),
             "sourceUrl": version.document.url,
             "languages": {code: get_language_info(code)["name"] for code in LANG_INFO},
+            "book": bool((initial.get("structure") or {}).get("book")),
         }
     try:
         reading_style = style_context(request)
@@ -122,7 +124,7 @@ def workspace(request, pk):
     response = render(request, "library/document_editor.html", {
         **reading_style,
         "version": version, "initial": initial, "editor_error": error, "draft": draft,
-        "choose_history": choose_history,
+        "choose_history": choose_history, "work_types": WORK_TYPES,
         "evaluation_run": ReviewerRun.objects.filter(draft=draft, reviewer=request.user).first()
         if draft else None,
     }, status=422 if error else 200)
@@ -251,7 +253,7 @@ def fresh_draft(request, pk):
 @require_http_methods(["GET", "POST"])
 @metadata_reviewer_required
 def publication(request, pk):
-    from library.services.document_metadata import metadata_rows
+    from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
     from library.views import contents_tree, toc_tree
 
@@ -294,14 +296,16 @@ def publication(request, pk):
         version = published.rendition if published else Rendition(
             document=source.document, snapshot=source.snapshot, **candidate["output"])
         projection = publication_view(version.html, version.structure["toc"])
+        display_author = version.metadata.get("author", "").strip() or source_name(
+            source.document.url)
+        book = version.structure.get("book")
         context.update({
             **reading_style, "style_preview": True,
             "version": version, "candidate": candidate,
-            "toc": toc_tree(projection["entries"]),
+            "toc": toc_tree(with_metadata_page(projection["entries"], version.metadata, book)),
             "contents_toc": contents_tree(projection["entries"]),
-            "display_author": version.metadata.get("author", "").strip()
-            or source_name(source.document.url),
-            "metadata_rows": metadata_rows(version.metadata),
+            "display_author": display_author,
+            **metadata_context(version.metadata, version.title, display_author, book),
             "content_html": projection["content_html"],
         })
     return panel_response(request, "library/document_publication.html", context, status=status)

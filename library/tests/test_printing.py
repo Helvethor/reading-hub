@@ -78,6 +78,7 @@ class PrintingTests(TestCase):
                 {"name": "Hidden Person", "role": "exclude"},
             ],
             topics=["History"],
+            title_layout="full",
         )
         self.version.save(update_fields=["metadata"])
         response = self.client.get(f"/versions/{self.version.pk}/")
@@ -89,19 +90,51 @@ class PrintingTests(TestCase):
         self.assertIn("Test author", header.get_text())
         self.assertNotIn("Hidden Person", header.get_text())
         pdf = self.pdf()
-        self.assertEqual(len(pdf.pages), 2)
+        self.assertEqual(len(pdf.pages), 3, "Full title page, body, then the metadata page.")
         cover = pdf.pages[0].extract_text()
         for text in (
             "Print test", "Burning questions of our movement", "Test author",
-            "Written", "1901-09 / 1902-02", "Published", "1902", "Online edition", "1999",
-            "Translator", "Translation Person", "Contributor (role unconfirmed)",
-            "Unconfirmed Person", "History", self.version.document.url,
+            "Written", "1901-09 / 1902-02", "Published", "1902",
+            "Translator", "Translation Person", self.version.document.url,
         ):
             self.assertIn(text, cover)
-        self.assertNotIn("Original prose", cover)
-        self.assertNotIn("Hidden Person", cover)
+        for text in ("Original prose", "Hidden Person", "Online edition", "Unconfirmed Person"):
+            self.assertNotIn(text, cover)
         self.assertIn("Original prose", pdf.pages[1].extract_text())
         self.assertEqual(pdf.get_destination_page_number(pdf.outline[1][0]), 1)
+        final = pdf.pages[2].extract_text()
+        for text in ("Metadata", "Online edition", "1999", "Contributor (role unconfirmed)",
+                     "Unconfirmed Person", "History", self.version.document.url):
+            self.assertIn(text, final)
+        self.assertNotIn("Hidden Person", final)
+        self.assertNotIn("Original prose", final)
+
+    def test_article_preset_uses_compact_title_and_page_settings_override_it(self):
+        self.version.metadata.update(contributors=[{"name": "Translation Person", "role": "translator"}])
+        self.version.save(update_fields=["metadata"])
+        response = self.client.get(f"/versions/{self.version.pk}/")
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertIn("document-header-compact", soup.select_one(".document-header")["class"])
+        self.assertTrue(soup.select_one(".document-header .document-facts"))
+        self.assertFalse(soup.select_one(".document-contents"), "Articles omit the contents page by preset.")
+        self.assertTrue(soup.select_one("#document-metadata table.document-metadata-table"))
+        pdf = self.pdf()
+        self.assertEqual(len(pdf.pages), 2, "Compact title and body share the first page.")
+        self.assertIn("Original prose", pdf.pages[0].extract_text())
+        self.assertEqual(pdf.pages[0].extract_text().count("Print test"), 1,
+                         "The first page shows the title once, without a running header.")
+        self.assertIn("Metadata", pdf.pages[1].extract_text())
+        self.assertIn("Print test", pdf.pages[1].extract_text(), "Later pages keep running headers.")
+        self.version.metadata.update(work_type="book", metadata_page=False)
+        self.version.save(update_fields=["metadata"])
+        soup = BeautifulSoup(self.client.get(f"/versions/{self.version.pk}/").content, "html.parser")
+        self.assertIn("document-header-full", soup.select_one(".document-header")["class"])
+        self.assertFalse(soup.select_one("#document-metadata"))
+        self.assertNotIn("Metadata", [link.get_text() for link in soup.select(".toc-panel a")])
+        pdf = self.pdf()
+        self.assertEqual(len(pdf.pages), 2, "Full title page then body; no metadata page.")
+        self.assertNotIn("Original prose", pdf.pages[0].extract_text())
+        self.assertNotIn("Metadata", pdf.pages[1].extract_text())
 
     def test_unconfirmed_attribution_is_not_silently_presented_as_author(self):
         self.version.metadata = {
@@ -110,10 +143,14 @@ class PrintingTests(TestCase):
         }
         self.version.save(update_fields=["metadata"])
         response = self.client.get(f"/versions/{self.version.pk}/")
-        header = BeautifulSoup(response.content, "html.parser").select_one(".document-header")
-        self.assertIn("Contributor (role unconfirmed)", header.get_text())
-        self.assertIn("Unconfirmed Person", header.get_text())
-        self.assertNotIn("<dt>Author</dt>", str(header))
+        soup = BeautifulSoup(response.content, "html.parser")
+        header = soup.select_one(".document-header")
+        self.assertNotIn("Unconfirmed Person", header.get_text())
+        self.assertNotIn("document-fact-author", str(header))
+        page = soup.select_one("#document-metadata").get_text()
+        self.assertIn("Contributor (role unconfirmed)", page)
+        self.assertIn("Unconfirmed Person", page)
+        self.assertNotIn("Author", [row.get_text() for row in soup.select("#document-metadata th")])
 
     def test_nested_outline_internal_links_and_metadata(self):
         reader = self.pdf()

@@ -12,7 +12,7 @@ from library import versions
 from library.models import DocumentDraftBase, DocumentEditRevision, Rendition
 from library.profile import get_profile
 from library.services.document_metadata import TEXT_FIELDS as METADATA_TEXT_FIELDS
-from library.services.document_metadata import TITLE_PAGE_FIELDS
+from library.services.document_metadata import TITLE_LAYOUTS, TITLE_PAGE_FIELDS, WORK_TYPES
 from library.services.semantic_documents import (
     SCHEMA_VERSION,
     canonical_document,
@@ -86,6 +86,7 @@ def validate_editor_metadata(original, submitted):
         "author", "author_is_fallback", "authors", "contributors", "subtitle",
         "language", "date_facts", "published", "topics", "topic",
         "content_organization", *TEXT_FIELDS, "original_language", "title_page_fields",
+        "work_type", "title_layout", "contents_page", "metadata_page",
     }
     if (
         set(original) - editable != set(submitted) - editable
@@ -205,6 +206,13 @@ def validate_editor_metadata(original, submitted):
         ):
             raise ValueError("Choose title-page fields from the supported metadata fields.")
         result["title_page_fields"] = [key for key in TITLE_PAGE_FIELDS if key in chosen]
+    if "work_type" in result and result["work_type"] not in dict(WORK_TYPES):
+        raise ValueError("Choose a supported work type.")
+    if "title_layout" in result and result["title_layout"] not in TITLE_LAYOUTS:
+        raise ValueError("Choose a full or compact title page.")
+    for key in ("contents_page", "metadata_page"):
+        if key in result and type(result[key]) is not bool:
+            raise ValueError("Generated page inclusion must be true or false.")
     return result
 
 

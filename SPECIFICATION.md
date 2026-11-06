@@ -413,7 +413,15 @@ and original-language names, subjects and retained source link, filtered by the
 document's `title_page_fields` selection (default: all except the credit/rights
 and other-notes fields). The preview's right-click menu hides/shows filled fields
 or resets the default; reader, publication and PDF use the same selection. The
-complete metadata table is form state below the editor, not title-page prose: it
+title page is synthetic (default fields: author, translator, written, delivered,
+published, rights, source) with a full (page break) or compact (inline facts,
+content follows) layout; a closing Metadata page lists every filled field. The
+explicit work type (book, pamphlet, report, article, letter, speech, interview,
+essay, resolution, other) or, failing that, the book/article classification presets the
+title layout and whether ToC/Metadata pages are included; navigation right-click
+overrides each setting or resets it to the preset. The editor uses Editor,
+Metadata and Review & publish tabs. The
+complete metadata table is form state on the Metadata tab, not title-page prose: it
 supports right-click Add/Remove field, explicit fill-empty-fields from a
 "Label: value" editorial note, and linking contributors to registered authors
 (search, or register with an optional http(s) authority URI). The ToC regenerates from actual

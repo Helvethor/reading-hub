@@ -1,0 +1,7 @@
+<section class="document-metadata-page" id="{{ metadata_page_id }}" aria-labelledby="{{ metadata_page_id }}-heading">
+  <h2 id="{{ metadata_page_id }}-heading">{{ metadata_page_title }}</h2>
+  <table class="document-metadata-table"><tbody>
+  {% for label, value in metadata_page_rows %}<tr><th scope="row">{{ label }}</th><td>{{ value }}</td></tr>{% endfor %}
+  <tr><th scope="row">Source</th><td><a class="source-link" href="{{ version.document.url }}" rel="noopener noreferrer">{{ version.document.url }}</a></td></tr>
+  </tbody></table>
+</section>

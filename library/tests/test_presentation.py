@@ -15,7 +15,7 @@ from library.services.corrections import (
     save_correction,
     validate_expected,
 )
-from library.services.document_metadata import metadata_rows
+from library.services.document_metadata import metadata_entries, metadata_rows
 from library.services.presentation import inline_alignment, source_text
 from library.sources.base import Part, Source
 from library.sources.normalize import normalize
@@ -152,7 +152,8 @@ class PresentationTests(SimpleTestCase):
     def test_complete_language_names_for_reader_and_pdf(self):
         for code, label in (("en", "English"), ("fr", "French"), ("de", "German"),
                             ("pt-br", "Brazilian Portuguese"), ("und", "Unknown language")):
-            self.assertIn(("Language", label), metadata_rows({"language": code}))
+            self.assertIn(("Language", label), metadata_rows({"language": code, "title_page_fields": ["language"]}))
+            self.assertIn(("language", "Language", label), metadata_entries({"language": code}))
 
 
 class RetainedPresentationTests(TestCase):
@@ -198,13 +199,13 @@ class RetainedPresentationTests(TestCase):
         snapshot = Snapshot.objects.create(document=document, digest="a" * 64, manifest={})
         version = Rendition.objects.create(
             document=document, snapshot=snapshot, title="Styled document", identity="b"*64,
-            metadata={"language": "en"}, structure={"toc": []},
+            metadata={"language": "en", "title_layout": "full"}, structure={"toc": []},
             html='<p class="text-align-center text-bold-on">Centered styled text</p>',
             stylesheet=(STYLES / "reader.css").read_text(), output_digest="c"*64,
         )
         output = io.BytesIO()
         render_pdf(version, output)
         pdf = PdfReader(output)
-        self.assertIn("English", pdf.pages[0].extract_text())
         self.assertNotIn("Centered styled text", pdf.pages[0].extract_text())
         self.assertIn("Centered styled text", pdf.pages[1].extract_text())
+        self.assertIn("English", pdf.pages[-1].extract_text(), "Language is on the metadata page.")
