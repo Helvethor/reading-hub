@@ -428,7 +428,10 @@ changes, and caches separate outputs by validated style digest and presentation
 version. Browser and PDF use the same style generator and font files, not identical
 page wrapping. PDFs show book title at top left, current section title at top
 right (including continuation pages), and current/total page numbers centered
-below. Long running titles occupy separate bounded columns. These margin boxes
+below, only on content pages. Title/metadata and generated contents pages,
+including continuations, have no running headers or footers. Header titles and
+page numbers use 9pt text; page counters still include all PDF pages.
+Long running titles occupy separate bounded columns. These margin boxes
 are excluded from body-gap/figure pagination measurements.
 Body heading prefixes are also emitted by the shared live stylesheet, independent
 of an older cached print stylesheet. Presentation-version asset URLs and a new PDF

@@ -1617,7 +1617,7 @@ content. Apply migrations before restarting a local instance with these controls
 The shared Marxist preset lives in code and cannot be overwritten by a profile.
 Reader/preview settings and PDF use the same validated, bounded CSS generator.
 The PDF link snapshots applied settings in a signed token; the cache includes the
-style digest and presentation version 4. No cache deletion or edition rewrite is
+style digest and presentation version 5. No cache deletion or edition rewrite is
 needed. Default changes only affect subsequent views without an explicit style.
 
 The compact panel uses the read-only `/reading-style/preview/` endpoint for live
@@ -1638,7 +1638,10 @@ Numbered body headings also get their prefix rule from the shared dynamic
 stylesheet, so they do not depend solely on the cached static print CSS.
 
 PDF running matter uses top-left book title, top-right current section title and
-centered current/total footer. Separate bounded header columns avoid overlap.
+centered current/total footer, all at 9pt. Only the named `reading-content` pages
+show these margin boxes; title/metadata and contents pages (including continuation
+pages) have none. Counters retain the physical page number and total PDF pages.
+Separate bounded header columns avoid overlap.
 Body-gap measurements exclude margin boxes so these strings do not interfere
 with figure deferral. Downloads remain free of private annotations.
 

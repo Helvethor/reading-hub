@@ -38,7 +38,7 @@ DEFAULTS = {
 }
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
-STYLE_VERSION = 2
+STYLE_VERSION = 3
 
 
 class ReadingStyleForm(forms.Form):
@@ -264,6 +264,8 @@ def style_css(settings, font_base="/static/library/fonts/"):
   {scope} {{ color: {ink}; }}
   @page {{
     background: {paper}; color: {ink};
+  }}
+  @page reading-content {{
     @top-left {{ font-family: {family('metadata')}; }}
     @top-right {{ font-family: {family('metadata')}; }}
     @bottom-center {{ font-family: {family('metadata')}; }}

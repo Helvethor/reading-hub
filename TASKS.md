@@ -268,6 +268,14 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   the last section's running title. Actions were synthetic; native-pointer and
   representative accessibility/reviewer acceptance remain unverified. No live
   correction or publication was edited to obtain this evidence.
+- [x] Refine PDF running matter: headers match the 9pt page footer and appear
+  only on prose pages. Title/metadata and generated contents pages, including
+  continuations, have no headers/footers. Physical page counters are preserved;
+  presentation cache version 5 bypasses older exports. All 63 focused backend
+  tests pass, including rendered multi-page title/ToC/content, selected fonts,
+  continuation titles, bounded header columns and figure/bookmark preservation.
+  The multi-page front-matter stress case uses synthetic template markup with
+  the real renderer. This supersedes the earlier every-page observation above.
 - [x] Consolidate presentation/title mirroring and compact live style/profile
   controls. Keep markers in publication body headings, both ToCs, PDF bookmarks
   and running section titles; match generated contents/section-title typography.

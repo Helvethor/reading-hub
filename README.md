@@ -182,7 +182,9 @@ read-only and available to everyone; changes never alter the saved edition or
 another reader's settings. Pending changes temporarily disable download/save;
 errors retain the previous display/PDF. Without JavaScript, Load/Apply buttons
 provide a reload-based fallback. PDFs have book/section running headers
-and a centered current/total page footer. OpenDyslexic is an optional preference,
+and a centered current/total page footer, all 9pt and only on prose pages.
+Title/ToC pages have neither; page counters still include them.
+OpenDyslexic is an optional preference,
 not a guarantee of easier reading.
 
 **Paragraph alignment** in Selection tools sets left, center, right or justified

@@ -33,10 +33,16 @@
 .reader-content [data-reading-marker]::before { content: attr(data-reading-marker); }
 @media print {
   @page {
-    @top-left { content: string(book-title); width: 48%; text-align: left; font: 8pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
-    @top-right { content: string(section-title); width: 48%; text-align: right; font: 8pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @top-left { content: none; }
+    @top-right { content: none; }
+    @bottom-center { content: none; }
+  }
+  @page reading-content {
+    @top-left { content: string(book-title); width: 48%; text-align: left; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @top-right { content: string(section-title); width: 48%; text-align: right; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
     @bottom-center { content: counter(page) " / " counter(pages); font: 9pt "Liberation Sans", sans-serif; }
   }
+  .reader-content { page: reading-content; }
   .document-header h1 { string-set: book-title content(); }
   .document-contents h2 { string-set: section-title content(); }
   [data-pdf-section] { string-set: section-title attr(data-pdf-section); }

@@ -271,7 +271,11 @@ class ReadingStyleTests(TestCase):
         self.assertGreaterEqual(total, 4)
         for index, page in enumerate(pdf.pages, 1):
             text = page.extract_text()
-            self.assertIn("Header Book Sentinel", text)
+            self.assertIn("Header Book Sentinel", " ".join(text.split()))
+            if index == 1:
+                self.assertNotIn(f"{index} / {total}", text)
+                self.assertNotIn("First Section Sentinel", text)
+                continue
             self.assertIn(f"{index} / {total}", text)
             running = []
             page.extract_text(visitor_text=lambda text, cm, tm, font, size, running=running:
@@ -280,18 +284,18 @@ class ReadingStyleTests(TestCase):
                 cm[3] * tm[5] + cm[5],
             )) if text.strip() else None)
             book = next(item for item in running if item[0] == self.version.title
-                        and abs(item[1] - 8) < .1)
+                        and abs(item[1] - 9) < .1)
             self.assertLess(book[2], 60)
             self.assertGreater(book[3], float(page.mediabox.height) - 40)
             footer = next(item for item in running if item[0] == f"{index} / {total}")
+            self.assertAlmostEqual(footer[1], book[1], delta=.1)
             self.assertLess(footer[3], 40)
             self.assertLess(abs(footer[2] - float(page.mediabox.width) / 2), 25)
-            if index > 1:
-                section = next(item for item in running if "Section Sentinel" in item[0]
-                               and abs(item[1] - 8) < .1)
-                self.assertGreater(section[2], float(page.mediabox.width) / 2)
-                self.assertEqual(section[0], "Second Section Sentinel" if index == total
-                                 else "First Section Sentinel")
+            section = next(item for item in running if "Section Sentinel" in item[0]
+                           and abs(item[1] - 9) < .1)
+            self.assertGreater(section[2], float(page.mediabox.width) / 2)
+            self.assertEqual(section[0], "Second Section Sentinel" if index == total
+                             else "First Section Sentinel")
         last = pdf.pages[-1].extract_text()
         self.assertIn("Second Section Sentinel", last)
         self.assertIn("Final body sentinel.", " ".join(last.split()))
@@ -329,15 +333,68 @@ class ReadingStyleTests(TestCase):
 
         with patch.object(HTML, "render", capture):
             render_pdf(self.version, io.BytesIO())
-        for page in layouts[-1].pages:
+        for index, page in enumerate(layouts[-1].pages):
             margins = {
                 box.at_keyword: box for box in page._page_box.children
                 if isinstance(box, MarginBox)
             }
+            if index == 0:
+                self.assertEqual(margins, {})
+                continue
             left, right = margins["@top-left"], margins["@top-right"]
             self.assertLessEqual(left.position_x + left.width, right.position_x)
             self.assertLessEqual(left.height, 12 * 96 / 25.4 + 1)
             self.assertLessEqual(right.height, 12 * 96 / 25.4 + 1)
+
+    def test_multipage_title_and_contents_have_no_running_matter_but_all_prose_pages_do(self):
+        markup = (
+            '<html><body class="publication-content"><header class="document-header">'
+            '<h1>Running Book Sentinel</h1>' +
+            '<p>Title metadata sentinel. ' + 'Bibliographic details. ' * 700 +
+            '</p></header><section class="document-contents"><h2>Table of contents</h2><ul>' +
+            '<li>Contents entry sentinel.</li>' * 100 +
+            '</ul></section><article class="reader-content"><section>'
+            '<h2>Running Section Sentinel</h2><p>Prose sentinel. ' +
+            'Continued prose text. ' * 800 + '</p></section></article></body></html>'
+        )
+        layouts = []
+        original_render = HTML.render
+
+        def capture(renderer, *args, **kwargs):
+            document = original_render(renderer, *args, **kwargs)
+            layouts.append(document)
+            return document
+
+        output = io.BytesIO()
+        with (
+            patch("django.template.loader.render_to_string", return_value=markup),
+            patch.object(HTML, "render", capture),
+        ):
+            render_pdf(self.version, output, self.custom)
+        pdf = PdfReader(output)
+        title_pages, contents_pages, prose_pages = 0, 0, 0
+        for index, (layout, page) in enumerate(zip(layouts[-1].pages, pdf.pages, strict=True), 1):
+            text = " ".join(page.extract_text().split())
+            margins = [
+                box for box in layout._page_box.children if isinstance(box, MarginBox)
+            ]
+            if layout._page_box.page_type.name == "reading-content":
+                prose_pages += 1
+                self.assertEqual(len(margins), 3)
+                self.assertIn("Running Book Sentinel", text)
+                self.assertIn("Running Section Sentinel", text)
+                self.assertIn(f"{index} / {len(pdf.pages)}", text)
+                for box in margins:
+                    self.assertAlmostEqual(box.style["font_size"] * .75, 9, delta=.1)
+            else:
+                title_pages += "Bibliographic details." in text
+                contents_pages += "Contents entry sentinel." in text
+                self.assertEqual(margins, [])
+                self.assertNotIn("Running Section Sentinel", text)
+                self.assertNotIn(f"{index} / {len(pdf.pages)}", text)
+        self.assertGreaterEqual(title_pages, 2)
+        self.assertGreaterEqual(contents_pages, 2)
+        self.assertGreaterEqual(prose_pages, 2)
 
     def test_all_bundled_font_faces_embed_and_missing_fonts_refuse_partial_pdf(self):
         self.version.html = (
