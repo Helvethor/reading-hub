@@ -21,7 +21,8 @@ if (form) {
   const historyLink = document.querySelector("#editor-history");
   const markReviewed = document.querySelector("#editor-mark-reviewed");
   const title = form.elements.title;
-  const metadataFields = ["author", "subtitle", "language"].map(name => form.elements[name]);
+  const metadataFields = ["author", "subtitle", "original_title", "publisher", "series", "language",
+    "original_language"].map(name => form.elements[name]).filter(Boolean);
   const sectionList = document.querySelector("#editor-sections");
   const pasteDialog = document.querySelector("#editor-paste");
   const pasteText = document.querySelector("#editor-paste-text");
@@ -41,7 +42,7 @@ if (form) {
     const result = {...initial.document.metadata};
     for (const field of metadataFields) {
       const value = field.value.trim();
-      if (value) result[field.name] = field.name === "language"
+      if (value) result[field.name] = field.name.endsWith("language")
         ? value.replaceAll("_", "-")
         : value;
       else delete result[field.name];

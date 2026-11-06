@@ -54,6 +54,29 @@ class EditorMetadataTests(TestCase):
         self.assertIn(("Written", "1891 / 1892"), rows)
         self.assertNotIn(("Author", "Not an author"), rows)
 
+    def test_bibliographic_text_fields_and_original_language_are_editable(self):
+        original = self.draft.document["metadata"]
+        value = validate_editor_metadata(original, {
+            **original, "original_title": "  Das Kapital ", "publisher": "Verlag",
+            "series": "Collected Works 35", "original_language": "DE_at",
+        })
+        self.assertEqual(value["original_title"], "Das Kapital")
+        self.assertEqual(value["original_language"], "de-AT")
+        self.assertEqual(validate_editor_metadata(original, value), value)
+        rows = metadata_rows(value)
+        for row in (("Original title", "Das Kapital"), ("Publisher", "Verlag"),
+                    ("Series", "Collected Works 35"), ("Original language", "German")):
+            self.assertIn(row, rows)
+        cleared = validate_editor_metadata(value, {**value, "publisher": " ", "original_language": ""})
+        self.assertNotIn("publisher", cleared)
+        self.assertNotIn("original_language", cleared)
+        for key, invalid in (
+            ("original_title", "Bad\ntitle"), ("publisher", "x" * 1001), ("series", ["list"]),
+            ("original_language", "zz-invalid-language"),
+        ):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_editor_metadata(original, {**original, key: invalid})
+
     def test_invalid_dates_people_subjects_and_derived_field_conflicts_refuse(self):
         for key, invalid in (
             ("contributors", [{"name": "", "source_name": "X", "role": "author"}]),
@@ -124,8 +147,10 @@ class EditorMetadataTests(TestCase):
         self.assertEqual(
             response.context["initial"]["document"]["metadata"], row.document["metadata"],
         )
-        self.assertContains(response, "Contributors and roles")
-        self.assertContains(response, "Dates and subjects")
+        self.assertContains(response, 'id="editor-contributors"')
+        self.assertContains(response, 'id="editor-dates"')
+        for name in ("original_title", "publisher", "series", "original_language"):
+            self.assertContains(response, f'name="{name}"')
         comparison = reverse("document-comparison", args=[self.rendition.pk])
         result = self.client.get(
             comparison, {"draft": self.draft.pk, "to": 1, "download": 1},

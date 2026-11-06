@@ -72,6 +72,10 @@ def branch_draft(draft, reviewer, number):
     )
 
 
+# Optional single-value bibliographic text fields edited on the metadata page.
+TEXT_FIELDS = ("original_title", "publisher", "series")
+
+
 def validate_editor_metadata(original, submitted):
     if not isinstance(original, dict) or not isinstance(submitted, dict):
         raise ValueError("Document metadata must be an object.")
@@ -79,7 +83,7 @@ def validate_editor_metadata(original, submitted):
     editable = {
         "author", "author_is_fallback", "authors", "contributors", "subtitle",
         "language", "date_facts", "published", "topics", "topic",
-        "content_organization",
+        "content_organization", *TEXT_FIELDS, "original_language",
     }
     if (
         set(original) - editable != set(submitted) - editable
@@ -162,13 +166,14 @@ def validate_editor_metadata(original, submitted):
             result["contributors"] = [
                 person for person in original["contributors"] if person["role"] != "author"
             ] + ([{"name": author, "source_name": author, "role": "author"}] if author else [])
-    for field, limit in (("author", 1000), ("subtitle", 1000)):
+    for field, limit in (("author", 1000), ("subtitle", 1000), *((key, 1000) for key in TEXT_FIELDS)):
         value = result.get(field, "")
+        label = field.replace("_", " ").capitalize()
         if not isinstance(value, str):
-            raise ValueError(f"{field.title()} must be text.")
+            raise ValueError(f"{label} must be text.")
         value = value.strip()
         if len(value) > limit or re.search(r"[\x00-\x1f\x7f]", value):
-            raise ValueError(f"{field.title()} exceeds its text limits.")
+            raise ValueError(f"{label} exceeds its text limits.")
         if value:
             result[field] = value
         else:
@@ -181,19 +186,28 @@ def validate_editor_metadata(original, submitted):
         result["author_is_fallback"] = True
     else:
         result.pop("author_is_fallback", None)
-    language = result.get("language", "")
+    for field in ("language", "original_language"):
+        normalize_language(result, field)
+    return result
+
+
+def normalize_language(result, field):
+    label = "Original language" if field == "original_language" else "Language"
+    language = result.get(field, "")
     if not isinstance(language, str):
-        raise ValueError("Language must be a language code.")
+        raise ValueError(f"{label} must be a language code.")
     language = language.strip().replace("_", "-").lower()
     if language and (
         len(language) > 35
         or not re.fullmatch(r"(?:[a-z]{2,3}|und)(?:-[a-z0-9]{1,8})*", language)
         or (language != "und" and language.split("-", 1)[0] not in LANG_INFO)
     ):
-        raise ValueError("Choose a recognized language code such as en, en-us, fr or und.")
+        raise ValueError(
+            f"Choose a recognized {label.lower()} code such as en, en-us, fr or und."
+        )
     if language:
         parts = language.split("-")
-        result["language"] = "-".join(
+        result[field] = "-".join(
             [parts[0], *(
                 part.title() if len(part) == 4 and part.isalpha()
                 else part.upper() if (len(part) == 2 and part.isalpha())
@@ -203,8 +217,7 @@ def validate_editor_metadata(original, submitted):
             )]
         )
     else:
-        result.pop("language", None)
-    return result
+        result.pop(field, None)
 
 
 def preview_rendition_import(rendition):

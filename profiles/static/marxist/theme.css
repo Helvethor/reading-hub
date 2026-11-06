@@ -73,23 +73,24 @@ button:hover, .button:hover { background: #7a1616; }
   border-color: var(--editor-border);
   accent-color: var(--accent);
 }
-.editor-metadata fieldset { min-width: 0; border: 1px solid var(--line); margin-block: .75rem; padding: .75rem; }
-.editor-metadata :is(input, select, textarea) { max-width: 100%; box-sizing: border-box; }
-.editor-metadata textarea { display: block; width: min(100%, 40rem); font: inherit; }
-.editor-metadata input[readonly] { background: var(--editor-panel); }
+.editor-metadata, .editor-metadata-sheet tbody + tbody { border-color: var(--editor-border); }
+.editor-metadata-sheet :is(input:not([type="checkbox"]), select, textarea) { color: var(--ink); background: var(--editor-paper); border: 1px solid var(--line); }
+.editor-metadata-sheet tr:focus-within > th { color: var(--accent); }
+.editor-metadata-hint, .editor-metadata-help, #editor-original-publication { color: var(--muted); }
 .editor-page dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--editor-border); border-radius: .5rem; box-shadow: 0 .5rem 2rem #24050533; }
 .editor-page dialog::backdrop { background: #24050566; }
-#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
-#editor-context-menu button, #editor-outline-menu button, #editor-section-actions button, #editor-toc-menu button, #editor-diff-menu button { color: var(--ink); background: transparent; }
+#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
+#editor-context-menu button, #editor-outline-menu button, #editor-section-actions button, #editor-toc-menu button, #editor-diff-menu button, #editor-metadata-menu button { color: var(--ink); background: transparent; }
 #editor-context-menu button:hover, #editor-context-menu button:focus-visible,
 #editor-outline-menu button:hover, #editor-outline-menu button:focus-visible,
 #editor-section-actions button:hover, #editor-section-actions button:focus-visible,
 #editor-toc-menu button:hover, #editor-toc-menu button:focus-visible,
-#editor-diff-menu button:hover, #editor-diff-menu button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
+#editor-diff-menu button:hover, #editor-diff-menu button:focus-visible,
+#editor-metadata-menu button:hover, #editor-metadata-menu button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
 #editor-context-menu button[aria-checked="true"], #editor-toc-menu button[aria-checked="true"] { background: var(--editor-selected); color: #fffaf5; }
 .editor-menu-group { border-color: var(--line); }
 #editor-context-menu button:focus-visible, #editor-outline-menu button:focus-visible,
-#editor-toc-menu button:focus-visible, #editor-diff-menu button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline-color: var(--accent); }
+#editor-toc-menu button:focus-visible, #editor-diff-menu button:focus-visible, #editor-metadata-menu button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline-color: var(--accent); }
 .editor-diff-controls { background: var(--editor-panel); }
 #editor-surface .editor-diff-markup:focus-visible { outline-color: var(--accent); }
 #editor-figure-preview { border-inline-start-color: var(--accent); background: var(--editor-paper); }

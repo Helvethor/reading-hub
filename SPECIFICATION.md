@@ -391,9 +391,11 @@ current backgrounds, follow-scroll and click-to-scroll navigation; only Show
 isolates a view.
 
 The generated title uses current, including unsaved, bibliographic metadata:
-title, subtitle, author/source attribution, editor/translator/unconfirmed roles,
-typed dates/ranges, full language name, subjects and retained source link. Its edit button opens metadata
-controls, not duplicate editable title-page prose. The ToC regenerates from actual
+title, subtitle, original title, author/source attribution, editor/translator/
+unconfirmed roles, publisher, series, typed dates/ranges, full language and
+original-language names, subjects and retained source link. Below that preview
+the Title page holds the editable Metadata sheet (a compact table, with
+right-click Add/Remove field); it is form state, not editable title-page prose. The ToC regenerates from actual
 document ranges, titles and order, including heading-only articles, and navigates
 without creating persistent target IDs. These panels are read-only projections:
 they never enter semantic HTML/JSON, saved revisions, recovery payloads or undo

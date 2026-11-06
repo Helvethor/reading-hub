@@ -288,6 +288,15 @@ acceptance. Historical counts below describe their original slices.
   rule; ordinary superscripts unaffected. Real draft (read-only) yields
   "Appendix" and "The Self-EmancipationGroup and Rabocheye Dyelo". 250 frontend
   and 168 backend tests pass, including published reader/PDF outline checks.
+- [x] Turn the Title page into the metadata page: a compact table sheet
+  (role|name people rows, kind|start|end date rows, grouped tbodies) with
+  right-click/Shift+F10 Add field / Remove field, default Author/Translator and
+  Published/Written rows that are ignored when empty, and new validated
+  Original title, Publisher, Series and Original language fields shown in
+  editor/reader/PDF metadata. 252 frontend and 193 backend tests pass; layout and
+  menu checked in a synthetic Chromium harness (default and Marxist theme). The
+  real draft's metadata (read-only) produces no spurious change; the logged-in
+  live page was not browsed.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

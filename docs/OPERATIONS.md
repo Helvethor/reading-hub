@@ -235,8 +235,15 @@ all content, IDs, links and assets; Undo/Redo is one step. **Save corrected
 version** persists it; publication is separate. This does not change source-page
 membership. Cancel does not move content.
 
-In the document editor's metadata panel, expand **Contributors and roles** or
-**Dates and subjects** to edit document-scoped bibliographic rows. Contributor
+The editor's **Title** page holds the **Metadata** sheet: a compact table of
+Title, Subtitle, Original title, contributor rows (role | name), Publisher,
+Series, date rows (kind | start | optional end), Language, Original language,
+Subjects and the Book classification. An Author and a Translator row and
+Published/Written date rows are always offered; empty rows are ignored and do
+not count as edits. Right-click a row (or Shift+F10/Menu in a field) to add a
+person by role, a date by kind or a previously removed field, or to remove the
+row. Removing a single field clears it; Title and Book cannot be removed.
+Shift+right-click keeps the browser menu. Contributor
 edits derive Author from author-role names; excluded attributions are retained
 but not displayed as contributors. Names do not merge catalogue identities.
 Dates accept YYYY, YYYY-MM or YYYY-MM-DD; ranges require equal precision and
@@ -1132,7 +1139,7 @@ an isolated view back to Whole book) instead of isolating it; use **Show** to
 isolate a generated page or the sections. The Sections row folds its navigation
 children only. The editor canvas uses the available width; the reading-style line
 length applies to reading/publication views, not the editor.
-Use **Edit title-page metadata** for bibliographic changes; edit actual section
+Edit bibliographic metadata in the Title page's Metadata sheet; edit actual section
 titles/order to change the ToC. ToC buttons navigate to existing document ranges,
 including headings without IDs, without generating targets.
 
@@ -1453,7 +1460,9 @@ publication-rule version. Reader, current-heading ToC and PDF use the existing
 canonical routes; PDFs retain the dedicated bibliographic opening page.
 Missing internal/part targets, unavailable-image placeholders, empty documents,
 unbound/missing/corrupt asset bytes or evidence-integrity failures block publication.
-Only the editor's validated author, subtitle and language metadata may differ from
+Only the editor's validated bibliographic metadata (people, author, subtitle,
+original title, publisher, series, dates, language, original language, subjects
+and book classification) may differ from
 the draft base. Publication does not change catalogue ownership or organization pointers.
 Edited editions can always be opened by their exact version URL/history even when
 the document's organization still selects an older edition.

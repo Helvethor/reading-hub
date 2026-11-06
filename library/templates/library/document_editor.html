@@ -4,7 +4,7 @@
 {% block head %}
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-toc-labels">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-metadata-sheet">
 {% if reading_style_url %}<link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}
 {% endblock %}
 {% block content %}
@@ -39,29 +39,36 @@
   <p class="editor-book-title">{{ initial.document.title }}</p>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
     {% csrf_token %}
-    <details class="editor-metadata">
-      <summary>Bibliographic metadata and title</summary>
-      <label>Document title <input name="title" value="{{ initial.document.title }}" maxlength="1000" required disabled></label>
-      <label>Author <input name="author" maxlength="1000" value="{{ initial.document.metadata.author|default:'' }}" disabled></label>
-      <label>Subtitle <input name="subtitle" maxlength="1000" value="{{ initial.document.metadata.subtitle|default:'' }}" disabled></label>
-      <label>Language code <input name="language" maxlength="35" value="{{ initial.document.metadata.language|default:'' }}" placeholder="en, en-us, fr, und" disabled></label>
-      <p>Changes belong to this corrected document, not the original source or catalogue. Use contributor rows for multiple authors and roles; once these are edited, Author is derived from their author roles.</p>
-      <label><input id="editor-organization-book" type="checkbox"{% if initial.structure.book %} checked{% endif %} disabled> Publish this corrected document as a book</label>
-      <p>Classification is independent of the number of sections. The document title and actual canvas sections define its organization; retained source-page count is unchanged.</p>
-      <details><summary>Contributors and roles</summary>
-        <div id="editor-contributors"></div>
-        <button type="button" id="editor-add-contributor" disabled>Add contributor</button>
-        <p>Names are scoped to this document. Changing a name does not merge catalogue identities. Excluded attributions are kept in metadata but not displayed as contributors.</p>
+    <section class="editor-metadata" aria-labelledby="editor-metadata-heading">
+      <h2 id="editor-metadata-heading">Metadata</h2>
+      <p class="editor-metadata-hint">Right-click a row, or press Shift+F10 in a field, to add or remove fields (Shift+right-click keeps the browser menu). Empty rows are ignored.</p>
+      <input type="hidden" name="author" value="{{ initial.document.metadata.author|default:'' }}" disabled>
+      <table class="editor-metadata-sheet">
+        <tbody data-metadata-group="titles">
+        <tr data-metadata-field="title"><th scope="row"><label for="editor-meta-title">Title</label></th><td colspan="2"><input id="editor-meta-title" name="title" value="{{ initial.document.title }}" maxlength="1000" required disabled></td></tr>
+        <tr data-metadata-field="subtitle"><th scope="row"><label for="editor-meta-subtitle">Subtitle</label></th><td colspan="2"><input id="editor-meta-subtitle" name="subtitle" maxlength="1000" value="{{ initial.document.metadata.subtitle|default:'' }}" disabled></td></tr>
+        <tr data-metadata-field="original_title"><th scope="row"><label for="editor-meta-original_title">Original title</label></th><td colspan="2"><input id="editor-meta-original_title" name="original_title" maxlength="1000" value="{{ initial.document.metadata.original_title|default:'' }}" disabled></td></tr>
+        </tbody>
+        <tbody id="editor-contributors" data-metadata-group="people"></tbody>
+        <tbody data-metadata-group="publication">
+        <tr data-metadata-field="publisher"><th scope="row"><label for="editor-meta-publisher">Publisher</label></th><td colspan="2"><input id="editor-meta-publisher" name="publisher" maxlength="1000" value="{{ initial.document.metadata.publisher|default:'' }}" disabled></td></tr>
+        <tr data-metadata-field="series"><th scope="row"><label for="editor-meta-series">Series</label></th><td colspan="2"><input id="editor-meta-series" name="series" maxlength="1000" value="{{ initial.document.metadata.series|default:'' }}" disabled></td></tr>
+        </tbody>
+        <tbody id="editor-dates" data-metadata-group="dates"></tbody>
+        <tbody data-metadata-group="classification">
+        <tr data-metadata-field="language"><th scope="row"><label for="editor-meta-language">Language</label></th><td colspan="2"><input id="editor-meta-language" name="language" maxlength="35" value="{{ initial.document.metadata.language|default:'' }}" placeholder="en, en-us, fr, und" disabled></td></tr>
+        <tr data-metadata-field="original_language"><th scope="row"><label for="editor-meta-original_language">Original language</label></th><td colspan="2"><input id="editor-meta-original_language" name="original_language" maxlength="35" value="{{ initial.document.metadata.original_language|default:'' }}" placeholder="de, ru, und" disabled></td></tr>
+        <tr data-metadata-field="subjects"><th scope="row"><label for="editor-meta-subjects">Subjects</label></th><td colspan="2"><textarea id="editor-meta-subjects" name="subjects" rows="2" placeholder="One per line" disabled></textarea></td></tr>
+        <tr data-metadata-field="book"><th scope="row">Book</th><td colspan="2"><label><input id="editor-organization-book" type="checkbox"{% if initial.structure.book %} checked{% endif %} disabled> Publish this corrected document as a book</label></td></tr>
+        </tbody>
+      </table>
+      <p id="editor-original-publication" hidden></p>
+      <details class="editor-metadata-help"><summary>About these fields</summary>
+        <p>Changes belong to this corrected document, not the original source or catalogue. Author is derived from the author rows; names are scoped to this document and never merge catalogue identities. Excluded attributions are kept in metadata but not displayed.</p>
+        <p>Dates use the precision known from the source (YYYY, YYYY-MM or YYYY-MM-DD); an end date makes a range of matching precision in chronological order. Only one publication date is supported. Once any date is edited, all date rows are stored as typed values without copying parser evidence as new certification; the pinned starting version keeps the original evidence.</p>
+        <p>Book classification is independent of the number of sections; retained source-page count is unchanged.</p>
       </details>
-      <details><summary>Dates and subjects</summary>
-        <p id="editor-original-publication"></p>
-        <p>Editing date rows stores typed dates without copying parser evidence as new certification. Original evidence remains in the pinned starting version.</p>
-        <div id="editor-dates"></div>
-        <button type="button" id="editor-add-date" disabled>Add date</button>
-        <p>Use the precision known from the source. Ranges require matching precision and chronological order. Only one publication date is supported. Remove all date rows to clear dates after editing; untouched source dates remain unchanged.</p>
-        <label>Subjects (one per line)<textarea name="subjects" rows="4" disabled></textarea></label>
-      </details>
-    </details>
+    </section>
     {% if initial.requires_approval %}
     <details open><summary>Proposed legacy conversion: {{ initial.repairs|length }} repair(s)</summary>
       <ul>{% for repair in initial.repairs %}<li>Element {{ repair.element }}{% if repair.id %}, target {{ repair.id }}{% endif %}: {% if repair.operation == "list-flow" %}direct list content → list items{% if repair.whitespace_wrappers %} with {{ repair.whitespace_wrappers }} whitespace-preserving inline wrapper(s){% endif %}{% else %}{{ repair.before }} → {{ repair.after }}{% endif %}</li>{% endfor %}</ul>
@@ -407,4 +414,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-toc-labels"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-metadata-sheet"></script>{% endif %}{% endblock %}

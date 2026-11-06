@@ -6,12 +6,15 @@ const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sec
 
 export function titlePageRows(metadata, presentation = {}) {
   const rows = [];
+  if (metadata.original_title) rows.push(["Original title", metadata.original_title]);
   const author = metadata.author || presentation.sourceName;
   if (author) rows.push([!metadata.author || metadata.author_is_fallback ? "Source website" : "Author", author]);
   const roles = {editor: "Editor", translator: "Translator", unknown: "Contributor (role unconfirmed)"};
   for (const person of metadata.contributors || []) {
     if (roles[person.role]) rows.push([roles[person.role], person.name]);
   }
+  if (metadata.publisher) rows.push(["Publisher", metadata.publisher]);
+  if (metadata.series) rows.push(["Series", metadata.series]);
   const labels = {written: "Written", publication: "Published", online_edition: "Online edition",
     unknown: "Date (role unconfirmed)"};
   for (const date of metadata.date_facts || []) {
@@ -20,11 +23,12 @@ export function titlePageRows(metadata, presentation = {}) {
   if (metadata.published && !metadata.date_facts?.some(date => date.type === "publication")) {
     rows.push(["Published", metadata.published]);
   }
-  if (metadata.language) {
-    const code = metadata.language.toLowerCase().replaceAll("_", "-");
+  for (const [key, label] of [["language", "Language"], ["original_language", "Original language"]]) {
+    if (!metadata[key]) continue;
+    const code = metadata[key].toLowerCase().replaceAll("_", "-");
     const language = code === "und" ? "Unknown language" :
       presentation.languages?.[code] || presentation.languages?.[code.split("-")[0]] || code;
-    rows.push(["Language", language]);
+    rows.push([label, language]);
   }
   if (metadata.topics?.length) rows.push(["Subjects", metadata.topics.join(", ")]);
   if (presentation.sourceUrl) rows.push(["Source", presentation.sourceUrl]);
@@ -48,7 +52,12 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   primary.replaceChildren(...views.map(([value, label]) => new Option(label, value)));
   const title = owner.createElement("section");
   title.className = "editor-generated-page editor-title-page";
-  title.setAttribute("aria-label", "Generated title page");
+  title.setAttribute("aria-label", "Title page and metadata");
+  const preview = owner.createElement("div");
+  preview.className = "editor-title-preview";
+  title.append(preview);
+  const sheet = form.querySelector(".editor-metadata");
+  if (sheet) title.append(sheet);
   const toc = owner.createElement("section");
   toc.className = "editor-generated-page editor-toc-page";
   toc.setAttribute("aria-label", "Generated table of contents");
@@ -202,8 +211,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const label = element("p", "Generated from current document metadata");
     label.className = "editor-generated-notice";
     const heading = element("h1", document.title || "Untitled document");
-    title.replaceChildren(label, heading);
-    if (metadata.subtitle) title.append(element("p", metadata.subtitle));
+    preview.replaceChildren(label, heading);
+    if (metadata.subtitle) preview.append(element("p", metadata.subtitle));
     const rows = owner.createElement("dl");
     rows.className = "document-metadata";
     for (const [name, value] of titlePageRows(metadata, presentation)) {
@@ -216,15 +225,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       }
       rows.append(element("dt", name), description);
     }
-    title.append(rows);
-    const edit = element("button", "Edit title-page metadata");
-    edit.type = "button";
-    edit.addEventListener("click", () => {
-      const details = form.querySelector(".editor-metadata");
-      if (details) details.open = true;
-      form.querySelector('[name="title"]')?.focus();
-    });
-    title.append(edit);
+    preview.append(rows);
     toc.replaceChildren(element("h2", "Table of contents"),
       element("p", "Ctrl-click sibling entries to select them; right-click to set numbering or hide entries from the published contents (navigation keeps them). Ordinary clicks navigate. Edit titles/order in the outline."));
     const list = owner.createElement("ol");

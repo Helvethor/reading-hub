@@ -54,7 +54,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Insert formatted text")
         self.assertContains(response, "Insert plain text")
         self.assertContains(response, "Cancel paste")
-        self.assertContains(response, "Bibliographic metadata")
+        self.assertContains(response, "editor-metadata-sheet")
         self.assertContains(response, "Verify selected sections")
         self.assertContains(response, "Verify the whole document")
         self.assertContains(response, "Move paragraph up")

@@ -6,6 +6,8 @@ from django.utils.translation import get_language_info
 
 def metadata_rows(metadata):
     rows = []
+    if metadata.get("original_title"):
+        rows.append(("Original title", metadata["original_title"]))
     if metadata.get("author") and not metadata.get("author_is_fallback"):
         rows.append(("Author", metadata["author"]))
     roles = {
@@ -16,6 +18,9 @@ def metadata_rows(metadata):
     for person in metadata.get("contributors", []):
         if person["role"] in roles:
             rows.append((roles[person["role"]], person["name"]))
+    for key, label in (("publisher", "Publisher"), ("series", "Series")):
+        if metadata.get(key):
+            rows.append((label, metadata[key]))
     labels = {
         "written": "Written",
         "publication": "Published",
@@ -30,11 +35,12 @@ def metadata_rows(metadata):
         rows.append((labels[date["type"]], value))
     if metadata.get("published") and not any(date["type"] == "publication" for date in dates):
         rows.append(("Published", metadata["published"]))
-    if metadata.get("language"):
-        code = metadata["language"].lower().replace("_", "-")
-        known = code if code in LANG_INFO else code.split("-")[0]
-        name = get_language_info(known)["name"] if known in LANG_INFO else code
-        rows.append(("Language", "Unknown language" if code == "und" else name))
+    for key, label in (("language", "Language"), ("original_language", "Original language")):
+        if metadata.get(key):
+            code = metadata[key].lower().replace("_", "-")
+            known = code if code in LANG_INFO else code.split("-")[0]
+            name = get_language_info(known)["name"] if known in LANG_INFO else code
+            rows.append((label, "Unknown language" if code == "und" else name))
     if metadata.get("topics"):
         rows.append(("Subjects", ", ".join(metadata["topics"])))
     return rows
