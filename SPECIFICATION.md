@@ -417,7 +417,10 @@ title page is synthetic (default fields: author, translator, written, delivered,
 published, rights, source) with a full (page break) or compact (labelled facts
 packed in order into rows of one to three aligned columns, content follows) layout; a closing Metadata page lists every filled field. It is
 formatted like any body section (same width, prose font, heading and spacing; in
-PDF it starts a page, with unsplit rows and whole-word labels). The
+PDF it starts a page, with unsplit rows and whole-word labels). The generated
+Table of contents is likewise a body-width section with a section heading; only
+its list uses the contents font, flush with the heading and indented per level
+(also in PDF). The
 explicit work type (book, pamphlet, report, article, letter, speech, interview,
 essay, resolution, other) or, failing that, the book/article classification presets the
 title layout and whether ToC/Metadata pages are included; navigation right-click
@@ -543,7 +546,9 @@ The site theme stylesheet loads after the reading style, so explicit palettes us
 higher-specificity selectors: generated ToC links keep the palette ink, other
 publication links (including in notices) use the accent (or ink), and the review
 status and other notices inside the publication take a palette tint. Following a
-link no longer paints a background on its target in any theme.
+link no longer paints a background on its target in any theme, including older
+editions whose stored stylesheet still contains the highlight (overridden by the
+shared stylesheet; stored editions are not rewritten).
 
 The PDF
 link binds an exact signed settings snapshot, independent of later profile/default

@@ -349,6 +349,12 @@ acceptance. Historical counts below describe their original slices.
   presentation v12). A WeasyPrint cascade test uses the real dark site theme;
   the v91 publication was checked in headless Chromium (dark site + Lenin
   light/dark) and its PDF rendered to /tmp (Lenin light/dark).
+- [x] Override the `:target` highlight frozen into stored editions' reader.css
+  and format the generated ToC like a body section: prose-font box (so `ch`
+  widths match), section heading, no extra margins, list flush with the heading
+  and indented per level in PDF too (WeasyPrint ignores `padding-inline-start`;
+  presentation v13). Measured in headless Chromium on v91 (ToC, body and
+  Metadata at identical x/width; target transparent) and PDF-rendered to /tmp.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

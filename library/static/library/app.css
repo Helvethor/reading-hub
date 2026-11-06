@@ -188,6 +188,8 @@ details summary { cursor: pointer; }
 .document-fact-value { min-width: 0; overflow-wrap: anywhere; text-align: start; hyphens: manual; }
 @media (max-width: 40rem) { .document-facts .document-fact { grid-column: 1 / -1; } }
 .document-metadata-page { overflow-wrap: anywhere; }
+/* Out-ranks the :target highlight frozen into older editions' stored reader.css. */
+html .reader-content :target { background: none; }
 .document-metadata-table { border-collapse: collapse; width: 100%; }
 .document-metadata-table th, .document-metadata-table td { text-align: start; vertical-align: top; padding: .35rem .6rem; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .document-metadata-table th { width: 30%; font-weight: 600; overflow-wrap: break-word; }

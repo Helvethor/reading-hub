@@ -112,7 +112,8 @@ class ReadingStyleTests(TestCase):
         reading = CSS(string=style_css({**DEFAULTS, "palette": "lenin", "mode": "light"}))
         markup = """<div class="publication-content">
           <section class="notice document-review-status"><p>Review</p></section>
-          <nav class="document-contents"><a id="toc" href="#s">Section</a></nav>
+          <section class="document-contents"><h2 id="c">Contents</h2>
+          <ul><li><a id="toc" href="#s">Section</a></li></ul></section>
           <article class="reader-content"><h2 id="s">Section</h2>
           <p><a id="link" href="#s">x</a></p></article>
           <section class="document-metadata-page"><h2 id="m">Metadata</h2></section></div>"""
@@ -138,10 +139,14 @@ class ReadingStyleTests(TestCase):
         self.assertEqual(rgb(notice), ink)
         self.assertEqual(rgb(notice, "background_color"), mix(accent, paper, .08))
         self.assertEqual(rgb(boxes["s"]), accent)
-        for name in ("font_family", "font_size", "font_weight", "margin_top", "color"):
-            self.assertEqual(boxes["m"][name], boxes["s"][name], name)
-        for name in ("max_width", "font_family", "font_size", "line_height"):
-            self.assertEqual(boxes["document-metadata-page"][name], boxes["reader-content"][name])
+        for heading in ("m", "c"):
+            for name in ("font_family", "font_size", "font_weight", "margin_top", "color"):
+                self.assertEqual(boxes[heading][name], boxes["s"][name], (heading, name))
+        # `ch` widths follow each box's own font, so section boxes share the prose font.
+        for box in ("document-metadata-page", "document-contents"):
+            for name in ("max_width", "font_family", "font_size", "line_height", "margin_top"):
+                self.assertEqual(boxes[box][name], boxes["reader-content"][name], (box, name))
+        self.assertNotEqual(boxes["toc"]["font_family"], boxes["link"]["font_family"])
         for css in ("library/static/library/reader.css", "profiles/static/marxist/theme.css",
                     "profiles/static/marxist/dark.css"):
             self.assertNotIn(":target", (static / css).read_text())

@@ -343,7 +343,8 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
 {text} :is(pre,code,kbd,samp) {{ font-family: {family('code')}; }}
 {scope} .document-metadata {{ font-size: .9em; }}
 {scope} .document-subtitle {{ font-size: 1.15em; }}
-{scope} .document-contents {{ font-family: {family('contents')}; }}
+{scope} .document-contents {{ font-family: {family('body')}; }}
+{scope} .document-contents :is(ul,ol) {{ font-family: {family('contents')}; }}
 {scope} .reader-content :is(.text-align-left) {{ text-align: left; }}
 {scope} .reader-content :is(.text-align-right) {{ text-align: right; }}
 {scope} .reader-content :is(.text-align-center) {{ text-align: center; }}

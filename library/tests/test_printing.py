@@ -343,6 +343,25 @@ class PrintingTests(TestCase):
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertEqual(soup.select_one(".reader-content").decode_contents(), self.version.html)
 
+    def test_pdf_contents_list_aligns_with_its_heading_and_indents_children(self):
+        document = HTML(string="""<body class="publication-content">
+          <section class="document-contents"><h2 id="h">Table of contents</h2>
+          <ul id="root" class="editor-document-toc"><li><a href="#a">A</a>
+          <ul id="child" class="editor-document-toc"><li><a href="#b">B</a></li></ul></li></ul>
+          </section></body>""").render(stylesheets=[CSS(filename=str(STYLES / "print.css"))])
+        found = {}
+
+        def walk(box):
+            element = getattr(box, "element", None)
+            if element is not None and element.get("id") and box.element_tag in ("h2", "ul"):
+                found.setdefault(element.get("id"), box)
+            for child in getattr(box, "children", []):
+                walk(child)
+        walk(document.pages[0]._page_box)
+        self.assertEqual(found["root"].content_box_x(), found["h"].content_box_x())
+        self.assertAlmostEqual(found["child"].content_box_x() - found["root"].content_box_x(), 24)
+        self.assertEqual(found["root"].style["list_style_type"], "none")
+
     def test_print_pagination_keeps_heading_chains_and_caption(self):
         markup = '<article class="reader-content"><div style="height:65mm"></div>'
         markup += "<h2>Heading sentinel</h2><h3>Subtitle sentinel</h3><p>Following sentinel.</p>"
