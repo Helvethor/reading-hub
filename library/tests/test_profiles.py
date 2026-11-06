@@ -12,6 +12,7 @@ from library.sources.adapters import discover, extract
 from library.sources.base import Part, Source, parse_html
 from library.tests import test_pipeline
 from library.tests.test_sources import ARTICLE, article_html
+from profiles.marxist.dark import PROFILE as DARK
 from profiles.marxist.site import PROFILE
 
 
@@ -111,6 +112,23 @@ class ProfileTests(SimpleTestCase):
         ):
             self.assertEqual(get_profile().key, "science")
 
+    @override_settings(READING_HUB_PROFILE="profiles.marxist.dark")
+    def test_dark_theme_preserves_source_profile_and_reading_palette(self):
+        self.assertEqual(get_profile().validate(), DARK)
+        for field in ("key", "sources", "aliases", "asset_paths", "adapter_version"):
+            self.assertEqual(getattr(DARK, field), getattr(PROFILE, field))
+        self.assertEqual(DARK.reading_paper, "#181818")
+        self.assertEqual(DARK.reading_ink, "#e6e6e6")
+
+        from library.services.reading_styles import DEFAULTS, style_css
+
+        themed = style_css({**DEFAULTS, "contrast": "theme"})
+        self.assertIn("var(--ink, #e6e6e6)", themed)
+        self.assertIn("background: #181818", themed)
+        standard = style_css({**DEFAULTS, "contrast": "standard"})
+        self.assertIn("background: #ffffff", standard)
+        self.assertIn("color: #302221", standard)
+
 
 class ProfileLibraryTests(TestCase):
     setUp = test_pipeline.PipelineTests.setUp
@@ -132,6 +150,28 @@ class ProfileLibraryTests(TestCase):
         self.assertContains(response, "editor-outline-items")
         self.assertContains(response, "editor-section-move")
         self.assertContains(response, "editor-contributors")
+
+    @override_settings(READING_HUB_PROFILE="profiles.marxist.dark")
+    def test_dark_theme_loads_on_home_editor_and_embedded_panels(self):
+        from django.contrib.auth import get_user_model
+        from django.urls import reverse
+
+        self.assertContains(self.client.get("/"), "/static/marxist/dark.css")
+        result = self.import_article()
+        reviewer = get_user_model().objects.create_user("dark-reviewer", is_staff=True)
+        self.client.force_login(reviewer)
+        response = self.client.get(reverse("document-editor", args=[result.pk]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertLess(html.index("library/editor-pilot.css"), html.index("marxist/dark.css"))
+        panel = self.client.get(
+            reverse("document-editor-history", args=[result.pk]) + "?embedded=1"
+        )
+        self.assertContains(panel, "/static/marxist/dark.css")
+        self.assertContains(self.client.get(reverse("reader", args=[result.pk])),
+                            "/static/marxist/dark.css")
+        self.assertContains(self.client.get(reverse("admin:index")),
+                            "/static/marxist/dark-admin.css")
 
     def test_sort_filter_and_pagination(self):
         self.content = article_html(title="Zulu")
@@ -187,4 +227,6 @@ class ProfileLibraryTests(TestCase):
 
         self.assertIsNotNone(finders.find("marxist/theme.css"))
         self.assertIsNotNone(finders.find("marxist/lenin-red.png"))
+        self.assertIsNotNone(finders.find("marxist/dark.css"))
+        self.assertIsNotNone(finders.find("marxist/dark-admin.css"))
         self.assertContains(self.client.get("/"), "/static/marxist/theme.css")

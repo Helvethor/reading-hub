@@ -59,6 +59,28 @@ it is not a public deployment setup. Do not bind to all interfaces, tunnel or
 forward the service to other machines. Template changes require restart with
 this no-autoreload configuration.
 
+### Optional Marxist Dark theme
+
+The black/red, VS Code Dark-inspired theme reuses the existing Lenin image.
+It provides charcoal surfaces, off-white text, compact square-cornered controls,
+thin neutral borders and red focus/selection states across the library, reader,
+editor, embedded workflow panels and administration. Diff additions remain green,
+removals red and structure-change notices amber.
+
+Select it when starting the web process (and any separately started workers):
+
+```sh
+READING_HUB_PROFILE=profiles.marxist.dark .venv/bin/python manage.py runserver 127.0.0.1:8765 --noreload --insecure
+```
+
+The default `profiles.marxist.site` paper/red theme remains unchanged. This is a
+presentation variant of the same Marxist profile, not a new source collection;
+source rules, profile identity, records and saved personal styles are retained.
+**Follow theme** uses the dark palette in the browser and PDF; explicit
+Standard/Cream/High contrast reading styles retain their own content palette.
+No migration or frontend rebuild is needed. Restart only when ready to activate
+it; adding the theme does not change a running process.
+
 The semantic editor is now enabled by default. Its historical
 `READING_HUB_EDITOR_PILOT=0` setting explicitly disables it, without re-enabling
 retired source-editing pages. Run `npm run build` after frontend source changes.

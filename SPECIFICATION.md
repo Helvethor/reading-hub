@@ -9,6 +9,13 @@ work; [Operations](docs/OPERATIONS.md) explains running it. The
 is historical evidence, not additional scope. "Planned" below does not mean
 implemented. A backlog idea is not authorization to implement it immediately.
 
+The optional `profiles.marxist.dark` presentation variant reuses the Lenin
+backdrop with black/charcoal surfaces, red actions and selections, off-white text,
+and VS Code Dark-inspired borders and controls. It retains the Marxist source
+profile identity and rules. The default paper/red theme and saved personal reading
+styles are unchanged; **Follow theme** uses the dark browser/PDF palette.
+Activation is explicit at process startup, not a migration or live-data change.
+
 ### Single-page document workspace (implemented 2026-11-06)
 
 The document editor is enabled by default; the historical
