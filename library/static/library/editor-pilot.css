@@ -1,5 +1,16 @@
 .editor-page { max-width: 1440px; margin-block: 1.5rem; }
 .editor-page h1 { font-size: 1.8rem; }
+.editor-diff-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .5rem .75rem; background: #f8f9f5; }
+.editor-diff-controls label { margin: 0; }
+.editor-diff-controls input { width: 6rem; }
+#editor-diff-status { margin: .3rem .75rem; font-size: .85rem; }
+#editor-surface .editor-diff-added { background: #c9efce; color: #152c19; }
+#editor-surface .editor-diff-removed { background: #f9d0d0; color: #491515; border: 1px solid #af5757; padding: .2rem .35rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+#editor-surface div.editor-diff-removed { margin-block: .6rem; }
+#editor-surface .editor-diff-removed-content { user-select: text; }
+#editor-surface .editor-diff-removed button, #editor-surface .editor-diff-removed summary { font: .75rem/1.5 system-ui, sans-serif; margin: .2rem; cursor: pointer; white-space: normal; }
+#editor-surface .editor-diff-removed textarea { display: block; width: min(30rem, 90%); font: inherit; }
+.editor-diff-label { font: 700 .75rem/1.5 system-ui, sans-serif; user-select: none; }
 .editor-book-structure { margin-block: 1rem; padding: .75rem 1rem; border: 1px solid #98a48e; border-radius: .4rem; background: #f8f9f5; }
 .editor-book-structure summary { cursor: pointer; font-weight: 700; }
 .editor-book-structure li { overflow-wrap: anywhere; }

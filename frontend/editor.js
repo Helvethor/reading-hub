@@ -7,6 +7,7 @@ import {EditorState, NodeSelection, Plugin, TextSelection} from "@tiptap/pm/stat
 import {revealDocumentPosition, workspaceExtension, visiblePart} from "./workspace.js";
 import {mountSemanticClipboard} from "./semantic-clipboard.js";
 import {BlockSelection, blockSelectionExtension} from "./block-selection.js";
+import {differenceExtension} from "./document-diffs.js";
 
 const inlineTags = new Set([
   "strong", "b", "em", "i", "u", "s", "small", "sup", "sub", "a", "span",
@@ -1132,6 +1133,7 @@ export function createBoundedEditor(element, html, onUpdate = () => {}) {
   const editor = new BoundedEditor({
     element,
     extensions: [...editorExtensions, workspaceExtension(message => onUpdate({error: message})),
+      differenceExtension(message => onUpdate({error: message})),
       blockSelectionExtension(message => onUpdate({error: message}))],
     content: parsedFlow.toJSON(),
     parseOptions: {preserveWhitespace: "full"},
