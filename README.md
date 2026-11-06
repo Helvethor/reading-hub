@@ -5,12 +5,17 @@ configured websites in a consistent format. Retain original sources, generate
 tables of contents, cache immutable editions, and review extraction mistakes
 without overwriting historical readers or private annotations.
 
-See the [2026-11-01 project assessment](docs/PROJECT-ASSESSMENT.md) for the
+See the [project assessment, reconciled 2026-11-06](docs/PROJECT-ASSESSMENT.md) for the
 revised direction: a full-capability semantic editor, complete article/book
 correction before legacy retirement, then evidence curation and measured
 automation. General precise selection/structural relocation with target
 preservation is tested by manually repairing displaced inline footnotes.
 A dedicated footnote shortcut is optional, not an ML requirement.
+The target reviewer experience is **one editor page for tailoring a publication**:
+content, metadata, source inspection/restoration, structure/membership,
+history/comparison, review, publication confirmation and styles. Prefer actions
+in the document, with same-page panels/dialogs where needed. This integration
+is not yet complete; existing separate routes remain during migration.
 Since 0.46.0, **Move selected content…** relocates inline content or complete
 sibling blocks with targets/formatting intact, including into a new titled
 section. This is a bounded general operation, not full structural clipboard import.
@@ -127,7 +132,8 @@ The editor uses an outlined, high-contrast text pointer and an explicit dark car
 **Move paragraph up/down** reorders the current paragraph, heading or preformatted
 block past one adjacent text block in the same container. Links, targets and the
 text selection are preserved; moves are separately undoable and reset review
-scope to partial. Cross-container moves and structural/media moves remain planned.
+scope to partial. Broader selected-content moves and semantic Cut/Paste are
+available as described above; this particular up/down command remains bounded.
 
 The editor workspace has a vertically resizable scrolling canvas (drag its
 bottom-right handle), a persistent compact
@@ -198,8 +204,11 @@ individually.
 Right-click an existing image and choose **Edit image alternative text**. Its dialog
 previews the retained image and edits only its alternative text, with explicit
 apply/cancel and undo/redo. Empty text explicitly marks a decorative image.
-The file, caption, credit, inline links and target IDs remain unchanged. New image
-insertion/replacement and note insertion/renumbering remain planned.
+The file, caption, credit, inline links and target IDs remain unchanged.
+Retained-source insertion can add bound images; arbitrary new-image import/
+replacement remains outside this dialog. Notes can be composed or relocated
+using general section/content/target/link tools; automatic note insertion,
+pair inference and renumbering are not implemented.
 
 Right-click an existing inline link and choose **Edit link destination**, or place
 the cursor/select text within it and use Selection tools. Edit the whole link's
@@ -511,36 +520,46 @@ bound to the exact capture and correction revision. Imported correction
 datasets do not become local reviewer labels. Verified-keep recording is
 available to the evaluation service but is not yet exposed as an editor control.
 
-Current editor limits include same-container single-image associations and
-existing note links on one retained source page. Direct prose repair, block
-splitting/merging and reading-order editing are not implemented yet; they are
-now planned rather than excluded.
+Legacy source-correction limits include same-container single-image associations
+and existing note links on one retained source page. The semantic document editor
+already supports direct prose repair, splitting/merging, bounded content/section
+movement and target creation/renaming. Guarded target removal, remaining media/
+relationship parity and representative whole-work acceptance remain open.
 
 ## Next direction
 
-The document editor is to become the only content editor. The 0.42.0 slice adds
+The editor page is to become the complete document-scoped reviewer workspace,
+not merely a content editor linked to separate tailoring pages. The 0.42.0 slice adds
 **Insert retained source content**: select exact retained-page blocks, preview,
 then insert ordinary editable content before/after the cursor's block or at the
-whole document's end. No named excerpt is created. Selected links/targets and
+whole document's end. No raw-source excerpt definition is created; document-local
+excerpt sections are supported separately. Selected links/targets and
 bound images are preserved with collision-free IDs and atomic undo. Links to
 unselected content remain source-site links rather than inferred local notes.
 An explicit original-source generation preview excludes old corrections and
 organization without fetching or deleting anything.
 
-Legacy editor retirement, metadata/note/media parity and integrated book
-membership/order remain open. The authorized fresh-slate deletion is not yet
-applied; original sources/assets must be preserved and the reset backed up/tested.
+Document metadata and saved section title/role/order/nesting are integrated.
+Remaining work includes single-page history/comparison/publication/style access,
+target/relationship/media gaps, source-page membership and affected-work safeguards,
+then legacy retirement after replacement checks. The fresh-slate reset is deferred;
+any live deletion needs a current inventory, rehearsal, verified backup and renewed
+confirmation. No reset is a prerequisite for this workflow.
 
-The primary review experience will become **result-first semantic rich editing**:
+The implemented pilot provides **result-first semantic rich editing**:
 repair text, merge/split paragraphs or headings, move content and fix notes/media
 without declaring parser operations. Structure stays internal; the renderer still
 owns homogeneous typography, ToC and PDF. Source evidence and advanced current
-controls remain fallback tools during migration. Book membership/role/order stay
-separate, with a simpler selection-to-book-section workflow.
+controls remain fallback tools during migration. Source-page membership and
+cross-work changes have separate data safeguards, but their reviewer actions
+belong on the editor page. Ordinary saves do not mutate other works; source
+rebuilding must not silently replace corrected documents.
 
-The authoritative example will retain **immutable source + exact generated draft
+Draft/revision storage retains **immutable source evidence + exact pinned draft
 + complete corrected semantic document**, with revision provenance and explicit
-partial/section/full verification. Diffs and inferred operations are derived,
+partial/section/full review coverage; fresh drafts pin actual generation inputs.
+A portable, curated document-pair dataset remains planned.
+Diffs and inferred operations are derived,
 possibly ambiguous interpretations, not the only stored evidence. Existing
 corrections/dataset format 1 remain partial evidence; no old edition becomes a
 fully verified target automatically.

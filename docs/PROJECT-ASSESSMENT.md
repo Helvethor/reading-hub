@@ -1,7 +1,8 @@
 # Project assessment and revised direction
 
-Reassessed 2026-11-01, incorporating the user's clarification on broad editing
-capabilities and displaced inline footnotes. Runtime baseline: 0.45.0.
+Reconciled 2026-11-06, incorporating the user's single-page reviewer workflow.
+Current runtime baseline: 0.53.0. The original 2026-11-01 assessment used 0.45.0;
+dated inventories and delivery checkpoints below remain historical evidence.
 This is an assessment and proposed implementation contract, not a claim that
 the planned tools exist. [Specification](../SPECIFICATION.md) owns product
 behavior; [roadmap](../TASKS.md) owns implementation order.
@@ -19,6 +20,13 @@ reproducible evidence, then measured automation. The editor is central to achiev
 quality, not an incidental accessory. ML is a possible means, not an immediate
 prerequisite or the definition of success.
 
+The target is one editor page for every reviewer operation needed to tailor a
+publication. Prefer direct document/contextual manipulation; use same-page panels
+or dialogs for source inspection, metadata, membership, history/comparison,
+review, publication preview/confirmation and presentation profiles. One coherent
+document context does not require monolithic code or collapsing distinct save,
+review and publication transactions. This UI integration remains incomplete.
+
 ## 2. Current situation
 
 The foundation is substantial: retained sources/assets, versioned editions,
@@ -27,10 +35,26 @@ save/branch lineage, recovery, comparison and explicit publication.
 Source insertion, metadata roles/dates/subjects, figures and section relocation
 are integrated. The Marxist profile now themes the newer surfaces.
 
-The consolidation is unfinished. Reciprocal note repair, extraction of displaced
-inline note bodies, remaining media operations and draft-based book membership
-need completion before retiring legacy content editors. A section move is not
-source-page membership editing.
+General selected-content movement, structural Cut/Paste, standalone section
+creation, section-boundary repair and block/inline target creation/renaming now
+exist. Saved document sections drive corrected publication order/roles/nesting;
+document-local excerpt sections retain origin links. Generated title/ToC,
+numbering and accessible style profiles project into publication/PDF output.
+
+Consolidation remains unfinished: guarded target removal, remaining relationship/
+media repairs, retained-source page membership and affected-work safeguards, and
+single-page integration of the remaining reviewer routes. Source-page membership
+means adding/removing retained pages from a book or changing membership between
+works, not reordering corrected sections. Its separate data safeguards are not
+a reason to require a separate reviewer page. Legacy source rebuilding currently
+returns to a source-derived edition, without merging saved editor corrections.
+Do not retire legacy mutation paths until required outcomes have replacements.
+
+Read-only reconciliation on 2026-11-06 ran 158 focused backend and 224 frontend
+tests successfully. Article 52 and books 70/80 passed semantic relationship checks
+and exact editor import/export; book 70 requires conversion approval. This does
+not certify complete source fidelity, human usability, accessibility, performance
+or ML readiness. No live correction/publication was changed.
 
 Read-only inspection on 2026-11-01 found 36 documents, 39 snapshots, 84 editions,
 6 draft bases, 7 saved revisions and 2 direct-editor publications; evaluation
@@ -57,12 +81,15 @@ content while still producing a bounded, consistent document.
 
 ### Argument against unrestricted word-processor scope
 
-Arbitrary fonts/colors, page-positioned objects, office-suite compatibility,
+Arbitrary per-content fonts/colors, page-positioned objects, office-suite compatibility,
 macros, presentation layouts and unrelated collaboration systems do not directly
 serve faithful reading editions. They expand maintenance and accessibility costs,
 weaken homogeneous output, and make source/result comparisons harder.
 Adding many narrow commands without a coherent interaction model also increases
 overhead, even when each command individually seems useful.
+Bounded reader/publication/PDF style profiles are supported presentation
+preferences, including accessibility options; they do not rewrite semantic
+content or authorize arbitrary document HTML/CSS.
 
 ### Recommendation
 
@@ -95,11 +122,13 @@ body in a span inside the main paragraph in chapter `c3`. The main reference
 the note marker links back. Main prose resumes after the span. The long note
 also contains references to other notes.
 
-The existing section mover cannot extract that inline span. Moving its containing
-paragraph would move main prose as well. Link editing alone would leave the
-interruption in place. The current bounded clipboard workflow does not yet
-provide general structural relocation with target preservation. Manual repair
-is a valid primary workflow once those general editing capabilities exist.
+The 2026-11-01 blocker was that section movement could not extract the inline
+span without moving main prose, and clipboard lacked structural relocation with
+target preservation. General movement and semantic Cut/Paste subsequently closed
+that capability gap, with copied-data preservation evidence in the delivery
+checkpoints below. Manual repair is the primary workflow; complete correct note
+organization and representative reviewer acceptance are not inferred from an
+arbitrary relocation test.
 
 ### Revised reviewer interaction: general editing first
 
@@ -183,23 +212,28 @@ Avoid treating these as reasons for unrelated platform migration.
 
 ### A. Complete one reliable article/book correction workflow
 
-Establish a small retained acceptance corpus now, including editions 70 and 80.
-Next implement general precise selection/structural relocation and relationship
-inspection/repair, using the displaced note as an acceptance case rather than
-requiring a specialized note tool. Then close remaining retained-media operations and saved
-book membership/role/order gaps. Use shared semantic primitives.
+Use the established retained sample (article 52, books 70/80) and general
+selection/relocation/section/target primitives. Finish observed target removal,
+relationship and retained-media gaps; validate the displaced note as a complete
+repair rather than an arbitrary move. Saved document role/order/nesting is
+implemented; source-page membership and affected-work integration remain.
 
 Exit condition: complete an article and a multi-page book using only the new
-editor, with source fidelity and coherent saved structure, ToC, reader/PDF,
+editor page through inspection, correction, comparison, review and explicit
+publication, with source fidelity and coherent saved structure, ToC, reader/PDF,
 undo/recovery/conflict behavior. Add representative keyboard/accessibility
 checks; passing unit tests alone is not acceptance.
 
 ### B. Consolidate and retire
 
-Promote one correction entry, separate catalogue administration, simplify
-starting-source choices and explicitly retire old mutation paths after parity.
-Do not preserve unnecessary operation/excerpt administration in the new editor.
-Experiments remain separate.
+Promote one editor workspace, integrate document-relevant catalogue/source
+membership actions on that page and simplify starting-source choices.
+Source-graph changes retain affected-work previews and separate confirmation;
+ordinary saves must not change other works or replace corrected documents.
+Retire old mutation paths only after parity and preservation checks.
+Document-local excerpt sections are supported; separate raw-source excerpt
+definition/revision/adoption administration is not the replacement workflow.
+Global maintenance and controlled experiments remain separate.
 
 ### C. Curate correction evidence
 
@@ -225,13 +259,23 @@ assessment.
 
 ## 8. Immediate next steps
 
-1. Establish the reproducible code baseline and small acceptance corpus.
-2. Enable manual repair of the edition-80 inline-note case through general
-   selection/cut/move, section creation and link/target tools. Defer a dedicated
-   relocation shortcut unless observed use justifies it.
-3. Verify the complete repair through save/reopen, reader/PDF and undo/recovery.
-4. Finish remaining media and saved book structure; then retire the old editor.
-5. Curate evidence and evaluate automation only after these outcomes work.
+1. Complete the single-page workflow: source inspection, history/comparison,
+   review, publication preview/confirmation and styles without required page
+   changes or lost pending edits. Use existing validated services, not parallel
+   implementations.
+2. Close observed target/relationship/media gaps and validate a complete
+   article/book repair, including correct note placement, exact preservation,
+   save/reopen, recovery, reader/PDF and native keyboard/pointer/accessibility.
+3. Integrate source-page membership and affected-work safeguards on the same
+   editor page, then retire replacement-covered legacy mutation paths.
+4. Curate eligible document-pair evidence and evaluate automation. Storage and
+   comparison already exist; a portable curated dataset and broad quality
+   benchmark do not. Defer a dedicated note shortcut unless observed effort
+   justifies it; no reset or platform migration is needed for this milestone.
+
+The dated delivery checkpoints below describe what was delivered and tested at
+each point. Their then-current gap lists are superseded by this current assessment,
+not additional instructions to rebuild completed features.
 
 ## Delivery checkpoint: 0.46.0 (2026-11-02)
 

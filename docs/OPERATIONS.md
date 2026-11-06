@@ -6,6 +6,17 @@ Older source-layout examples and release evidence remain in
 [the historical reference](archive/README-before-2026-10-18-consolidation.md),
 which may contain superseded instructions.
 
+Reviewer workflow target clarified 2026-11-06: all document-scoped publication
+tailoring should be available on one editor page, directly in the canvas or
+through same-page panels/dialogs. This integration is incomplete. The separate
+history/comparison/publication and legacy organization procedures below describe
+current operations, not the desired final navigation. Separate source-graph
+transactions still need affected-work preview and explicit confirmation; ordinary
+saves must not mutate other works or replace corrected documents. See the
+[current workflow contract](../SPECIFICATION.md#primary-correction-workflow-reconciled-2026-11-06)
+and [remaining integration work](../TASKS.md#current-milestone--complete-the-single-page-reviewer-workspace).
+Global maintenance and optional experiments are not publication-tailoring steps.
+
 ## 1. Local setup and start
 
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
@@ -628,9 +639,9 @@ development/held-out fixtures and promotion thresholds are still pending.
 operation evidence, not the planned document-pair dataset or whole-work scorer.
 The semantic editing/revision contract, bounded editor and explicit saved-result
 publication are implemented in development. Representative reviewer evaluation,
-remaining editor tools and source/draft/result capture with scope-aware scoring
-remain the next milestones.
-See [Specification sections 5-6](../SPECIFICATION.md#5-result-first-semantic-editing-planned)
+remaining editor tools, single-page integration and curated document-pair evidence
+with scope-aware scoring remain open. Exact draft/revision capture already exists.
+See [Specification sections 5-6](../SPECIFICATION.md#5-result-first-semantic-editing-implemented-pilot-consolidation-incomplete)
 and [the roadmap](../TASKS.md). No new browser editor, portable dataset format or
 model service is deployed.
 
@@ -931,7 +942,7 @@ fetch newer source or authorize any source-policy exception.
 ##### Simple reviewer evaluation
 
 Optional experimental tooling, not a prerequisite for ordinary correction.
-The [2026-10-25 specification](../SPECIFICATION.md#primary-correction-workflow-direction-revised-2026-10-25)
+The [current specification](../SPECIFICATION.md#primary-correction-workflow-reconciled-2026-11-06)
 replaces task/run-first navigation with direct open/edit/save and automatic version
 evidence. These instructions describe optional tooling introduced in 0.40.0,
 not the normal correction path implemented in 0.41.0.

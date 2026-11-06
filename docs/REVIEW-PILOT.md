@@ -574,7 +574,7 @@ used live data. Existing user editor tabs were not reloaded or edited.
 Direction revised 2026-10-25: everyday correction is open/edit/save, with automatic
 version evidence and optional explicit review coverage. No task, run or result
 form is required. The bounded correction/history workflow is implemented in 0.41.0; remaining
-validation and repair priorities are in [the roadmap](../TASKS.md#next-milestone--direct-correction-and-version-history).
+validation and repair priorities are in [the current roadmap](../TASKS.md#current-milestone--complete-the-single-page-reviewer-workspace).
 The protocol below is for optional controlled studies, not ordinary editorial
 work. Such studies remain necessary for claims about effort savings or model
 acceptance; preservation and accessibility checks still apply to workflow changes.

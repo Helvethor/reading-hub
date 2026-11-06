@@ -1,6 +1,6 @@
 # Reading Hub: current product and architecture specification
 
-Consolidated 2026-10-18; workflow direction revised 2026-10-25. Runtime baseline: app **0.53.0**,
+Consolidated 2026-10-18; workflow reconciled 2026-11-06. Runtime baseline: app **0.53.0**,
 format **20**, Marxist adapter **20**, correction schema **10**, dataset format **1**.
 
 This document is the current product contract. [TASKS](TASKS.md) orders the
@@ -103,7 +103,8 @@ The editor's left Book outline now owns corrected section management: drag/drop
 before/inside/after, accessible move dialogs and up/down actions, add/restore,
 heading-boundary repair, and title/source-URL/role editing. Branching guide lines
 trace the book/section/heading hierarchy. Outline fold, editor-content fold and
-section-action buttons share one column beside the title. Highlighting keeps
+section-action buttons share a right-aligned row beside the block-type label,
+leaving the hierarchy guides continuous. Highlighting keeps
 font metrics and row geometry unchanged. The entire destination section row
 accepts a drop: upper/middle/lower thirds mean before/inside/after, with
 non-resizing insertion lines or an inset outline and a reserved feedback area.
@@ -112,7 +113,7 @@ boundaries are diagnosed; an existing title heading can restore its missing
 section target without copying text. Section borders, start/end labels and the
 chosen title heading are editor-only decorations. Explicit title bindings, URL
 and role are validated semantic section attributes, saved/recovered/compared with
-HTML. Publication version 3 derives parts, titles, roles, groups, containment
+HTML. Publication version 4 derives parts, titles, roles, groups, containment
 and order from actual corrected sections. Removed/unwrap-only source parts are
 not silently reinstated; the pinned source structure remains immutable evidence.
 Extraction-only source heading/range selectors do not control corrected output.
@@ -210,7 +211,7 @@ whole-book quality, reviewer usability or readiness for model training.
 The [2026-11-01 assessment](docs/PROJECT-ASSESSMENT.md) records the rationale,
 current evidence, revised milestones and displaced-inline-footnote contract.
 
-Planned general editing must enable manual relocation of a note body embedded
+General editing supports manual relocation of a note body embedded
 in main prose: precise inline/multi-block selection, cut/move across containers,
 ordinary notes-section creation and link/target inspection/repair. Preserve
 formatting, reference/target IDs, attribution and nested links; leave no duplicate
@@ -454,15 +455,46 @@ The generic engine owns storage, fetching, jobs, accounts, review semantics and
 rendering. Profiles own subjects, source adapters, vocabularies and branding.
 The Marxist profile is the current installation, not the engine's boundary.
 
-### Primary correction workflow (direction revised 2026-10-25)
+### Primary correction workflow (reconciled 2026-11-06)
 
-Consolidation direction: the document editor is to become the only content editor,
-including source restoration and book structure. Necessary legacy outcomes must
-be integrated before the old editor is retired; merely hiding its links is not
-parity. Named excerpts are not part of the replacement: copy/insert retained
-content anywhere as ordinary editable content, including Endnotes at the end.
-Do not introduce excerpt definition/revision/adoption forms. Book organization
-handles actual page membership and ordering, not a separate excerpt lifecycle.
+Target experience: **one editor page for all document-scoped reviewer operations
+needed to tailor a publication**, not a sequence of separate administration pages.
+Prefer direct manipulation and contextual actions in the document; use panels,
+dialogs or other controls on that same page when the operation does not fit the
+canvas. Source inspection/restoration, metadata, sections/excerpts, notes/media,
+source-page membership, relevant catalogue changes, history/comparison, review,
+publication preview/confirmation and publication styles belong to that workspace.
+The reviewer keeps one coherent view of the document and its pending changes.
+This is a UI/workflow requirement, not a requirement for monolithic code or a
+single transaction.
+
+Document section order/roles and source-graph membership are different data
+responsibilities, not reasons for different reviewer pages. Adding/removing
+retained pages from a book or moving membership between works must show affected
+works and preserve corrected documents, source evidence and private annotations.
+Existing legacy source rebuilding does not merge saved editor corrections;
+integration must make that boundary explicit rather than silently replace edits.
+Ordinary document saves must not mutate another work. Cross-work actions require
+their own preview, conflict checks and explicit confirmation on the editor page.
+Global operational maintenance and optional controlled experiments remain outside
+publication tailoring.
+
+This single-page integration is **planned and partial**, not current full parity.
+History/comparison/publication and legacy administration still have separate
+routes. Necessary legacy outcomes must be integrated and validated before old
+mutation paths are retired; merely hiding their links is not parity.
+Acceptance requires completing an article and a multi-page book from source
+inspection through saved correction, comparison, review and explicit publication
+without required navigation away from the editor page. Preserve unsaved work,
+selection/context, undo/recovery, exact version bindings and explicit error states;
+include keyboard, narrow-screen and representative accessibility checks.
+Saving, review certification and publication remain distinct actions.
+
+Document-local excerpt sections are supported ordinary semantic content, with
+parent-origin linkage and independent movement. They are not the excluded
+raw-source excerpt-definition/revision/adoption lifecycle. Retained-source
+insertion likewise creates ordinary editable content, including Endnotes.
+Do not introduce parallel excerpt administration for ordinary correction.
 
 The user authorized a fresh-slate reset of corrections, drafts/revisions,
 review/evaluation records, organization, excerpts and corrected cached editions
@@ -572,8 +604,9 @@ evidence-based model-promotion gates.
   open-source core is selected for the bounded pilot; evaluate semantic fidelity,
   accessibility and reviewer effort before making it the primary editor.
 - Retain source inspection and existing structured controls as advanced/fallback
-  tools during migration. Keep book membership, section role and ordering distinct
-  from editing; simplify excerpt use to a selection-to-book-section workflow.
+  tools during migration. Source membership has separate evidence and safeguards,
+  but document roles/order and all publication-tailoring operations belong on the
+  editor page under the 2026-11-06 workflow clarification.
 - Make immutable source + exact generated draft + corrected semantic document
   the authoritative example. Compute diffs/operations as versioned, potentially
   uncertain interpretations, not the sole evidence or required reviewer input.
@@ -931,7 +964,7 @@ resets, skip exact duplicates, and cannot activate obsolete older history.
 Limits: 50 revisions, 1 MiB, four prior provenance-transfer generations.
 Exports exclude account IDs, credentials and private annotations.
 
-## 5. Result-first semantic editing (planned)
+## 5. Result-first semantic editing (implemented pilot; consolidation incomplete)
 
 Foundation implemented in development on 2026-10-23: a provisional version-one
 semantic document `{version, title, metadata, html}` uses strictly validated,
@@ -945,8 +978,11 @@ Additive migration 0023 introduces immutable `DocumentDraftBase` and
 `DocumentEditRevision` records. The service starts from an exact retained rendition,
 pins its original HTML/metadata/structure/stylesheet/source manifest/asset digests
 and versions, and never reapplies legacy operations. Historical correction revision
-bindings are explicitly unknown rather than reconstructed. Fresh-generation capture
-with exact correction/organization bindings is still planned.
+bindings are explicitly unknown rather than reconstructed. Since 0.39.0, offline
+fresh-generation previews and confirmed draft bases pin exact retained captures,
+assets and applied correction/organization bindings without replaying saved edits.
+The original-input alternative explicitly excludes previous corrections and
+organization. These are bounded implemented paths, not general live-source import.
 
 Revision saves check base integrity, active profile and expected revision.
 They default to partial review; explicit full or existing-section verification
@@ -1679,9 +1715,21 @@ remain undecided and must be settled before the relevant implementation gate.
   bottom whitespace on nonfinal pages. These are fixture-specific bounds,
   not a universal pagination target or authorization for new PDF work.
 
-Planned, not implemented: faithful direct text repair, paragraph/heading splitting
-and merging, reading-order editing, semantic editor integration, explicit review
-coverage and document-pair datasets. These are no longer excluded scope.
+Implemented in the development pilot: direct text repair, paragraph/heading
+splitting and merging, bounded inline/block/section movement, semantic save/recovery,
+explicit review coverage, fresh retained-source provenance and saved publication.
+Document sections, title/metadata and numbering project into reader/PDF output;
+reading styles are separate presentation settings, not saved prose.
+
+Remaining: complete single-page reviewer integration, guarded target removal and
+remaining note/media relationship repairs, source membership/affected-work parity,
+legacy retirement after replacement validation, and a separately versioned curated
+document-pair dataset/benchmark. Retained article 52 and books 70/80 passed read-only
+semantic and exact editor import/export checks on 2026-11-06; book 70 required
+explicit conversion approval. The same reconciliation ran 158 focused backend
+and 224 frontend tests successfully. These checks do not establish independent
+whole-work source fidelity, native-pointer usability, accessibility acceptance,
+performance or ML readiness. Earlier dated fixture results remain historical.
 
 Still out of scope: unrestricted prose authorship/modernization as faithful
 reconstruction, arbitrary HTML/CSS authoring, PDF/EPUB input, OCR, universal

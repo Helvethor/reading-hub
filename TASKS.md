@@ -1,6 +1,6 @@
 # Reading Hub: ordered implementation priorities
 
-Direction revised 2026-10-25 for direct correction and automatic version evidence. Read
+Direction reconciled 2026-11-06 for a single-page reviewer workspace. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
@@ -15,9 +15,11 @@ The direct open/edit/save/history workflow exists. The immediate milestone is
 **complete an article and a multi-page book with the single semantic editor**,
 including precise note relocation, media repair and saved book structure.
 Do not expand evaluation infrastructure or training before that outcome works.
-The [2026-11-01 assessment](docs/PROJECT-ASSESSMENT.md) supersedes historical
+The [project assessment, updated 2026-11-06](docs/PROJECT-ASSESSMENT.md) supersedes historical
 next-step instructions with completion, consolidation, curation and automation.
-Local testing runtime is 0.53.0 (format 20, Marxist adapter 20); unchecked priorities below remain planned.
+Local testing runtime is 0.53.0 (format 20, Marxist adapter 20).
+Unchecked tasks may contain delivered foundations; their remaining scope is
+explicit below. A checked bounded implementation is not whole-work acceptance.
 Tiptap core is selected for the opt-in development pilot. No portable
 document-pair dataset format or trained model is implied.
 
@@ -41,8 +43,11 @@ workflow or the next acceptance milestone.
 
 1. **Simplify ordinary correction.** Open the latest saved correction in the
    selected history; offer source-derived and earlier versions as alternatives.
-   Make edit/save/continue direct. Remove prominent task/run links from ordinary
-   correction while preserving existing records and optional evaluation access.
+   Make edit/save/continue direct on one editor page, with source inspection,
+   history/comparison, review, publication preview/confirmation and styles on that
+   page. Prefer canvas/contextual actions; use same-page panels/dialogs as needed.
+   This unified workspace is not yet complete. Remove prominent task/run links
+   from ordinary correction while preserving records and optional evaluation access.
 2. **Make version ancestry trustworthy.** Record the exact immediate starting
    version and result automatically, including branches from older corrections.
    Keep root source/generation evidence distinct from the actual editing input.
@@ -53,7 +58,8 @@ workflow or the next acceptance milestone.
 4. **Close observed correction gaps.** Use real article/book corrections to
    prioritize source restoration, note/media relationships, structural repair
    and integrated book structure. Copied source content is ordinary document
-   content, not a named excerpt. Check source fidelity, accessibility,
+   content, not a raw-source excerpt definition; document-local excerpt sections
+   with origin linkage are supported. Check source fidelity, accessibility,
    save/reopen/recovery, ToC, reader and PDF, not just command behavior.
 5. **Curate evidence, then evaluate automation.** Derive eligible correction
    pairs from history, create the separately versioned dataset and leakage-safe
@@ -64,15 +70,36 @@ Controlled studies and agreed numerical effort/quality bounds remain necessary
 for claims of reviewer savings or model acceptance, not for permission to perform
 ordinary corrections. No automatic training, publication or gate approval follows.
 
-### Next milestone — One editor, with original-source content insertion
+### Current milestone — Complete the single-page reviewer workspace
 
-This supersedes older requests to build a named-excerpt workflow or expand
-task/run infrastructure. Preserve necessary outcomes, not legacy operation forms.
+All reviewer operations needed to tailor this publication belong on the editor
+page, preferably in the canvas and otherwise in same-page panels/dialogs. Separate
+backend responsibilities do not require separate reviewer pages. Preserve one
+document context and pending edits while inspecting source, changing content/
+metadata/structure, checking history, reviewing and publishing.
+This supersedes parallel raw-source excerpt administration and task/run expansion,
+not document-local excerpt sections. Preserve outcomes, not legacy operation forms.
+
+Reconciliation evidence (2026-11-06): 158 focused backend and 224 frontend tests
+passed. Retained article 52 and books 70/80 passed semantic and exact editor
+import/export checks; book 70 needs explicit conversion approval. This is bounded
+correctness/compatibility evidence, not whole-book or independent accessibility
+acceptance. Historical counts below describe their original slices.
+
+- [ ] Integrate source inspection, history/branching/comparison, review controls,
+  publication preview/explicit confirmation and reading-style/profile controls
+  into the editor page without required reviewer navigation away. Preserve pending
+  edits, selection/context, recovery and exact saved-version bindings; do not
+  collapse save/review/publication into one implicit action.
+- [ ] Validate the complete single-page article/book workflow, including
+  keyboard-only and native-pointer interaction, narrow-screen reachability and
+  representative screen-reader checks. Publication/reader/PDF output must remain
+  faithful to the saved semantic document and chosen presentation.
 
 - [x] Add explicit original-retained-source generation, excluding previous
   corrections and organization, with preview/digest-confirmed input policy.
 - [x] Inspect retained pages and insert selected structured content anywhere as
-  ordinary editable blocks; no named excerpt creation/revision/adoption.
+  ordinary editable blocks; no raw-source excerpt creation/revision/adoption.
   Preserve selected note links, targets, figures and bound assets; preview
   normalization, remap conflicting IDs, support atomic undo and stale guards.
 - [x] Integrate contributor/role, typed date/range and topic metadata parity.
@@ -155,8 +182,10 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   placements with origin preserved and exact Undo. Native-pointer usability
   remains unvalidated; live corrections were not changed.
 - [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
-  overwriting corrected documents. These remain explicit legacy source-graph
-  operations, not ordinary editor-save effects.
+  overwriting corrected documents. Present required publication-tailoring actions
+  on the editor page, with affected-work preview and explicit confirmation.
+  These remain distinct source-graph transactions, not ordinary save effects or
+  a requirement to send reviewers to separate administration pages.
 - [x] Compact selection tools with representative styled letters, office-style
   alignment icons and toggle-off-to-inherit behavior. Hide type-inapplicable
   commands/groups; share outline/canvas context-menu styling. Support navigation
@@ -330,9 +359,9 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   whole-marker IDs and inbound references; reject partial-wrapper crossings,
   cross-block/media ranges and ambiguous overlapping targets. Link navigation
   remains the explicit disambiguation path. Atomic undo/JSON recovery/save/reopen.
-- [ ] Complete broader general editing as real repairs require it:
-  target removal and remaining
-  target creation/relationship repair. Continue testing
+- [ ] Complete guarded target removal and remaining relationship repair as real
+  repairs require it. Block and inline target creation/renaming are implemented;
+  do not rebuild them as new workflows. Continue testing
   link/target repair. Use edition 80 chapter c3's embedded inline note as the
   manual-repair acceptance case: preserve IDs/references/returns/nested links,
   avoid duplicates and repair the prose seam. Each move is atomic; a complete
@@ -348,9 +377,12 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   start/end/before/after/inside destinations, outline context-menu actions and a mobile
   toolbar action. Preserve entire nodes/targets, independent undo/redo and
   ordinary save/reopen/publication; refuse cycles and stale proposals.
-- [ ] Integrate actual book page membership, part roles/order and affected-work
-  safeguards in the workspace; save before explicit publication. Content copied
-  from an index is ordinary document content, not a reusable excerpt object.
+- [ ] Integrate retained-source page membership and affected-work safeguards on
+  the editor page. Saved document title/roles/order/nesting and excerpt origins
+  already drive corrected publication; they are not this remaining source-graph
+  task. Adding/removing pages or transferring membership must preview affected
+  works, preserve corrected documents and require explicit confirmation.
+  Content copied from an index is ordinary document content.
 - [ ] Retire legacy content-editing routes/navigation after replacement checks.
 - [ ] Deferred, not a consolidation prerequisite: inventory and rehearse the
   previously authorized fresh slate, with renewed confirmation of the exact
@@ -364,7 +396,8 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
 The source-insertion and metadata slices do not complete the single-editor milestone.
 Full clipboard structural import, persistent per-character source mappings and
 automatic local repair of links to unselected source content are not implied.
-Validation: 126 related backend tests and 107 frontend tests pass, plus Ruff,
+Historical source-insertion/metadata validation: 126 related backend tests and
+107 frontend tests passed, plus Ruff,
 Django and migration-drift checks. Original-input offline generation of real
 editions 52/80 passes with zero issues and no applied corrections. Isolated
 article/book browser flows cover source selection, end insertion, keyboard apply,
@@ -639,8 +672,10 @@ Initial foundation implemented in development on 2026-10-23 (not Gate A complete
   All 38 frontend tests and 48 targeted editor/save/publication backend tests
   pass. A synthetic browser document verifies move, selection retention, review
   reset and undo/redo; retained editions 77/80 pass read-only fidelity checks.
-- [ ] Complete rich multi-block paste and remaining document tools (general moves, notes,
-  media); continue representative whole-book fidelity and reviewer evaluation.
+- [ ] Complete remaining relationship/media tools and representative whole-book
+  acceptance. The earlier multi-block/general-move gaps are superseded by
+  implemented semantic in-editor Copy/Cut/Paste and selected-content movement
+  above. General external structural/Office import is not implied.
 - [x] Redesign pilot usability around a fixed-height scrolling canvas, compact
   command bar, selection-pinned right-click/Shift+F10/touch menu, optional block
   gutter/container path, and nested section/heading navigation. Whole-book and
@@ -753,19 +788,23 @@ This gate does not require reviewers to create tasks/runs for ordinary correctio
 
 Depends on Gate A; representative fixture preparation may begin during Priority A.
 
-6. [ ] Implement isolated saved drafts and semantic rich editing with direct
-   text repair, split/merge/move, undo/redo, safe paste and visible errors.
-   Preserve source inspection and advanced legacy controls as fallback.
-7. [ ] Wire server validation and canonical preview/reader/ToC/PDF rendering;
-   reject unsupported lossy conversion, broken required notes/targets/assets.
-   Keep incomplete saved drafts separate from publishable revisions; test
-   failure recovery, concurrency and verification invalidation.
-8. [ ] Integrate book membership/title/role/order in the document workspace.
-   Selected source content is inserted directly and can receive ordinary headings;
-   no named excerpt lifecycle. Pin retained-page and saved-edition inputs where
-   appropriate and preserve conflict/duplicate-membership safeguards.
+6. [x] Deliver bounded isolated drafts and semantic editing: direct text repair,
+   split/merge/move, undo/redo, supported paste, recovery and visible errors.
+   Complete tool parity and representative acceptance remain separate open tasks.
+7. [x] Wire authoritative server validation and saved publication/reader/ToC/PDF
+   projection. Unsupported conversion and unresolved required targets/assets
+   refuse publication; partial drafts may retain visible issues. Focused tests
+   cover stale saves/publications, recovery and verification invalidation.
+   This is not a complete typed note validator or universal rendering acceptance.
+8. [ ] Complete source membership and affected-work integration on the editor
+   page. Document titles/roles/order/nesting, retained-source insertion and
+   document-local excerpt sections are delivered within stated bounds.
+   Finish source-graph conflict/duplicate-membership safeguards without replacing
+   corrected documents; no parallel excerpt-definition lifecycle is required.
 9. [ ] Validate direct correction/history on representative articles and whole
-   books, including existing annotations, recovery and accessibility. Separately
+   books from one editor page, including existing annotations, recovery,
+   publication confirmation and accessibility. Existing regression/copy-fixture
+   evidence does not complete this acceptance task. Separately
    run a bounded comparative study when claiming reviewer-effort improvements;
    agree numerical bounds before claiming acceptance, not before normal editing.
 
@@ -779,14 +818,18 @@ fallback controls or require inferred operation labels for saving.
 Depends on the Priority A contract; capture revisions alongside Priority B.
 Benchmark curation and editor evaluation can proceed together once storage exists.
 
-10. [ ] Persist/export full immutable source + exact generated base + actual
-    starting version + corrected semantic result, immediate-parent/root provenance,
-    assets and explicit review scope. Derive both parent-to-correction pairs and
+10. [ ] Build the portable, curated document-pair dataset. Immutable draft/revision
+    storage, immediate-parent/root provenance, review scope, retained-source
+    bindings and exact saved comparison downloads already exist. Complete a
+    separately versioned export/import and eligibility contract for source +
+    generated base + actual starting version + corrected result and assets.
+    Derive both parent-to-correction pairs and
     eligible source-to-reviewed targets without confusing their input histories.
     Routine saves are raw evidence, not automatically training-quality answers.
     Version the new dataset separately from format-1 partial override transfers;
     add import/integrity tests and privacy/licensing eligibility checks.
-11. [ ] Derive versioned text/semantic diffs and optional operation labels.
+11. [ ] Extend existing bounded saved token/metadata comparisons into versioned
+    dataset text/semantic diffs and optional operation labels.
     Suppress serialization noise, represent uncertain matches/moves and retain
     originals so interpretations can be regenerated. Do not require perfect
     alignment or manual operation annotation before saving a corrected result.
@@ -1025,7 +1068,7 @@ Semantic editor integration, faithful text repair, split/merge and reading-order
 editing are in Priorities A/B, not out of scope. Tiptap core is selected for the
 bounded pilot; full replacement and publication remain gated.
 
-## Current completed baseline
+## Completed legacy foundation (historical; not the current next milestone)
 
 - [x] Immutable sources/readers, local assets, ToC, PDF and private annotations.
 - [x] Durable imports, managed workers, bounded crawls and source/profile separation.
