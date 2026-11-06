@@ -1,13 +1,14 @@
 import {closeHistory} from "@tiptap/pm/history";
 import {TextSelection} from "@tiptap/pm/state";
 import {showDocumentPart, visiblePart} from "./workspace.js";
-import {sectionHeading} from "./section-info.js";
+import {headingLabel, sectionHeading} from "./section-info.js";
 
 export function movableSections(doc) {
   const sections = [];
   doc.descendants((node, from) => {
     if (node.type.name !== "section") return;
-    const label = sectionHeading(node, from)?.node.textContent || "";
+    const title = sectionHeading(node, from)?.node;
+    const label = title ? headingLabel(title) : "";
     const depth = doc.resolve(from).depth;
     sections.push({
       from, to: from + node.nodeSize, node, depth,

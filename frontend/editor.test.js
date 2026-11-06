@@ -993,6 +993,21 @@ test("ToC visibility hides Notes automatically and allows granular overrides kep
   assert.equal(reopened.querySelectorAll("[data-toc-part]").length, 5);
 });
 
+test("navigation and ToC labels omit heading note references that stay in content", () => {
+  const form = mountSectionWorkspace('<section id="a"><h2>Appendix<sup><a id="r1" href="#n1">[8]</a></sup></h2>' +
+    '<h3>Group<sup><a id="r2" href="#n2">[34]</a></sup> and <em>Dyelo</em></h3><p id="n1">Note</p>' +
+    '<p id="n2">Other</p></section><section id="b"><h2>Square x<sup>2</sup> and 2<sup>e</sup></h2><p>Body</p></section>');
+  assert.deepEqual(documentParts(editor.state.doc).map(part => part.label),
+    ["Appendix", "Group and Dyelo", "Square x2 and 2e"]);
+  const isolate = form.querySelector("#editor-part");
+  isolate.value = "toc";
+  isolate.dispatchEvent(new dom.window.Event("change"));
+  assert.deepEqual([...form.querySelectorAll("[data-toc-part]")].map(button => button.textContent),
+    ["Appendix", "Group and Dyelo", "Square x2 and 2e"]);
+  assert.match(editor.getHTML(), /Appendix<sup><a[^>]*>\[8\]<\/a><\/sup>/);
+  assert.equal(editor.view.dom.querySelector("h2").textContent.includes("[8]"), true);
+});
+
 test("Automatic ToC hiding matches Notes variants only", () => {
   for (const title of ["Notes", "NOTES", "Endnotes", "End Notes", "End-notes:", "Footnotes", "Note"]) {
     assert(automaticallyHidden(title), title);

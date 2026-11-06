@@ -56,6 +56,8 @@
   .document-contents li { margin-block: 1mm; }
   .document-contents a { color: black; text-decoration: none; }
   .reader-content [data-reading-marker] { bookmark-label: attr(data-reading-marker) content(text); }
+  .reader-content [data-reading-label] { bookmark-label: attr(data-reading-label); }
+  .reader-content [data-reading-marker][data-reading-label] { bookmark-label: attr(data-reading-marker) attr(data-reading-label); }
   .document-subtitle { font: 16pt/1.4 Georgia, serif; margin: 0 0 8mm; }
   .document-metadata dt { font-weight: bold; margin-top: 3mm; }
   .document-metadata dd { margin: 1mm 0 0; overflow-wrap: anywhere; }

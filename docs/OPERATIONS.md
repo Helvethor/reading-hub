@@ -1169,6 +1169,12 @@ editor ToC page so they can be shown again; the outline, publication/reader side
 navigation and PDF bookmarks keep every entry. Only the generated contents
 pages (publication, reader and PDF) omit them. The choice is saved as
 `data-toc-entry` on the section/heading and undoes in one step.
+**Note markers in titles:** note references inside a heading (for example
+`Appendix[8]`) are dropped from ToC, outline/navigation, section-move labels and
+PDF bookmark labels, but remain in the heading text. A reference is a bracketed
+marker (`[8]`, `[a]`, `[*]`) in a superscript or internal link, or bare
+digits/symbols that are both superscript and internally linked; ordinary
+superscripts such as `x2` or `2e` stay in labels.
 These same markers appear read-only before actual editor headings and navigation
 titles, including the Section selector. Sections use their bound title heading;
 headings without a section entry use themselves. Filtering does not restart

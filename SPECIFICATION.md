@@ -445,6 +445,11 @@ settings override it either way, and hiding an entry hides its descendants.
 Stored and derived ToC entries carry `in_toc`; generated contents pages
 (publication preview, reader, PDF) list only `in_toc` entries, while editor
 outline, side navigation and PDF bookmarks keep all entries.
+Entry labels omit heading note references (bracketed markers in superscript or
+internal links, or superscript linked digits/symbols); heading prose keeps them.
+Publication views add a view-only `data-reading-label` so PDF bookmarks use the
+same label. Saved titles from older publications are replaced only when they
+equal the raw heading text.
 
 Publication rules 4 store these ToC entries while keeping markers out of saved
 heading text. Reader/PDF use view-only heading attributes and generated CSS

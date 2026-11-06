@@ -48,6 +48,42 @@ def marker_text(style, number):
     return (text.lower() if style.startswith("lower") else text) + "."
 
 
+# Mirrors headingLabel() in frontend/section-info.js.
+BRACKETED_NOTE = re.compile(r"\[\s*(?:\d{1,4}|[a-z]|[*\u2020\u2021\u00a7\u00b6]{1,3})\s*\]", re.I)
+BARE_NOTE = re.compile(r"\d{1,4}|[*\u2020\u2021\u00a7\u00b6]{1,3}")
+
+
+def note_reference(node, heading):
+    if node.name not in {"sup", "a", "span"} or (
+        node.name == "span" and "text-superscript-on" not in node.get("class", [])
+    ):
+        return False
+    ancestors = []
+    for parent in node.parents:
+        if parent is heading:
+            break
+        ancestors.append(parent)
+    scope = [node, *ancestors, *node.find_all(True)]
+    superscript = any(item.name == "sup" or "text-superscript-on" in item.get("class", [])
+                      for item in scope)
+    internal = any(item.name == "a" and item.get("href", "").startswith("#") for item in scope)
+    text = node.get_text().strip()
+    if BRACKETED_NOTE.fullmatch(text):
+        return superscript or internal
+    return bool(BARE_NOTE.fullmatch(text)) and superscript and internal
+
+
+def heading_label(heading):
+    """Navigation/ToC label: the heading text without note references like [8]."""
+    text = heading.get_text()
+    copy = BeautifulSoup(str(heading), "html.parser").find(heading.name)
+    removed = False
+    while note := next((node for node in copy.find_all(True) if note_reference(node, copy)), None):
+        note.decompose()
+        removed = True
+    return " ".join(copy.get_text().split()) if removed else text
+
+
 def section_title(section):
     headings = [
         heading for heading in section.find_all(HEADINGS)
@@ -87,8 +123,9 @@ def book_entries(soup):
                 parts.append({
                     "from": position + 1, "to": end - 1, "node": node,
                     "heading": heading,
-                    "title": (heading.get_text().strip() if heading is not None else "")[:120]
+                    "title": (heading_label(heading).strip() if heading is not None else "")[:120]
                     or node.get("id") or "Untitled section",
+                    "raw_title": (heading.get_text().strip() if heading is not None else "")[:120],
                 })
             elif node.name in HEADINGS:
                 following = next((sibling for sibling in children[index + 1:]
@@ -100,7 +137,8 @@ def book_entries(soup):
                         ends[id(parent)] - 1 if parent is not soup else cursor
                     ),
                     "node": node, "heading": node,
-                    "title": node.get_text().strip()[:120] or "Untitled heading",
+                    "title": heading_label(node).strip()[:120] or "Untitled heading",
+                    "raw_title": node.get_text().strip()[:120],
                 })
             if node.name not in HEADINGS:
                 visit(node)
@@ -159,12 +197,18 @@ def publication_view(html, saved_entries=()):
     soup = BeautifulSoup(html, "html.parser")
     toc = publication_toc(soup)
     titles = {entry["id"]: entry["title"] for entry in saved_entries if entry.get("editor_entry")}
-    for entry in toc:
-        if entry["id"] in titles:
+    parts = book_entries(soup)
+    for entry, part in zip(toc, parts):
+        # Older saved entries kept note markers; only a deliberate different title wins.
+        if titles.get(entry["id"], part["raw_title"]) != part["raw_title"]:
             entry["title"] = titles[entry["id"]]
-    for part in book_entries(soup):
-        if part["marker"] and part["heading"] is not None:
-            heading = part["heading"]
+    for part in parts:
+        heading = part["heading"]
+        if heading is None:
+            continue
+        if part["marker"]:
             previous = heading.get("data-reading-marker", "")
             heading["data-reading-marker"] = previous + part["marker"] + " "
+        if part["title"] != part["raw_title"]:
+            heading["data-reading-label"] = part["title"]
     return {"content_html": str(soup), "entries": toc}

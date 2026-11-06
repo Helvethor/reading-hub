@@ -283,6 +283,11 @@ acceptance. Historical counts below describe their original slices.
   frontend tests and focused publication/reader/PDF backend tests pass. On the
   real draft (revision 25, read-only) the rule hides the 9 per-chapter Notes
   headings; no live draft or publication was changed.
+- [x] Drop heading note references (e.g. `Appendix[8]`) from ToC, navigation and
+  PDF bookmark labels while keeping them in content. Matching backend/frontend
+  rule; ordinary superscripts unaffected. Real draft (read-only) yields
+  "Appendix" and "The Self-EmancipationGroup and Rabocheye Dyelo". 250 frontend
+  and 168 backend tests pass, including published reader/PDF outline checks.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

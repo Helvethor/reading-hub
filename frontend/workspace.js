@@ -1,7 +1,7 @@
 import {Extension} from "@tiptap/core";
 import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state";
 import {Decoration, DecorationSet} from "@tiptap/pm/view";
-import {sectionHeading} from "./section-info.js";
+import {headingLabel, sectionHeading} from "./section-info.js";
 import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 
 const workspaceKey = new PluginKey("readingHubWorkspace");
@@ -17,7 +17,8 @@ export function documentParts(doc) {
     const firstLevel = levels.length ? Math.min(...levels) : 2;
     children.forEach(({node, pos}, index) => {
       if (node.type.name === "section") {
-        const heading = sectionHeading(node, pos)?.node.textContent || "";
+        const title = sectionHeading(node, pos)?.node;
+        const heading = title ? headingLabel(title) : "";
         parts.push({
           from: pos + 1, to: pos + node.nodeSize - 1, depth,
           label: heading.trim().slice(0, 120) || node.attrs.id || "Untitled section",
@@ -32,7 +33,7 @@ export function documentParts(doc) {
         parts.push({
           from: pos, to: next?.pos ?? start + parent.content.size,
           depth: depth + Number(node.type.name.slice(1)) - firstLevel,
-          label: node.textContent.trim().slice(0, 120) || "Untitled heading",
+          label: headingLabel(node).trim().slice(0, 120) || "Untitled heading",
           kind: node.type.name.toUpperCase(),
         });
       }
@@ -114,7 +115,7 @@ function decorations(doc, scope, labels, folds = []) {
     }
     if (node.type.name === "section") {
       const heading = sectionHeading(node, pos);
-      const label = heading?.node.textContent || node.attrs.id || "Untitled section";
+      const label = (heading && headingLabel(heading.node)) || node.attrs.id || "Untitled section";
       const origin = node.attrs["data-excerpt-parent"];
       result.push(Decoration.node(pos, end, {class: "editor-section-boundary"}));
       for (const [at, text, edge] of [

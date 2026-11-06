@@ -519,6 +519,40 @@ class DocumentPublicationTests(TestCase):
         self.assertNotIn("Sources", contents)
         self.assertNotIn("Chapter notes", contents)
 
+    def test_heading_note_references_leave_labels_but_stay_in_content(self):
+        markup = (
+            '<section id="c1"><h2>Appendix<sup><a id="r1" href="#n1">[8]</a></sup></h2>'
+            '<h3>Group<sup><a id="r2" href="#n2">[34]</a></sup> and Dyelo</h3>'
+            '<p id="n1"><a href="#r1">[8]</a> First.</p><p id="n2"><a href="#r2">[34]</a> Second.</p>'
+            '</section>'
+        )
+        save_revision(self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1)
+        publication = self.publish(2)
+        self.assertEqual([item["title"] for item in publication.rendition.structure["toc"]],
+                         ["Appendix", "Group and Dyelo"])
+        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        soup = BeautifulSoup(reader.content, "html.parser")
+        self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
+                          if link["href"].startswith("#")], ["Appendix", "Group and Dyelo"])
+        self.assertEqual([link.get_text() for link in soup.select(".document-contents a")],
+                         ["Appendix", "Group and Dyelo"])
+        self.assertEqual(soup.select_one(".reader-content h2").get_text(), "Appendix[8]")
+        self.assertEqual(soup.select_one(".reader-content h2")["data-reading-label"], "Appendix")
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+
+        def titles(items):
+            for item in items:
+                if isinstance(item, list):
+                    yield from titles(item)
+                else:
+                    yield item.title.strip()
+
+        outline = list(titles(PdfReader(output).outline))
+        self.assertIn("Appendix", outline)
+        self.assertIn("Group and Dyelo", outline)
+        self.assertFalse(any("[8]" in title or "[34]" in title for title in outline))
+
     def test_invalid_toc_visibility_is_refused(self):
         with self.assertRaisesMessage(ValueError, "supported ToC visibility"):
             save_revision(self.draft, self.reviewer, {
