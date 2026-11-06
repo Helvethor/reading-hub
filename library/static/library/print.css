@@ -38,8 +38,8 @@
     @bottom-center { content: none; }
   }
   @page reading-content {
-    @top-left { content: string(book-title); width: 48%; text-align: left; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
-    @top-right { content: string(section-title); width: 48%; text-align: right; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @top-left { content: string(book-title); width: 48%; text-align: left; vertical-align: top; padding-top: 6mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @top-right { content: string(section-title); width: 48%; text-align: right; vertical-align: top; padding-top: 6mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
     @bottom-center { content: counter(page) " / " counter(pages); font: 9pt "Liberation Sans", sans-serif; }
   }
   .reader-content { page: reading-content; }

@@ -346,6 +346,49 @@ class ReadingStyleTests(TestCase):
             self.assertLessEqual(left.height, 12 * 96 / 25.4 + 1)
             self.assertLessEqual(right.height, 12 * 96 / 25.4 + 1)
 
+    def test_wrapped_running_headers_keep_a_fixed_top_inset_and_body_margin(self):
+        layouts = []
+        original_render = HTML.render
+
+        def capture(renderer, *args, **kwargs):
+            document = original_render(renderer, *args, **kwargs)
+            layouts.append(document)
+            return document
+
+        for style in (DEFAULTS, self.custom):
+            first_lines = []
+            body_tops = []
+            for book, section in (
+                ("Short book", "Short section"),
+                ("A longer book title " * 5, "A longer section title " * 5),
+            ):
+                self.version.title = book
+                self.version.html = f"<section><h2>{section}</h2><p>Body sentinel.</p></section>"
+                with patch.object(HTML, "render", capture):
+                    render_pdf(self.version, io.BytesIO(), style)
+                page = next(
+                    page for page in layouts[-1].pages
+                    if page._page_box.page_type.name == "reading-content"
+                )
+                body_tops.append(page._page_box.content_box_y())
+                positions = []
+                for box in page._page_box.children:
+                    if not isinstance(box, MarginBox) or box.at_keyword == "@bottom-center":
+                        continue
+                    lines = [child for child in box.descendants()
+                             if type(child).__name__ == "LineBox"]
+                    self.assertGreater(len(lines), 1 if book != "Short book" else 0)
+                    if book == "Short book":
+                        self.assertEqual(len(lines), 1)
+                    positions.append(lines[0].position_y)
+                self.assertEqual(len(positions), 2)
+                first_lines.append(positions)
+            for short, wrapped in zip(first_lines[0], first_lines[1], strict=True):
+                self.assertAlmostEqual(short, wrapped, delta=.1)
+                self.assertAlmostEqual(short, 6 * 96 / 25.4, delta=.1)
+            self.assertAlmostEqual(body_tops[0], body_tops[1], delta=.1)
+            self.assertAlmostEqual(body_tops[0], 18 * 96 / 25.4, delta=.1)
+
     def test_multipage_title_and_contents_have_no_running_matter_but_all_prose_pages_do(self):
         markup = (
             '<html><body class="publication-content"><header class="document-header">'

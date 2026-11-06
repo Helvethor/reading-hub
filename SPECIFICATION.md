@@ -431,7 +431,9 @@ right (including continuation pages), and current/total page numbers centered
 below, only on content pages. Title/metadata and generated contents pages,
 including continuations, have no running headers or footers. Header titles and
 page numbers use 9pt text; page counters still include all PDF pages.
-Long running titles occupy separate bounded columns. These margin boxes
+Long running titles occupy separate bounded columns, top-aligned at a fixed 6mm
+inset from the page edge. Wrapping extends downward without changing the first
+line's position or the 18mm body margin. These margin boxes
 are excluded from body-gap/figure pagination measurements.
 Body heading prefixes are also emitted by the shared live stylesheet, independent
 of an older cached print stylesheet. Presentation-version asset URLs and a new PDF

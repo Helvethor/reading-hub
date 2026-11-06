@@ -276,6 +276,12 @@ task/run infrastructure. Preserve necessary outcomes, not legacy operation forms
   continuation titles, bounded header columns and figure/bookmark preservation.
   The multi-page front-matter stress case uses synthetic template markup with
   the real renderer. This supersedes the earlier every-page observation above.
+- [x] Keep running-header vertical geometry stable: single-line and wrapped book
+  and section titles start at the same 6mm top inset, growing downward without
+  changing the 18mm body margin. Rendered layout regression first reproduced
+  the upward shift, then verified fixed line positions with standard and custom
+  OpenDyslexic styles. All 64 focused PDF tests and Ruff pass. PDF presentation
+  version 6 invalidates earlier cached geometry; no saved content is changed.
 - [x] Consolidate presentation/title mirroring and compact live style/profile
   controls. Keep markers in publication body headings, both ToCs, PDF bookmarks
   and running section titles; match generated contents/section-title typography.

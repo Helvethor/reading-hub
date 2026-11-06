@@ -38,7 +38,7 @@ DEFAULTS = {
 }
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
-STYLE_VERSION = 3
+STYLE_VERSION = 4
 
 
 class ReadingStyleForm(forms.Form):
