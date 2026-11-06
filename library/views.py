@@ -142,6 +142,11 @@ def toc_tree(entries):
     return root
 
 
+def contents_tree(entries):
+    """Generated contents pages omit hidden entries; navigation keeps the full tree."""
+    return toc_tree([entry for entry in entries if entry.get("in_toc", True)])
+
+
 @require_GET
 def reader(request, pk):
     from library.services.book_views import publication_view
@@ -170,6 +175,7 @@ def reader(request, pk):
             or source_name(rendition.document.url),
             "metadata_rows": metadata_rows(rendition.metadata),
             "toc": toc_tree(projection["entries"]),
+            "contents_toc": contents_tree(projection["entries"]),
             "content_html": projection["content_html"],
             "generated_book": bool(getattr(rendition, "document_publication", None)),
             "other_versions": rendition.document.renditions.order_by("-created_at"),

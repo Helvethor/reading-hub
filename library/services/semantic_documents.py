@@ -27,10 +27,11 @@ CLASSES = {
     ) for state in ("on", "off")),
 }
 ATTRIBUTES = {
-    **{tag: {"data-toc-style"} for tag in ("h2", "h3", "h4", "h5", "h6")},
+    **{tag: {"data-toc-style", "data-toc-entry"} for tag in ("h2", "h3", "h4", "h5", "h6")},
     "section": {
         "data-section-url", "data-section-role", "data-section-title",
         "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style",
+        "data-toc-entry",
     },
     "a": {"href", "title", "aria-label", "rel"},
     "img": {"src", "alt", "loading", "decoding"},
@@ -136,6 +137,8 @@ class SemanticParser(HTMLParser):
                 "disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha",
             }:
                 raise ValueError("Choose a supported ToC numbering style.")
+            if name == "data-toc-entry" and value not in {"show", "hide"}:
+                raise ValueError("Choose a supported ToC visibility.")
             if name in {"data-section-title", "data-excerpt-parent"} and (
                 not value or re.search(r"[\s\x00-\x1f]", value)
             ):

@@ -41,7 +41,7 @@ import {
 import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
-import {applyTocNumbering, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {applyTocNumbering, automaticallyHidden, tocMarker, tocNumberingEntries, tocVisibilityEntries} from "./toc-numbering.js";
 import {prepareNoteRepair, applyNoteRepair} from "./note-repairs.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
@@ -948,6 +948,60 @@ test("ToC entries default to none and Ctrl-click sibling selections retain right
   assert.equal(reopened.querySelector('[data-toc-part="2"]').parentElement.style.listStyleType, "upper-roman");
 });
 
+test("ToC visibility hides Notes automatically and allows granular overrides kept in saved HTML", () => {
+  const form = mountSectionWorkspace('<section id="a"><h2>Chapter</h2><p>Body</p></section>' +
+    '<section id="n"><h2>Notes</h2><h3>Chapter notes</h3><p>1. Note</p></section>' +
+    '<section id="e"><h2>End-notes:</h2><p>2. Note</p></section>' +
+    '<section id="r"><h2>References</h2><p>Sources</p></section>');
+  const isolate = form.querySelector("#editor-part");
+  isolate.value = "toc";
+  isolate.dispatchEvent(new dom.window.Event("change"));
+  const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
+  const hidden = () => [...form.querySelectorAll("[data-toc-part]")]
+    .filter(button => button.parentElement.classList.contains("editor-toc-hidden"))
+    .map(button => button.dataset.tocPart);
+  assert.deepEqual(hidden(), ["1", "2", "3"]);
+  assert.match(entry(1).textContent, /hidden automatically/);
+  assert.match(entry(2).textContent, /hidden with parent/);
+  assert.equal(form.querySelectorAll("[data-toc-part]").length, 5, "Hidden entries stay listed and navigable.");
+  const original = editor.getHTML();
+  entry(1).dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  const menu = form.querySelector("#editor-toc-menu");
+  assert.deepEqual([...menu.querySelectorAll("[data-toc-entry]")].map(button => button.dataset.tocEntry),
+    ["auto", "show", "hide"]);
+  assert.equal(menu.querySelector('[data-toc-entry][aria-checked="true"]').dataset.tocEntry, "auto");
+  menu.querySelector('[data-toc-entry="show"]').click();
+  assert.equal(form.querySelector("#editor-part").value, "toc");
+  assert.deepEqual(hidden(), ["3"]);
+  entry(4).dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  menu.querySelector('[data-toc-entry="hide"]').click();
+  assert.deepEqual(hidden(), ["3", "4"]);
+  assert.match(entry(4).textContent, /\(hidden\)/);
+  assert.equal(editor.view.dom.querySelector("#n").getAttribute("data-toc-entry"), "show");
+  assert.equal(editor.view.dom.querySelector("#r").getAttribute("data-toc-entry"), "hide");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert(redo(editor.state, editor.view.dispatch));
+  const saved = editor.getHTML();
+  editor.destroy();
+  editor = null;
+  const reopened = mountSectionWorkspace(saved);
+  const states = tocVisibilityEntries(editor.state.doc);
+  assert.deepEqual(states.map(state => state.inToc), [true, true, true, false, false]);
+  assert.equal(reopened.querySelectorAll("[data-toc-part]").length, 5);
+});
+
+test("Automatic ToC hiding matches Notes variants only", () => {
+  for (const title of ["Notes", "NOTES", "Endnotes", "End Notes", "End-notes:", "Footnotes", "Note"]) {
+    assert(automaticallyHidden(title), title);
+  }
+  for (const title of ["Notes on method", "Chapter 1", "Notebook", "References"]) {
+    assert(!automaticallyHidden(title), title);
+  }
+});
+
 test("ToC numbering refuses mixed levels stale documents and unsupported styles; None clears persisted format", () => {
   open('<h2>First</h2><p>Body</p><h3>Nested</h3><p>Detail</p><h2>Second</h2><p>End</p>');
   const proposal = {doc: editor.state.doc, indices: [0, 2]};
@@ -985,7 +1039,7 @@ test("ToC selection rejects a different parent without losing the set and expose
   const menu = form.querySelector("#editor-toc-menu");
   assert(!menu.hidden);
   menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "End", bubbles: true}));
-  assert.equal(document.activeElement.dataset.tocStyle, "lower-alpha");
+  assert.equal(document.activeElement.dataset.tocEntry, "hide");
   menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
   assert(menu.hidden);
   assert.equal(document.activeElement, entry(0));

@@ -8,6 +8,16 @@ export const tocStyles = [
   ["upper-alpha", "Alphabetical (upper)"], ["lower-alpha", "Alphabetical (lower)"],
 ];
 
+export const tocVisibilityOptions = [
+  ["auto", "Automatic (hide Notes/Endnotes)"], ["show", "Always show in ToC"], ["hide", "Hide from ToC"],
+];
+// Kept identical to AUTOMATIC_HIDDEN_TITLES in library/services/book_views.py.
+const automaticHiddenTitles = new Set(["notes", "note", "endnotes", "endnote", "end notes", "footnotes", "footnote"]);
+
+export function automaticallyHidden(title) {
+  return automaticHiddenTitles.has((title.toLowerCase().match(/\p{L}+/gu) || []).join(" "));
+}
+
 export function tocEntryPosition(part) {
   return part.kind === "Section" ? part.from - 1 : part.from;
 }
@@ -21,6 +31,33 @@ export function tocNumberingEntries(doc, parts = documentParts(doc)) {
     if (style !== "none") counts.set(key, number);
     return {style, number};
   });
+}
+
+export function tocVisibilityEntries(doc, parts = documentParts(doc)) {
+  const hierarchy = outlineHierarchy(parts), entries = [];
+  parts.forEach((part, index) => {
+    const setting = doc.nodeAt(tocEntryPosition(part)).attrs["data-toc-entry"] || "auto";
+    const own = setting === "hide" || setting === "auto" && automaticallyHidden(part.label || "");
+    const parent = hierarchy[index].parent;
+    const inherited = parent >= 0 && !entries[parent].inToc;
+    entries.push({setting, inToc: !own && !inherited, automatic: setting === "auto" && own, inherited: !own && inherited});
+  });
+  return entries;
+}
+
+export function applyTocVisibility(editor, proposal, setting) {
+  if (!proposal || proposal.doc !== editor.state.doc) throw new Error("The document changed. Select ToC entries again.");
+  if (!tocVisibilityOptions.some(([value]) => value === setting)) throw new Error("Choose a supported ToC visibility.");
+  const parts = documentParts(editor.state.doc);
+  const indices = [...new Set(proposal.indices)];
+  if (!indices.length || indices.some(index => !parts[index])) throw new Error("Select ToC entries again.");
+  const tr = closeHistory(editor.state.tr).setMeta("readingHubToc", true);
+  for (const index of indices) {
+    const position = tocEntryPosition(parts[index]), node = tr.doc.nodeAt(position);
+    tr.setNodeMarkup(position, null, {...node.attrs, "data-toc-entry": setting === "auto" ? null : setting});
+  }
+  editor.view.dispatch(tr);
+  editor.view.dispatch(closeHistory(editor.state.tr));
 }
 
 export function tocMarker({style, number}) {
@@ -48,7 +85,7 @@ export function isTocNumberingChange(before, after) {
     if (left.eq(right)) return true;
     if (left.type !== right.type || left.text !== right.text || left.childCount !== right.childCount ||
         JSON.stringify(left.marks) !== JSON.stringify(right.marks)) return false;
-    const attrs = node => Object.entries(node.attrs).filter(([name]) => name !== "data-toc-style");
+    const attrs = node => Object.entries(node.attrs).filter(([name]) => !["data-toc-style", "data-toc-entry"].includes(name));
     if (JSON.stringify(attrs(left)) !== JSON.stringify(attrs(right))) return false;
     for (let index = 0; index < left.childCount; index++) {
       if (!sameContent(left.child(index), right.child(index))) return false;

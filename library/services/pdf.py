@@ -16,7 +16,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 6
+PDF_PRESENTATION_VERSION = 7
 
 
 def split_pdf_paragraph(paragraph, fraction):
@@ -240,7 +240,7 @@ def render_pdf(version, destination, reading_style=None):
     from library.services.document_metadata import metadata_rows
     from library.services.reading_styles import DEFAULTS, FONT_FILES, style_css, validate_style
     from library.services.storage import read_blob
-    from library.views import toc_tree
+    from library.views import contents_tree, toc_tree
 
     reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
     assets = {
@@ -285,6 +285,7 @@ def render_pdf(version, destination, reading_style=None):
             "metadata_rows": metadata_rows(version.metadata),
             "content_html": projection["content_html"],
             "toc": toc_tree(projection["entries"]), "generated_book": generated_book,
+            "contents_toc": contents_tree(projection["entries"]),
         },
     )
     # WeasyPrint logs resource failures and continues; never publish a partial success.

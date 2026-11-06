@@ -56,7 +56,7 @@
       <ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
     </section>
     {% endif %}
-    {% if generated_book and toc %}{% include 'library/book_contents.html' %}{% endif %}
+    {% if generated_book and contents_toc %}{% include 'library/book_contents.html' %}{% endif %}
     <article class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
     </div>
     <section class="version-details" aria-label="Cached version details">

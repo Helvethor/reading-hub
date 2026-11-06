@@ -342,7 +342,7 @@ class DocumentPublicationTests(TestCase):
         candidate = prepare_publication(self.draft, 1)
         self.assertEqual(candidate["output"]["structure"]["toc"], [
             {"id": "c1", "level": 2, "title": "New heading", "style": "none",
-             "number": 1, "marker": "", "editor_entry": True},
+             "number": 1, "marker": "", "editor_entry": True, "in_toc": True},
         ])
         self.assertIn('<h2>New heading</h2>', candidate["output"]["html"])
         self.assertEqual(Rendition.objects.count(), 1)
@@ -474,6 +474,57 @@ class DocumentPublicationTests(TestCase):
         render_pdf(publication.rendition, output)
         text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
         self.assertLess(text.rindex("Main chapter text."), text.rindex("Final note text."))
+
+    def test_notes_leave_contents_pages_but_stay_in_navigation_and_pdf_outline(self):
+        markup = (
+            '<section id="c1"><h2>Opening</h2><p>Opening text.</p></section>'
+            '<section id="notes"><h2>Notes</h2><h3>Chapter notes</h3><p>Note text.</p></section>'
+            '<section id="sources" data-toc-entry="hide"><h2>Sources</h2><p>Source text.</p>'
+            '</section><section id="kept" data-toc-entry="show"><h2>Endnotes</h2>'
+            '<p>Kept text.</p></section>'
+        )
+        save_revision(self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1)
+        everything = ["Opening", "Notes", "Chapter notes", "Sources", "Endnotes"]
+        preview = self.client.get(self.url + f"?draft={self.draft.pk}&revision=2")
+        publication = self.publish(2)
+        self.assertEqual(
+            [(item["title"], item["in_toc"]) for item in publication.rendition.structure["toc"]],
+            [("Opening", True), ("Notes", False), ("Chapter notes", False),
+             ("Sources", False), ("Endnotes", True)],
+        )
+        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        for response in (preview, reader):
+            soup = BeautifulSoup(response.content, "html.parser")
+            self.assertEqual(
+                [link.get_text() for link in soup.select(".document-contents a")],
+                ["Opening", "Endnotes"],
+            )
+            self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
+                              if link["href"].startswith("#")], everything)
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        pdf = PdfReader(output)
+
+        def titles(items):
+            for item in items:
+                if isinstance(item, list):
+                    yield from titles(item)
+                else:
+                    yield item.title.strip()
+
+        self.assertEqual([title for title in titles(pdf.outline) if title in everything], everything)
+        contents = pdf.pages[1].extract_text()
+        self.assertIn("Opening", contents)
+        self.assertIn("Endnotes", contents)
+        self.assertNotIn("Sources", contents)
+        self.assertNotIn("Chapter notes", contents)
+
+    def test_invalid_toc_visibility_is_refused(self):
+        with self.assertRaisesMessage(ValueError, "supported ToC visibility"):
+            save_revision(self.draft, self.reviewer, {
+                **self.revision.document,
+                "html": '<section id="a" data-toc-entry="maybe"><h2>A</h2><p>Body</p></section>',
+            }, 1)
 
     def test_manually_relocated_inline_content_keeps_note_links_and_saved_evidence(self):
         markup = (

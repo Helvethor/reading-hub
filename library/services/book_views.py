@@ -1,9 +1,28 @@
 """Read-only publication projections matching the editor's generated book views."""
 
+import re
+
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 HEADINGS = {"h2", "h3", "h4", "h5", "h6"}
 STYLES = {"disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"}
+TOC_ENTRY = {"show", "hide"}
+# Matched against the title's letters only, so "Notes:", "ENDNOTES" or "End-notes" all qualify.
+AUTOMATIC_HIDDEN_TITLES = {
+    "notes", "note", "endnotes", "endnote", "end notes", "footnotes", "footnote",
+}
+
+
+def automatically_hidden(title):
+    return " ".join(re.findall(r"[^\W\d_]+", title.casefold())) in AUTOMATIC_HIDDEN_TITLES
+
+
+def toc_visibility(node, title):
+    """Return (setting, hidden itself): explicit show/hide overrides the Notes rule."""
+    setting = node.get("data-toc-entry")
+    if setting and setting not in TOC_ENTRY:
+        raise ValueError(f"Unsupported ToC visibility: {setting}")
+    return setting or "auto", setting == "hide" or not setting and automatically_hidden(title)
 
 
 def marker_text(style, number):
@@ -110,6 +129,9 @@ def book_entries(soup):
         if style != "none":
             counts[key] = number
         part.update(style=style, number=number, marker=marker_text(style, number))
+        part["toc_entry"], hidden = toc_visibility(part["node"], part["title"])
+        # Hiding an entry hides its nested entries; navigation still lists all of them.
+        part["in_toc"] = not hidden and (parent < 0 or unique[parent]["in_toc"])
     return unique
 
 
@@ -128,7 +150,7 @@ def publication_toc(soup):
         toc.append({
             "id": target["id"], "title": part["title"], "level": part["depth"] + 2,
             "style": part["style"], "number": part["number"], "marker": part["marker"],
-            "editor_entry": True,
+            "editor_entry": True, "in_toc": part["in_toc"],
         })
     return toc
 

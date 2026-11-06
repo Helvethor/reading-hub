@@ -103,6 +103,8 @@
 .editor-toc-page [data-toc-part] { border: 0; background: transparent; color: inherit; text-align: start; text-decoration: underline; }
 .editor-toc-page [data-toc-part][aria-pressed=true] { outline: 2px solid var(--accent, #315d9b); outline-offset: 1px; background: var(--editor-hover, #e6effc); }
 #editor-toc-menu p { margin: .25rem .4rem; font: .75rem/1.35 system-ui, sans-serif; }
+.editor-toc-page .editor-toc-hidden > [data-toc-part] { opacity: .6; text-decoration-style: dashed; }
+.editor-toc-hidden-note { font: italic .75em system-ui, sans-serif; }
 .editor-outline-visible { background: #edf1e8; }
 #editor-outline-items .editor-outline-active > [data-part], #editor-outline-items .editor-outline-active > [data-book-view] { background: #344a2e; color: white; }
 #editor-outline-items .editor-outline-focused { box-shadow: inset 0 0 0 1px currentColor; }

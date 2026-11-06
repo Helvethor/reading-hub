@@ -251,7 +251,7 @@ def fresh_draft(request, pk):
 def publication(request, pk):
     from library.services.document_metadata import metadata_rows
     from library.services.reading_styles import style_context
-    from library.views import toc_tree
+    from library.views import contents_tree, toc_tree
 
     source = get_version(pk)
     error, candidate, published, status = "", None, None, 200
@@ -291,16 +291,16 @@ def publication(request, pk):
     if candidate or published:
         version = published.rendition if published else Rendition(
             document=source.document, snapshot=source.snapshot, **candidate["output"])
+        projection = publication_view(version.html, version.structure["toc"])
         context.update({
             **reading_style, "style_preview": True,
             "version": version, "candidate": candidate,
-            "toc": toc_tree(version.structure["toc"]),
+            "toc": toc_tree(projection["entries"]),
+            "contents_toc": contents_tree(projection["entries"]),
             "display_author": version.metadata.get("author", "").strip()
             or source_name(source.document.url),
             "metadata_rows": metadata_rows(version.metadata),
-            "content_html": publication_view(
-                version.html, version.structure["toc"],
-            )["content_html"],
+            "content_html": projection["content_html"],
         })
     return panel_response(request, "library/document_publication.html", context, status=status)
 

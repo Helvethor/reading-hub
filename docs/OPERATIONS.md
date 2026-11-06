@@ -1159,6 +1159,16 @@ discarding the current set. Context Menu / Shift+F10 opens the same keyboard
 menu; arrows/Home/End choose actions, Escape dismisses it, and Escape in the ToC
 clears selection. Ordinary clicks still navigate. Matching styles count only
 matching siblings in current order, restarting per parent/style.
+**ToC visibility:** the same ToC right-click menu offers **Automatic (hide
+Notes/Endnotes)**, **Always show in ToC** and **Hide from ToC** for any selected
+entries. Automatic hides titles whose letters read exactly Notes, Note,
+Endnotes, End notes or Footnotes (case and punctuation ignored); Always show
+keeps such a title, and Hide removes any other title. A hidden entry also hides
+its nested entries. Hidden entries stay listed (dimmed, with the reason) on the
+editor ToC page so they can be shown again; the outline, publication/reader side
+navigation and PDF bookmarks keep every entry. Only the generated contents
+pages (publication, reader and PDF) omit them. The choice is saved as
+`data-toc-entry` on the section/heading and undoes in one step.
 These same markers appear read-only before actual editor headings and navigation
 titles, including the Section selector. Sections use their bound title heading;
 headings without a section entry use themselves. Filtering does not restart

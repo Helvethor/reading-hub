@@ -439,6 +439,13 @@ Publication title, subtitle, attribution, contributors, typed dates, language
 names, subjects and source link mirror the editor's generated title page.
 Editor unsaved changes are not published until explicitly saved and published.
 
+ToC visibility is a per-entry setting (`data-toc-entry` = absent/automatic,
+`show` or `hide`). Automatic hides Notes/Endnotes-style titles; explicit
+settings override it either way, and hiding an entry hides its descendants.
+Stored and derived ToC entries carry `in_toc`; generated contents pages
+(publication preview, reader, PDF) list only `in_toc` entries, while editor
+outline, side navigation and PDF bookmarks keep all entries.
+
 Publication rules 4 store these ToC entries while keeping markers out of saved
 heading text. Reader/PDF use view-only heading attributes and generated CSS
 prefixes, preserving prose text and annotation offsets. Existing publications

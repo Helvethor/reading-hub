@@ -19,9 +19,9 @@ const attrs = {
   class: {default: null},
 };
 const tagAttrs = {
-  ...Object.fromEntries(["h2", "h3", "h4", "h5", "h6"].map(tag => [tag, ["data-toc-style"]])),
+  ...Object.fromEntries(["h2", "h3", "h4", "h5", "h6"].map(tag => [tag, ["data-toc-style", "data-toc-entry"]])),
   section: ["data-section-url", "data-section-role", "data-section-title",
-    "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style"],
+    "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style", "data-toc-entry"],
   a: ["href", "title", "aria-label", "rel"],
   img: ["src", "alt", "loading", "decoding"],
   td: ["colspan", "rowspan"],
@@ -274,7 +274,7 @@ function extensions() {
             }
             if (!/^h[2-6]$/.test($from.parent.type.name) || !$from.parentOffset) return false;
             return splitBlockAs((node, atEnd) => atEnd ? null : {
-              type: node.type, attrs: {...node.attrs, "data-toc-style": null},
+              type: node.type, attrs: {...node.attrs, "data-toc-style": null, "data-toc-entry": null},
             })(state, dispatch);
           },
         }),

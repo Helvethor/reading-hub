@@ -1,5 +1,6 @@
 import {outlineHierarchy} from "./outline.js";
-import {applyTocNumbering, tocEntryPosition, tocNumberingEntries, tocStyles} from "./toc-numbering.js";
+import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
+  tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
 
 const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]];
 
@@ -97,6 +98,28 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
         try {
           showError("");
           applyTocNumbering(editor, proposal, style);
+          toc.querySelector(`[data-toc-part="${index}"]`)?.focus({preventScroll: true});
+        } catch (failure) { showError(failure.message); }
+      });
+      menu.append(button);
+    }
+    const visibility = owner.createElement("p");
+    visibility.textContent = "Table of contents visibility";
+    menu.append(visibility);
+    const settings = new Set([...selected].map(index =>
+      editor.state.doc.nodeAt(tocEntryPosition(currentParts[index])).attrs["data-toc-entry"] || "auto"));
+    for (const [setting, label] of tocVisibilityOptions) {
+      const button = owner.createElement("button");
+      button.type = "button";
+      button.dataset.tocEntry = setting;
+      button.setAttribute("role", "menuitemradio");
+      button.setAttribute("aria-checked", String(settings.size === 1 && settings.has(setting)));
+      button.textContent = label;
+      button.addEventListener("click", () => {
+        closeMenu();
+        try {
+          showError("");
+          applyTocVisibility(editor, proposal, setting);
           toc.querySelector(`[data-toc-part="${index}"]`)?.focus({preventScroll: true});
         } catch (failure) { showError(failure.message); }
       });
@@ -203,11 +226,12 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     });
     title.append(edit);
     toc.replaceChildren(element("h2", "Table of contents"),
-      element("p", "Ctrl-click sibling entries to select them; right-click to set numbering. Ordinary clicks navigate. Edit titles/order in the outline."));
+      element("p", "Ctrl-click sibling entries to select them; right-click to set numbering or hide entries from the published contents (navigation keeps them). Ordinary clicks navigate. Edit titles/order in the outline."));
     const list = owner.createElement("ol");
     hierarchy = outlineHierarchy(parts);
     const lists = new Map([[-1, list]]);
     const numbering = tocNumberingEntries(editor.state.doc, parts);
+    const visibility = tocVisibilityEntries(editor.state.doc, parts);
     parts.forEach((part, index) => {
       const item = owner.createElement("li");
       const {style, number} = numbering[index];
@@ -216,6 +240,15 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       const button = element("button", part.label);
       button.type = "button";
       button.dataset.tocPart = String(index);
+      if (!visibility[index].inToc) {
+        item.classList.add("editor-toc-hidden");
+        const reason = visibility[index].inherited ? "hidden with parent" :
+          visibility[index].automatic ? "hidden automatically" : "hidden";
+        const note = element("span", ` (${reason})`);
+        note.className = "editor-toc-hidden-note";
+        button.append(note);
+        button.title = "Not in the published table of contents; navigation still lists it.";
+      }
       button.addEventListener("click", event => {
         if (event.ctrlKey || event.metaKey) {
           try { showError(""); select(index, true); } catch (failure) { showError(failure.message); }

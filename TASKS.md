@@ -276,6 +276,13 @@ acceptance. Historical counts below describe their original slices.
   rendered 1200px/390px checks verified 800px growth, 352px/320px minimums,
   internal scrolling and unchanged prose/toolbar geometry. Native drag acceptance
   remains unverified because pointer input did not resize the hidden shared page.
+- [x] Keep Notes/Endnotes out of generated contents pages while retaining them
+  in editor outline, side navigation and PDF bookmarks. Automatic title rule
+  with per-entry Always show / Hide overrides from the ToC right-click menu,
+  saved as validated `data-toc-entry`; hidden parents hide descendants. 249
+  frontend tests and focused publication/reader/PDF backend tests pass. On the
+  real draft (revision 25, read-only) the rule hides the 9 per-chapter Notes
+  headings; no live draft or publication was changed.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title
