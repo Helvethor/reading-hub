@@ -67,7 +67,29 @@ thin neutral borders and red focus/selection states across the library, reader,
 editor, embedded workflow panels and administration. Diff additions remain green,
 removals red and structure-change notices amber.
 
-Select it when starting the web process (and any separately started workers):
+The header **Theme** selector is available to everyone. Choose **Marxist Paper**,
+**Marxist Dark**, or **Site default**, then Apply. With JavaScript, this changes
+styles without reloading or losing pending editor content. Without JavaScript,
+Apply returns to the current page (save pending edits first).
+
+Guests retain their choice in a one-year browser cookie. Signed-in choices are
+stored in the account and take precedence over that browser's cookie; **Settings**
+in the account navigation opens **User settings** to change the saved preference.
+Accounts without saved settings initially use the browser choice. Selecting
+**Site default** explicitly resets to the installation theme. Other users'
+preferences, personal reading styles and content are unaffected.
+
+Apply migration 0028 before starting the updated application:
+
+```sh
+.venv/bin/python manage.py migrate
+```
+
+This adds the account-settings table; it does not change corrections or editions.
+The migration is not automatically run by adding this code.
+
+To set dark as the installation default, start the web process (and any separately
+started workers) with:
 
 ```sh
 READING_HUB_PROFILE=profiles.marxist.dark .venv/bin/python manage.py runserver 127.0.0.1:8765 --noreload --insecure
@@ -78,8 +100,9 @@ presentation variant of the same Marxist profile, not a new source collection;
 source rules, profile identity, records and saved personal styles are retained.
 **Follow theme** uses the dark palette in the browser and PDF; explicit
 Standard/Cream/High contrast reading styles retain their own content palette.
-No migration or frontend rebuild is needed. Restart only when ready to activate
-it; adding the theme does not change a running process.
+After the migration, restart the no-autoreload web process to load the updated
+templates and views. No frontend rebuild is needed for these directly served
+scripts. This work does not restart the running service or migrate the live data.
 
 The semantic editor is now enabled by default. Its historical
 `READING_HUB_EDITOR_PILOT=0` setting explicitly disables it, without re-enabling

@@ -1,6 +1,7 @@
 """Cached, bounded PDF export with no network or arbitrary filesystem resources."""
 
 import fcntl
+import hashlib
 import json
 import logging
 import os
@@ -230,7 +231,7 @@ def running_sections(markup):
     return str(soup)
 
 
-def render_pdf(version, destination, reading_style=None):
+def render_pdf(version, destination, reading_style=None, theme=""):
     from django.template.loader import render_to_string
     from weasyprint import CSS, HTML
     from weasyprint.text.fonts import FontConfiguration
@@ -240,6 +241,7 @@ def render_pdf(version, destination, reading_style=None):
     from library.services.document_metadata import metadata_rows
     from library.services.reading_styles import DEFAULTS, FONT_FILES, style_css, validate_style
     from library.services.storage import read_blob
+    from library.themes import profile_for_theme
     from library.views import contents_tree, toc_tree
 
     reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
@@ -299,6 +301,7 @@ def render_pdf(version, destination, reading_style=None):
             CSS(filename=str(STYLES / "print.css"), url_fetcher=fetch),
             CSS(string=style_css(
                 reading_style, font_base="https://reading-hub.invalid/static/library/fonts/",
+                profile=profile_for_theme(theme),
             ), url_fetcher=fetch, font_config=font_config),
         ]
         markup = mark_pdf_flow(running_sections(markup))
@@ -326,15 +329,22 @@ def render_pdf(version, destination, reading_style=None):
         errors.close()
 
 
-def cached_pdf(version, reading_style=None):
+def cached_pdf(version, reading_style=None, theme=""):
     from library.services.reading_styles import DEFAULTS, style_digest, validate_style
+    from library.themes import profile_for_theme
 
     reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
+    profile = profile_for_theme(theme)
+    palette = ""
+    if reading_style["contrast"] == "theme":
+        palette = "-" + hashlib.sha256(
+            (profile.reading_paper + profile.reading_ink).encode("ascii")
+        ).hexdigest()[:16]
     directory = settings.DATA_DIR / "pdf"
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     destination = directory / (
         f"{version.pk}-{version.identity}-{APP_VERSION}-{style_digest(reading_style)}"
-        f"-p{PDF_PRESENTATION_VERSION}.pdf"
+        f"{palette}-p{PDF_PRESENTATION_VERSION}.pdf"
     )
     if destination.exists():
         return destination
@@ -363,6 +373,7 @@ def cached_pdf(version, reading_style=None):
                     **os.environ,
                     "READING_HUB_DATA": str(settings.DATA_DIR.resolve()),
                     "READING_HUB_PROFILE": settings.READING_HUB_PROFILE,
+                    "READING_HUB_PDF_THEME": theme,
                     "DJANGO_SETTINGS_MODULE": "config.settings",
                 },
                 capture_output=True,
@@ -405,6 +416,7 @@ def main():
     render_pdf(
         Rendition.objects.select_related("document").get(pk=int(sys.argv[1])), sys.argv[3],
         validate_style(json.loads(sys.argv[2])),
+        theme=os.environ.get("READING_HUB_PDF_THEME", ""),
     )
 
 

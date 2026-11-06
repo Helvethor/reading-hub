@@ -5,6 +5,11 @@ from django.db import models
 from django.db.models import Q
 
 
+class UserSettings(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    theme = models.CharField(max_length=20, blank=True, default="")
+
+
 class Document(models.Model):
     url = models.URLField(max_length=2048, unique=True)
     aliases = models.JSONField(default=list)

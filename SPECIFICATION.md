@@ -14,7 +14,14 @@ backdrop with black/charcoal surfaces, red actions and selections, off-white tex
 and VS Code Dark-inspired borders and controls. It retains the Marxist source
 profile identity and rules. The default paper/red theme and saved personal reading
 styles are unchanged; **Follow theme** uses the dark browser/PDF palette.
-Activation is explicit at process startup, not a migration or live-data change.
+The installation profile sets the default. Anyone can override it using the
+header Theme selector, including guests (a one-year browser cookie). Signed-in
+choices persist in account settings and follow the user across sessions/browsers;
+the User settings page can change or reset the preference to Site default.
+Theme changes retain pending editor content. Embedded panels, reader and
+administration use the same preference; **Follow theme** PDF caches bind the
+selected palette. Personal reading styles and source-profile identity remain
+independent. Migration 0028 adds account preferences without changing documents.
 
 ### Single-page document workspace (implemented 2026-11-06)
 

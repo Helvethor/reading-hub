@@ -41,7 +41,10 @@ def stylesheet(request):
         settings = token_style(request.GET.get("style", ""))
     except ValueError as exc:
         return HttpResponseBadRequest(str(exc), content_type="text/plain")
-    response = HttpResponse(style_css(settings), content_type="text/css; charset=utf-8")
+    from library.themes import themed_profile
+
+    response = HttpResponse(style_css(settings, profile=themed_profile(request)),
+                            content_type="text/css; charset=utf-8")
     response["Cache-Control"] = "no-store"
     return response
 

@@ -201,7 +201,7 @@ def font_css(base):
     )
 
 
-def style_css(settings, font_base="/static/library/fonts/"):
+def style_css(settings, font_base="/static/library/fonts/", profile=None):
     from library.profile import get_profile
 
     value = validate_style(settings)
@@ -209,7 +209,7 @@ def style_css(settings, font_base="/static/library/fonts/"):
         return FONTS[
             value[f"{concern}_font"] if value["font_mode"] == "mixed" else value["font_mode"]
         ][0]
-    profile = get_profile()
+    profile = get_profile() if profile is None else profile
     theme = value["contrast"] == "theme"
     ink, paper = {"theme": (profile.reading_ink, profile.reading_paper),
                   "standard": ("#302221", "#ffffff"), "cream": ("#24201c", "#fff4d8"),

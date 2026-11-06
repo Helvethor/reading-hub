@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
 import {mountReadingStyles} from "../library/static/library/reading-styles.js";
+import {applyTheme} from "../library/static/library/themes.js";
 
 let dom;
 afterEach(() => dom?.window.close());
@@ -49,6 +50,26 @@ async function load(view) {
   sheet.dispatchEvent(new view.Event("load"));
   await tick();
 }
+
+test("a reading style changed after a theme refresh removes the current sheet", async () => {
+  const {view, form} = fixture();
+  const site = view.document.createElement("link");
+  site.rel = "stylesheet";
+  site.href = "/paper.css";
+  site.dataset.siteTheme = "";
+  view.document.head.append(site);
+  const changing = applyTheme(view.document, {theme: "dark", stylesheet: "/dark.css"});
+  for (const sheet of view.document.querySelectorAll('link[media="not all"]')) {
+    sheet.dispatchEvent(new view.Event("load"));
+  }
+  await changing;
+  view.fetch = async () => json(snapshot("after-theme"));
+  change(view, form.elements.font_size, "18");
+  await load(view);
+  assert.equal(view.document.querySelectorAll("link[data-reading-style]").length, 1);
+  assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"),
+    "/reading-style.css?style=after-theme");
+});
 
 test("live settings atomically bind CSS, PDF, saved snapshot and history without changing prose", async () => {
   const {view, panel, form, pdf} = fixture();

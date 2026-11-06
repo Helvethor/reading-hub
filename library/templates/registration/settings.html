@@ -1,0 +1,14 @@
+{% extends "library/base.html" %}
+{% block title %}User settings | {{ site.name }}{% endblock %}
+{% block content %}
+<section class="page-container account-form">
+  <h1>User settings</h1>
+  <p>Your theme preference follows your account across browsers. Site default follows the installation's configured theme.</p>
+  <form method="post" data-user-settings>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save settings</button>
+  </form>
+  <p><a href="{% url 'password_change' %}">Change password</a></p>
+</section>
+{% endblock %}

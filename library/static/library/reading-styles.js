@@ -8,7 +8,6 @@ export function mountReadingStyles(panel) {
   const downloads = [...owner.querySelectorAll("[data-reading-pdf]")];
   const mutations = new Set();
   let generation = 0, controller = null, timer = null, pending = false;
-  let activeSheet = owner.querySelector("[data-reading-style]");
   const pdfPaths = downloads.map(link => new URL(link.href).pathname);
   const settingNames = [...form.elements].map(input => input.name).filter(name =>
     name && !["style_profile", "style_action", "draft", "revision"].includes(name));
@@ -103,10 +102,9 @@ export function mountReadingStyles(panel) {
           else input.value = value;
         }
       }
+      owner.querySelector("[data-reading-style]")?.remove();
       sheet.media = "all";
       sheet.dataset.readingStyle = "";
-      activeSheet?.remove();
-      activeSheet = sheet;
       for (const input of panel.querySelectorAll('input[name="style"]')) input.value = data.token;
       downloads.forEach((link, index) => {
         link.href = `${pdfPaths[index]}?style=${encodeURIComponent(data.token)}`;

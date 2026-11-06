@@ -73,6 +73,14 @@ ordinary corrections. No automatic training, publication or gate approval follow
 
 ### Current milestone — Complete the single-page reviewer workspace
 
+Theme selection (2026-11-06): guests can retain a browser choice, while account
+choices persist in User settings; Site default follows the installation profile.
+Live header changes preserve pending content and notify embedded panels.
+Focused account/theme/reading-style checks include rendered dark PDF colors and
+palette-specific PDF cache transport. Isolated browser checks used real CSRF
+requests and dispatched form events for guest persistence, settings saves and
+390px layout; no live migration, restart or document change is implied.
+
 All reviewer operations needed to tailor this publication belong on the editor
 page, preferably in the canvas and otherwise in same-page panels/dialogs. Separate
 backend responsibilities do not require separate reviewer pages. Preserve one

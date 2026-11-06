@@ -255,6 +255,7 @@ def reader_stylesheet(request, pk):
 @require_GET
 def reader_pdf(request, pk):
     from library.services.reading_styles import selected_style
+    from library.themes import selected_theme
     rendition = get_object_or_404(Rendition.objects.select_related("document"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition, pdf=True)
     if destination:
@@ -264,7 +265,7 @@ def reader_pdf(request, pk):
     except ValueError as exc:
         return HttpResponse(str(exc), status=400, content_type="text/plain")
     try:
-        path = cached_pdf(rendition, reading_style)
+        path = cached_pdf(rendition, reading_style, theme=selected_theme(request))
         return FileResponse(
             path.open("rb"),
             content_type="application/pdf",

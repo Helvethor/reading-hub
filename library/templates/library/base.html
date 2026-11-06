@@ -7,7 +7,8 @@
   <title>{% block title %}{{ site.name }}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'library/app.css' %}?v={{ app_version }}">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}">
+  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}" data-site-theme>
+  <script type="module" src="{% static 'library/themes.js' %}?v={{ app_version }}"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -15,11 +16,18 @@
     <a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">{{ site.name|first }}</span> {{ site.name }}</a>
     <span class="local-badge">{{ site.tagline }}</span>
     <nav class="account-nav" aria-label="Account">
+      <form action="{% url 'change-theme' %}" method="post" data-theme-form>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label>Theme <select name="theme">{% for value, label in theme_choices %}<option value="{{ value }}"{% if value == selected_theme %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <button type="submit" class="secondary">Apply</button>
+        <span role="alert" data-theme-error hidden></span>
+      </form>
       {% if user.is_authenticated %}
         <span class="account-name">{{ user.username }}</span>
         {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a>{% endif %}
         {% if user.is_staff or perms.library.review_metadata %}<a href="{% url 'work-review' %}">Reviewer tools</a>{% endif %}
-        <a href="{% url 'password_change' %}">Password</a>
+        <a href="{% url 'user-settings' %}">Settings</a>
         <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary" type="submit">Sign out</button></form>
       {% else %}
         <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in</a>

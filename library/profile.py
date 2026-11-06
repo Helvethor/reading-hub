@@ -183,11 +183,15 @@ def source_name(url):
 
 
 def site_context(request):
-    profile = get_profile()
+    from library.themes import selected_theme, theme_choices, themed_profile
+
+    profile = themed_profile(request)
     return {
         "site": profile,
         "reading_hub_profile": profile,
         "app_version": APP_VERSION,
+        "theme_choices": theme_choices(),
+        "selected_theme": selected_theme(request),
         "sort_labels": [
             (key, {"newest": "Newest first", "oldest": "Oldest first", "title": "Title A–Z"}[key])
             for key in profile.sort_choices
