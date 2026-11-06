@@ -3,6 +3,8 @@ import uuid
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import OperationalError, transaction
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,7 +12,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from library.metadata_views import metadata_reviewer_required
-from library.models import DocumentDraftBase, Rendition, ReviewerRun
+from library.models import CanonicalAuthor, DocumentDraftBase, Rendition, ReviewerRun
 from library.profile import get_profile, source_name
 from library.services.book_views import publication_view
 from library.services.document_comparison import compare_documents
@@ -312,6 +314,40 @@ def get_draft(value, version):
         raise ValueError("Choose a valid document draft.") from exc
     return get_object_or_404(
         DocumentDraftBase, pk=identifier, rendition=version, profile=get_profile().key,
+    )
+
+
+@require_http_methods(["POST"])
+@metadata_reviewer_required
+def register_person(request):
+    try:
+        payload = json.loads(request.body or b"{}")
+    except (TypeError, ValueError):
+        payload = None
+    if not isinstance(payload, dict):
+        return JsonResponse({"error": "Send a person name and optional authority URI."}, status=400)
+    name = payload.get("name")
+    uri = payload.get("authority_uri", "")
+    if not isinstance(name, str) or not isinstance(uri, str):
+        return JsonResponse({"error": "Send a person name and optional authority URI."}, status=400)
+    name, uri = " ".join(name.split()), uri.strip()
+    if not name or len(name) > 500:
+        return JsonResponse({"error": "Enter a person name of 1-500 characters."}, status=400)
+    if uri:
+        try:
+            URLValidator(schemes=["http", "https"])(uri)
+        except ValidationError:
+            return JsonResponse({"error": "Enter a valid http(s) authority URI."}, status=400)
+        if len(uri) > 2048:
+            return JsonResponse({"error": "Enter a valid http(s) authority URI."}, status=400)
+    with transaction.atomic():
+        author = CanonicalAuthor.objects.filter(name=name, authority_uri=uri).first()
+        created = author is None
+        if created:
+            author = CanonicalAuthor.objects.create(name=name, authority_uri=uri)
+    return JsonResponse(
+        {"name": author.name, "authority_uri": author.authority_uri, "created": created},
+        status=201 if created else 200,
     )
 
 

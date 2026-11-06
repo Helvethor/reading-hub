@@ -102,7 +102,7 @@
 .editor-toc-page li { margin-block: .2rem; }
 .editor-toc-page [data-toc-part] { border: 0; background: transparent; color: inherit; text-align: start; text-decoration: underline; }
 .editor-toc-page [data-toc-part][aria-pressed=true] { outline: 2px solid var(--accent, #315d9b); outline-offset: 1px; background: var(--editor-hover, #e6effc); }
-#editor-toc-menu p, #editor-metadata-menu p { margin: .25rem .4rem; font: .75rem/1.35 system-ui, sans-serif; }
+#editor-toc-menu p, #editor-metadata-menu p, #editor-title-menu p { margin: .25rem .4rem; font: .75rem/1.35 system-ui, sans-serif; }
 .editor-toc-page .editor-toc-hidden > [data-toc-part] { opacity: .6; text-decoration-style: dashed; }
 .editor-toc-hidden-note { font: italic .75em system-ui, sans-serif; }
 .editor-outline-visible { background: #edf1e8; }
@@ -141,7 +141,7 @@
 .editor-help { font-size: .85rem; }
 .editor-review-controls { margin: 1rem 0; padding: 1rem; border: 1px solid #cbd1c4; }
 .editor-review-controls label { display: block; margin: .6rem 0; }
-.editor-metadata { margin: 1.5rem auto 0; max-width: 46rem; padding-top: 1rem; border-top: 1px solid var(--editor-border, #cbd1c4); text-align: start; font: .85rem/1.35 system-ui, sans-serif; }
+.editor-metadata { margin: 1.5rem auto 0; max-width: 56rem; padding-top: 1rem; border-top: 1px solid var(--editor-border, #cbd1c4); text-align: start; font: .85rem/1.35 system-ui, sans-serif; }
 .editor-metadata h2 { margin: 0 0 .2rem; font-size: 1rem; }
 .editor-metadata-hint, .editor-metadata-help, #editor-original-publication { margin: .2rem 0 .5rem; font-size: .75rem; color: var(--muted, #4c554b); }
 .editor-metadata-help p { margin: .3rem 0; }
@@ -154,7 +154,20 @@
 .editor-metadata-sheet :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; padding: .15rem .3rem; font: inherit; }
 .editor-metadata-sheet th select { text-align: end; }
 .editor-metadata-sheet textarea { display: block; resize: vertical; }
+.editor-metadata-sheet textarea[data-single-line] { field-sizing: content; min-height: 1.6em; max-height: 8em; resize: none; }
 .editor-metadata-sheet label { display: inline; margin: 0; }
+.editor-metadata-actions { margin: .2rem 0 .5rem; font-size: .8rem; }
+#editor-metadata-import-status { color: var(--muted, #4c554b); }
+.editor-metadata-sheet tr[data-title-page="hidden"] > th, .editor-metadata-sheet tr[data-title-page="hidden"] > th select { font-style: italic; color: var(--muted, #4c554b); }
+.editor-metadata-sheet #editor-contributors td:last-child { width: 1%; white-space: nowrap; }
+.editor-person-link { padding: .1rem .35rem; font: inherit; font-size: .75rem; white-space: nowrap; }
+.editor-metadata-sheet tr[data-linked="true"] .editor-person-link { font-weight: 600; }
+#editor-person-link { max-width: min(36rem, calc(100vw - 2rem)); font: .85rem/1.4 system-ui, sans-serif; }
+#editor-person-link :is(label, fieldset) { display: block; margin: .3rem 0; }
+#editor-person-results { max-height: 14rem; overflow: auto; padding-inline-start: 1.2rem; }
+#editor-person-results small { color: var(--muted, #4c554b); overflow-wrap: anywhere; }
+.editor-title-preview .document-metadata { min-height: 1.4rem; cursor: context-menu; }
+.editor-title-preview .document-metadata:focus-visible { outline: 2px solid #486b38; outline-offset: 2px; }
 #editor-sections { margin: .5rem 1.5rem; padding: .5rem; border-inline-start: 3px solid #9aa38f; }
 #editor-sections[hidden] { display: none; }
 #editor-publication { display: inline-block; margin: .75rem 0; font-weight: 700; }
@@ -176,12 +189,12 @@
 #editor-surface .tiptap .editor-external-block-label { margin-block-start: 0; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
-:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) { box-sizing: border-box; position: fixed; z-index: 1000; width: min(19rem, calc(100vw - 1rem)); max-height: min(38rem, calc(100dvh - 1rem)); overflow: auto; padding: .4rem; border: 1px solid #98a48e; border-radius: .4rem; background: #fff; color: #302221; box-shadow: 0 .3rem 1.5rem #0003; }
-:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu)[hidden], :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) [hidden] { display: none !important; }
-:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) button { padding: .3rem .4rem; border: 0; border-radius: .2rem; background: transparent; color: #302221; font: 400 .8rem/1.35 system-ui, sans-serif; }
-:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) button:hover, :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) button:focus-visible { background: #e5eadf; }
-:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) > button { display: block; width: 100%; margin-top: .1rem; text-align: start; }
-:is(#editor-context-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu) button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline: 3px solid #486b38; outline-offset: 1px; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) { box-sizing: border-box; position: fixed; z-index: 1000; width: min(19rem, calc(100vw - 1rem)); max-height: min(38rem, calc(100dvh - 1rem)); overflow: auto; padding: .4rem; border: 1px solid #98a48e; border-radius: .4rem; background: #fff; color: #302221; box-shadow: 0 .3rem 1.5rem #0003; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu)[hidden], :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) [hidden] { display: none !important; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) button { padding: .3rem .4rem; border: 0; border-radius: .2rem; background: transparent; color: #302221; font: 400 .8rem/1.35 system-ui, sans-serif; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) button:hover, :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) button:focus-visible { background: #e5eadf; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) > button { display: block; width: 100%; margin-top: .1rem; text-align: start; }
+:is(#editor-context-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu) button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline: 3px solid #486b38; outline-offset: 1px; }
 :is(#editor-context-menu, #editor-toc-menu) button[aria-checked="true"] { background: #344a2e; color: white; }
 .editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; border-bottom: 1px solid #cbd1c4; }
 .editor-menu-heading { grid-column: 1 / -1; font-weight: 600; font-size: .7rem; }

@@ -109,6 +109,9 @@ urlpatterns = [
         editor_policy_views.source_policy,
         name="document-editor-source-policy",
     ),
+    path("editor/people/", correction_views.person_matches, name="document-editor-people"),
+    path("editor/people/register/", document_editor_views.register_person,
+         name="document-editor-register-person"),
     path("versions/<int:pk>/editor/history/",
          document_editor_views.history, name="document-editor-history"),
     path(

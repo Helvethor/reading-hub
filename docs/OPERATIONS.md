@@ -280,15 +280,43 @@ all content, IDs, links and assets; Undo/Redo is one step. **Save corrected
 version** persists it; publication is separate. This does not change source-page
 membership. Cancel does not move content.
 
-The editor's **Title** page holds the **Metadata** sheet: a compact table of
-Title, Subtitle, Original title, contributor rows (role | name), Publisher,
-Series, date rows (kind | start | optional end), Language, Original language,
-Subjects and the Book classification. An Author and a Translator row and
-Published/Written date rows are always offered; empty rows are ignored and do
-not count as edits. Right-click a row (or Shift+F10/Menu in a field) to add a
-person by role, a date by kind or a previously removed field, or to remove the
-row. Removing a single field clears it; Title and Book cannot be removed.
-Shift+right-click keeps the browser menu. Contributor
+The **Complete metadata** table sits below the editor (outside the editing
+canvas). It lists Title, Subtitle, Original title, contributor rows (role | name |
+registered author), Publisher, Series, date rows (Written, Delivered, Published,
+Online edition or unconfirmed | start | optional end), the editorial-note fields
+(Publication history, Source edition, Translation, Online version,
+Transcription/markup, Proofreading, Rights, Other notes), Language, Original
+language, Subjects and the Book classification. The editorial-note fields mirror
+the "Label:" lines of marxists.org work headers (Written, Source, Translated,
+Transcription/Markup, Proofread, Public Domain/Copyleft…); "Source" is stored as
+Source edition because the retained URL is the separate Source row. An Author and
+a Translator row and Published/Written date rows are always offered; empty rows
+are ignored and do not count as edits. Right-click a row (or Shift+F10/Menu in a
+field) to add a person by role, a date by kind or a previously removed field, to
+remove the row, to link a registered author or to show/hide that field on the
+Title page. Removing a single field clears it; Title and Book cannot be removed.
+Shift+right-click keeps the browser menu.
+
+**Fill empty fields from editorial note** reads the first content paragraph made
+of at least two "Label: value" lines separated by line breaks, fills only empty
+fields (dates only when the text names one date or a two-date range), puts
+unrecognised labels in Other notes, and never changes content or link targets
+(plain text only). Review and save explicitly.
+
+**Link registered author…** (button or menu) searches the shared registered
+author list and links the row: the row name becomes the registered name, the
+previous name stays as the source name, and renaming the row later drops the
+link. **Register and link** creates the registered author immediately (name plus
+optional http(s) authority URI; an identical existing entry is reused); the link
+itself is saved only with the corrected document.
+
+The editor's **Title** page keeps generating title and subtitle separately and
+then previews the filled metadata fields chosen for it. By default every filled
+field is shown except Online version, Transcription/markup, Proofreading, Rights
+and Other notes. Right-click the preview (or press Shift+F10 on it) to hide a
+field, show a filled hidden field, or reset to the default; italic labels in the
+table mark fields not shown. The choice is saved as `title_page_fields` and is
+used by the reader, publication and PDF opening metadata. Contributor
 edits derive Author from author-role names; excluded attributions are retained
 but not displayed as contributors. Names do not merge catalogue identities.
 Dates accept YYYY, YYYY-MM or YYYY-MM-DD; ranges require equal precision and
@@ -1184,7 +1212,7 @@ an isolated view back to Whole book) instead of isolating it; use **Show** to
 isolate a generated page or the sections. The Sections row folds its navigation
 children only. The editor canvas uses the available width; the reading-style line
 length applies to reading/publication views, not the editor.
-Edit bibliographic metadata in the Title page's Metadata sheet; edit actual section
+Edit bibliographic metadata in the Complete metadata table below the editor; edit actual section
 titles/order to change the ToC. ToC buttons navigate to existing document ranges,
 including headings without IDs, without generating targets.
 

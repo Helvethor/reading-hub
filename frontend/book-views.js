@@ -1,39 +1,11 @@
+import {metadataEntries, titlePageFields, titlePageRows, titlePageSelection} from "./metadata-fields.js";
 import {outlineHierarchy} from "./outline.js";
 import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
   tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
 
-const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]];
+export {titlePageRows};
 
-export function titlePageRows(metadata, presentation = {}) {
-  const rows = [];
-  if (metadata.original_title) rows.push(["Original title", metadata.original_title]);
-  const author = metadata.author || presentation.sourceName;
-  if (author) rows.push([!metadata.author || metadata.author_is_fallback ? "Source website" : "Author", author]);
-  const roles = {editor: "Editor", translator: "Translator", unknown: "Contributor (role unconfirmed)"};
-  for (const person of metadata.contributors || []) {
-    if (roles[person.role]) rows.push([roles[person.role], person.name]);
-  }
-  if (metadata.publisher) rows.push(["Publisher", metadata.publisher]);
-  if (metadata.series) rows.push(["Series", metadata.series]);
-  const labels = {written: "Written", publication: "Published", online_edition: "Online edition",
-    unknown: "Date (role unconfirmed)"};
-  for (const date of metadata.date_facts || []) {
-    rows.push([labels[date.type], date.value + (date.end_value ? ` / ${date.end_value}` : "")]);
-  }
-  if (metadata.published && !metadata.date_facts?.some(date => date.type === "publication")) {
-    rows.push(["Published", metadata.published]);
-  }
-  for (const [key, label] of [["language", "Language"], ["original_language", "Original language"]]) {
-    if (!metadata[key]) continue;
-    const code = metadata[key].toLowerCase().replaceAll("_", "-");
-    const language = code === "und" ? "Unknown language" :
-      presentation.languages?.[code] || presentation.languages?.[code.split("-")[0]] || code;
-    rows.push([label, language]);
-  }
-  if (metadata.topics?.length) rows.push(["Subjects", metadata.topics.join(", ")]);
-  if (presentation.sourceUrl) rows.push(["Source", presentation.sourceUrl]);
-  return rows;
-}
+const views = [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"]];
 
 export function mountBookViews(form, editor, readDocument, navigate, showError, presentation = {}) {
   const owner = form.ownerDocument;
@@ -56,8 +28,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   const preview = owner.createElement("div");
   preview.className = "editor-title-preview";
   title.append(preview);
-  const sheet = form.querySelector(".editor-metadata");
-  if (sheet) title.append(sheet);
   const toc = owner.createElement("section");
   toc.className = "editor-generated-page editor-toc-page";
   toc.setAttribute("aria-label", "Generated table of contents");
@@ -173,15 +143,95 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       }
     }
   });
-  function outside(event) { if (!menu.contains(event.target)) closeMenu(); }
+  const fieldMenu = owner.createElement("div");
+  fieldMenu.id = "editor-title-menu";
+  fieldMenu.setAttribute("role", "menu");
+  fieldMenu.setAttribute("aria-label", "Title page fields");
+  fieldMenu.hidden = true;
+  form.append(fieldMenu);
+  let fieldReturn = null;
+  function chooseFields(fields) {
+    form.dispatchEvent(new owner.defaultView.CustomEvent("editor-title-fields", {detail: {fields}}));
+  }
+  function openFieldMenu(event) {
+    if (event.shiftKey && event.type === "contextmenu") return;
+    event.preventDefault();
+    fieldReturn = event.target;
+    const metadata = readDocument().metadata || {};
+    const shown = titlePageSelection(metadata);
+    const entries = metadataEntries(metadata, presentation);
+    const key = event.target.closest("[data-field]")?.dataset.field;
+    const item = (label, fields, data) => {
+      const button = element("button", label);
+      button.type = "button";
+      button.setAttribute("role", "menuitem");
+      Object.assign(button.dataset, data);
+      button.addEventListener("click", () => {
+        fieldMenu.hidden = true;
+        chooseFields(fields);
+        (preview.querySelector("dl") || preview).focus?.();
+      });
+      fieldMenu.append(button);
+    };
+    fieldMenu.replaceChildren(element("p", "Title page fields"));
+    if (key && shown.has(key)) {
+      const label = entries.find(([name]) => name === key)?.[1] || key;
+      item(`Hide ${label}`, titlePageFields.filter(name => shown.has(name) && name !== key), {titleHide: key});
+    }
+    const hidden = [...new Map(entries.filter(([name]) => !shown.has(name)).map(entry => [entry[0], entry]))
+      .values()];
+    if (hidden.length) fieldMenu.append(element("p", "Show filled field"));
+    for (const [name, label] of hidden) {
+      item(`Show ${label}`, titlePageFields.filter(field => shown.has(field) || field === name), {titleShow: name});
+    }
+    if (Array.isArray(metadata.title_page_fields)) item("Reset to default fields", null, {titleReset: ""});
+    fieldMenu.hidden = false;
+    const target = event.target.getBoundingClientRect(), bounds = fieldMenu.getBoundingClientRect();
+    const x = event.type === "keydown" ? target.left : event.clientX;
+    const y = event.type === "keydown" ? target.bottom : event.clientY;
+    fieldMenu.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - bounds.width - 8))}px`;
+    fieldMenu.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - bounds.height - 8))}px`;
+    fieldMenu.querySelector("button")?.focus();
+  }
+  preview.addEventListener("contextmenu", event => {
+    if (event.target.closest(".document-metadata")) openFieldMenu(event);
+  });
+  preview.addEventListener("keydown", event => {
+    if (event.target.closest(".document-metadata") &&
+      (event.key === "ContextMenu" || event.shiftKey && event.key === "F10")) openFieldMenu(event);
+  });
+  fieldMenu.addEventListener("keydown", event => {
+    const buttons = [...fieldMenu.querySelectorAll("button")], index = buttons.indexOf(owner.activeElement);
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      buttons[event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 :
+        (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length].focus();
+    }
+    if (["Escape", "Tab"].includes(event.key)) {
+      fieldMenu.hidden = true;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        fieldReturn?.focus();
+      }
+    }
+  });
+  function outside(event) {
+    if (!menu.contains(event.target)) closeMenu();
+    if (!fieldMenu.contains(event.target)) fieldMenu.hidden = true;
+  }
+  function closeMenus() {
+    closeMenu();
+    fieldMenu.hidden = true;
+  }
   owner.addEventListener("pointerdown", outside);
   owner.addEventListener("scroll", outside, true);
-  owner.defaultView.addEventListener("resize", closeMenu);
+  owner.defaultView.addEventListener("resize", closeMenus);
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);
     owner.removeEventListener("scroll", outside, true);
-    owner.defaultView.removeEventListener("resize", closeMenu);
+    owner.defaultView.removeEventListener("resize", closeMenus);
     menu.remove();
+    fieldMenu.remove();
   });
   editor.on("transaction", ({transaction}) => {
     if (transaction.docChanged) {
@@ -215,15 +265,21 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     if (metadata.subtitle) preview.append(element("p", metadata.subtitle));
     const rows = owner.createElement("dl");
     rows.className = "document-metadata";
-    for (const [name, value] of titlePageRows(metadata, presentation)) {
+    rows.tabIndex = 0;
+    rows.title = "Right-click (Shift+F10) to choose which filled fields appear on the title page";
+    const shown = titlePageSelection(metadata);
+    for (const [key, name, value] of metadataEntries(metadata, presentation)) {
+      if (!shown.has(key)) continue;
       const description = element("dd", value);
-      if (name === "Source") {
+      if (key === "source_url") {
         const link = element("a", value);
         link.href = value;
         link.rel = "noopener noreferrer";
         description.replaceChildren(link);
       }
-      rows.append(element("dt", name), description);
+      const term = element("dt", name);
+      term.dataset.field = description.dataset.field = key;
+      rows.append(term, description);
     }
     preview.append(rows);
     toc.replaceChildren(element("h2", "Table of contents"),

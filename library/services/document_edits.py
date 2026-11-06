@@ -11,6 +11,8 @@ from django.db.models import F
 from library import versions
 from library.models import DocumentDraftBase, DocumentEditRevision, Rendition
 from library.profile import get_profile
+from library.services.document_metadata import TEXT_FIELDS as METADATA_TEXT_FIELDS
+from library.services.document_metadata import TITLE_PAGE_FIELDS
 from library.services.semantic_documents import (
     SCHEMA_VERSION,
     canonical_document,
@@ -72,8 +74,8 @@ def branch_draft(draft, reviewer, number):
     )
 
 
-# Optional single-value bibliographic text fields edited on the metadata page.
-TEXT_FIELDS = ("original_title", "publisher", "series")
+# Optional bibliographic text fields edited in the editor's metadata table.
+TEXT_FIELDS = tuple(key for key, _ in METADATA_TEXT_FIELDS)
 
 
 def validate_editor_metadata(original, submitted):
@@ -83,7 +85,7 @@ def validate_editor_metadata(original, submitted):
     editable = {
         "author", "author_is_fallback", "authors", "contributors", "subtitle",
         "language", "date_facts", "published", "topics", "topic",
-        "content_organization", *TEXT_FIELDS, "original_language",
+        "content_organization", *TEXT_FIELDS, "original_language", "title_page_fields",
     }
     if (
         set(original) - editable != set(submitted) - editable
@@ -166,13 +168,19 @@ def validate_editor_metadata(original, submitted):
             result["contributors"] = [
                 person for person in original["contributors"] if person["role"] != "author"
             ] + ([{"name": author, "source_name": author, "role": "author"}] if author else [])
-    for field, limit in (("author", 1000), ("subtitle", 1000), *((key, 1000) for key in TEXT_FIELDS)):
+    for field, limit in (
+        ("author", 1000), ("subtitle", 1000),
+        *((key, 4000 if key == "notes" else 2000) for key in TEXT_FIELDS),
+    ):
         value = result.get(field, "")
         label = field.replace("_", " ").capitalize()
         if not isinstance(value, str):
             raise ValueError(f"{label} must be text.")
         value = value.strip()
-        if len(value) > limit or re.search(r"[\x00-\x1f\x7f]", value):
+        if field == "notes":
+            value = "\n".join(line.strip() for line in value.splitlines() if line.strip())
+        controls = r"[\x00-\x09\x0b-\x1f\x7f]" if field == "notes" else r"[\x00-\x1f\x7f]"
+        if len(value) > limit or re.search(controls, value):
             raise ValueError(f"{label} exceeds its text limits.")
         if value:
             result[field] = value
@@ -188,6 +196,15 @@ def validate_editor_metadata(original, submitted):
         result.pop("author_is_fallback", None)
     for field in ("language", "original_language"):
         normalize_language(result, field)
+    if "title_page_fields" in result:
+        chosen = result["title_page_fields"]
+        if (
+            not isinstance(chosen, list)
+            or any(not isinstance(key, str) or key not in TITLE_PAGE_FIELDS for key in chosen)
+            or len(set(chosen)) != len(chosen)
+        ):
+            raise ValueError("Choose title-page fields from the supported metadata fields.")
+        result["title_page_fields"] = [key for key in TITLE_PAGE_FIELDS if key in chosen]
     return result
 
 

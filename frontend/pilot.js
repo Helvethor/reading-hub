@@ -6,6 +6,7 @@ import {mountWorkspace} from "./controls.js";
 import {documentParts, showDocumentPart} from "./workspace.js";
 import {mountSourcePanel} from "./source-insertion.js";
 import {mountMetadata} from "./metadata.js";
+import {textFields} from "./metadata-fields.js";
 import {mountDifferenceControls} from "./diff-controls.js";
 import {mountWorkflowPanels} from "./workflow-panels.js";
 
@@ -21,7 +22,7 @@ if (form) {
   const historyLink = document.querySelector("#editor-history");
   const markReviewed = document.querySelector("#editor-mark-reviewed");
   const title = form.elements.title;
-  const metadataFields = ["author", "subtitle", "original_title", "publisher", "series", "language",
+  const metadataFields = ["author", "subtitle", ...textFields.map(([name]) => name), "language",
     "original_language"].map(name => form.elements[name]).filter(Boolean);
   const sectionList = document.querySelector("#editor-sections");
   const pasteDialog = document.querySelector("#editor-paste");

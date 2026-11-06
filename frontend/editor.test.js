@@ -27,6 +27,7 @@ import {documentParts, showDocumentPart, visiblePart, showBlockLabels} from "./w
 import {mountWorkspace} from "./controls.js";
 import {applySourceInsertion, sourceInsertionTarget} from "./source-insertion.js";
 import {mountMetadata} from "./metadata.js";
+import {noteDates, parseEditorialNote, titlePageSelection} from "./metadata-fields.js";
 import {movableSections, moveSection, mountSectionMoves} from "./section-moves.js";
 import {prepareContentMove, applyContentMove, mountContentMoves} from "./content-moves.js";
 import {foldedDocumentParts, toggleDocumentFold} from "./workspace.js";
@@ -786,7 +787,7 @@ test("generated title reflects live metadata and explicit clears without inserti
   workspace.refreshGenerated();
   assert.equal(title.querySelector("h1").textContent, "Untitled document");
   assert.equal(title.querySelectorAll("dt").length, 0);
-  assert(title.contains(form.elements.title), "Metadata fields are edited on the Title page itself.");
+  assert(!title.contains(form.elements.title), "The complete metadata table sits below the editor.");
   assert(!title.querySelector(".editor-title-preview button"));
   assert.equal(editor.state.doc, doc);
   assert.equal(editor.getHTML(), original);
@@ -834,8 +835,10 @@ test("generated views never route context actions to hidden prose and history re
   const keyboard = new dom.window.KeyboardEvent("keydown", {key: "F10", shiftKey: true,
     bubbles: true, cancelable: true});
   form.elements.title.dispatchEvent(keyboard);
-  assert(!keyboard.defaultPrevented, "Metadata fields on the Title page are outside prose context routing.");
-  assert(form.querySelector("#editor-context-menu").hidden);
+  assert(form.querySelector("#editor-context-menu").hidden,
+    "Metadata table fields never route to the prose context menu.");
+  form.querySelector("#editor-metadata-menu")?.dispatchEvent(new dom.window.KeyboardEvent("keydown",
+    {key: "Escape", bubbles: true, cancelable: true}));
   const nav = form.querySelector('[data-book-view="title"]');
   nav.focus();
   nav.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "z", ctrlKey: true, bubbles: true}));
@@ -2481,7 +2484,8 @@ test("metadata sheet shows default rows without inventing changes and edits fiel
   assert(!menu.hidden);
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent), [
     "Author", "Editor", "Translator", "Contributor (role unconfirmed)", "Publication date", "Written date",
-    "Online edition date", "Date (role unconfirmed)", "Remove Author “Writer”"]);
+    "Delivered date", "Online edition date", "Date (role unconfirmed)", "Hide Author on title page",
+    "Link registered author…", "Remove Author “Writer”"]);
   menu.querySelector('[data-metadata-add="person:editor"]').click();
   assert(menu.hidden);
   const added = people.children[1];
@@ -2521,17 +2525,221 @@ test("metadata page offers the original title, publisher, series and original la
   const form = mountSectionWorkspace("<p>Article body</p>", {}, {readDocument: () => ({title: "Book",
     metadata: {original_title: "Das Buch", publisher: "Press", series: "Works 1", original_language: "de"}})});
   const title = form.querySelector(".editor-title-page");
-  assert(title.querySelector(".editor-metadata .editor-metadata-sheet"),
-    "The metadata sheet is part of the generated Title page.");
-  for (const name of ["title", "subtitle", "original_title", "publisher", "series", "language",
-    "original_language", "subjects"]) {
-    assert(form.elements[name].closest(".editor-title-page"), name);
+  const sheet = form.querySelector(".editor-metadata");
+  assert(!title.contains(sheet), "The complete metadata table is outside the generated Title page.");
+  assert(form.querySelector(".editor-workspace").compareDocumentPosition(sheet) &
+    dom.window.Node.DOCUMENT_POSITION_FOLLOWING, "The complete metadata table follows the editor.");
+  for (const name of ["title", "subtitle", "original_title", "publisher", "series", "publication_note",
+    "source_edition", "translation_note", "online_version", "transcription", "proofreading", "rights",
+    "notes", "language", "original_language", "subjects"]) {
+    assert(form.elements[name].closest(".editor-metadata"), name);
     assert(!form.elements[name].closest("tr").hidden, name);
   }
   assert.deepEqual(titlePageRows({original_title: "Das Buch", publisher: "Press", series: "Works 1",
     original_language: "de"}, {languages: {de: "German"}}),
   [["Original title", "Das Buch"], ["Publisher", "Press"], ["Series", "Works 1"], ["Original language", "German"]]);
   assert(title.querySelector(".editor-title-preview").textContent.includes("Das Buch"));
+});
+
+const leninNote = '<section id="c1"><h2>Editorial note</h2><p>\n<span>Written:</span> Written between the autumn of 1901 and February 1902 <br/>\n' +
+  '<span>Published:</span> Lenin’s <em>Selected Works</em>, Volume 1, pp. 119 - 271. First published as a separate work in March 1902.<br/>\n' +
+  '<span>Source:</span> Lenin’s <a href="https://www.marxists.org/archive/lenin/works/cw/index.htm"><em>Collected Works</em></a>, Foreign Languages Publishing House, 1961, Moscow, Volume\u00a05, pp. 347-530.<br/>\n' +
+  '<span>Translated:</span> Joe Fineberg and George Hanna. Edited by Victor Jerome.<br/>\n' +
+  '<span>Original Transcription &amp; Markup:</span> <a href="https://example.org/t">Tim Delaney</a> (1999)<br/>\n' +
+  '<span>Re-Marked up &amp; Proofread by:</span> <a href="https://example.org/k">K. Goins</a> (2008)<br/>\n' +
+  '<span>Public Domain:</span> Lenin Internet Archive (1999). <span>You may freely copy this work.</span>\n' +
+  '<br/><span>Signed:</span> N. Lenin</p><p>Lenin’s work was written at the end of 1901.</p></section>';
+
+function completeMetadataForm(value, content = "") {
+  const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
+  const start = template.indexOf('<section class="editor-metadata"');
+  const markup = template.slice(start, template.indexOf("</section>", template.indexOf("</dialog>", start)) + 10)
+    .replace(/\{% url '([^']+)' %\}/g, "/$1/").replace(/\{\{[^}]*\}\}/g, "").replace(/\{%[^%]*%\}/g, "");
+  document.body.innerHTML = '<form><input name="csrfmiddlewaretoken" value="token">' +
+    `<div id="editor-surface"><div class="ProseMirror">${content}</div></div>${markup}</form>`;
+  const form = document.querySelector("form");
+  for (const control of form.querySelectorAll("[disabled]")) control.disabled = false;
+  form.elements.title.value = "What Is To Be Done?";
+  for (const control of form.querySelectorAll("[data-metadata-field] input:not([type]), [data-metadata-field] textarea")) {
+    if (control.name !== "title" && control.name !== "subjects") control.value = value[control.name] || "";
+  }
+  for (const dialog of document.querySelectorAll("dialog")) {
+    dialog.showModal = () => { dialog.open = true; };
+    dialog.close = () => { dialog.open = false; };
+  }
+  let changes = 0;
+  const control = mountMetadata(form, value, () => changes++);
+  return {form, control, changes: () => changes};
+}
+
+test("editorial-note labels from marxists.org map to metadata fields without guessing dates", () => {
+  assert.deepEqual(noteDates("Written between the autumn of 1901 and February 1902"), {value: "1901", end_value: "1902"});
+  assert.deepEqual(noteDates("First published in March 1902."), {value: "1902-03"});
+  assert.deepEqual(noteDates("Delivered on 12 May 1920"), {value: "1920-05-12"});
+  assert.deepEqual(noteDates("Pravda No. 12, 1917; reprinted 1920 and 1925"), null);
+  const parsed = parseEditorialNote([
+    {label: "Written and first published", value: "1915"}, {label: "Delivered", value: "June 7, 1918"},
+    {label: "First Published in English", value: "Labour Monthly, 1925"}, {label: "Publisher", value: "Progress"},
+    {label: "Translated (and edited)", value: "Brian Baggins"}, {label: "Online Version", value: "MIA 2000"},
+    {label: "HTML Markup", value: "Brian Baggins"}, {label: "Transcribed", value: "Andy Blunden"},
+    {label: "Proofed", value: "and corrected by Chris Clayton"}, {label: "Copyleft", value: "MIA 2006"},
+    {label: "Other formats", value: "PDF"},
+  ]);
+  assert.deepEqual(parsed.dates, {written: {value: "1915"}, delivered: {value: "1918-06-07"}});
+  assert.deepEqual(parsed.text, {
+    publication_note: "Written and first published: 1915\nFirst Published in English: Labour Monthly, 1925",
+    publisher: "Progress", translation_note: "Translated (and edited): Brian Baggins",
+    online_version: "Online Version: MIA 2000\nOther formats: PDF",
+    transcription: "HTML Markup: Brian Baggins\nTranscribed: Andy Blunden",
+    proofreading: "Proofed: and corrected by Chris Clayton", rights: "Copyleft: MIA 2006",
+  });
+});
+
+test("filling from the real editorial note only fills empty metadata fields and never edits content", () => {
+  const initial = {author: "Vladimir Lenin", publisher: "Kept publisher",
+    date_facts: [{value: "1903-03", type: "publication"}]};
+  const {form, control} = completeMetadataForm(initial, leninNote);
+  const content = form.querySelector("#editor-surface").innerHTML;
+  assert.deepEqual(control.read(structuredClone(initial)), initial);
+  form.querySelector("#editor-metadata-import").click();
+  const value = control.read(structuredClone(initial));
+  assert.deepEqual(value.date_facts, [{value: "1903-03", type: "publication"},
+    {value: "1901", end_value: "1902", type: "written"}], "The existing publication date is kept.");
+  assert.equal(form.elements.publisher.value, "Kept publisher");
+  assert.equal(form.elements.publication_note.value,
+    "Lenin’s Selected Works, Volume 1, pp. 119 - 271. First published as a separate work in March 1902.");
+  assert.equal(form.elements.source_edition.value,
+    "Lenin’s Collected Works, Foreign Languages Publishing House, 1961, Moscow, Volume 5, pp. 347-530.");
+  assert.equal(form.elements.translation_note.value, "Joe Fineberg and George Hanna. Edited by Victor Jerome.");
+  assert.equal(form.elements.transcription.value,
+    "Original Transcription & Markup: Tim Delaney (1999); Re-Marked up & Proofread by: K. Goins (2008)");
+  assert.equal(form.elements.rights.value,
+    "Public Domain: Lenin Internet Archive (1999). You may freely copy this work.");
+  assert.equal(form.elements.notes.value, "Signed: N. Lenin");
+  const multiline = form.elements.source_edition;
+  assert.equal(multiline.tagName, "TEXTAREA");
+  typeInto(multiline, "Collected Works,\n  Volume 5");
+  assert.equal(multiline.value, "Collected Works, Volume 5", "Single-line note fields never keep line breaks.");
+  const enter = new dom.window.KeyboardEvent("keydown", {key: "Enter", bubbles: true, cancelable: true});
+  multiline.dispatchEvent(enter);
+  assert(enter.defaultPrevented);
+  typeInto(multiline, "Lenin’s Collected Works, Foreign Languages Publishing House, 1961, Moscow, Volume 5, pp. 347-530.");
+  assert.match(form.querySelector("#editor-metadata-import-status").textContent, /Filled 7 empty field/);
+  assert.equal(form.querySelector("#editor-surface").innerHTML, content, "Content is never modified.");
+  form.querySelector("#editor-metadata-import").click();
+  assert.match(form.querySelector("#editor-metadata-import-status").textContent, /no empty fields/);
+  const other = completeMetadataForm({}, "<p>Only one: line</p><p>Plain text.</p>");
+  other.form.querySelector("#editor-metadata-import").click();
+  assert.match(other.form.querySelector("#editor-metadata-import-status").textContent, /No editorial note/);
+});
+
+test("title-page preview fields are chosen from filled fields and saved only when changed", () => {
+  const initial = {author: "Vladimir Lenin", rights: "Public Domain", language: "en",
+    date_facts: [{value: "1902", type: "written"}]};
+  const {form, control, changes} = completeMetadataForm(initial);
+  const author = form.querySelector("#editor-contributors tr");
+  assert.equal(author.dataset.titlePage, "shown");
+  assert.equal(form.elements.rights.closest("tr").dataset.titlePage, "hidden", "Rights are hidden by default.");
+  assert.deepEqual(control.read(structuredClone(initial)), initial);
+  metadataMenu(author.editorFields.name).querySelector('[data-title-hide="author"]').click();
+  let value = control.read(structuredClone(initial));
+  assert(!value.title_page_fields.includes("author"));
+  assert(!value.title_page_fields.includes("rights"));
+  assert.equal(author.dataset.titlePage, "hidden");
+  assert.equal(changes(), 1);
+  metadataMenu(form.elements.rights).querySelector('[data-title-show="rights"]').click();
+  value = control.read(structuredClone(initial));
+  assert(value.title_page_fields.includes("rights"));
+  assert.deepEqual(titlePageRows(value, {sourceUrl: "https://example.org"}).map(([label]) => label),
+    ["Written", "Rights", "Language", "Source"]);
+  form.dispatchEvent(new dom.window.CustomEvent("editor-title-fields", {detail: {fields: null}}));
+  assert.deepEqual(control.read(structuredClone(initial)), initial, "Reset restores the default selection.");
+  control.populate({...initial, title_page_fields: ["notes", "author"]});
+  assert.deepEqual(control.read({...initial, title_page_fields: ["notes", "author"]}).title_page_fields,
+    ["notes", "author"]);
+  assert.deepEqual([...titlePageSelection({})].includes("rights"), false);
+});
+
+test("title page preview right-click hides, shows and resets filled fields", () => {
+  let value = {title: "Book", metadata: {author: "Writer", publisher: "Press", rights: "Public Domain"}};
+  const events = [];
+  const form = mountSectionWorkspace("<p>Body</p>", {}, {readDocument: () => value});
+  form.addEventListener("editor-title-fields", event => events.push(event.detail.fields));
+  const preview = form.querySelector(".editor-title-preview");
+  assert.deepEqual([...preview.querySelectorAll("dt")].map(term => term.dataset.field), ["author", "publisher"]);
+  const heading = new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true});
+  preview.querySelector("h1").dispatchEvent(heading);
+  assert(!heading.defaultPrevented, "The generated title keeps the browser menu.");
+  preview.querySelector('dd[data-field="publisher"]').dispatchEvent(
+    new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
+  const menu = form.querySelector("#editor-title-menu");
+  assert(!menu.hidden);
+  assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent),
+    ["Hide Publisher", "Show Rights"]);
+  menu.querySelector('[data-title-hide="publisher"]').click();
+  assert(menu.hidden);
+  assert(!events[0].includes("publisher") && events[0].includes("author") && !events[0].includes("rights"));
+  value = {...value, metadata: {...value.metadata, title_page_fields: ["rights"]}};
+  preview.querySelector(".document-metadata").dispatchEvent(new dom.window.KeyboardEvent("keydown",
+    {key: "F10", shiftKey: true, bubbles: true, cancelable: true}));
+  assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent),
+    ["Show Author", "Show Publisher", "Reset to default fields"]);
+  menu.querySelector("[data-title-reset]").click();
+  assert.equal(events[1], null);
+});
+
+test("people link to registered authors by search or registration and saves canonical identity", async t => {
+  const previousFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = previousFetch; });
+  const requests = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requests.push([String(url), options.method || "GET", options.body, options.headers?.["X-CSRFToken"]]);
+    if (String(url).includes("register")) {
+      const body = JSON.parse(options.body);
+      return {ok: true, status: 201, json: async () => ({name: body.name, authority_uri: body.authority_uri, created: true})};
+    }
+    return {ok: true, status: 200, json: async () => ({
+      candidates: [{name: "Vladimir Lenin", authority_uri: "https://www.wikidata.org/wiki/Q1394"}], others: [],
+    })};
+  };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+  const initial = {author: "V. I. Lenin", contributors: [{name: "V. I. Lenin", source_name: "V. I. Lenin", role: "author"}]};
+  const {form, control} = completeMetadataForm(initial);
+  const row = form.querySelector("#editor-contributors tr");
+  assert.equal(row.querySelector(".editor-person-link").textContent, "Link registered author…");
+  metadataMenu(row.editorFields.name).querySelector("[data-metadata-link]").click();
+  const dialog = form.querySelector("#editor-person-link");
+  assert(dialog.open);
+  await settle();
+  assert.equal(new URL(requests[0][0]).searchParams.get("q"), "V. I. Lenin");
+  dialog.querySelector("#editor-person-results button").click();
+  assert(!dialog.open);
+  assert.equal(row.editorFields.name.value, "Vladimir Lenin");
+  let value = control.read(structuredClone(initial));
+  assert.deepEqual(value.contributors, [{name: "Vladimir Lenin", source_name: "V. I. Lenin", role: "author",
+    canonical: {name: "Vladimir Lenin", authority_uri: "https://www.wikidata.org/wiki/Q1394"}}]);
+  assert.equal(value.author, "Vladimir Lenin");
+  assert.match(row.querySelector(".editor-person-link").textContent, /^Registered: Vladimir Lenin/);
+  typeInto(row.editorFields.name, "Lenin");
+  assert(!control.read(structuredClone(initial)).contributors[0].canonical, "Renaming drops a stale link.");
+  const translator = form.querySelector('#editor-contributors tr:nth-child(2)');
+  typeInto(translator.editorFields.name, "Joe Fineberg");
+  translator.querySelector(".editor-person-link").click();
+  await settle();
+  dialog.querySelector("#editor-person-new-uri").value = "https://www.wikidata.org/wiki/Q000";
+  dialog.querySelector("#editor-person-register").click();
+  await settle();
+  const register = requests.at(-1);
+  assert.equal(register[1], "POST");
+  assert.equal(register[3], "token");
+  assert.deepEqual(JSON.parse(register[2]), {name: "Joe Fineberg", authority_uri: "https://www.wikidata.org/wiki/Q000"});
+  value = control.read(structuredClone(initial));
+  assert.deepEqual(value.contributors[1], {name: "Joe Fineberg", source_name: "Joe Fineberg", role: "translator",
+    canonical: {name: "Joe Fineberg", authority_uri: "https://www.wikidata.org/wiki/Q000"}});
+  translator.querySelector(".editor-person-link").click();
+  await settle();
+  dialog.querySelector("#editor-person-unlink").click();
+  assert(!control.read(structuredClone(initial)).contributors[1].canonical);
 });
 
 test("book classification is an explicit document edit preserved by metadata recovery", () => {

@@ -406,10 +406,17 @@ isolates a view.
 
 The generated title uses current, including unsaved, bibliographic metadata:
 title, subtitle, original title, author/source attribution, editor/translator/
-unconfirmed roles, publisher, series, typed dates/ranges, full language and
-original-language names, subjects and retained source link. Below that preview
-the Title page holds the editable Metadata sheet (a compact table, with
-right-click Add/Remove field); it is form state, not editable title-page prose. The ToC regenerates from actual
+unconfirmed roles, publisher, series, typed dates/ranges (including delivered),
+editorial-note fields (publication history, source edition, translation, online
+version, transcription/markup, proofreading, rights, other notes), full language
+and original-language names, subjects and retained source link, filtered by the
+document's `title_page_fields` selection (default: all except the credit/rights
+and other-notes fields). The preview's right-click menu hides/shows filled fields
+or resets the default; reader, publication and PDF use the same selection. The
+complete metadata table is form state below the editor, not title-page prose: it
+supports right-click Add/Remove field, explicit fill-empty-fields from a
+"Label: value" editorial note, and linking contributors to registered authors
+(search, or register with an optional http(s) authority URI). The ToC regenerates from actual
 document ranges, titles and order, including heading-only articles, and navigates
 without creating persistent target IDs. These panels are read-only projections:
 they never enter semantic HTML/JSON, saved revisions, recovery payloads or undo

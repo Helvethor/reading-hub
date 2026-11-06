@@ -321,7 +321,7 @@ def validate_expected(value, body, source=None):
             not isinstance(date, dict)
             or set(date) not in ({"value", "type"}, {"value", "end_value", "type"})
             or not isinstance(date["type"], str)
-            or date["type"] not in {"publication", "written", "online_edition", "unknown"}
+            or date["type"] not in {"publication", "written", "delivered", "online_edition", "unknown"}
         ):
             raise ValueError("Dates require an explicit type and YYYY, YYYY-MM or YYYY-MM-DD.")
         for key in ("value", "end_value") if "end_value" in date else ("value",):

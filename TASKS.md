@@ -305,6 +305,19 @@ acceptance. Historical counts below describe their original slices.
   menu checked in a synthetic Chromium harness (default and Marxist theme). The
   real draft's metadata (read-only) produces no spurious change; the logged-in
   live page was not browsed.
+- [x] Move the complete metadata table below the editor and give every
+  marxists.org editorial-note label a field: Publication history, Source
+  edition, Translation, Online version, Transcription/markup, Proofreading,
+  Rights, Other notes (multi-line) and Delivered dates (labels surveyed from
+  about 50 classic marxists.org works). Explicit "Fill empty fields from editorial
+  note" parses Label: value lines; contributors link to registered authors via
+  search or registration (new POST endpoint). The Title page previews a saved
+  `title_page_fields` selection with right-click show/hide/reset, mirrored in
+  reader/publication/PDF metadata. 263 frontend and 234 backend tests pass. The
+  real draft rendered read-only in Chromium (Marxist Dark): import filled 5 empty
+  fields from its actual note without touching content; menus verified via DOM
+  state. Registration and search were exercised only with mocked/test data; the
+  logged-in live page was not browsed.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

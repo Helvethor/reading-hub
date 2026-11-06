@@ -1,12 +1,15 @@
+import {dateFields, editorialNoteLines, fieldLabels, parseEditorialNote, personKeys,
+  titlePageFields, titlePageSelection} from "./metadata-fields.js";
+
 const roleChoices = [
   ["author", "Author"], ["editor", "Editor"], ["translator", "Translator"],
   ["unknown", "Contributor (role unconfirmed)"], ["exclude", "Excluded attribution"],
 ];
 const dateChoices = [
-  ["publication", "Published"], ["written", "Written"],
+  ["publication", "Published"], ["written", "Written"], ["delivered", "Delivered"],
   ["online_edition", "Online edition"], ["unknown", "Date (role unconfirmed)"],
 ];
-const dateLabels = {publication: "Publication date", written: "Written date",
+const dateLabels = {publication: "Publication date", written: "Written date", delivered: "Delivered date",
   online_edition: "Online edition date", unknown: "Date (role unconfirmed)"};
 const fixedFields = new Set(["title", "book"]);
 const storedDate = /^(\d{4}(?:-\d{2}){0,2})(?:\s*\/\s*(\d{4}(?:-\d{2}){0,2}))?$/;
@@ -32,8 +35,9 @@ function dateRows(value) {
   return rows;
 }
 
+const linked = row => row.canonical?.name === row.name.trim() ? row.canonical : null;
 const peopleSignature = rows => JSON.stringify(rows.filter(row => row.name.trim())
-  .map(row => [row.name.trim(), row.role]));
+  .map(row => [row.name.trim(), row.role, linked(row)?.authority_uri ?? null]));
 const dateSignature = rows => JSON.stringify(rows.filter(row => row.value.trim())
   .map(row => [row.value.trim(), (row.end_value || "").trim(), row.type]));
 const topicList = text => text.split("\n").map(value => value.trim()).filter(Boolean);
@@ -46,8 +50,9 @@ export function mountMetadata(form, initial, changed) {
   const author = form.elements.author;
   const book = form.querySelector("#editor-organization-book");
   const sheet = people.closest("table") || people.parentElement;
+  const section = sheet.closest(".editor-metadata") || form;
   const originalBook = book?.checked;
-  let baseline = {}, organizationRestored = false;
+  let baseline = {}, organizationRestored = false, titleFields = null;
 
   function field(tag, value, label, maximum, placeholder = "") {
     const control = owner.createElement(tag);
@@ -76,14 +81,27 @@ export function mountMetadata(form, initial, changed) {
     }
     return row;
   }
+  function showLink(row) {
+    const button = row.querySelector(".editor-person-link");
+    const canonical = linked({name: row.editorFields.name.value, canonical: row.canonical});
+    button.textContent = canonical ? `Registered: ${canonical.name}` : "Link registered author…";
+    button.title = canonical ? canonical.authority_uri || "Registered author without authority URI" : "";
+    row.dataset.linked = String(Boolean(canonical));
+  }
   function addPerson(value = {}, after = null) {
     const role = field("select", {choices: roleChoices, selected: value.role || "unknown"}, "Role");
     const name = field("input", value.name, "Name", 500);
-    const row = cell("tr", cell("th", role), cell("td", name));
-    row.lastElementChild.colSpan = 2;
+    const link = owner.createElement("button");
+    link.type = "button";
+    link.className = "editor-person-link";
+    const row = cell("tr", cell("th", role), cell("td", name), cell("td", link));
     row.dataset.metadataRow = "person";
     row.editorFields = {name, role};
     row.originalValue = value.name ? value : null;
+    row.canonical = value.canonical || null;
+    link.addEventListener("click", () => openLink(row));
+    name.addEventListener("input", () => showLink(row));
+    showLink(row);
     return insertRow(people, row, after);
   }
   function addDate(value = {}, after = null) {
@@ -97,6 +115,7 @@ export function mountMetadata(form, initial, changed) {
   }
   const currentPeople = () => [...people.children].map(row => ({
     name: row.editorFields.name.value, role: row.editorFields.role.value, original: row.originalValue,
+    canonical: row.canonical, sourceName: row.sourceName,
   }));
   const currentDates = () => [...dates.children].map(row => ({
     value: row.editorFields.value.value, end_value: row.editorFields.end_value.value,
@@ -106,6 +125,7 @@ export function mountMetadata(form, initial, changed) {
   const datesChanged = () => dateSignature(currentDates()) !== baseline.dates;
   const topicsChanged = () => JSON.stringify(topicList(topics.value)) !== baseline.topics;
   const bookChanged = () => Boolean(book) && (organizationRestored || book.checked !== baseline.book);
+  const titleFieldsChanged = () => JSON.stringify(titleFields) !== baseline.titleFields;
   function syncAuthors() {
     author.value = peopleChanged()
       ? currentPeople().filter(row => row.role === "author" && row.name.trim())
@@ -114,6 +134,7 @@ export function mountMetadata(form, initial, changed) {
   }
   function update(container) {
     if (container === people) syncAuthors();
+    if (container === people || container === dates) markTitleRows();
     changed();
   }
   function setBaseline(value) {
@@ -121,6 +142,7 @@ export function mountMetadata(form, initial, changed) {
       people: peopleSignature(personRows(value)), dates: dateSignature(dateRows(value)),
       topics: JSON.stringify(topicList((value.topics || []).join("\n"))), author: value.author || "",
       book: value.content_organization?.book ?? originalBook,
+      titleFields: JSON.stringify(value.title_page_fields ?? null),
     };
   }
   function populate(value) {
@@ -131,7 +153,9 @@ export function mountMetadata(form, initial, changed) {
     for (const person of personRows(value)) addPerson(person);
     for (const date of dateRows(value)) addDate(date);
     topics.value = (value.topics || []).join("\n");
+    titleFields = Array.isArray(value.title_page_fields) ? [...value.title_page_fields] : null;
     for (const row of sheet.querySelectorAll("tr[data-metadata-field]")) row.hidden = false;
+    markTitleRows();
     const publication = form.querySelector("#editor-original-publication");
     if (publication) {
       const stored = value.published && !value.date_facts?.some(date => date.type === "publication") &&
@@ -147,8 +171,9 @@ export function mountMetadata(form, initial, changed) {
     if (peopleChanged()) {
       value.contributors = currentPeople().filter(row => row.name.trim()).map(row => {
         const name = row.name.trim(), original = row.original || {};
-        const result = {name, source_name: original.source_name || name, role: row.role};
-        if (original.canonical && original.name === name) result.canonical = original.canonical;
+        const result = {name, source_name: original.source_name || row.sourceName || name, role: row.role};
+        const canonical = linked(row);
+        if (canonical) result.canonical = {name: canonical.name, authority_uri: canonical.authority_uri};
         return result;
       });
       value.authors = value.contributors.filter(person => person.role === "author")
@@ -169,8 +194,35 @@ export function mountMetadata(form, initial, changed) {
       value.topics = topicList(topics.value);
       value.topic = value.topics.join(", ");
     }
+    if (titleFieldsChanged()) {
+      if (titleFields) value.title_page_fields = [...titleFields];
+      else delete value.title_page_fields;
+    }
     return value;
   }
+  function rowKey(row) {
+    if (row?.dataset.metadataRow === "person") return personKeys[row.editorFields.role.value];
+    if (row?.dataset.metadataRow === "date") return (dateFields[row.editorFields.type.value] || dateFields.unknown)[0];
+    const key = row?.dataset.metadataField;
+    return titlePageFields.includes(key) ? key : null;
+  }
+  function currentSelection() {
+    return titlePageSelection(titleFields ? {title_page_fields: titleFields} : {});
+  }
+  function markTitleRows() {
+    const shown = currentSelection();
+    for (const row of sheet.querySelectorAll("tr")) {
+      const key = rowKey(row);
+      if (key) row.dataset.titlePage = shown.has(key) ? "shown" : "hidden";
+      else delete row.dataset.titlePage;
+    }
+  }
+  function setTitleFields(fields) {
+    titleFields = fields ? titlePageFields.filter(key => fields.includes(key)) : null;
+    markTitleRows();
+    changed();
+  }
+  form.addEventListener("editor-title-fields", event => setTitleFields(event.detail.fields));
   function restore(value) {
     populate(value);
     setBaseline(initial);
@@ -254,6 +306,22 @@ export function mountMetadata(form, initial, changed) {
       menuItem(hidden.querySelector("th").textContent.trim(), () => focusRow(addField("field", name)))
         .dataset.metadataAdd = `field:${name}`;
     }
+    const key = rowKey(row);
+    if (key) {
+      menu.append(cell("p", "Title page preview"));
+      const shown = currentSelection();
+      const label = fieldLabels[key] || key;
+      if (shown.has(key)) {
+        menuItem(`Hide ${label} on title page`, () => setTitleFields([...shown].filter(name => name !== key)))
+          .dataset.titleHide = key;
+      } else {
+        menuItem(`Show ${label} on title page`, () => setTitleFields([...shown, key])).dataset.titleShow = key;
+      }
+      if (titleFields) menuItem("Reset title page fields", () => setTitleFields(null)).dataset.titleReset = "";
+    }
+    if (row?.dataset.metadataRow === "person") {
+      menuItem("Link registered author…", () => openLink(row)).dataset.metadataLink = "";
+    }
     if (row && !fixedFields.has(row.dataset.metadataField)) {
       menu.append(cell("p", "Remove field"));
       menuItem(`Remove ${rowLabel(row)}`, () => removeRow(row)).dataset.metadataRemove = "";
@@ -291,6 +359,148 @@ export function mountMetadata(form, initial, changed) {
   owner.addEventListener("pointerdown", outside);
   owner.addEventListener("scroll", outside, true);
   owner.defaultView.addEventListener("resize", closeMenu);
+  const linkDialog = section.querySelector("#editor-person-link");
+  const linkSearch = linkDialog?.querySelector("#editor-person-search");
+  const linkResults = linkDialog?.querySelector("#editor-person-results");
+  const linkCurrent = linkDialog?.querySelector("#editor-person-current");
+  const linkError = linkDialog?.querySelector("#editor-person-error");
+  const linkName = linkDialog?.querySelector("#editor-person-new-name");
+  const linkUri = linkDialog?.querySelector("#editor-person-new-uri");
+  let linkRow = null;
+  function closeLink() {
+    if (linkDialog.close) linkDialog.close();
+    else linkDialog.removeAttribute("open");
+    linkRow?.editorFields.name.focus();
+  }
+  function applyLink(canonical) {
+    const {name} = linkRow.editorFields;
+    if (canonical && !linkRow.originalValue?.source_name && !linkRow.sourceName) {
+      linkRow.sourceName = name.value.trim() || canonical.name;
+    }
+    linkRow.canonical = canonical;
+    if (canonical) name.value = canonical.name;
+    showLink(linkRow);
+    update(people);
+    closeLink();
+  }
+  async function request(url, options = {}) {
+    const response = await fetch(url, {credentials: "same-origin", ...options});
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || `Request failed (${response.status}).`);
+    return body;
+  }
+  async function searchPeople() {
+    linkError.textContent = "";
+    const query = linkSearch.value.trim();
+    if (!query) return;
+    linkResults.replaceChildren(cell("li", "Searching…"));
+    try {
+      const url = new URL(section.dataset.peopleUrl, owner.baseURI);
+      url.searchParams.set("q", query);
+      const body = await request(url);
+      const found = [...body.candidates, ...body.others];
+      linkResults.replaceChildren(...found.map(author => {
+        const choose = owner.createElement("button");
+        choose.type = "button";
+        choose.textContent = `Link ${author.name}`;
+        choose.dataset.authorityUri = author.authority_uri;
+        choose.addEventListener("click", () => applyLink({name: author.name, authority_uri: author.authority_uri}));
+        const item = cell("li", choose);
+        if (author.authority_uri) item.append(" ", cell("small", author.authority_uri));
+        return item;
+      }));
+      if (!found.length) linkResults.replaceChildren(cell("li", "No registered author matches. Register one below."));
+    } catch (failure) {
+      linkResults.replaceChildren();
+      linkError.textContent = failure.message;
+    }
+  }
+  async function registerPerson() {
+    linkError.textContent = "";
+    try {
+      const body = await request(section.dataset.registerUrl, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": form.elements.csrfmiddlewaretoken?.value || ""},
+        body: JSON.stringify({name: linkName.value, authority_uri: linkUri.value}),
+      });
+      applyLink({name: body.name, authority_uri: body.authority_uri});
+    } catch (failure) { linkError.textContent = failure.message; }
+  }
+  function openLink(row) {
+    if (!linkDialog) return;
+    linkRow = row;
+    const name = row.editorFields.name.value.trim();
+    const canonical = linked({name, canonical: row.canonical});
+    linkCurrent.textContent = canonical
+      ? `Linked to registered author ${canonical.name}${canonical.authority_uri ? ` (${canonical.authority_uri})` : ""}.`
+      : `“${name || "Unnamed person"}” is not linked to a registered author.`;
+    linkDialog.querySelector("#editor-person-unlink").hidden = !canonical;
+    linkSearch.value = linkName.value = name;
+    linkUri.value = "";
+    linkError.textContent = "";
+    linkResults.replaceChildren();
+    if (linkDialog.showModal) linkDialog.showModal();
+    else linkDialog.setAttribute("open", "");
+    linkSearch.focus();
+    if (name) searchPeople();
+  }
+  if (linkDialog) {
+    linkDialog.querySelector("#editor-person-search-run").addEventListener("click", searchPeople);
+    linkSearch.addEventListener("keydown", event => {
+      if (event.key === "Enter") { event.preventDefault(); searchPeople(); }
+    });
+    linkDialog.querySelector("#editor-person-register").addEventListener("click", registerPerson);
+    linkDialog.querySelector("#editor-person-unlink").addEventListener("click", () => applyLink(null));
+    linkDialog.querySelector("#editor-person-close").addEventListener("click", closeLink);
+  }
+
+  const importButton = section.querySelector("#editor-metadata-import");
+  const importStatus = section.querySelector("#editor-metadata-import-status");
+  function setControl(control, value) {
+    control.value = value;
+    control.dispatchEvent(new owner.defaultView.Event("input", {bubbles: true}));
+  }
+  function importEditorialNote() {
+    const surface = form.querySelector("#editor-surface .ProseMirror") || form.querySelector("#editor-surface");
+    const lines = surface ? editorialNoteLines(surface) : [];
+    if (!lines.length) {
+      importStatus.textContent = "No editorial note (two or more “Label: value” lines) was found in the content.";
+      return;
+    }
+    const suggestion = parseEditorialNote(lines);
+    const filled = [];
+    for (const [type, date] of Object.entries(suggestion.dates)) {
+      let row = [...dates.children].find(other => other.editorFields.type.value === type);
+      if (row?.editorFields.value.value.trim()) continue;
+      row ||= addDate({type});
+      row.editorFields.end_value.value = date.end_value || "";
+      setControl(row.editorFields.value, date.value);
+      filled.push(dateLabels[type]);
+    }
+    for (const [key, value] of Object.entries(suggestion.text)) {
+      const row = sheet.querySelector(`tr[data-metadata-field="${key}"]`);
+      const control = row?.querySelector("input, textarea");
+      if (!control || control.value.trim()) continue;
+      row.hidden = false;
+      setControl(control, control.matches("[data-single-line], input") ? value.replaceAll("\n", "; ") : value);
+      filled.push(fieldLabels[key] || key);
+    }
+    importStatus.textContent = filled.length
+      ? `Filled ${filled.length} empty field(s) from the editorial note: ${filled.join(", ")}. Review before saving; content is unchanged.`
+      : "The editorial note found no empty fields to fill; existing values were kept.";
+  }
+  importButton?.addEventListener("click", importEditorialNote);
+  sheet.addEventListener("keydown", event => {
+    if (event.key === "Enter" && event.target.matches("textarea[data-single-line]")) event.preventDefault();
+  });
+  sheet.addEventListener("input", event => {
+    const control = event.target;
+    if (control.matches("textarea[data-single-line]") && /[\r\n]/.test(control.value)) {
+      control.value = control.value.replace(/\s*[\r\n]+\s*/g, " ");
+    }
+  }, true);
+  if (importButton) importButton.disabled = false;
+
   topics.addEventListener("input", () => changed());
   book?.addEventListener("change", () => changed());
   populate(initial);
