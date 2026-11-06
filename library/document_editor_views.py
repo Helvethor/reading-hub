@@ -30,9 +30,27 @@ from library.services.semantic_documents import MAX_BYTES
 from library.sources.adapters import adapter_for
 
 
+def panel_context(request):
+    embedded = request.GET.get("embedded") == "1"
+    return {
+        "embedded": embedded,
+        "panel_base": "library/embedded_panel_base.html" if embedded else "library/base.html",
+    }
+
+
+def panel_response(request, template, context, status=200):
+    response = render(request, template, {**context, **panel_context(request)}, status=status)
+    if request.GET.get("embedded") == "1":
+        response.editor_panel = True
+    response["Cache-Control"] = "no-store"
+    return response
+
+
 @require_http_methods(["GET", "POST"])
 @metadata_reviewer_required
 def workspace(request, pk):
+    from library.services.reading_styles import style_context
+
     version = get_version(pk)
     if request.method == "POST":
         return save(request, version)
@@ -43,7 +61,7 @@ def workspace(request, pk):
             "version": version,
             "editor_error": "The pilot assets are not built. Run npm ci and npm run build.",
         }, status=503)
-    error, initial, draft = "", None, None
+    error, initial, draft, choose_history = "", None, None, False
     histories = DocumentDraftBase.objects.filter(
         rendition=version, profile=get_profile().key,
     ).exclude(pk__in=ReviewerRun.objects.values("draft_id")).order_by("-created_at")
@@ -54,13 +72,14 @@ def workspace(request, pk):
             if len(choices) == 1:
                 draft_id = str(choices[0].pk)
             elif len(choices) > 1:
-                return redirect("document-editor-history", pk=pk)
+                choose_history = True
         if draft_id:
             draft = get_draft(draft_id, version)
             revision = draft.revisions.first()
             saved_state(draft, revision.revision if revision else 0)
             initial = {
                 "document": revision.document if revision else draft.document,
+                "baseline_document": draft.document,
                 "structure": draft.evidence.get("structure", version.structure),
                 "draft": str(draft.pk), "revision": revision.revision if revision else 0,
                 "approval_digest": None, "requires_approval": False, "repairs": [],
@@ -73,6 +92,7 @@ def workspace(request, pk):
             proposal = preview_rendition_import(version)
             initial = {
                 "document": proposal["document"], "draft": None, "revision": 0,
+                "baseline_document": proposal["document"],
                 "structure": version.structure,
                 "approval_digest": proposal["approval_digest"],
                 "requires_approval": proposal["requires_approval"],
@@ -87,13 +107,20 @@ def workspace(request, pk):
         from django.conf.locale import LANG_INFO
         from django.utils.translation import get_language_info
 
+        initial["choose_history"] = choose_history
         initial["presentation"] = {
             "sourceName": source_name(version.document.url),
             "sourceUrl": version.document.url,
             "languages": {code: get_language_info(code)["name"] for code in LANG_INFO},
         }
+    try:
+        reading_style = style_context(request)
+    except ValueError as exc:
+        error, reading_style = str(exc), {}
     response = render(request, "library/document_editor.html", {
+        **reading_style,
         "version": version, "initial": initial, "editor_error": error, "draft": draft,
+        "choose_history": choose_history,
         "evaluation_run": ReviewerRun.objects.filter(draft=draft, reviewer=request.user).first()
         if draft else None,
     }, status=422 if error else 200)
@@ -105,7 +132,7 @@ def workspace(request, pk):
 @metadata_reviewer_required
 def history(request, pk):
     version = get_version(pk)
-    error, status, draft, selected = "", 200, None, None
+    error, status, draft, selected, switch_url = "", 200, None, None, None
     try:
         values = request.POST if request.method == "POST" else request.GET
         identifier = values.get("draft")
@@ -116,7 +143,9 @@ def history(request, pk):
                 raise ValueError("Choose a correction history.")
             number = int(request.POST.get("revision", ""))
             branch = branch_draft(draft, request.user, number)
-            return redirect(reverse("document-editor", args=[pk]) + f"?draft={branch.pk}")
+            switch_url = reverse("document-editor", args=[pk]) + f"?draft={branch.pk}"
+            if not panel_context(request)["embedded"]:
+                return redirect(switch_url)
         if draft and "revision" in request.GET:
             number = int(request.GET["revision"])
             selected = {"number": number, "row": saved_state(draft, number)}
@@ -129,14 +158,12 @@ def history(request, pk):
     histories = DocumentDraftBase.objects.filter(
         rendition=version, profile=get_profile().key,
     ).exclude(pk__in=ReviewerRun.objects.values("draft_id")).select_related("reviewer")
-    response = render(request, "library/document_editor_history.html", {
+    return panel_response(request, "library/document_editor_history.html", {
         "version": version, "draft": draft, "selected": selected,
         "histories": histories.order_by("-created_at"),
         "revisions": draft.revisions.select_related("reviewer") if draft else [],
-        "history_error": error,
+        "history_error": error, "switch_url": switch_url,
     }, status=status)
-    response["Cache-Control"] = "no-store"
-    return response
 
 
 def get_version(pk):
@@ -191,7 +218,7 @@ def fresh_draft(request, pk):
     if mode not in {"original", "reviewed"}:
         return HttpResponse("Choose original or reviewed generation inputs.", status=422)
     original_source = mode == "original"
-    proposal, error, status = None, "", 200
+    proposal, error, status, switch_url = None, "", 200, None
     try:
         if request.method == "POST":
             if request.POST.get("confirm") != "yes":
@@ -200,8 +227,11 @@ def fresh_draft(request, pk):
                 source, request.user, request.POST.get("preview_digest"),
                 original_source=original_source,
             )
-            return redirect(reverse("document-editor", args=[pk]) + f"?draft={draft.pk}")
-        proposal = preview_fresh_draft(source, original_source=original_source)
+            switch_url = reverse("document-editor", args=[pk]) + f"?draft={draft.pk}"
+            if not panel_context(request)["embedded"]:
+                return redirect(switch_url)
+        else:
+            proposal = preview_fresh_draft(source, original_source=original_source)
     except DocumentEditConflict as exc:
         error, status = str(exc), 409
     except (ValueError, ImportFailure, OSError) as exc:
@@ -210,12 +240,10 @@ def fresh_draft(request, pk):
         if "locked" not in str(exc).lower():
             raise
         error, status = "Another writer is active. Review a fresh preview and retry.", 409
-    response = render(request, "library/document_fresh_draft.html", {
+    return panel_response(request, "library/document_fresh_draft.html", {
         "source": source, "proposal": proposal, "generation_error": error,
-        "input_mode": mode, "original_source": original_source,
+        "input_mode": mode, "original_source": original_source, "switch_url": switch_url,
     }, status=status)
-    response["Cache-Control"] = "no-store"
-    return response
 
 
 @require_http_methods(["GET", "POST"])
@@ -226,23 +254,28 @@ def publication(request, pk):
     from library.views import toc_tree
 
     source = get_version(pk)
-    error, candidate, status = "", None, 200
+    error, candidate, published, status = "", None, None, 200
     try:
         draft = get_draft(request.GET.get("draft"), source)
         values = request.POST if request.method == "POST" else request.GET
         revision = int(values.get("revision", ""))
         if request.method == "POST":
+            if values.get("draft") and values["draft"] != str(draft.pk):
+                raise ValueError("The submitted draft does not match the preview.")
             if values.get("confirm") != "yes":
                 raise ValueError("Explicitly confirm publication of this saved revision.")
             result = publish_revision(
                 draft, request.user, revision, values.get("preview_digest"),
             )
-            return redirect("reader", pk=result.rendition_id)
-        candidate = prepare_publication(draft, revision)
-        if request.GET.get("stylesheet") == "1":
-            return HttpResponse(
-                candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
-            )
+            if not panel_context(request)["embedded"]:
+                return redirect("reader", pk=result.rendition_id)
+            published = result
+        else:
+            candidate = prepare_publication(draft, revision)
+            if request.GET.get("stylesheet") == "1":
+                return HttpResponse(
+                    candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
+                )
         reading_style = style_context(request)
     except DocumentEditConflict as exc:
         error, status = str(exc), 409
@@ -254,11 +287,10 @@ def publication(request, pk):
         error, status, candidate = (
             "Another writer is active. Reload the publication preview.", 409, None,
         )
-    context = {"source": source, "publication_error": error}
-    if candidate:
-        version = Rendition(
-            document=source.document, snapshot=source.snapshot, **candidate["output"],
-        )
+    context = {"source": source, "publication_error": error, "published": published}
+    if candidate or published:
+        version = published.rendition if published else Rendition(
+            document=source.document, snapshot=source.snapshot, **candidate["output"])
         context.update({
             **reading_style, "style_preview": True,
             "version": version, "candidate": candidate,
@@ -270,7 +302,7 @@ def publication(request, pk):
                 version.html, version.structure["toc"],
             )["content_html"],
         })
-    return render(request, "library/document_publication.html", context, status=status)
+    return panel_response(request, "library/document_publication.html", context, status=status)
 
 
 def get_draft(value, version):
@@ -281,6 +313,25 @@ def get_draft(value, version):
     return get_object_or_404(
         DocumentDraftBase, pk=identifier, rendition=version, profile=get_profile().key,
     )
+
+
+@require_GET
+@metadata_reviewer_required
+def baseline(request, pk):
+    source = get_version(pk)
+    try:
+        draft = get_draft(request.GET.get("draft"), source)
+        revision = int(request.GET.get("revision", ""))
+        row = saved_state(draft, revision)
+    except (ValueError, ImportFailure) as exc:
+        response = JsonResponse({"error": str(exc)}, status=422)
+    else:
+        response = JsonResponse({
+            "draft": str(draft.pk), "revision": revision,
+            "document": row.document, "digest": row.document_digest,
+        })
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @require_GET
@@ -307,7 +358,7 @@ def comparison(request, pk):
         after, after_row = document(later)
         result = compare_documents(before, after, request.GET.get("section", ""))
     except (ValueError, ImportFailure) as exc:
-        return render(request, "library/document_comparison.html", {
+        return panel_response(request, "library/document_comparison.html", {
             "source": source, "comparison_error": str(exc),
         }, status=422)
     if request.GET.get("download") == "1":
@@ -333,7 +384,7 @@ def comparison(request, pk):
         }, json_dumps_params={"ensure_ascii": False, "indent": 2})
         response["Content-Disposition"] = 'attachment; filename="saved-document-comparison.json"'
     else:
-        response = render(request, "library/document_comparison.html", {
+        response = panel_response(request, "library/document_comparison.html", {
             "source": source, "draft": draft, "earlier": earlier, "later": later,
             "before": before, "after": after, "before_row": before_row, "after_row": after_row,
             "comparison": result,

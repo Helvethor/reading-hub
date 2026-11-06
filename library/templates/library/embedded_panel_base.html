@@ -1,0 +1,16 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site.name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'library/app.css' %}?v={{ app_version }}">
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}">
+</head>
+<body>
+  <main id="main">{% block content %}{% endblock %}</main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

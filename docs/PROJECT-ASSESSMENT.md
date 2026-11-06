@@ -25,7 +25,13 @@ publication. Prefer direct document/contextual manipulation; use same-page panel
 or dialogs for source inspection, metadata, membership, history/comparison,
 review, publication preview/confirmation and presentation profiles. One coherent
 document context does not require monolithic code or collapsing distinct save,
-review and publication transactions. This UI integration remains incomplete.
+review and publication transactions. The 2026-11-06 implementation now hosts
+history/comparison, regeneration and publication in same-page panels, with reading
+styles directly on the editor and retained-page membership in an affected-work
+panel. Legacy editing entry points are retired without deleting evidence.
+Restorable semantic content diffs and explicit reciprocal-note repair are
+implemented. This completes surface consolidation, not representative human
+acceptance or a claim that every source-quality defect is resolved.
 
 ## 2. Current situation
 
@@ -41,14 +47,17 @@ exist. Saved document sections drive corrected publication order/roles/nesting;
 document-local excerpt sections retain origin links. Generated title/ToC,
 numbering and accessible style profiles project into publication/PDF output.
 
-Consolidation remains unfinished: guarded target removal, remaining relationship/
-media repairs, retained-source page membership and affected-work safeguards, and
-single-page integration of the remaining reviewer routes. Source-page membership
+Remaining correction gaps include guarded target removal and broader relationship/
+media repairs. Retained-source page membership and affected-work safeguards now
+have an editor panel; source inspection, version workflows and publication no
+longer require leaving the editor. Source-page membership
 means adding/removing retained pages from a book or changing membership between
 works, not reordering corrected sections. Its separate data safeguards are not
 a reason to require a separate reviewer page. Legacy source rebuilding currently
 returns to a source-derived edition, without merging saved editor corrections.
-Do not retire legacy mutation paths until required outcomes have replacements.
+Obsolete legacy mutation requests now refuse explicitly; necessary semantic
+correction and membership outcomes use editor surfaces. Historical records and
+backend evidence remain intact.
 
 Read-only reconciliation on 2026-11-06 ran 158 focused backend and 224 frontend
 tests successfully. Article 52 and books 70/80 passed semantic relationship checks

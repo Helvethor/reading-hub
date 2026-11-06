@@ -1,24 +1,28 @@
-{% extends "library/base.html" %}
+{% extends panel_base %}
 {% load static %}
 {% block title %}Review publication | {{ site.name }}{% endblock %}
-{% block head %}{% if candidate %}<link rel="stylesheet" href="?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}{% endblock %}
+{% block head %}{% if candidate or published %}<link rel="stylesheet" href="{% if published %}{% url 'reader-css' published.rendition_id %}{% else %}?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1{% endif %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}{% endblock %}
 {% block content %}
 <div class="page-container">
   <h1>Review publication</h1>
-  <p><a href="{% url 'document-editor' source.pk %}?draft={{ request.GET.draft|urlencode }}">Back to saved draft</a></p>
+  {% if not embedded %}<p><a href="{% url 'document-editor' source.pk %}?draft={{ request.GET.draft|urlencode }}">Back to saved draft</a></p>{% endif %}
   {% if publication_error %}<p class="error" role="alert">{{ publication_error }}</p><p>Return to the editor and preview the latest saved revision again. Nothing was published by this request.</p>{% endif %}
   {% if candidate %}
-  <p><a href="{% url 'document-comparison' source.pk %}?draft={{ request.GET.draft|urlencode }}&amp;to={{ candidate.revision.revision }}" target="_blank" rel="noopener">Compare this saved revision with its pinned starting document</a></p>
+  <p><a href="{% url 'document-comparison' source.pk %}?draft={{ request.GET.draft|urlencode }}&amp;to={{ candidate.revision.revision }}{% if embedded %}&amp;embedded=1{% endif %}">Compare this saved revision with its pinned starting document</a></p>
   <p class="notice">Preview of saved revision {{ candidate.revision.revision }} only. Unsaved editor changes are not included. Publication creates a separate immutable edition; it does not verify content or modify the original edition, annotations, source corrections or catalogue ownership.</p>
   {% include 'library/document_review_status.html' with revision=candidate.revision %}
   <form method="post">
     {% csrf_token %}
+    <input type="hidden" name="draft" value="{{ candidate.revision.draft_id }}">
     <input type="hidden" name="revision" value="{{ candidate.revision.revision }}">
     <input type="hidden" name="preview_digest" value="{{ candidate.digest }}">
     <label><input type="checkbox" name="confirm" value="yes" required> I have reviewed this saved result and its review status. Publish it as a separate edition.</label>
     <button type="submit">Publish saved revision</button>
   </form>
-  {% include 'library/reading_style_controls.html' %}
+  {% endif %}
+  {% if published %}<p role="status">Published saved revision {{ published.revision.revision }} as edition {{ published.rendition_id }}. This is the published reading view; close this panel to return to the editor.</p>{% endif %}
+  {% if candidate or published %}
+  {% if candidate %}{% include 'library/reading_style_controls.html' %}{% endif %}
   <div class="reader-layout">
     <aside class="toc-panel"><nav aria-label="Table of contents">{% include 'library/toc.html' with nodes=toc %}</nav></aside>
     <div class="reading-column publication-content">

@@ -4,15 +4,19 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.db import OperationalError
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from library.metadata_views import metadata_reviewer_required
-from library.models import Annotation, ContentOrganizationDecision, Rendition
+from library.models import (
+    Annotation,
+    ContentOrganizationDecision,
+    Document,
+    Rendition,
+)
 from library.profile import get_profile
-from library.services.document_edits import preview_rendition_import
 from library.services.errors import ImportFailure
 from library.services.fetch import canonical_url
 from library.services.organizations import (
@@ -22,137 +26,116 @@ from library.services.organizations import (
     entries,
     member_destination,
     preview_change,
-    retained_manifest,
-    stored_source,
     undo_plan,
 )
+from library.sources.adapters import adapter_for
 
 SALT = "content-organization-v1"
 
 
-def section_candidates(url):
-    from library.services.storage import read_blob
-    from library.sources.base import parse_html
-    from library.sources.index_sections import sections
+def membership_root(version):
+    entry = (
+        entries()
+        .filter(url=version.document.url)
+        .select_related("book")
+        .first()
+    )
+    if entry and entry.book_id:
+        document = Document.objects.filter(url=entry.book.url).first()
+        parent = document.latest() if document else None
+        if parent:
+            return parent
+    return version
 
-    if not stored_source(url).book:
-        return []
-    manifest, _ = retained_manifest({"url": url, "parts": []})
-    entry = manifest["pages"][0]
-    soup = parse_html(read_blob(entry["digest"]), entry.get("headers", {}))
-    return [
-        {
-            "url": part.url,
-            "title": part.title,
-            "role": part.role,
-            "section": part.section,
-            "use_source_headings": part.use_source_headings,
+
+def _membership_decisions(root_url):
+    rows = ContentOrganizationDecision.objects.filter(profile=get_profile().key).select_related(
+        "reviewer", "undo_of"
+    ).order_by("-created_at", "-pk")[:100]
+    relevant = []
+    for decision in rows:
+        affected = {
+            spec["url"]
+            for spec in (*decision.before, *decision.after)
+        } | {
+            part["url"]
+            for spec in (*decision.before, *decision.after)
+            for part in spec["parts"]
         }
-        for part, _ in sections(soup, url)
-    ]
+        if root_url in affected:
+            relevant.append(decision)
+        if len(relevant) == 30:
+            break
+    return relevant
+
+
+def _decision_affects_url(decision, url):
+    return any(
+        spec["url"] == url or any(part["url"] == url for part in spec["parts"])
+        for spec in (*decision.before, *decision.after)
+    )
+
+
+def _membership_context(request, version):
+    root = membership_root(version)
+    context = {
+        "version": root,
+        "embedded": request.GET.get("embedded") == "1",
+        "panel_base": (
+            "library/embedded_panel_base.html"
+            if request.GET.get("embedded") == "1"
+            else "library/base.html"
+        ),
+        "decisions": _membership_decisions(root.document.url),
+    }
+    return root, context
 
 
 @require_http_methods(["GET", "POST"])
 @metadata_reviewer_required
-def workspace(request):
-    if request.method == "GET" and request.GET.get("source_evidence") == "1":
-        try:
-            from library.services.source_excerpts import (
-                definitions_for_entry,
-                evidence,
-                select_excerpt,
-            )
+def editor_membership(request, pk):
+    if not settings.READING_HUB_EDITOR_PILOT:
+        raise Http404("The document editor pilot is disabled.")
+    version = get_object_or_404(
+        Rendition.objects.select_related("document", "snapshot"), pk=pk
+    )
+    try:
+        adapter_for(version.document.url)
+    except ImportFailure as exc:
+        raise Http404("Edition unavailable in the active profile.") from exc
 
-            url = canonical_url(request.GET.get("source_url", ""))
-            manifest, _ = retained_manifest({"url": url, "parts": []})
-            entry = manifest["pages"][0]
-            result = evidence(entry)
-            result["definitions"] = definitions_for_entry(entry)
-            if "start" in request.GET and "end" in request.GET:
-                selection = {
-                    "version": 1,
-                    "source_digest": request.GET.get("source_digest", ""),
-                    "start": int(request.GET["start"]),
-                    "end": int(request.GET["end"]),
-                }
-                body = select_excerpt(entry, selection)
-                result["selection"] = selection
-                result["text"] = body.get_text("\n", strip=True)
-            return JsonResponse(result)
-        except (ValueError, ImportFailure, OSError) as exc:
-            return JsonResponse({"error": str(exc)}, status=422)
-    context = {
-        "decisions": ContentOrganizationDecision.objects.filter(
-            profile=get_profile().key
-        ).select_related("reviewer", "undo_of")[:30],
-    }
+    root, context = _membership_context(request, version)
+    if root.pk != version.pk:
+        query = "?embedded=1" if context["embedded"] else ""
+        return redirect(reverse("document-editor-membership", args=[root.pk]) + query)
+
     try:
         if request.method == "GET":
-            url = canonical_url(request.GET.get("url", ""))
-            member = entries().filter(url=url, book__isnull=False).select_related("book").first()
-            if member:
-                url = member.book.url
-            spec = current_spec(url)
+            spec = current_spec(root.document.url)
             context["specification"] = json.dumps(spec, indent=2, ensure_ascii=False)
-            context["section_candidates"] = section_candidates(url)
         elif request.POST.get("action") == "apply":
             payload = signing.loads(request.POST.get("token", ""), salt=SALT, max_age=1800)
-            if payload["reviewer"] != request.user.pk or payload["profile"] != get_profile().key:
-                raise ValueError("This preview belongs to another reviewer or profile.")
+            if (
+                payload.get("reviewer") != request.user.pk
+                or payload.get("profile") != get_profile().key
+                or payload.get("edition") != root.pk
+            ):
+                raise ValueError("This preview belongs to another reviewer, profile or edition.")
             if request.POST.get("preserve_annotations") != "yes":
                 raise ValueError("Explicitly acknowledge the private annotation handling policy.")
             undo = (
-                get_object_or_404(ContentOrganizationDecision, pk=payload["undo"])
-                if payload["undo"]
+                get_object_or_404(ContentOrganizationDecision, pk=payload.get("undo"))
+                if payload.get("undo")
                 else None
             )
             decision = commit_change(payload, request.user, payload["reason"], undo_of=undo)
-            source_url = payload["before"][0]["url"]
-            target_spec = next(
-                (spec for spec in payload["after"] if spec["url"] == source_url),
-                None,
-            )
-            if target_spec is None:
-                target_spec = next(
-                    (
-                        spec for spec in payload["after"]
-                        if any(part["url"] == source_url for part in spec["parts"])
-                    ),
-                    None,
-                )
-            rendition_id = (
-                decision.evidence["renditions"].get(target_spec["url"])
-                if target_spec else None
-            )
-            editor_url, editor_limitation = None, None
-            if settings.READING_HUB_EDITOR_PILOT:
-                if rendition_id:
-                    rendition = get_object_or_404(Rendition, pk=rendition_id)
-                    try:
-                        preview_rendition_import(rendition)
-                    except (ValueError, ImportFailure) as exc:
-                        editor_limitation = (
-                            "The document editor cannot open this edition yet: " + str(exc)
-                        )
-                    else:
-                        editor_url = (
-                            reverse("document-editor", args=[rendition_id]) + "?start=source"
-                        )
-                else:
-                    editor_limitation = (
-                        "The organization change was saved, but no resulting editor edition "
-                        "was identified."
-                    )
-            return render(
-                request,
-                "library/organization_saved.html",
-                {
-                    "decision": decision,
-                    "url": payload["after"][0]["url"],
-                    "editor_url": editor_url,
-                    "editor_limitation": editor_limitation,
-                },
-            )
+            context["saved_decision"] = decision
+            context["saved_renditions"] = [
+                (url, rendition_id)
+                for url, rendition_id in decision.evidence["renditions"].items()
+            ]
+            spec = current_spec(root.document.url)
+            context["specification"] = json.dumps(spec, indent=2, ensure_ascii=False)
         else:
             reason = request.POST.get("reason", "").strip()
             context["reason"] = reason
@@ -166,12 +149,12 @@ def workspace(request):
                     pk=request.POST.get("decision"),
                     profile=get_profile().key,
                 )
+                if not _decision_affects_url(undo, root.document.url):
+                    raise ValueError("Choose an organization decision affecting this work.")
                 before, after = undo_plan(undo)
                 context["specification"] = json.dumps(after[0], indent=2, ensure_ascii=False)
-                context["section_candidates"] = section_candidates(after[0]["url"])
             elif request.POST.get("action") == "preview":
                 before, after = change_plan(json.loads(context["specification"]))
-                context["section_candidates"] = section_candidates(after[0]["url"])
             else:
                 raise ValueError("Choose Preview or Preview undo.")
             result = preview_change(before, after, undo_of=undo)
@@ -180,6 +163,7 @@ def workspace(request):
                 {
                     "reviewer": request.user.pk,
                     "profile": get_profile().key,
+                    "edition": root.pk,
                     "reason": reason,
                     "before": before,
                     "after": after,
@@ -196,23 +180,63 @@ def workspace(request):
         if "locked" not in str(exc).lower():
             raise
         context["error"] = "Another writer is active. No partial change was saved; preview again."
-    if context.get("specification"):
-        try:
-            from library.services.source_excerpts import definitions_for_entry
-
-            spec = json.loads(context["specification"])
-            manifest, _ = retained_manifest(spec)
-            context["excerpt_definitions"] = [
-                item for entry in manifest["pages"] for item in definitions_for_entry(entry)
-            ]
-        except (ValueError, ImportFailure, OSError, KeyError, TypeError) as exc:
-            context["excerpt_definition_error"] = str(exc)
-    return render(
+    response = render(
         request,
-        "library/organization.html",
+        "library/editor_membership.html",
         context,
         status=422 if context.get("error") else 200,
     )
+    if context["embedded"]:
+        response.editor_panel = True
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@require_http_methods(["GET", "POST"])
+@metadata_reviewer_required
+def workspace(request):
+    if request.method == "POST":
+        return HttpResponse(
+            "Standalone organization editing is retired. "
+            "Use the edition's editor membership panel.",
+            status=410,
+        )
+    rendition = None
+    version_id = request.GET.get("review_version")
+    if version_id and version_id.isdecimal():
+        rendition = Rendition.objects.select_related("document").filter(pk=version_id).first()
+    if rendition is None and request.GET.get("url"):
+        try:
+            url = canonical_url(request.GET["url"])
+        except ValueError:
+            url = ""
+        document = Document.objects.filter(url=url).first() if url else None
+        rendition = document.latest() if document else None
+    if rendition is None and request.GET.get("review_capture", "").isdecimal():
+        from library.models import CrawlCapture
+
+        capture = CrawlCapture.objects.filter(
+            pk=request.GET["review_capture"], site__profile=get_profile().key
+        ).first()
+        if capture:
+            document = Document.objects.filter(url=capture.url).first()
+            rendition = document.latest() if document else None
+    if rendition is None:
+        return redirect("work-review")
+    if not settings.READING_HUB_EDITOR_PILOT:
+        return HttpResponse(
+            "Standalone organization editing is retired, and the document editor "
+            "is currently disabled.",
+            status=503,
+        )
+    root = membership_root(rendition)
+    target = reverse("document-editor-membership", args=[root.pk])
+    if request.GET.get("embedded") == "1":
+        target += "?embedded=1"
+    response = redirect(target)
+    if request.GET.get("embedded") == "1":
+        response.editor_panel = True
+    return response
 
 
 @require_GET

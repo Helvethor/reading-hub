@@ -1,5 +1,6 @@
 from urllib.parse import urlencode, urlsplit
 
+from django.conf import settings
 from django.http import Http404
 from django.urls import reverse
 
@@ -8,6 +9,8 @@ from library.profile import get_profile
 
 REVIEW_PAGES = {
     "work-review",
+    "document-editor",
+    "document-editor-membership",
     "rendition-corrections",
     "correction-workspace",
     "correction-revisions",
@@ -109,12 +112,12 @@ def navigation(request, context):
     items = [
         {"label": "Review overview", "url": link("work-review"), "active": route == "work-review"},
     ]
-    if capture:
+    if version and settings.READING_HUB_EDITOR_PILOT:
         items.append(
             {
-                "label": "Source editor",
-                "url": link("correction-workspace", [capture.pk]),
-                "active": route == "correction-workspace",
+                "label": "Document editor",
+                "url": link("document-editor", [version.pk], {"start": "source"}),
+                "active": route == "document-editor",
             }
         )
     elif version:
@@ -125,12 +128,12 @@ def navigation(request, context):
                 "active": route == "rendition-corrections",
             }
         )
-    if url:
+    if version and settings.READING_HUB_EDITOR_PILOT:
         items.append(
             {
-                "label": "Content organization",
-                "url": link("content-organization"),
-                "active": route == "content-organization",
+                "label": "Page membership",
+                "url": link("document-editor-membership", [version.pk]),
+                "active": route == "document-editor-membership",
             }
         )
     if capture:

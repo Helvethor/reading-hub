@@ -14,7 +14,7 @@
 </div>
 {% include 'library/reading_style_controls.html' %}
 {% if user.is_staff or perms.library.review_metadata %}
-<div class="reader-review-entry"><a href="{% url 'work-review' %}?review_version={{ version.pk }}">Review this work</a><span class="muted">Parsing, organization and metadata</span></div>
+<div class="reader-review-entry"><a href="{% url 'work-review' %}?review_version={{ version.pk }}">Review this work</a>{% if editor_pilot %}<span aria-hidden="true"> · </span><a href="{% url 'document-editor-membership' version.pk %}">Retained-page membership</a>{% endif %}<span class="muted">Parsing, organization and metadata</span></div>
 {% endif %}
 <div class="reader-layout">
   <label class="print-options"><input type="checkbox" id="print-wrap-images"> Wrap text around smaller figures when printing (reduces image width). Browser print: Ctrl+P. Downloaded PDFs exclude private annotations.</label>

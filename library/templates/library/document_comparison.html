@@ -1,13 +1,14 @@
-{% extends "library/base.html" %}
+{% extends panel_base %}
 {% block title %}Compare saved revisions | {{ site.name }}{% endblock %}
 {% block content %}
 <div class="page-container document-comparison">
   <h1>Compare saved revisions</h1>
-  <p><a href="{% url 'document-editor' source.pk %}{% if draft %}?draft={{ draft.pk }}{% endif %}">Back to editor</a></p>
+  {% if not embedded %}<p><a href="{% url 'document-editor' source.pk %}{% if draft %}?draft={{ draft.pk }}{% endif %}">Back to editor</a></p>{% endif %}
   {% if comparison_error %}<p class="error" role="alert">{{ comparison_error }}</p>{% else %}
   <p class="notice">Read-only comparison of saved evidence. Unsaved editor changes are not included. Differences do not verify content, approve publication or establish a training example.</p>
   <form method="get">
     <input type="hidden" name="draft" value="{{ draft.pk }}">
+    {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
     <label>Earlier revision (0 = pinned draft base) <input type="number" name="from" min="0" value="{{ earlier }}" required></label>
     <label>Later revision (0 = pinned draft base) <input type="number" name="to" min="0" value="{{ later }}" required></label>
     <label>HTML scope

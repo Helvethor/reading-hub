@@ -1,18 +1,27 @@
-import json
 from copy import deepcopy
+from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup, Tag
+from django.conf import settings
 from django.contrib import messages
 from django.core import signing
 from django.core.paginator import Paginator
 from django.db import OperationalError
 from django.db.models import F, OuterRef, Subquery
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from library.metadata_views import metadata_reviewer_required
-from library.models import CanonicalAuthor, CrawlCapture, Rendition, SourceCorrection
+from library.models import (
+    CanonicalAuthor,
+    CatalogueEntry,
+    CrawlCapture,
+    Document,
+    Rendition,
+    SourceCorrection,
+)
 from library.profile import get_profile
 from library.review_filters import REVIEW_LANGUAGES, correction_language_filter, review_language
 from library.services.correction_datasets import (
@@ -26,22 +35,39 @@ from library.services.correction_datasets import (
 from library.services.corrections import (
     CorrectionConflict,
     apply_expected,
-    baseline,
-    block_rows,
-    editable_nodes,
-    extraction,
-    latest,
     rendition_correction_sources,
     retain_rendition_capture,
-    save_correction,
-    validate_expected,
 )
 from library.services.errors import ImportFailure
 from library.services.metadata_review import candidate_author_matches
-from library.services.note_corrections import reference_rows
-from library.services.page_types import classify, latest_decision
+from library.services.page_types import latest_decision
 from library.sources.base import Source
 from library.sources.normalize import normalize
+
+
+def editor_version_for_capture(capture):
+    entry = (
+        CatalogueEntry.objects.filter(url=capture.url, site__profile=get_profile().key)
+        .select_related("book")
+        .first()
+    )
+    root_url = entry.book.url if entry and entry.book_id else capture.url
+    document = Document.objects.filter(url=root_url).first()
+    if document is None:
+        return None
+    versions = document.renditions.select_related("snapshot").order_by("-created_at", "-pk")
+    for version in versions:
+        if any(
+            page["url"] == capture.url
+            and page.get("digest") == capture.response.get("digest")
+            for page in version.snapshot.manifest.get("pages", [])
+        ):
+            return version
+    return document.latest()
+
+
+def retired_correction_response(message):
+    return HttpResponse(message, status=410, content_type="text/plain; charset=utf-8")
 
 
 @require_GET
@@ -85,13 +111,18 @@ def rendition_source(request, pk):
             raise
         messages.error(request, "Another writer is active. Retry opening the retained source.")
         return redirect("rendition-corrections", pk=rendition.pk)
-    if request.POST.get("review_version") == str(rendition.pk):
-        from django.urls import reverse
-
-        return redirect(
-            reverse("correction-workspace", args=[capture.pk]) + f"?review_version={rendition.pk}"
+    if not settings.READING_HUB_EDITOR_PILOT:
+        return HttpResponse(
+            "The retained page was opened, but legacy correction editing is retired "
+            "and the document editor is currently disabled.",
+            status=503,
         )
-    return redirect("correction-workspace", pk=capture.pk)
+    params = {
+        "start": "source",
+        "review_capture": capture.pk,
+        "review_version": rendition.pk,
+    }
+    return redirect(f"{reverse('document-editor', args=[rendition.pk])}?{urlencode(params)}")
 
 
 def capture_for_review(pk):
@@ -109,16 +140,15 @@ def excerpts(request, pk):
         evidence,
         normalized_preview,
         revision_data,
-        save_definition,
     )
 
     capture = capture_for_review(pk)
     try:
         entry = {**capture.response, "url": capture.url}
         if request.method == "POST":
-            row = save_definition(capture, request.user, json.loads(request.body))
-            return JsonResponse({"saved": revision_data(row),
-                                 "definitions": definitions_for_capture(capture)})
+            return retired_correction_response(
+                "Legacy source-excerpt editing is retired. No excerpt definition was changed."
+            )
         return JsonResponse({
             **evidence(entry),
             "html": normalized_preview(entry),
@@ -215,97 +245,39 @@ def preview(source, part, body, expected):
     }
 
 
-@require_GET
+@require_http_methods(["GET", "POST"])
 @metadata_reviewer_required
 def workspace(request, pk):
     capture = capture_for_review(pk)
-    page_type = {
-        "page_type_decision": latest_decision(capture.site, capture.url),
-        "page_type_history": capture.site.page_type_decisions.filter(url=capture.url)[:10],
-    }
-    if capture.discovery_only:
-        return render(request, "library/discovery_capture.html", {"capture": capture, **page_type})
-    try:
-        source, part, body, soup = extraction(capture, excerpt_mapping=True)
-        current = latest(capture)
-        from library.services.corrections import legacy_index_metadata
-
-        original = baseline(source, body)
-        stale = current and (
-            current.adapter_version != get_profile().adapter_version
-            or current.source_digest != capture.response["digest"]
-            or (
-                current.original["body_digest"] != original["body_digest"]
-                and not legacy_index_metadata(current, body)
-            )
+    if request.method == "POST":
+        return retired_correction_response(
+            "Legacy source-correction mutations are retired. No correction was changed."
         )
-        expected = {} if current is None or stale else current.expected
-        try:
-            result = preview(source, part, body, expected)
-        except ImportFailure as exc:
-            from library.services.preview_blocks import mark_blocks
-
-            result = {
-                "title": source.title,
-                "metadata": source.metadata,
-                "html": "",
-                "blocks": mark_blocks(deepcopy(body))[0],
-                "error": f"Preview unavailable: {exc}. Repair the links below and preview again.",
-            }
-    except (ImportFailure, OSError, ValueError) as exc:
-        return render(
-            request,
-            "library/corrections.html",
-            {"capture": capture, "load_error": str(exc), **page_type},
-            status=422,
+    version = editor_version_for_capture(capture)
+    if version is None:
+        return redirect("work-review")
+    if not settings.READING_HUB_EDITOR_PILOT:
+        return HttpResponse(
+            "Legacy correction editing is retired, and the document editor is currently disabled.",
+            status=503,
         )
-    return render(
-        request,
-        "library/corrections.html",
-        {
-            "capture": capture,
-            **page_type,
-            "current": current,
-            "stale": stale,
-            "source_text": soup.get_text(" ", strip=True),
-            "source_html": str(soup),
-            "original": original,
-            "blocks": block_rows(body),
-            "note_links": reference_rows(body, editable_nodes(body)),
-            "expected": expected,
-            "parsed_people": parsed_people(source.metadata),
-            "preview": result,
-            "metadata_only": source.book
-            and not body.get_text(strip=True)
-            and part not in source.parts,
-            "revisions": capture.corrections.select_related("reviewer")[:20],
-        },
+    params = {"review_capture": capture.pk, "review_version": version.pk}
+    if request.GET.get("start") == "source":
+        params["start"] = "source"
+    if request.GET.get("embedded") == "1":
+        params["embedded"] = "1"
+    return redirect(
+        f"{reverse('document-editor', args=[version.pk])}?{urlencode(params)}"
     )
 
 
 @require_POST
 @metadata_reviewer_required
 def page_type(request, pk):
-    capture = capture_for_review(pk)
-    try:
-        classify(
-            capture,
-            request.user,
-            request.POST.get("action", ""),
-            request.POST.get("reason", ""),
-            request.POST.get("revision", ""),
-        )
-    except (ValueError, ImportFailure, OSError) as exc:
-        messages.error(request, str(exc))
-    else:
-        messages.success(request, "Page type updated for this URL and all retained captures.")
-    if request.GET:
-        from django.urls import reverse
-
-        return redirect(
-            reverse("correction-workspace", args=[capture.pk]) + "?" + request.GET.urlencode()
-        )
-    return redirect("correction-workspace", pk=capture.pk)
+    capture_for_review(pk)
+    return retired_correction_response(
+        "Legacy page-type mutations are retired. No source classification was changed."
+    )
 
 
 def parsed_people(metadata):
@@ -397,8 +369,6 @@ def dataset_import(request):
                     raise ValueError("Choose a correction dataset JSON file.")
                 value = parse_dataset(upload.read(MAX_BYTES + 1))
                 rows = prepare_import(value)
-                # Sign exactly the inspected records and local revision baselines.
-                # No server-side staging or database writes occur during preview.
                 value["corrections"] = [row["record"] for row in rows]
                 payload = {
                     "user": request.user.pk,
@@ -449,40 +419,28 @@ def revisions(request, pk):
     page = Paginator(capture.corrections.select_related("reviewer"), 20).get_page(
         request.GET.get("page")
     )
-    return render(request, "library/correction_revisions.html", {"capture": capture, "page": page})
+    return render(
+        request,
+        "library/correction_revisions.html",
+        {
+            "capture": capture,
+            "page": page,
+            "page_type_decision": latest_decision(capture.site, capture.url),
+            "page_type_history": capture.site.page_type_decisions.filter(
+                url=capture.url
+            ).select_related("reviewer").order_by("-created_at", "-pk")[:20],
+        },
+    )
 
 
 @require_POST
 @metadata_reviewer_required
 def update(request, pk):
-    capture = capture_for_review(pk)
-    if len(request.body) > 256_000:
-        return JsonResponse({"error": "Correction exceeds the 256 KB limit."}, status=413)
-    try:
-        data = json.loads(request.body)
-        if not isinstance(data, dict) or set(data) - {"expected", "revision", "reason", "action"}:
-            raise ValueError("Invalid correction request.")
-        action = data.get("action")
-        if not isinstance(action, str) or action not in {"preview", "save"}:
-            raise ValueError("Choose preview or save.")
-        expected = data.get("expected", {})
-        reason = data.get("reason", "")
-        if not isinstance(reason, str) or len(reason) > 4000:
-            raise ValueError("Reason must contain at most 4000 characters.")
-        source, part, body, _ = extraction(capture, excerpt_mapping=True)
-        expected = validate_expected(expected, body, source)
-        result = preview(source, part, body, expected)
-        if action == "save":
-            revision = data.get("revision")
-            if type(revision) is not int or revision < 0:
-                raise ValueError("Invalid base revision.")
-            correction = save_correction(capture, request.user, expected, revision, reason)
-            result["revision"] = correction.revision
-        return JsonResponse(result)
-    except CorrectionConflict as exc:
-        return JsonResponse({"error": str(exc)}, status=409)
-    except (ValueError, ImportFailure, OSError) as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+    capture_for_review(pk)
+    return JsonResponse(
+        {"error": "Legacy source-correction mutations are retired. No correction was changed."},
+        status=410,
+    )
 
 
 @require_GET

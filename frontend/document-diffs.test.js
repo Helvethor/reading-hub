@@ -101,16 +101,48 @@ test("hidden-scope restoration refuses without mutating content", () => {
 });
 
 test("large changed text has a bounded exact replacement rather than silently omitted differences", () => {
-  const editor = open(`<p>${"x".repeat(2000)}</p>`);
-  const before = baseline(editor, `<p>${"y".repeat(2000)}</p>`);
+  const editor = open(`<p>${"x ".repeat(1200)}</p>`);
+  const before = baseline(editor, `<p>${"y ".repeat(1200)}</p>`);
   const [change] = documentDifferences(before, editor.state.doc);
   assert.equal(change.coarse, true);
   restoreDifference(editor, change, {replace: true});
-  assert.equal(editor.getHTML(), `<p>${"y".repeat(2000)}</p>`);
+  assert.equal(editor.getHTML(), `<p>${"y ".repeat(1200)}</p>`);
 });
 
 test("identical source markup ignores editor-only wrapper identities", () => {
   const editor = open('<p><em>A</em><strong>B</strong></p>');
   const before = baseline(editor, '<p><em>A</em><strong>B</strong></p>');
   assert.equal(documentDifferences(before, editor.state.doc).length, 0);
+});
+
+test("Unicode differences never split surrogate pairs and partial keyboard selection is guarded", () => {
+  const editor = open("<p>New.</p>");
+  const before = baseline(editor, "<p>\u{1f642}.</p>");
+  const [change] = documentDifferences(before, editor.state.doc);
+  assert.throws(() => restoreDifference(editor, change,
+    {oldFrom: change.oldFrom, oldTo: change.oldFrom + 1}), /complete Unicode/);
+  restoreDifference(editor, change, {replace: true});
+  assert.equal(editor.getHTML(), "<p>\u{1f642}.</p>");
+});
+
+test("keyboard selection and widget restoration are UI-only until an explicit restore", () => {
+  const editor = open("<p>Before  after.</p>");
+  const before = baseline(editor, "<p>Before removed words after.</p>");
+  showDocumentDifferences(editor, before, true);
+  const widget = editor.view.dom.querySelector(".editor-diff-removed");
+  const prototype = dom.window.HTMLDialogElement.prototype;
+  prototype.showModal = function() { this.open = true; };
+  prototype.close = function() { this.open = false; this.dispatchEvent(new window.Event("close")); };
+  [...widget.querySelectorAll("button")].find(button =>
+    button.textContent === "Select removed text by keyboard").click();
+  const dialog = document.querySelector(".editor-restore-text");
+  const textarea = dialog.querySelector("textarea");
+  assert.equal(textarea.value, "removed words");
+  assert.equal(textarea.readOnly, true);
+  textarea.setSelectionRange(0, 7);
+  const button = [...dialog.querySelectorAll("button")].find(button => button.textContent === "Restore selected text");
+  assert.equal(editor.getHTML(), "<p>Before  after.</p>");
+  button.click();
+  assert.equal(editor.getHTML(), "<p>Before removed after.</p>");
+  assert.equal(document.querySelector(".editor-restore-text"), null);
 });

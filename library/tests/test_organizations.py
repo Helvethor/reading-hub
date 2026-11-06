@@ -21,10 +21,13 @@ from library.models import (
     DocumentEditRevision,
     DocumentPublication,
     Job,
+    PageTypeDecision,
     Rendition,
+    SourceCorrection,
 )
 from library.profile import get_profile
 from library.services.catalogue import configured_sites, register_book
+from library.services.errors import ImportFailure
 from library.services.fetch import Fetcher, Response
 from library.services.organizations import (
     change_plan,
@@ -40,6 +43,268 @@ from library.tests.test_sources import ARTICLE, BOOK, article_html, book_index, 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class OrganizationTests(TestCase):
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_editor_membership_panel_previews_publishes_and_undoes_without_replacing_drafts(self):
+        from bs4 import BeautifulSoup
+
+        from library.services.document_edits import create_draft
+
+        draft = create_draft(self.book, self.reviewer)
+        draft_state = (draft.rendition_id, draft.document, draft.evidence)
+        path = reverse("document-editor-membership", args=[self.book.pk])
+        embedded_path = path + "?embedded=1"
+        initial = self.client.get(path)
+        self.assertEqual(initial.status_code, 200)
+        self.assertContains(initial, "Retained page membership")
+        self.assertContains(initial, "Attach URL")
+        self.assertEqual(initial.context["version"], self.book)
+        embedded = self.client.get(path, {"embedded": "1"})
+        self.assertEqual(embedded.status_code, 200)
+        self.assertTrue(embedded.editor_panel)
+        self.assertEqual(embedded["X-Frame-Options"], "SAMEORIGIN")
+        self.assertIn("frame-ancestors 'self'", embedded["Content-Security-Policy"])
+        embedded_soup = BeautifulSoup(embedded.content, "html.parser")
+        self.assertIn("?embedded=1", embedded_soup.select_one("#organization-editor")["action"])
+        self.assertIn(
+            "?embedded=1",
+            embedded_soup.select_one("form[action*='membership']")["action"],
+        )
+
+        changed = deepcopy(self.spec)
+        changed["parts"].reverse()
+        preview = self.client.post(
+            embedded_path,
+            {
+                "action": "preview",
+                "reason": "Reorder retained chapters",
+                "specification": json.dumps(changed),
+            },
+        )
+        self.assertEqual(preview.status_code, 200)
+        self.assertContains(preview, "Preview: all affected works")
+        self.assertEqual(preview.context["preview"]["before"], [self.spec])
+        self.assertFalse(ContentOrganizationDecision.objects.exists())
+
+        token = preview.context["token"]
+        missing_acknowledgement = self.client.post(
+            embedded_path, {"action": "apply", "token": token}
+        )
+        self.assertEqual(missing_acknowledgement.status_code, 422)
+        self.assertFalse(ContentOrganizationDecision.objects.exists())
+
+        saved = self.client.post(
+            embedded_path,
+            {
+                "action": "apply",
+                "token": token,
+                "preserve_annotations": "yes",
+            },
+        )
+        self.assertEqual(saved.status_code, 200)
+        self.assertContains(saved, "Membership published")
+        self.assertContains(saved, "Switch to a newly published source edition")
+        self.assertEqual(saved.context["saved_decision"].after[0]["parts"], changed["parts"])
+        self.assertEqual(saved["Cache-Control"], "no-store")
+        self.assertTrue(saved.editor_panel)
+        self.assertTrue(DocumentDraftBase.objects.filter(pk=draft.pk).exists())
+        draft.refresh_from_db()
+        self.assertEqual(
+            (draft.rendition_id, draft.document, draft.evidence),
+            draft_state,
+        )
+        self.assertEqual(ContentOrganizationDecision.objects.count(), 1)
+
+        undo_preview = self.client.post(
+            embedded_path,
+            {
+                "action": "undo-preview",
+                "decision": saved.context["saved_decision"].pk,
+                "reason": "Restore the prior retained order",
+            },
+        )
+        self.assertEqual(undo_preview.status_code, 200)
+        self.assertEqual(undo_preview.context["preview"]["after"], [self.spec])
+        undone = self.client.post(
+            embedded_path,
+            {
+                "action": "apply",
+                "token": undo_preview.context["token"],
+                "preserve_annotations": "yes",
+            },
+        )
+        self.assertEqual(undone.status_code, 200)
+        self.assertEqual(ContentOrganizationDecision.objects.count(), 2)
+        self.assertEqual(ContentOrganizationDecision.objects.latest("pk").undo_of_id,
+                         saved.context["saved_decision"].pk)
+        self.assertTrue(DocumentDraftBase.objects.filter(pk=draft.pk).exists())
+        draft.refresh_from_db()
+        self.assertEqual(
+            (draft.rendition_id, draft.document, draft.evidence),
+            draft_state,
+        )
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_standalone_organization_redirects_or_refuses_without_mutating(self):
+        legacy = reverse("content-organization")
+        destination = reverse("document-editor-membership", args=[self.book.pk])
+        self.assertRedirects(
+            self.client.get(legacy, {"review_version": self.book.pk}),
+            destination,
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            self.client.get(legacy),
+            reverse("work-review"),
+            fetch_redirect_response=False,
+        )
+        retired = self.client.post(
+            legacy,
+            {
+                "action": "preview",
+                "reason": "Should not mutate",
+                "specification": json.dumps(self.spec),
+            },
+        )
+        self.assertEqual(retired.status_code, 410)
+        self.assertFalse(ContentOrganizationDecision.objects.exists())
+
+        regular = get_user_model().objects.create_user("not-an-organizer")
+        self.client.force_login(regular)
+        self.assertEqual(self.client.get(destination).status_code, 403)
+
+    @override_settings(READING_HUB_EDITOR_PILOT=False)
+    def test_retired_organization_reports_disabled_editor_for_selected_edition(self):
+        response = self.client.get(
+            reverse("content-organization"),
+            {"review_version": self.book.pk},
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertContains(
+            response,
+            "document editor is currently disabled",
+            status_code=503,
+        )
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_membership_panel_blocks_missing_sources_and_stale_previews(self):
+        path = reverse("document-editor-membership", args=[self.book.pk])
+        missing = deepcopy(self.spec)
+        missing["parts"][0]["url"] = BOOK.replace("index.htm", "missing.htm")
+        response = self.client.post(
+            path,
+            {
+                "action": "preview",
+                "reason": "Attach a source that is not retained",
+                "specification": json.dumps(missing),
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertContains(response, "Missing retained page", status_code=422)
+        self.assertFalse(ContentOrganizationDecision.objects.exists())
+
+        changed = deepcopy(self.spec)
+        changed["parts"].reverse()
+        preview = self.client.post(
+            path,
+            {
+                "action": "preview",
+                "reason": "Reorder retained chapters",
+                "specification": json.dumps(changed),
+            },
+        )
+        self.assertEqual(preview.status_code, 200)
+        CrawlCapture.objects.create(
+            site=self.sites["www.marxists.org"],
+            url=BOOK,
+            response=save_response(self.response(BOOK), BOOK),
+        )
+        stale = self.client.post(
+            path,
+            {
+                "action": "apply",
+                "token": preview.context["token"],
+                "preserve_annotations": "yes",
+            },
+        )
+        self.assertEqual(stale.status_code, 422)
+        self.assertContains(stale, "changed since preview", status_code=422)
+        self.assertFalse(ContentOrganizationDecision.objects.exists())
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_retired_correction_editors_redirect_and_all_legacy_mutations_refuse(self):
+        from library.services.corrections import save_correction
+        from library.services.document_edits import create_draft
+
+        draft = create_draft(self.book, self.reviewer)
+        capture = CrawlCapture.objects.create(
+            site=self.sites["www.marxists.org"],
+            url=BOOK,
+            response=save_response(self.response(BOOK), BOOK),
+        )
+        correction = save_correction(
+            capture, self.reviewer, {"metadata": {"title": "Historical correction"}},
+            0, "Historical evidence",
+        )
+        draft_count = DocumentDraftBase.objects.count()
+        capture_count = CrawlCapture.objects.count()
+        classification = PageTypeDecision.objects.create(
+            site=capture.site,
+            url=capture.url,
+            discovery_only=True,
+            previous_flags={"captures": {}, "entries": {}},
+            reviewer=self.reviewer,
+            reason="Global discovery-only evidence",
+        )
+        editor = reverse("document-editor", args=[self.book.pk])
+        response = self.client.get(reverse("correction-workspace", args=[capture.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url.split("?", 1)[0], editor)
+        self.assertNotIn("start=source", response.url)
+        self.assertIn(f"review_capture={capture.pk}", response.url)
+        self.assertIn(f"review_version={self.book.pk}", response.url)
+        with patch("library.document_editor_views.finders.find", return_value="built-asset"):
+            opened = self.client.get(response.url)
+        self.assertEqual(opened.status_code, 200)
+        self.assertEqual(opened.context["draft"].pk, draft.pk)
+        self.assertEqual(DocumentDraftBase.objects.count(), draft_count)
+        self.assertEqual(CrawlCapture.objects.count(), capture_count)
+        legacy_writes = [
+            self.client.post(reverse("correction-workspace", args=[capture.pk]), {}),
+            self.client.post(
+                reverse("correction-update", args=[capture.pk]),
+                "{}",
+                content_type="application/json",
+            ),
+            self.client.post(reverse("correction-page-type", args=[capture.pk]), {}),
+            self.client.post(
+                reverse("source-excerpts", args=[capture.pk]),
+                "{}",
+                content_type="application/json",
+            ),
+        ]
+        self.assertEqual([response.status_code for response in legacy_writes], [410] * 4)
+        self.assertContains(
+            self.client.get(reverse("correction-dataset-import")),
+            "Dataset JSON",
+        )
+        self.assertEqual(SourceCorrection.objects.get().pk, correction.pk)
+        self.assertEqual(PageTypeDecision.objects.get().pk, classification.pk)
+        history = self.client.get(reverse("correction-revisions", args=[capture.pk]))
+        self.assertEqual(history.status_code, 200)
+        self.assertContains(history, "Global discovery-only evidence")
+        self.assertContains(history, "Page classification evidence (read-only)")
+        self.assertNotContains(history, "correction-page-type")
+        self.assertEqual(
+            self.client.get(reverse("correction-export", args=[capture.pk])).json()[
+                "corrections"
+            ][0]["expected"],
+            correction.expected,
+        )
+        self.assertContains(
+            self.client.get(reverse("correction-dataset-import")),
+            "Dataset import is retired",
+        )
+
     def test_reviewed_metadata_title_overrides_stale_organization_title_on_reformat(self):
         from library.services.corrections import save_correction
         from library.services.pipeline import format_rendition
@@ -109,13 +374,17 @@ class OrganizationTests(TestCase):
         self.assertEqual(initial_editor.status_code, 200)
         self.assertContains(initial_editor, "Book structure")
         self.assertEqual(len(initial_editor.context["initial"]["structure"]["parts"]), 3)
-        self.assertContains(initial_editor, reverse("content-organization"))
+        self.assertContains(
+            initial_editor,
+            reverse("document-editor-membership", args=[self.book.pk]),
+        )
 
         changed = deepcopy(self.spec)
         changed["parts"].reverse()
         changed["parts"][0].update(title="Reviewed appendix", role="appendix")
+        membership_path = reverse("document-editor-membership", args=[self.book.pk])
         response = self.client.post(
-            reverse("content-organization"),
+            membership_path,
             {
                 "action": "preview",
                 "reason": "Set the reviewed book hierarchy",
@@ -125,15 +394,14 @@ class OrganizationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         token = response.context["token"]
         response = self.client.post(
-            reverse("content-organization"),
+            membership_path,
             {"action": "apply", "token": token, "preserve_annotations": "yes"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "newly organized retained-source edition")
-        editor_url = response.context["editor_url"]
+        self.assertContains(response, "Membership published")
         new_book = Document.objects.get(url=BOOK).latest()
-        self.assertEqual(
-            editor_url, reverse("document-editor", args=[new_book.pk]) + "?start=source"
+        self.assertIn(
+            (BOOK, new_book.pk), response.context["saved_renditions"]
         )
 
         def edit_and_publish(version):
@@ -206,33 +474,21 @@ class OrganizationTests(TestCase):
         self.assertEqual(DocumentPublication.objects.count(), 2)
 
     @override_settings(READING_HUB_EDITOR_PILOT=True)
-    def test_organization_commit_explains_when_editor_conversion_is_unsupported(self):
-        changed = deepcopy(self.spec)
-        changed["title"] = "New edition with unsupported legacy structure"
-        preview = self.client.post(
-            reverse("content-organization"),
-            {
-                "action": "preview",
-                "reason": "Validate editor conversion limitation",
-                "specification": json.dumps(changed),
-            },
-        )
-        self.assertEqual(preview.status_code, 200)
+    def test_organization_mutation_is_refused_even_when_editor_conversion_would_fail(self):
         with patch(
-            "library.organization_views.preview_rendition_import",
-            side_effect=ValueError("Legacy structure needs manual conversion."),
+            "library.organization_views.adapter_for",
+            side_effect=ImportFailure("Legacy structure needs manual conversion.", "organization"),
         ):
-            saved = self.client.post(
+            response = self.client.post(
                 reverse("content-organization"),
                 {
-                    "action": "apply", "token": preview.context["token"],
-                    "preserve_annotations": "yes",
+                    "action": "preview",
+                    "reason": "Should not run in the retired workspace",
+                    "specification": json.dumps(self.spec),
                 },
             )
-        self.assertEqual(saved.status_code, 200)
-        self.assertIsNone(saved.context["editor_url"])
-        self.assertContains(saved, "The document editor cannot open this edition yet")
-        self.assertContains(saved, "Legacy structure needs manual conversion.")
+        self.assertEqual(response.status_code, 410)
+        self.assertFalse(ContentOrganizationDecision.objects.exists())
 
     def test_preview_then_reorder_rename_roles_redirect_every_old_surface(self):
         first_url = self.spec["parts"][1]["url"]
@@ -482,9 +738,10 @@ class OrganizationTests(TestCase):
         with self.assertRaisesMessage(ValueError, "changed after"):
             undo_plan(decision)
 
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
     def test_review_ui_permission_confirmation_csrf_and_tamper_checks(self):
-        url = reverse("content-organization")
-        self.assertContains(self.client.get(url, {"url": BOOK}), "Correct content organization")
+        url = reverse("document-editor-membership", args=[self.book.pk])
+        self.assertContains(self.client.get(url), "Retained page membership")
         response = self.client.post(
             url,
             {
@@ -542,19 +799,21 @@ class OrganizationTests(TestCase):
                 "preserve_annotations": "yes",
             },
         )
-        self.assertContains(response, "Content organization published")
+        self.assertContains(response, "Membership published")
         self.assertEqual(ContentOrganizationDecision.objects.get().profile, get_profile().key)
 
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
     def test_save_controls_precede_advanced_json_and_preview_details(self):
         from bs4 import BeautifulSoup
 
-        url = reverse("content-organization")
-        response = self.client.get(url, {"url": BOOK})
+        url = reverse("document-editor-membership", args=[self.book.pk])
+        response = self.client.get(url)
         soup = BeautifulSoup(response.content, "html.parser")
         editor = soup.select_one("#organization-editor")
-        self.assertEqual(editor["action"], "#organization-preview")
+        self.assertEqual(editor["action"], url + "#organization-preview")
         self.assertEqual(
-            soup.select_one('a[href="#organization-save"]').text, "Review and save changes"
+            soup.select_one('a[href="#organization-save"]').text,
+            "Review and save membership changes",
         )
         actions = editor.select_one("#organization-save")
         self.assertEqual(actions.find_next_sibling("details")["id"], "organization-advanced")
@@ -577,7 +836,7 @@ class OrganizationTests(TestCase):
             confirm.select_one('input[name="preserve_annotations"]').has_attr("required")
         )
         self.assertEqual(
-            confirm.select_one("button").text, "Save organization and publish editions"
+            confirm.select_one("button").text, "Save membership and publish affected editions"
         )
         self.assertEqual(confirm.find_next_sibling("h3").text, "Before")
         self.assertFalse(ContentOrganizationDecision.objects.exists())

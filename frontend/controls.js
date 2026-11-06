@@ -23,6 +23,7 @@ import {mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
 import {isTocNumberingChange, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {mountNoteRepairs} from "./note-repairs.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
   title: form.querySelector('[name="title"]')?.value || initial.document?.title || "",
@@ -51,6 +52,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     () => bookViews.expandNavigation());
   mountSectionBoundaries(form, editor, showError, initial.structure?.parts || []);
   mountTargets(form, editor, showError);
+  const noteRepairs = form.ownerDocument.querySelector("#editor-note-repair")
+    ? mountNoteRepairs(form, editor, showError) : null;
 
   function figureOptions() {
     return {
@@ -304,7 +307,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     for (const button of form.querySelectorAll("[data-image]")) {
       available(button, !!selectedImage(editor));
     }
-    for (const button of form.querySelectorAll("[data-link], [data-link-remove]")) {
+    for (const button of form.querySelectorAll("[data-link], [data-link-remove], [data-note-repair]")) {
       available(button, !!selectedLink(editor));
     }
     for (const button of form.querySelectorAll("[data-link-insert]")) {
@@ -471,6 +474,9 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         imageDialog.showModal();
         imageDialog.querySelector("textarea").focus();
         return;
+      } else if ("noteRepair" in button.dataset) {
+        noteRepairs.open();
+        return;
       } else if ("link" in button.dataset || "linkInsert" in button.dataset) {
         linkProposal = "linkInsert" in button.dataset ? prepareLinkInsertion(editor) : prepareLinkEdit(editor);
         linkDialog.querySelector("#editor-link-heading").textContent =
@@ -503,7 +509,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showError(failure.message);
     }
   }
-  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-quotation]")) {
+  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation]")) {
     button.addEventListener("click", () => perform(button));
   }
   function workspaceHistory(event) {

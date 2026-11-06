@@ -1,6 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
@@ -80,14 +81,20 @@ class ReaderCorrectionTests(TestCase):
         self.assertEqual(self.client.get(endpoint).status_code, 405)
         response = self.client.post(endpoint, {"page": "0"})
         capture = CrawlCapture.objects.get()
-        self.assertRedirects(response, reverse("correction-workspace", args=[capture.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url.split("?", 1)[0], reverse("document-editor", args=[version.pk])
+        )
+        self.assertIn("start=source", response.url)
+        self.assertIn(f"review_capture={capture.pk}", response.url)
+        self.assertIn(f"review_version={version.pk}", response.url)
         self.assertEqual(capture.response, version.snapshot.manifest["pages"][0])
         self.assertEqual(capture.url, ARTICLE)
         self.client.post(endpoint, {"page": "0"})
         self.assertEqual(CrawlCapture.objects.count(), 1)
         self.assertContains(
             self.client.get(reverse("rendition-corrections", args=[version.pk])),
-            reverse("correction-workspace", args=[capture.pk]),
+            "Source editor — selected content",
         )
         self.fetch.assert_not_called()
         version.refresh_from_db()
@@ -118,13 +125,19 @@ class ReaderCorrectionTests(TestCase):
         sources = rendition_correction_sources(version)
         self.assertEqual(sources[0]["capture"], old_capture)
         response = self.client.get(reverse("rendition-corrections", args=[version.pk]))
-        self.assertContains(response, reverse("correction-workspace", args=[old_capture.pk]))
-        for capture in (latest, wrong_url):
-            self.assertNotContains(response, reverse("correction-workspace", args=[capture.pk]))
+        self.assertContains(response, "Source editor")
+        for capture in (old_capture, latest, wrong_url):
+            legacy_url = reverse("correction-workspace", args=[capture.pk])
+            self.assertNotContains(response, f'href="{legacy_url}"')
         response = self.client.post(
             reverse("rendition-correction-source", args=[version.pk]), {"page": "0"}
         )
-        self.assertEqual(response.url, reverse("correction-workspace", args=[old_capture.pk]))
+        editor_url = urlsplit(response.url)
+        query = parse_qs(editor_url.query)
+        self.assertEqual(editor_url.path, reverse("document-editor", args=[version.pk]))
+        self.assertEqual(query["start"], ["source"])
+        self.assertEqual(query["review_capture"], [str(old_capture.pk)])
+        self.assertEqual(query["review_version"], [str(version.pk)])
         self.assertEqual(CrawlCapture.objects.count(), 3)
 
     def test_book_offers_exact_contents_and_each_retained_chapter(self):
@@ -144,7 +157,13 @@ class ReaderCorrectionTests(TestCase):
             )
             capture = CrawlCapture.objects.get(url=source["url"])
             self.assertEqual(capture.response["digest"], source["page"]["digest"])
-            self.assertRedirects(response, reverse("correction-workspace", args=[capture.pk]))
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                response.url.split("?", 1)[0],
+                reverse("document-editor", args=[version.pk]),
+            )
+            self.assertIn(f"review_capture={capture.pk}", response.url)
+            self.assertIn("start=source", response.url)
             response = self.client.get(reverse("rendition-corrections", args=[version.pk]))
         self.assertEqual(CrawlCapture.objects.count(), 3)
 
@@ -220,7 +239,9 @@ class ReaderCorrectionTests(TestCase):
         self.assertNotContains(response, "Correct content organization")
         self.assertFalse(CrawlCapture.objects.exists())
         overview = BeautifulSoup(self.client.get(links[0]["href"]).content, "html.parser")
-        landing = self.client.get(overview.find("a", string="Source editor")["href"])
+        landing_url = overview.find("a", string="Document editor")["href"]
+        with patch("library.document_editor_views.finders.find", return_value="built-asset"):
+            landing = self.client.get(landing_url)
         self.assertContains(landing, "Book metadata / contents")
         self.assertContains(landing, "First chapter")
         self.assertContains(landing, "Second chapter")

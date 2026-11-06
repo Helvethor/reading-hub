@@ -6,6 +6,8 @@ import {mountWorkspace} from "./controls.js";
 import {documentParts, showDocumentPart} from "./workspace.js";
 import {mountSourcePanel} from "./source-insertion.js";
 import {mountMetadata} from "./metadata.js";
+import {mountDifferenceControls} from "./diff-controls.js";
+import {mountWorkflowPanels} from "./workflow-panels.js";
 
 const form = document.querySelector("#document-editor");
 if (form) {
@@ -34,6 +36,7 @@ if (form) {
   let recoverable = null;
   let structuredMetadata = null;
   let workspace = null;
+  let differences = null;
   const metadata = () => {
     const result = {...initial.document.metadata};
     for (const field of metadataFields) {
@@ -167,6 +170,11 @@ if (form) {
       remember();
     });
     for (const control of form.querySelectorAll("[disabled]")) control.disabled = false;
+    differences = mountDifferenceControls(form, editor, initial, showError);
+    mountWorkflowPanels({
+      form, showError, isDirty: () => dirty,
+      chooseHistory: initial.choose_history === true, historyUrl: historyLink.href,
+    });
     mountSourcePanel(form, editor, showError, () => initial.draft);
     status.textContent = `Fidelity check passed. Saved draft revision: ${initial.revision}.`;
     function updateSavedReview() {
@@ -320,6 +328,7 @@ if (form) {
         initial.saved_review = result.review;
         initial.saved_verified_sections = result.verified_sections;
         initial.editorial = result.editorial;
+        differences.refresh();
         updateSavedReview();
         if (!dirty) {
           title.value = result.document.title;
@@ -354,6 +363,11 @@ if (form) {
     window.addEventListener("beforeunload", event => {
       if (dirty) { event.preventDefault(); event.returnValue = ""; }
     });
+    if (initial.choose_history) {
+      editor.setEditable(false);
+      form.inert = true;
+      status.textContent = "Choose a correction history, or explicitly start from the source-derived edition, before editing.";
+    }
   } catch (failure) {
     showError(failure.message);
     status.textContent = "Editor unavailable; the original edition and drafts are unchanged.";

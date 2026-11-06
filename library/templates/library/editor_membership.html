@@ -1,0 +1,96 @@
+{% extends panel_base %}
+{% load static %}
+{% block title %}Retained page membership | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Retained page membership</h1>
+  <p>Membership changes use retained source pages for <strong>{{ version.title }}</strong>. Attach, detach or reorder pages, then preview every affected work before explicitly publishing. This does not replace, replay or overwrite saved editor drafts.</p>
+  <p><a href="#organization-save">Review and save membership changes</a></p>
+  {% if error %}<p class="notice warning" role="alert">{{ error }}</p>{% endif %}
+  {% if saved_decision %}
+    <section class="notice" role="status">
+      <h2>Membership published</h2>
+      <p>Decision #{{ saved_decision.pk }} was saved. All affected retained-source editions were validated before membership changed. Existing editor drafts and immutable versions remain unchanged.</p>
+      {% if saved_renditions %}
+        <p>Switch to a newly published source edition only by choosing one of these links:</p>
+        <ul>
+          {% for url, rendition_id in saved_renditions %}
+            <li><a href="{% url 'document-editor' rendition_id %}?start=source" data-workflow-switch>Switch to the newly published edition for {{ url }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endif %}
+  <p>Use exact source URLs. Missing retained pages, conflicting membership, active imports and incomplete output block publication. Capture missing pages first; this panel never starts a crawl.</p>
+  <form method="post" id="organization-editor" action="{% url 'document-editor-membership' version.pk %}{% if embedded %}?embedded=1{% endif %}#organization-preview">
+    {% csrf_token %}
+    <p>The ordered parts below are the proposed hierarchy. Attach a retained URL, move parts to change reading order, or detach a page into a separate work. No source evidence is deleted. Roles: preface, chapter, appendix, postscript.</p>
+    <div id="organization-parts"></div>
+    <button type="button" id="organization-add" hidden>Attach URL</button>
+    <fieldset id="organization-save">
+      <legend>Save membership</legend>
+      <label>Reason for changes <textarea name="reason" rows="2" maxlength="2000" required>{{ reason }}</textarea></label>
+      <button type="submit" name="action" value="preview">Preview changes to save</button>
+      <p class="help">Step 1 of 2: preview every affected work, then explicitly confirm publication. Nothing is saved yet.</p>
+    </fieldset>
+    <details id="organization-advanced" open>
+      <summary>Work specification (also editable without JavaScript)</summary>
+      <label>JSON: url, title, book and ordered parts
+        <textarea id="organization-specification" name="specification" rows="20" cols="90" required>{{ specification }}</textarea>
+      </label>
+    </details>
+  </form>
+  {% if preview %}
+    <section id="organization-preview" aria-label="Membership preview" tabindex="-1">
+      <h2>Preview: all affected works</h2>
+      <p>Every required retained page is present. The complete new rendition of every affected work was formatted and validated without publishing anything.</p>
+      <form method="post" id="organization-confirm" action="{% url 'document-editor-membership' version.pk %}{% if embedded %}?embedded=1{% endif %}#organization-preview">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="apply">
+        <input type="hidden" name="token" value="{{ token }}">
+        <fieldset>
+          <legend>Confirm and publish membership</legend>
+          <label><input type="checkbox" name="preserve_annotations" value="yes" required> {{ preview.annotation_policy }}</label>
+          <p>Reason: {{ reason }}. Confirmation expires in 30 minutes. Any intervening content or review change requires a fresh preview.</p>
+          <button type="submit">Save membership and publish affected editions</button>
+        </fieldset>
+      </form>
+      <h3>Before</h3>
+      {% for spec in preview.before %}
+        <details><summary>{{ spec.title }} — {{ spec.url }}</summary><ol>{% for part in spec.parts %}<li>{{ part.role }}: {{ part.title }} — <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a></li>{% endfor %}</ol></details>
+      {% endfor %}
+      <h3>After: hierarchy</h3>
+      {% for spec in preview.after %}
+        <details open><summary>{{ spec.title }} ({% if spec.book %}book{% else %}separate work / retained member evidence{% endif %})</summary>
+          <p><a href="{{ spec.url }}" target="_blank" rel="noopener noreferrer">{{ spec.url }}</a></p>
+          <ol>{% for part in spec.parts %}<li>{{ part.role }}: {{ part.title }} — <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a></li>{% endfor %}</ol>
+        </details>
+      {% endfor %}
+      {% for work in preview.works %}
+        <details><summary>New rendition / ToC: {{ work.spec.title }}</summary>
+          <ol>{% for node in work.structure.toc %}<li>Level {{ node.level }}: {{ node.title }}</li>{% endfor %}</ol>
+          {% for warning in work.warnings %}<p class="notice warning">{{ warning }}</p>{% endfor %}
+          <div class="reader-content">{{ work.html|safe }}</div>
+        </details>
+      {% endfor %}
+      <p>{{ preview.annotations }} existing private annotations are affected (counts only; private text is not shared with reviewers).</p>
+    </section>
+  {% endif %}
+  <h2>Append-only membership decisions</h2>
+  {% for decision in decisions %}
+    <details>
+      <summary>#{{ decision.pk }} — {{ decision.created_at }} — {{ decision.reviewer }}{% if decision.undo_of_id %} — undo of #{{ decision.undo_of_id }}{% endif %}</summary>
+      <p>{{ decision.reason }}</p>
+      <p>{{ decision.evidence.annotation_policy }}</p>
+      <form method="post" action="{% url 'document-editor-membership' version.pk %}{% if embedded %}?embedded=1{% endif %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="undo-preview">
+        <input type="hidden" name="decision" value="{{ decision.pk }}">
+        <label>Required undo reason <input name="reason" maxlength="2000" required></label>
+        <button type="submit">Preview audited undo</button>
+      </form>
+    </details>
+  {% empty %}<p>No membership decisions for this work.</p>{% endfor %}
+</div>
+<script src="{% static 'library/editor-membership.js' %}?v={{ app_version }}" defer></script>
+{% endblock %}

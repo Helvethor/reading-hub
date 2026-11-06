@@ -1,7 +1,9 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
-from django.test import TestCase
+from django.conf import settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from library.models import CrawlCapture, MetadataSuggestion, SourceCorrection
@@ -26,7 +28,8 @@ class ReviewNavigationTests(TestCase):
         response = self.client.get(reverse("reader", args=[version.pk]))
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertIsNone(self.menu(response))
-        self.assertEqual(len(soup.select(".reader-review-entry a")), 1)
+        expected_links = 2 if settings.READING_HUB_EDITOR_PILOT else 1
+        self.assertEqual(len(soup.select(".reader-review-entry a")), expected_links)
         self.assertNotIn("Review this work", soup.select_one(".reader-toolbar").get_text())
         self.assertContains(response, PARAGRAPH)
         self.client.force_login(self.reader)
@@ -36,7 +39,9 @@ class ReviewNavigationTests(TestCase):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("work-review")).status_code, 302)
 
-    def test_round_trip_book_source_and_tools_preserves_exact_version(self):
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    @patch("library.document_editor_views.finders.find", return_value="built-asset")
+    def test_round_trip_book_source_and_tools_preserves_exact_version(self, _find_asset):
         version = self.import_version(BOOK)
         # Retaining a source is still an explicit POST; navigating must not write.
         before = CrawlCapture.objects.count()
@@ -44,7 +49,7 @@ class ReviewNavigationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(CrawlCapture.objects.count(), before)
         menu = self.menu(response)
-        parsing = menu.find("a", string="Source editor")["href"]
+        parsing = menu.find("a", string="Document editor")["href"]
         response = self.client.get(parsing)
         self.assertEqual(response.status_code, 200)
         response = self.client.post(
@@ -52,13 +57,13 @@ class ReviewNavigationTests(TestCase):
             {"page": "1", "review_version": str(version.pk)},
         )
         self.assertIn(f"review_version={version.pk}", response.url)
-        response = self.client.get(response.url)
+        response = self.client.get(response.url, follow=True)
         menu = self.menu(response)
         capture = CrawlCapture.objects.get()
         self.assertIn(f"capture {capture.pk}", menu.get_text())
         self.assertEqual(
-            menu.find("a", string="Source editor")["href"].split("?")[0],
-            reverse("correction-workspace", args=[capture.pk]),
+            menu.find("a", string="Document editor")["href"].split("?")[0],
+            reverse("document-editor", args=[version.pk]),
         )
         selector = menu.select_one("[data-source-switcher]")
         self.assertEqual(len(selector.select("option")), 3)
@@ -72,7 +77,7 @@ class ReviewNavigationTests(TestCase):
             "Catalogue metadata",
             "Source revision history",
             "Metadata review",
-            "Content organization",
+            "Page membership",
         ):
             href = menu.find("a", string=label)["href"]
             self.assertEqual(parse_qs(urlsplit(href).query)["review_version"], [str(version.pk)])
@@ -121,6 +126,7 @@ class ReviewNavigationTests(TestCase):
         self.assertIsNotNone(soup.select_one('a[aria-current="page"]'))
         self.assertEqual(self.client.get(url, {"review_capture": "invalid"}).status_code, 404)
 
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
     def test_direct_capture_navigation_and_bad_context(self):
         version = self.import_version(ARTICLE)
         capture = CrawlCapture.objects.create(
@@ -129,8 +135,11 @@ class ReviewNavigationTests(TestCase):
             response=save_response(self.response(ARTICLE), ARTICLE),
         )
         response = self.client.get(reverse("correction-workspace", args=[capture.pk]))
-        self.assertContains(response, "Reviewer workspace")
-        self.assertContains(response, f"Back to reading — version {version.pk}")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            urlsplit(response.url).path,
+            reverse("document-editor", args=[version.pk]),
+        )
         self.assertEqual(
             self.client.get(
                 reverse("work-review"),

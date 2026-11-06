@@ -9,6 +9,59 @@ work; [Operations](docs/OPERATIONS.md) explains running it. The
 is historical evidence, not additional scope. "Planned" below does not mean
 implemented. A backlog idea is not authorization to implement it immediately.
 
+### Single-page document workspace (implemented 2026-11-06)
+
+The document editor is enabled by default; the historical
+`READING_HUB_EDITOR_PILOT=0` switch explicitly disables it. The self-hosted
+frontend still requires its normal build. Ordinary correction and retained-page
+membership no longer use standalone `/corrections` or `/organization` editing
+pages. Old entry links resolve to an editor/document chooser; obsolete mutation
+requests refuse explicitly. Historical corrections, dataset evidence, organization
+decisions, immutable editions and private annotations are retained.
+
+The editor hosts history/branching, saved comparison, retained-source regeneration
+and exact saved-revision publication in same-page panels. Panel close/cancel keeps
+pending content and canvas context. Switching to another history or newly generated
+edition is an explicit navigation with a pending-edit warning; generating/publishing
+never overwrites the current draft. Reading styles and personal profiles are
+available directly on the editor, including before saving. Membership has its own
+same-page affected-work preview and explicit confirmation, retaining offline-source,
+stale-preview, annotation and audited-undo safeguards. Corrected document sections
+and retained-source catalogue membership remain distinct transactions.
+
+Retained-source classification also has an editor panel: choose an exact retained
+page, inspect its latest URL-scoped decision, then explicitly confirm classification
+as discovery-only or undo with a reason and expected revision. This changes matching
+source/catalogue flags and future-import policy, never the saved semantic document,
+immutable editions or annotations. Inspection is read-only; any required exact
+capture is created only inside the confirmed transaction.
+
+**Result / Diffs** filters the content canvas. Diffs compare current content,
+including unsaved edits, against the immutable pinned starting document (revision
+0), or an explicitly selected exact saved revision in the current history. Saving
+does not reset the baseline. Semantic word/block differences show added content on
+green backgrounds and removed content on red backgrounds, with textual labels.
+Removed text can be selected and restored; complete removed blocks/media can also
+be restored, or explicitly replace corresponding additions. Restorations are
+unsaved, atomic undo steps preserving semantic marks, IDs, links and retained
+asset references. Changed proposals, hidden/folded scope, partial target wrappers,
+invalid nesting and duplicate targets refuse explicitly. Large unmatched regions
+are shown as exact, labeled coarse replacements rather than silently omitted.
+Diff decorations never enter saved documents, recovery, reader or PDF output.
+Title/metadata differences remain available in the saved comparison panel.
+Content excluded before the pinned baseline is restored through retained-source
+inspection, not fabricated as a baseline deletion.
+
+Selection tools also explicitly repair an existing note reference and its backlink
+in one transaction. Choose an exact paragraph/list-item target and an existing
+return link, or append a new Return link. Missing target IDs are allocated uniquely;
+existing wording, formatting, placement and targets are retained. No pairing or
+review certification is inferred.
+
+These are implemented workflow surfaces, not representative whole-document,
+accessibility or source-fidelity certification. Independent screen-reader and
+whole-work reviewer acceptance remain outstanding.
+
 The 0.38.0 pilot adds reviewer-only, read-only saved-revision comparison:
 revision 0 is the immutable pinned starting document; positive numbers select
 exact saved revisions within that draft. It exposes title/metadata and inert HTML
@@ -152,8 +205,10 @@ inferred from a selection of corrected document content.
 The unchanged source structure remains available separately. Legacy cross-work
 catalogue membership still rebuilds from source and never overlays editor
 revisions. It is not authoritative for an existing corrected document.
-Cross-work attach/detach consolidation, reciprocal note/media repair and broader consolidation remain open;
-legacy retirement and the authorized destructive reset have not happened.
+Cross-work attach/detach and reciprocal note-link repair now have same-page editor
+surfaces. Broader media/relationship repairs and representative acceptance remain
+open. Legacy editing is retired; the separately authorized destructive reset has
+not happened and is not part of this milestone.
 
 ## 1. Purpose and scope
 
@@ -479,10 +534,10 @@ their own preview, conflict checks and explicit confirmation on the editor page.
 Global operational maintenance and optional controlled experiments remain outside
 publication tailoring.
 
-This single-page integration is **planned and partial**, not current full parity.
-History/comparison/publication and legacy administration still have separate
-routes. Necessary legacy outcomes must be integrated and validated before old
-mutation paths are retired; merely hiding their links is not parity.
+Single-page integration is implemented through contextual semantic operations and
+same-page workflow panels. Separate backend routes remain, but are not required
+reviewer navigation. Legacy editing mutations refuse explicitly and their
+historical records remain retained. Representative human acceptance is not implied.
 Acceptance requires completing an article and a multi-page book from source
 inspection through saved correction, comparison, review and explicit publication
 without required navigation away from the editor page. Preserve unsaved work,
@@ -501,8 +556,8 @@ review/evaluation records, organization, excerpts and corrected cached editions
 with their dependent records. Original captures, snapshots and asset bytes must
 remain. This authorization supersedes historical correction-retention guardrails
 only for an explicitly scoped, backed-up maintenance reset; normal editing remains
-append-only. The reset and legacy-editor retirement are **not yet implemented or
-applied** as of the 2026-11-01 reassessment. New corrected work/publications
+append-only. The reset remains unapplied; legacy-editor retirement was subsequently
+implemented on 2026-11-06 without deleting data. New corrected work/publications
 exist; reset is deferred from the critical path. Any deletion requires a fresh
 inventory, copied-database rehearsal, verified backup and renewed confirmation
 of the exact current scope. Do not claim that remaining parity gaps are closed.
@@ -964,7 +1019,7 @@ resets, skip exact duplicates, and cannot activate obsolete older history.
 Limits: 50 revisions, 1 MiB, four prior provenance-transfer generations.
 Exports exclude account IDs, credentials and private annotations.
 
-## 5. Result-first semantic editing (implemented pilot; consolidation incomplete)
+## 5. Result-first semantic editing (implemented; representative acceptance pending)
 
 Foundation implemented in development on 2026-10-23: a provisional version-one
 semantic document `{version, title, metadata, html}` uses strictly validated,
@@ -1721,9 +1776,8 @@ explicit review coverage, fresh retained-source provenance and saved publication
 Document sections, title/metadata and numbering project into reader/PDF output;
 reading styles are separate presentation settings, not saved prose.
 
-Remaining: complete single-page reviewer integration, guarded target removal and
-remaining note/media relationship repairs, source membership/affected-work parity,
-legacy retirement after replacement validation, and a separately versioned curated
+Remaining: representative single-page reviewer acceptance, guarded target removal,
+broader note/media relationship repairs, and a separately versioned curated
 document-pair dataset/benchmark. Retained article 52 and books 70/80 passed read-only
 semantic and exact editor import/export checks on 2026-11-06; book 70 required
 explicit conversion approval. The same reconciliation ran 158 focused backend

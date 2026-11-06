@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     "library",
 ]
 READING_HUB_PROFILE = os.environ.get("READING_HUB_PROFILE", "profiles.marxist.site")
-READING_HUB_EDITOR_PILOT = os.environ.get("READING_HUB_EDITOR_PILOT", "") == "1"
+READING_HUB_EDITOR_PILOT = os.environ.get("READING_HUB_EDITOR_PILOT", "1") == "1"
 STATICFILES_DIRS = [BASE_DIR / "profiles" / "static"]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

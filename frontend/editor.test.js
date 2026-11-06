@@ -42,6 +42,7 @@ import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
 import {applyTocNumbering, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {prepareNoteRepair, applyNoteRepair} from "./note-repairs.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -82,6 +83,52 @@ function selectParagraphs(first, last = first) {
   assert.notEqual(to, undefined);
   editor.commands.setTextSelection({from, to});
 }
+
+test("reciprocal note repair preserves existing text marks IDs and placement with atomic undo", () => {
+  const original = '<p><a id="ref" href="#wrong"><sup>1</sup></a> Prose.</p>' +
+    '<p id="note"><em>Note text.</em> <a class="note-backlink" href="#wrong-ref">Back</a></p>';
+  open(original);
+  selectText("1");
+  const proposal = prepareNoteRepair(editor);
+  applyNoteRepair(editor, proposal, proposal.targets.findIndex(target => target.node.attrs.id === "note"), 0);
+  const expected = original.replace('href="#wrong"', 'href="#note"')
+    .replace('href="#wrong-ref"', 'href="#ref"');
+  assert.equal(editor.getHTML(), expected);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), expected);
+});
+
+test("note repair creates unique targets and a return link inside a nested list note", () => {
+  open('<p id="reviewed-reference"><a href="https://example.org/old">1</a> Main.</p>' +
+    '<ol><li><p>Note body.</p></li></ol>');
+  selectText("1");
+  const proposal = prepareNoteRepair(editor);
+  applyNoteRepair(editor, proposal, proposal.targets.findIndex(target => target.node.type.name === "li"));
+  const root = document.createElement("div");
+  root.innerHTML = editor.getHTML();
+  assert.equal(root.querySelector("li").id, "reviewed-note");
+  assert.equal(root.querySelector("p a").id, "reviewed-reference-n");
+  assert.equal(root.querySelector("li a").getAttribute("href"), "#reviewed-reference-n");
+  assert.equal(root.querySelector("li a").textContent, "Return");
+  assert.equal(root.querySelector("li p").textContent, "Note body. Return");
+});
+
+test("note repair refuses stale and scoped proposals and excludes its own reference block", () => {
+  open('<section id="c"><h2>C</h2><p><a href="#note">1</a> Main.</p><p id="note">Note.</p></section>');
+  selectText("1");
+  const proposal = prepareNoteRepair(editor);
+  assert.equal(proposal.targets.length, 1);
+  showDocumentPart(editor, documentParts(editor.state.doc)[0]);
+  const value = editor.getHTML();
+  assert.throws(() => applyNoteRepair(editor, proposal, 0), /whole document/);
+  assert.equal(editor.getHTML(), value);
+  showDocumentPart(editor, null);
+  selectText("Main");
+  editor.commands.insertContent("Changed");
+  assert.throws(() => applyNoteRepair(editor, proposal, 0), /document changed/);
+});
 
 test("separating contiguous paragraphs preserves exact content and independent origin across moves and reopen", () => {
   const html = '<section id="parent" data-section-url="https://example.org/source"><h2>Parent</h2>' +

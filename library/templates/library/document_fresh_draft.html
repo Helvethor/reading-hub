@@ -1,4 +1,4 @@
-{% extends "library/base.html" %}
+{% extends panel_base %}
 {% load static %}
 {% block title %}Regenerate a separate draft | {{ site.name }}{% endblock %}
 {% block head %}
@@ -7,11 +7,12 @@
 {% block content %}
 <div class="page-container document-comparison">
   <h1>Regenerate a separate draft</h1>
-  <p><a href="{% url 'reader' source.pk %}">Original edition {{ source.pk }}</a> — {{ source.title }}</p>
-  <p class="notice">Offline preview from this edition's retained snapshot, using current extraction and formatting rules{% if original_source %}, without previous source corrections, saved organization or named excerpts{% else %} and applicable source corrections/organization{% endif %}. No source is fetched. Saved editor revisions are not replayed, copied or overwritten. Leave your current editor tab open to preserve unsaved work.</p>
-  <p>{% if original_source %}<strong>Original retained source inputs</strong>{% else %}<a href="?inputs=original">Start fresh from original retained source, without previous corrections or organization</a>{% endif %}</p>
+  <p>Original edition {{ source.pk }} — {{ source.title }}</p>
+  <p class="notice">Offline preview from this edition's retained snapshot, using current extraction and formatting rules{% if original_source %}, without previous source corrections, saved organization or named excerpts{% else %} and applicable source corrections/organization{% endif %}. No source is fetched. Saved editor revisions are not replayed, copied or overwritten. Save pending work before switching the editor.</p>
+  {% if switch_url %}<p role="status">A separate draft was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new draft</a></p>{% endif %}
+  <p>{% if original_source %}<strong>Original retained source inputs</strong>{% else %}<a href="?inputs=original{% if embedded %}&amp;embedded=1{% endif %}">Start fresh from original retained source, without previous corrections or organization</a>{% endif %}</p>
   {% if generation_error %}<p class="error" role="alert">{{ generation_error }}</p>
-    <p><a href="{% url 'document-fresh-draft' source.pk %}?inputs={{ input_mode }}">Generate a new preview</a></p>
+    <p><a href="{% url 'document-fresh-draft' source.pk %}?inputs={{ input_mode }}{% if embedded %}&amp;embedded=1{% endif %}">Generate a new preview</a></p>
     {% if original_source %}<p>Original inputs exclude saved corrections, but current source-language, asset and semantic policies still apply.</p>
     {% else %}<p><a href="{% url 'rendition-corrections' source.pk %}" target="_blank" rel="noopener">Inspect retained source corrections (new tab)</a>. Revalidation requirements and source-language restrictions are not bypassed by regeneration.</p>{% endif %}
   {% endif %}

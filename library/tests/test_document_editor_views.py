@@ -45,6 +45,9 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'data-comparison-url="'
                             + reverse("document-comparison", args=[self.rendition.pk]) + '"')
         self.assertContains(response, 'id="editor-comparison"')
+        for panel in ("Version history", "Regenerate a separate draft",
+                      "Original retained source", "Saved comparison", "Publication preview"):
+            self.assertContains(response, f'data-workflow-panel="{panel}"')
         self.assertContains(response, "excludes unsaved edits")
         self.assertContains(response, "document-editor-initial")
         self.assertContains(response, "Review clipboard paste")
@@ -69,12 +72,14 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Book structure")
         self.assertContains(response, "Add / restore section")
         self.assertContains(response, "Section title, URL and role")
-        self.assertContains(response, "Legacy catalogue membership")
+        self.assertContains(response, "Retained-page membership and affected works")
+        self.assertContains(response, 'data-workflow-panel="Retained-page membership"')
         self.assertContains(response, "Separate as excerpt section")
         self.assertContains(response, "Excerpt title")
         self.assertContains(response, "Remove section")
         self.assertContains(response, "Publish this corrected document as a book")
-        self.assertContains(response, reverse("content-organization"))
+        self.assertContains(response, reverse("document-editor-membership",
+                                              args=[self.rendition.pk]))
         self.assertEqual(response.context["initial"]["structure"], self.rendition.structure)
         presentation = response.context["initial"]["presentation"]
         self.assertEqual(presentation["sourceUrl"], self.rendition.document.url)

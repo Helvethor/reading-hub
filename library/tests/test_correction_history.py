@@ -56,11 +56,26 @@ class CorrectionHistoryTests(TestCase):
     def test_ambiguous_histories_require_choice_and_explicit_draft_stays_pinned(self):
         self.edit()
         branch = branch_draft(self.draft, self.reviewer, 1)
-        self.assertRedirects(self.client.get(self.url), self.history)
-        self.assertEqual(
-            self.client.get(self.url + f"?draft={self.draft.pk}").context["draft"], self.draft,
-        )
-        self.assertContains(self.client.get(self.history), str(branch.pk))
+        before = (DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count())
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["initial"]["choose_history"])
+        self.assertContains(response, '"choose_history": true')
+        self.assertIsNone(response.context["initial"]["draft"])
+        self.assertEqual(response.context["initial"]["revision"], 0)
+        selected = self.client.get(self.url + f"?draft={self.draft.pk}")
+        self.assertEqual(selected.context["draft"], self.draft)
+        self.assertFalse(selected.context["initial"]["choose_history"])
+        history = self.client.get(self.history + "?embedded=1")
+        self.assertContains(history, str(branch.pk))
+        self.assertContains(history, f'{self.url}?start=source" data-workflow-switch')
+        source = self.client.get(self.url + "?start=source")
+        self.assertFalse(source.context["initial"]["choose_history"])
+        self.assertContains(source, '"choose_history": false')
+        self.assertIsNone(source.context["initial"]["draft"])
+        self.assertEqual(source.context["initial"]["document"], self.draft.document)
+        self.assertEqual(before, (DocumentDraftBase.objects.count(),
+                                  DocumentEditRevision.objects.count()))
 
     def test_branch_exact_old_revision_preserves_newer_versions_and_publication(self):
         original = self.edit(review="full", editorial=True)

@@ -6,6 +6,7 @@
   <p>{{ capture.url }}</p>
   <p><a href="{% url 'correction-export' capture.pk %}">Export all source revisions</a></p>
   <p>Read-only evidence, not an old reader rendition. Only the latest saved revision is active. Earlier revisions remain inspectable even when the current adapter cannot extract the page. This page never executes retained HTML.</p>
+  {% include "library/page_type.html" %}
   {% for correction in page %}
   <article class="metadata-suggestion">
     <h2>Revision {{ correction.revision }}</h2>

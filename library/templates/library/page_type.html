@@ -1,26 +1,18 @@
 <details>
-  <summary>Correct page type</summary>
-  <p>Mark a directory, author bibliography or listing as a discovery-only index, not an article or book. Do not use this for a genuine book's table of contents.</p>
-  <p>This applies to this URL and all its retained captures. It hides the page from readable listings and pending article metadata review and blocks new imports/reformats. Source evidence, saved corrections, decisions and existing reader versions are preserved.</p>
-  <form method="post" action="{% url 'correction-page-type' capture.pk %}?{{ review_nav.query }}">
-    {% csrf_token %}
-    <input type="hidden" name="revision" value="{{ page_type_decision.pk|default:0 }}">
-    <label>Reason for page type change
-      <textarea name="reason" required maxlength="2000" rows="2"></textarea>
-    </label>
-    {% if page_type_decision.discovery_only %}
-    <button type="submit" name="action" value="undo">Undo manual index classification</button>
-    <p>Undo restores prior classifications. Automatic index detection may still identify this URL as an index.</p>
-    {% else %}
-    <button type="submit" name="action" value="discovery">Mark URL as discovery index</button>
-    {% endif %}
-  </form>
+  <summary>Page classification evidence (read-only)</summary>
+  <p>This classification applies globally to the URL, all retained captures and catalogue entries; it is not an edition-specific correction. Changing or undoing it is deferred to an authorized global maintenance workflow. Legacy mutation requests are retired; existing evidence remains preserved.</p>
+  {% if page_type_decision %}
+    <p>Latest manual decision: {% if page_type_decision.discovery_only %}discovery-only index{% else %}manual classification undone{% endif %} — {{ page_type_decision.created_at }} by {{ page_type_decision.reviewer }}. {{ page_type_decision.reason }}</p>
+    <p>The automatic source adapter may independently classify the URL as an index.</p>
+  {% else %}
+    <p>No manual page-type decision is recorded. Automatic source-adapter classification remains active.</p>
+  {% endif %}
   {% if page_type_history %}
-  <h2>Page type history</h2>
-  <ul>{% for decision in page_type_history %}
-    <li>{{ decision.created_at }} — {{ decision.reviewer }}:
-      {% if decision.discovery_only %}Discovery index{% else %}Manual classification undone{% endif %}.
-      {{ decision.reason }}</li>
-  {% endfor %}</ul>
+    <h2>Manual page-type history</h2>
+    <ul>{% for decision in page_type_history %}
+      <li>{{ decision.created_at }} — {{ decision.reviewer }}:
+        {% if decision.discovery_only %}Discovery-only index{% else %}Manual classification undone{% endif %}.
+        {{ decision.reason }} (decision #{{ decision.pk }})</li>
+    {% endfor %}</ul>
   {% endif %}
 </details>

@@ -1,9 +1,0 @@
-{% extends "library/base.html" %}
-{% block content %}
-<div class="page-container">
-  <h1>Content organization published</h1>
-  <p>Decision #{{ decision.pk }} saved. All affected complete renditions were validated before membership changed. Immutable versions, source corrections and private annotations were preserved.</p>
-  {% if editor_url %}<p><a href="{{ editor_url }}">Continue correcting the new edition in the document editor</a>. This starts from the newly organized retained-source edition; saved editor revisions remain available in their original histories and were not overlaid.</p>{% elif editor_limitation %}<p class="notice warning">{{ editor_limitation }}</p>{% endif %}
-  <p><a href="{% url 'content-organization' %}?url={{ url|urlencode }}">Review organization and audited undo</a> &middot; <a href="{% url 'home' %}">Library</a></p>
-</div>
-{% endblock %}

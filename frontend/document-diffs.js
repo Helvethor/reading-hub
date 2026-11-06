@@ -48,11 +48,9 @@ function inlineUnits(node, start) {
     }
     const marks = JSON.stringify(child.marks.map(mark =>
       [mark.type.name, attributes(mark.attrs)]));
-    let index = 0;
-    for (const character of child.text) {
-      result.push({from: start + offset + index, to: start + offset + index + character.length,
-        key: `${marks}:${character}`});
-      index += character.length;
+    for (const token of child.text.matchAll(/[\p{L}\p{N}_]+|[^\p{L}\p{N}_]/gu)) {
+      result.push({from: start + offset + token.index,
+        to: start + offset + token.index + token[0].length, key: `${marks}:${token[0]}`});
     }
   });
   return result;
@@ -96,7 +94,14 @@ function unmatched(old, next, callback) {
 export function documentDifferences(before, after) {
   const changes = [];
   function compare(oldNode, newNode, oldStart, newStart) {
+    if (signature(oldNode) === signature(newNode)) return;
     const inline = oldNode.isTextblock && newNode.isTextblock;
+    if (inline && Math.max(oldNode.content.size, newNode.content.size) > 100000) {
+      changes.push({before, doc: after, oldFrom: oldStart,
+        oldTo: oldStart + oldNode.content.size, from: newStart,
+        to: newStart + newNode.content.size, inline: true, coarse: true});
+      return;
+    }
     const old = inline ? inlineUnits(oldNode, oldStart) : children(oldNode, oldStart);
     const next = inline ? inlineUnits(newNode, newStart) : children(newNode, newStart);
     unmatched(old, next, (a, b, c, d, coarse) => {
@@ -278,22 +283,45 @@ function removedWidget(editor, change, onError) {
   all.textContent = "Restore removal";
   all.addEventListener("click", () => restore({}));
   root.append(label, content, selectedButton, all);
-  const keyboard = owner.createElement("details");
-  const summary = owner.createElement("summary");
-  summary.textContent = "Select removed text by keyboard";
-  const input = owner.createElement("textarea");
-  input.readOnly = true;
-  input.setAttribute("aria-label", "Removed text: select the portion to restore");
-  input.value = change.before.textBetween(change.oldFrom, change.oldTo, "");
-  input.addEventListener("select", () => {
-    try {
-      selected = textSelectionPositions(change, input.selectionStart, input.selectionEnd);
-      selectedButton.disabled = false;
-    } catch (failure) {
-      selected = null; selectedButton.disabled = true; onError(failure.message);
-    }
+  const keyboard = owner.createElement("button");
+  keyboard.type = "button";
+  keyboard.textContent = "Select removed text by keyboard";
+  keyboard.addEventListener("click", () => {
+    const dialog = owner.createElement("dialog");
+    dialog.className = "editor-restore-text";
+    dialog.setAttribute("aria-label", "Select removed text to restore");
+    const help = owner.createElement("p");
+    help.textContent = "Select text using Shift and the arrow keys, then Restore selection. Select within one removed block without splitting target-bearing wrappers.";
+    const input = owner.createElement("textarea");
+    input.readOnly = true;
+    input.setAttribute("aria-label", "Removed text: select the portion to restore");
+    input.value = change.before.textBetween(change.oldFrom, change.oldTo, "");
+    const apply = owner.createElement("button");
+    apply.type = "button";
+    apply.textContent = "Restore selected text";
+    const cancel = owner.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel text restoration";
+    const error = owner.createElement("p");
+    error.setAttribute("role", "alert");
+    apply.addEventListener("click", () => {
+      try {
+        const range = textSelectionPositions(change, input.selectionStart, input.selectionEnd);
+        restoreDifference(editor, change, range);
+        dialog.close();
+      } catch (failure) { error.textContent = failure.message; }
+    });
+    cancel.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", () => {
+      dialog.remove();
+      if (keyboard.isConnected) keyboard.focus();
+      else editor.commands.focus();
+    });
+    dialog.append(help, input, apply, cancel, error);
+    owner.body.append(dialog);
+    dialog.showModal();
+    input.focus();
   });
-  keyboard.append(summary, input);
   root.append(keyboard);
   if (change.to > change.from) {
     const replace = owner.createElement("button");
@@ -328,6 +356,13 @@ export function differenceExtension(onError) {
             const decorations = [];
             for (const item of changes) {
               if (item.from < item.to) {
+                decorations.push(Decoration.widget(item.from, view => {
+                  const label = view.dom.ownerDocument.createElement("span");
+                  label.className = "editor-diff-label";
+                  label.contentEditable = "false";
+                  label.textContent = "Added: ";
+                  return label;
+                }, {side: 0, ignoreSelection: true, stopEvent: () => true}));
                 if (item.inline) decorations.push(Decoration.inline(item.from, item.to,
                   {class: "editor-diff-added", title: "Added content"}));
                 else tr.doc.nodesBetween(item.from, item.to, (node, pos) => {

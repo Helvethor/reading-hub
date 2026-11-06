@@ -5,22 +5,25 @@
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-outline-row">
+{% if reading_style_url %}<link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
   <h1>Document editor pilot</h1>
   <p class="notice">The corrected document is authoritative for its sections, order, containment, properties and excerpt origins. Editing version {{ version.pk }} creates immutable saved revisions; publication is separate. Retained source evidence, catalogue membership, old editions and annotations are unchanged.</p>
-  <p><a href="{% url 'reader' version.pk %}">Back to the original edition</a> · <a href="{% url 'work-review' %}?review_version={{ version.pk }}">Existing reviewer tools</a></p>
-  <p><a href="{% url 'document-fresh-draft' version.pk %}" target="_blank" rel="noopener">Preview regeneration from retained source as a separate draft (new tab)</a></p>
-  <p><a href="{% url 'document-fresh-draft' version.pk %}?inputs=original" target="_blank" rel="noopener">Start fresh from original retained source, without previous corrections (new tab)</a></p>
+  <p><a href="{% url 'reader' version.pk %}">Back to the original edition</a></p>
+  <p><a href="{% url 'document-fresh-draft' version.pk %}" data-workflow-panel="Regenerate a separate draft">Preview regeneration from retained source as a separate draft</a></p>
+  <p><a href="{% url 'document-fresh-draft' version.pk %}?inputs=original" data-workflow-panel="Original retained source">Start fresh from original retained source, without previous corrections</a></p>
   {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
   {% if evaluation_run %}<p class="notice">Isolated evaluation working draft. <a href="{% url 'reviewer-run' evaluation_run.pk %}" target="_blank" rel="noopener">Task instructions and result form (new tab)</a>. Save here before recording a result; evaluation does not publish or verify.</p>
   {% endif %}
-  <p><a id="editor-history" href="{% url 'document-editor-history' version.pk %}{% if draft %}?draft={{ draft.pk }}{% endif %}" target="_blank" rel="noopener">Version history and other starting points (new tab)</a></p>
+  <p><a id="editor-history" href="{% url 'document-editor-history' version.pk %}{% if draft %}?draft={{ draft.pk }}{% endif %}" data-workflow-panel="Version history">Version history and other starting points</a></p>
+  <p><a href="{% url 'document-editor-source-policy' version.pk %}" data-workflow-panel="Retained-source classification">Retained-source classification and decision history</a></p>
   {% if draft.evidence.correction_origin %}<p class="notice">Starting from saved version {{ draft.evidence.correction_origin.revision }} of another correction history. Its content is retained exactly; review approval is not inherited.</p>{% endif %}
   <p><small>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a></small></p>
   {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
   {% if initial %}
+  {% if reading_style_url %}{% include "library/reading_style_controls.html" %}{% endif %}
   <details class="editor-book-structure">
     <summary>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
     <p>This is the unchanged source structure, not the current edited order. Manage corrected sections directly in the left Book outline: move, add or restore sections, repair headings into sections, and edit title/URL/role. These changes save with the document and publish only after separate confirmation.</p>
@@ -31,10 +34,10 @@
       <li>Part details are unavailable in this edition’s structure.</li>
       {% endfor %}
     </ol>
-    <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'content-organization' %}?url={{ version.document.url|urlencode }}" target="_blank" rel="noopener">Legacy catalogue membership / source-rebuild tools (new tab)</a> remain separate and do not replay editor revisions.</p>
+    <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" data-workflow-panel="Retained-page membership">Retained-page membership and affected works</a> uses an explicit preview and confirmation. Regenerated editions never replace pending or saved editor corrections.</p>
   </details>
   <p class="editor-book-title">{{ initial.document.title }}</p>
-  <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" novalidate>
+  <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
     {% csrf_token %}
     <details class="editor-metadata">
       <summary>Bibliographic metadata and title</summary>
@@ -85,6 +88,13 @@
       </div>
       <p id="editor-status" role="status">Loading the local editor and checking document fidelity…</p>
       <p id="editor-error" class="error" role="alert"></p>
+      <div class="editor-diff-controls" role="group" aria-label="Result and differences">
+        <label>Content view <select id="editor-result-filter" disabled><option value="result">Result</option><option value="diffs">Diffs</option></select></label>
+        <label>Baseline saved revision <input type="number" id="editor-diff-revision" min="0" step="1" value="0" disabled></label>
+        <button type="button" id="editor-diff-baseline" disabled>Use baseline</button>
+        <span>0 = immutable pinned start</span>
+      </div>
+      <p id="editor-diff-status" role="status"></p>
       <div class="editor-workspace-body">
         <nav class="editor-outline" aria-label="Book parts">
           <h2>Book outline</h2>
@@ -95,7 +105,7 @@
           <details class="editor-outline-help"><summary>Section workflow help</summary><p>Branch lines trace the book, sections and headings. Right-click a section or heading (Shift+F10 by keyboard) for title/URL/role, move, add or boundary repair. Drag a section title onto another section's row: upper third = before, middle third = inside, lower third = after. A line marks before/after; an inset outline marks inside. Move section offers the same placements without dragging. The left control column stacks +/− for outline branches, the triangle for editor content, and … for actions. Click a title to scroll; Show focuses one part.</p></details>
           <div id="editor-outline-items"></div>
         </nav>
-        <div class="editor-canvas">
+        <div class="editor-canvas publication-content">
           <p id="editor-view-notice" role="status">Whole book. Saving always includes all parts.</p>
           <div id="editor-surface" class="reader-content"></div>
           <p id="editor-selection-path" aria-label="Current block structure"></p>
@@ -134,6 +144,7 @@
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="edit" disabled>Figure &amp; caption…</button>
       <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
+      <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
       <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
       <button type="button" role="menuitem" data-link-remove disabled>Remove link (keep text and targets)</button>
       <button type="button" role="menuitem" data-move="-1" disabled>Move paragraph up</button>
@@ -157,8 +168,8 @@
     <p>Type directly; Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy formatted content inside this editor; copied targets get fresh IDs and matching internal links. External paste opens a preview with plain-text and supported inline-formatting choices for approval, including common browser emphasis CSS. Ctrl/Cmd+Z also works from the outline. Drag section titles within the outline to reorder; dragging arbitrary canvas content remains unavailable.</p>
     <p>Move paragraph up/down moves the whole paragraph, heading or preformatted block containing the cursor or selected text, past one adjacent text block in the same container. It preserves links and targets and can be undone. It does not cross sections, lists, tables or media.</p>
     <p>Save all changes before previewing publication. Saving a review scope does not publish; publication does not itself verify.</p>
-    <a id="editor-publication" target="_blank" rel="noopener" hidden>Review saved result for publication (new tab)</a>
-    <p><a id="editor-comparison" target="_blank" rel="noopener" hidden>Compare saved revisions and pinned starting document (new tab; excludes unsaved edits)</a></p>
+    <a id="editor-publication" data-workflow-panel="Publication preview" hidden>Review saved result for publication</a>
+    <p><a id="editor-comparison" data-workflow-panel="Saved comparison" hidden>Compare saved revisions and pinned starting document (excludes unsaved edits)</a></p>
     <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
     <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
   </form>
@@ -356,6 +367,16 @@
     <button type="button" id="editor-link-apply">Apply link changes</button>
     <button type="button" id="editor-link-cancel">Cancel link edit</button>
   </dialog>
+  <dialog id="editor-note-repair" aria-labelledby="editor-note-heading">
+    <h2 id="editor-note-heading">Repair note reference and backlink</h2>
+    <label>Note paragraph or list item <select name="target"></select></label>
+    <label>Return link <select name="backlink"></select></label>
+    <pre data-preview></pre>
+    <p>This explicitly pairs the selected existing text link with its note and return link. Existing text, placement, formatting and targets stay intact. Missing target IDs are created uniquely; adding a return link appends “Return” to the note. Multiple references can share a note. One Undo step; save, review and publish separately.</p>
+    <p class="error" role="alert"></p>
+    <button type="button" data-apply>Apply reciprocal links</button>
+    <button type="button" data-cancel>Cancel</button>
+  </dialog>
   <dialog id="editor-image" aria-labelledby="editor-image-heading">
     <h2 id="editor-image-heading">Image alternative text</h2>
     <p id="editor-image-target"></p>
@@ -382,7 +403,7 @@
     <button id="editor-paste-cancel" type="button" autofocus>Cancel paste</button>
   </dialog>
   {{ initial|json_script:"document-editor-initial" }}
-  <noscript><p class="error">This opt-in pilot requires JavaScript. Existing reviewer tools remain available.</p></noscript>
+  <noscript><p class="error">The semantic editor requires JavaScript. Saved history and retained evidence remain available; obsolete source-editing pages do not accept changes.</p></noscript>
   {% endif %}
 </div>
 {% endblock %}

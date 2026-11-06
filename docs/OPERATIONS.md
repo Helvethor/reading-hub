@@ -8,9 +8,12 @@ which may contain superseded instructions.
 
 Reviewer workflow target clarified 2026-11-06: all document-scoped publication
 tailoring should be available on one editor page, directly in the canvas or
-through same-page panels/dialogs. This integration is incomplete. The separate
-history/comparison/publication and legacy organization procedures below describe
-current operations, not the desired final navigation. Separate source-graph
+through same-page panels/dialogs. This integration is now implemented: use the
+editor's history, regeneration, comparison and publication links to open panels,
+and close them to return to pending edits. Retained-page membership is available
+from Pinned source Book structure. Standalone `/corrections` and `/organization`
+editing entry points are retired; historical evidence remains retained.
+Separate source-graph
 transactions still need affected-work preview and explicit confirmation; ordinary
 saves must not mutate other works or replace corrected documents. See the
 [current workflow contract](../SPECIFICATION.md#primary-correction-workflow-reconciled-2026-11-06)
@@ -56,7 +59,31 @@ it is not a public deployment setup. Do not bind to all interfaces, tunnel or
 forward the service to other machines. Template changes require restart with
 this no-autoreload configuration.
 
-The local 0.53.0 installation enables the bounded editor pilot for user testing.
+The semantic editor is now enabled by default. Its historical
+`READING_HUB_EDITOR_PILOT=0` setting explicitly disables it, without re-enabling
+retired source-editing pages. Run `npm run build` after frontend source changes.
+
+Use **Content view: Result / Diffs** to inspect working content against the pinned
+starting document. Baseline revision 0 remains fixed after saves; use **Baseline
+saved revision** and **Use baseline** for another exact saved version. Green means
+added, red means removed; labels also identify the change. Restore a complete
+removal, select removed text, or open its keyboard text-selection dialog. Restoration
+is an ordinary unsaved edit with Undo. Show the whole document and expand sections
+first. Duplicate targets, incomplete target-bearing selections, stale locations and
+invalid structure refuse rather than stripping content. Title/metadata comparison
+is in Saved comparison. Material excluded before the pinned baseline is available
+through retained-source inspection, not the diff.
+
+Reading/PDF style and personal-profile controls are directly above the editor.
+They change presentation, not document content or review. Publication previews
+inherit the current style. Save, Mark reviewed and Publish remain separate actions.
+
+**Retained-source classification and decision history** is a same-page source-policy
+panel. Choose a retained page, inspect the latest URL-scoped decision, then explicitly
+confirm discovery-only classification or undo with a reason. This affects matching
+captures/catalogue entries and future imports, not saved editor content or editions.
+Inspection performs no writes; a missing exact retained capture is established only
+inside the confirmed transaction. Stale decisions refuse.
 
 Use **Target ID…** to create or rename a paragraph/heading anchor, or the target
 of a selected block/image. The dialog identifies the exact element: a cursor in
@@ -78,8 +105,11 @@ External URLs and all other content stay unchanged; unchanged historical IDs
 remain valid. For a new note/reference, create block targets, then select the
 reference/return text and use Selection tools to create their links. Existing
 link details can choose the current targets. New inline spans can also be linked
-from selected reference/return text. No automatic note pairing or target removal
-is included. Save/publication are separate.
+from selected reference/return text. For an existing reference, Selection tools
+offers **Repair note reference and backlink**: explicitly choose the note and its
+existing return link, or add Return at its end. Pairing is never automatic; the
+operation preserves existing wording/targets and has one Undo step. Guarded target
+removal remains outside this implementation. Save/publication are separate.
 
 To restore a lost section wrapper around existing content, show the whole document,
 expand affected content and place the cursor in its starting heading. Open
@@ -639,9 +669,9 @@ development/held-out fixtures and promotion thresholds are still pending.
 operation evidence, not the planned document-pair dataset or whole-work scorer.
 The semantic editing/revision contract, bounded editor and explicit saved-result
 publication are implemented in development. Representative reviewer evaluation,
-remaining editor tools, single-page integration and curated document-pair evidence
+remaining editor tools, representative single-page acceptance and curated document-pair evidence
 with scope-aware scoring remain open. Exact draft/revision capture already exists.
-See [Specification sections 5-6](../SPECIFICATION.md#5-result-first-semantic-editing-implemented-pilot-consolidation-incomplete)
+See [Specification sections 5-6](../SPECIFICATION.md#5-result-first-semantic-editing-implemented-representative-acceptance-pending)
 and [the roadmap](../TASKS.md). No new browser editor, portable dataset format or
 model service is deployed.
 
@@ -724,9 +754,9 @@ confirmation digest. Current extraction/formatting and source-language/asset/
 semantic policies still apply. The default regeneration route still uses applicable
 reviewed inputs during migration. Neither preview edits or deletes existing data.
 
-The one-editor consolidation and authorized destructive fresh-slate reset remain
-unfinished. Do not remove old correction/organization tools until remaining
-feature parity is implemented; do not apply an ad-hoc database wipe.
+The one-editor surfaces are consolidated and obsolete mutation endpoints refuse.
+The separately authorized destructive fresh-slate reset remains unapplied; do not
+perform an ad-hoc database wipe as part of editor work.
 
 ##### Section management in the editor outline
 
@@ -1477,6 +1507,10 @@ successful manifest check as evidence that a rule or model is ready to promote.
 
 ### Bibliographic opening and title page
 
+The source-editor UI described in the dated implementation history below is
+retired. Use the semantic editor's bibliographic metadata and Selection tools;
+saved source-correction schema compatibility remains retained.
+
 Since 0.30.0, reader/PDF opening metadata uses full language names (English,
 French, etc.). The source editor has a sticky Preview/Save/Reset command bar,
 compact preview controls and collapsible source evidence/selection help.
@@ -1505,9 +1539,13 @@ not invented authors. PDF and browser print reserve page one for the opening
 metadata; body content starts on page two. App-versioned PDF cache names ensure
 old generated PDFs are not reused for the new layout.
 
-### Manual retained-source excerpts
+### Manual retained-source excerpts (historical UI, retired)
 
-Preferred workflow (0.28.1): use **Source editor — selected content** to switch
+Current correction uses **Insert retained source content** and document-local
+excerpt sections in the editor. Historical definitions and their exact bindings
+remain evidence, not a second ordinary editing workflow.
+
+Former workflow (0.28.1): use **Source editor — selected content** to switch
 directly between the exact source pages of an edition. In **Normalized page
 preview**, use the shared **Selection actions → Excerpts** submenu. The **Preview content**
 menu selects the parsed draft, all retained source content, or a saved excerpt.
@@ -1706,7 +1744,9 @@ Core implementation map:
 | Extraction types and normalization | [base](../library/sources/base.py), [normalize](../library/sources/normalize.py) |
 | Source corrections and datasets | [corrections](../library/services/corrections.py), [datasets](../library/services/correction_datasets.py) |
 | Media and note operations | [media](../library/services/media_corrections.py), [notes](../library/services/note_corrections.py) |
-| Reviewer UI | [views](../library/correction_views.py), [script](../library/static/library/corrections.js), [template](../library/templates/library/corrections.html) |
+| Reviewer UI | [editor views](../library/document_editor_views.py), [editor entry](../frontend/pilot.js), [editor template](../library/templates/library/document_editor.html) |
+| Content differences and restoration | [semantic differences](../frontend/document-diffs.js), [baseline controls](../frontend/diff-controls.js) |
+| Source classification | [editor source policy](../library/editor_policy_views.py) |
 | Work navigation | [review navigation](../library/review_navigation.py) |
 | Book organization | [organizations](../library/services/organizations.py) |
 | Catalogue updates/overlays | [catalogue](../library/services/catalogue.py), [overlays](../library/services/catalogue_overlays.py) |

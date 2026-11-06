@@ -1,6 +1,7 @@
 import logging
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.db.models.functions import Lower
@@ -164,6 +165,7 @@ def reader(request, pk):
         {
             **reading_style,
             "version": rendition,
+            "editor_pilot": settings.READING_HUB_EDITOR_PILOT,
             "display_author": rendition.metadata.get("author", "").strip()
             or source_name(rendition.document.url),
             "metadata_rows": metadata_rows(rendition.metadata),

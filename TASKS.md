@@ -46,7 +46,8 @@ workflow or the next acceptance milestone.
    Make edit/save/continue direct on one editor page, with source inspection,
    history/comparison, review, publication preview/confirmation and styles on that
    page. Prefer canvas/contextual actions; use same-page panels/dialogs as needed.
-   This unified workspace is not yet complete. Remove prominent task/run links
+   Same-page workflow surfaces are implemented; representative acceptance remains.
+   Remove prominent task/run links
    from ordinary correction while preserving records and optional evaluation access.
 2. **Make version ancestry trustworthy.** Record the exact immediate starting
    version and result automatically, including branches from older corrections.
@@ -86,11 +87,23 @@ import/export checks; book 70 needs explicit conversion approval. This is bounde
 correctness/compatibility evidence, not whole-book or independent accessibility
 acceptance. Historical counts below describe their original slices.
 
-- [ ] Integrate source inspection, history/branching/comparison, review controls,
+- [x] Integrate source inspection, history/branching/comparison, review controls,
   publication preview/explicit confirmation and reading-style/profile controls
   into the editor page without required reviewer navigation away. Preserve pending
   edits, selection/context, recovery and exact saved-version bindings; do not
   collapse save/review/publication into one implicit action.
+- [x] Retire standalone source-correction/organization editing surfaces. Resolve
+  legacy entries into the editor; retain historical evidence and explicitly refuse
+  obsolete mutations. Retained-page membership uses a same-page affected-work
+  preview/confirmation, retaining audited undo and annotation safeguards.
+- [x] Add Result / Diffs against immutable revision 0 or an exact saved baseline,
+  including unsaved content. Display semantic additions/removals with green/red
+  backgrounds and text labels; restore selected text or complete semantic removals
+  with atomic undo and stale/structure/target guards. Saving keeps the baseline;
+  diff artifacts never enter saved/recovered/published HTML or PDF.
+- [x] Replace legacy reciprocal-note repair with a contextual editor operation:
+  choose an exact note paragraph/list item and existing backlink, or explicitly
+  add a return link; preserve IDs, text, formatting and placement.
 - [ ] Validate the complete single-page article/book workflow, including
   keyboard-only and native-pointer interaction, narrow-screen reachability and
   representative screen-reader checks. Publication/reader/PDF output must remain
