@@ -225,7 +225,8 @@ acceptance. Historical counts below describe their original slices.
   No live document was saved or published.
 - [x] Add Whole book / Title / ToC / Sections views with generated metadata/title
   and current-structure ToC panels, three sibling navigation groups and a
-  secondary section/heading filter. Keep generated panels out of semantic
+  secondary section/heading filter. Book/Title/ToC/Sections rows share the section
+  row component, viewport backgrounds and scroll navigation. Keep generated panels out of semantic
   HTML/JSON, history, review/recovery and saves. Support live metadata refresh,
   ToC navigation without new IDs, navigation-group folding and content/history
   reveal from generated views. Validated with 202 frontend and 26 focused backend

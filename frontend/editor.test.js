@@ -696,8 +696,14 @@ test("book views have exactly four choices, three navigation groups and a separa
     ["title", "toc", "sections"]);
   assert.equal(outline.querySelectorAll(".editor-book-sections [data-part]").length,
     documentParts(editor.state.doc).length);
-  for (const header of outline.querySelectorAll(".editor-book-group-heading")) {
-    assert.equal(header.childElementCount, 2, "All sibling group labels reserve the same controls column.");
+  const rows = [...outline.querySelectorAll(".editor-outline-row")];
+  assert.deepEqual(rows.slice(0, 4).map(row => row.dataset.bookRow), ["book", "title", "toc", "sections"]);
+  for (const row of rows) {
+    assert.deepEqual([...row.children].map(child => child.className.split(" ")[0] || child.tagName),
+      ["editor-outline-guides", "editor-outline-row-header", "BUTTON"],
+      "Book, page, group and section rows share one row component.");
+    assert(row.querySelector(".editor-outline-kind") && row.querySelector(".editor-outline-row-controls") &&
+      row.querySelector(":scope > button .editor-outline-title"));
   }
   assert(!outline.querySelector('[data-book-group="title"] [data-part]'));
   assert(!outline.querySelector('[data-book-group="toc"] [data-part]'));
@@ -730,10 +736,11 @@ test("book views have exactly four choices, three navigation groups and a separa
   filter.dispatchEvent(new dom.window.Event("change"));
   assert.equal(visiblePart(editor).id, "a");
   outline.querySelector('[data-book-view="toc"]').click();
-  assert.equal(primary.value, "toc");
+  assert.equal(primary.value, "book", "Navigation reveals the ToC within the book instead of isolating it.");
   assert.equal(visiblePart(editor), null);
+  assert(!toc.hidden && !editor.view.dom.hidden);
   form.querySelector('[data-toc-part="0"]').click();
-  assert.equal(primary.value, "sections");
+  assert.equal(primary.value, "book");
   assert.equal(visiblePart(editor), null, "ToC navigation reveals rather than filters content.");
   assert(!editor.view.dom.hidden);
   assert.equal(editor.getHTML(), original);
@@ -802,7 +809,7 @@ test("ToC regenerates after section reorder, rename, undo and article replacemen
   assert.deepEqual(labels(), ["Article", "Detail"]);
   form.querySelector('[data-book-view="toc"]').click();
   form.querySelector('[data-toc-part="1"]').click();
-  assert.equal(form.querySelector("#editor-part").value, "sections");
+  assert.equal(form.querySelector("#editor-part").value, "book");
   assert.equal(editor.getHTML(), "<h2>Article</h2><p>Article body.</p><h3>Detail</h3><p>More.</p>");
   editor.commands.setContent("<p>Unsectioned article.</p>");
   assert.deepEqual(labels(), []);
@@ -842,9 +849,49 @@ test("generated views never route context actions to hidden prose and history re
   assert.equal(primary.value, "sections", "Programmatic content navigation reveals the canvas.");
 });
 
+test("book, page and group rows follow the viewport like section rows and navigate by scrolling", async () => {
+  const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
+  const surface = form.querySelector("#editor-surface"), outline = form.querySelector("#editor-outline-items");
+  const title = form.querySelector(".editor-title-page"), toc = form.querySelector(".editor-toc-page");
+  let offset = 0;
+  const rect = (top, bottom) => ({top, bottom, left: 0, right: 200, height: bottom - top, width: 200});
+  surface.getBoundingClientRect = () => rect(0, 200);
+  for (const [element, top, bottom] of [[title, 0, 100], [toc, 100, 200], [editor.view.dom, 200, 800]]) {
+    element.getClientRects = () => [rect(0, 1)];
+    element.getBoundingClientRect = () => rect(top - offset, bottom - offset);
+  }
+  const state = () => Object.fromEntries([...outline.querySelectorAll("[data-book-row]")].map(row =>
+    [row.dataset.bookRow, row.classList.contains("editor-outline-active") ? "active" :
+      row.classList.contains("editor-outline-visible") ? "visible" : ""]));
+  const settle = () => new Promise(resolve => setTimeout(resolve, 10));
+  surface.dispatchEvent(new dom.window.Event("scroll"));
+  await settle();
+  assert.deepEqual(state(), {book: "visible", title: "active", toc: "visible", sections: ""});
+  assert.equal(outline.querySelector('[data-book-view="title"]').getAttribute("aria-current"), "location");
+  assert.equal(outline.querySelector('[data-book-view="book"]').getAttribute("aria-current"), "page");
+  offset = 150;
+  surface.dispatchEvent(new dom.window.Event("scroll"));
+  await settle();
+  assert.deepEqual(state(), {book: "visible", title: "", toc: "visible", sections: "active"});
+  const original = editor.getHTML();
+  offset = 0;
+  surface.scrollTop = 0;
+  outline.querySelector('[data-book-view="toc"]').click();
+  assert.equal(form.querySelector("#editor-part").value, "book");
+  assert.equal(surface.scrollTop, 100, "ToC navigation scrolls to the generated page.");
+  assert.equal(document.activeElement.dataset.bookView, "toc");
+  assert.equal(editor.getHTML(), original);
+  form.querySelector('[data-book-group-fold="book"]').click();
+  assert(form.querySelector(".editor-book-groups").hidden);
+  assert(!title.hidden && !toc.hidden && !editor.view.dom.hidden, "Navigation folding never hides content.");
+  [...form.querySelectorAll(".editor-outline-options button")]
+    .find(button => button.textContent === "Expand outline").click();
+  assert(!form.querySelector(".editor-book-groups").hidden);
+});
+
 test("Sections group folds independently and remains folded across content updates", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
-  const fold = () => form.querySelector("[data-book-group-fold]");
+  const fold = () => form.querySelector('[data-book-group-fold="sections"]');
   fold().click();
   assert.equal(fold().getAttribute("aria-expanded"), "false");
   assert(form.querySelector(".editor-book-sections").hidden);
@@ -865,7 +912,9 @@ test("Sections group folds independently and remains folded across content updat
 test("ToC entries default to none and Ctrl-click sibling selections retain right-click numbering", () => {
   const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Body</p><h3>Nested</h3>' +
     '<p>Detail</p></section><section id="b"><h2>Second</h2><p>End</p></section>');
-  form.querySelector('[data-book-view="toc"]').click();
+  const isolate = form.querySelector("#editor-part");
+  isolate.value = "toc";
+  isolate.dispatchEvent(new dom.window.Event("change"));
   const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
   assert([...form.querySelectorAll("[data-toc-part]")].every(button =>
     button.parentElement.style.listStyleType === "none"));
@@ -926,7 +975,9 @@ test("ToC selection rejects a different parent without losing the set and expose
   const form = mountSectionWorkspace('<h2>First</h2><p>Body</p><h3>Nested</h3>' +
     '<p>Detail</p><h2>Second</h2><p>End</p>', {}, {showError: message => { if (message) errors.push(message); }});
   const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
-  form.querySelector('[data-book-view="toc"]').click();
+  const isolate = form.querySelector("#editor-part");
+  isolate.value = "toc";
+  isolate.dispatchEvent(new dom.window.Event("change"));
   for (const index of [0, 1]) entry(index).dispatchEvent(new dom.window.MouseEvent("click",
     {ctrlKey: true, bubbles: true}));
   assert.match(errors[0], /same parent and level/);
@@ -984,7 +1035,8 @@ test("ToC markers mirror section titles and headings without entering prose, cli
     '<h3>Nested</h3><p>Detail</p></section><section id="b"><h2>Second</h2><p>End</p></section>');
   const original = editor.getHTML();
   const markers = () => [...editor.view.dom.querySelectorAll(".editor-toc-marker")].map(node => node.textContent);
-  const navigation = () => [...form.querySelectorAll(".editor-outline-title")].map(node => node.textContent);
+  const navigation = () => [...form.querySelectorAll(".editor-book-sections .editor-outline-title")]
+    .map(node => node.textContent);
   assert.deepEqual(markers(), []);
   applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, "upper-roman");
   assert.deepEqual(markers(), ["I. ", "II. "]);
@@ -1071,11 +1123,11 @@ test("section numbering decorates the bound title rather than the first heading"
   applyTocNumbering(editor, {doc: editor.state.doc, indices: [0]}, "decimal");
   assert(!editor.view.dom.querySelector("h3 .editor-toc-marker"));
   assert.equal(editor.view.dom.querySelector("#title .editor-toc-marker").textContent, "1. ");
-  assert.equal(form.querySelector(".editor-outline-title").textContent, "1. Bound title");
+  assert.equal(form.querySelector(".editor-book-sections .editor-outline-title").textContent, "1. Bound title");
   selectText("Bound title", 11);
   editor.commands.insertContent("Renamed title");
   assert.equal(editor.view.dom.querySelector("#title").textContent, "1. Renamed title");
-  assert.equal(form.querySelector(".editor-outline-title").textContent, "1. Renamed title");
+  assert.equal(form.querySelector(".editor-book-sections .editor-outline-title").textContent, "1. Renamed title");
   assert(!editor.getHTML().includes("1. Renamed title"));
 });
 
@@ -1096,7 +1148,7 @@ test("adding an H3 after an identified unbound title keeps the original section 
   const headings = [...editor.view.dom.querySelectorAll("h3")];
   assert.equal(headings[1].textContent, "New subheading");
   assert(!headings[1].hasAttribute("data-toc-style"));
-  assert.equal(form.querySelector(".editor-outline-title").textContent, "I. What Does “Freedom of Criticism” Mean?");
+  assert.equal(form.querySelector(".editor-book-sections .editor-outline-title").textContent, "I. What Does “Freedom of Criticism” Mean?");
   while (editor.getHTML() !== original && undo(editor.state, editor.view.dispatch)) {}
   assert.equal(editor.getHTML(), original);
 });

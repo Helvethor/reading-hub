@@ -1123,6 +1123,14 @@ Whole book shows a generated title page (live title/subtitle, author, contributo
 roles, date facts/ranges, language and subjects), a generated table of contents,
 then editable prose. The outline places Title, ToC and Sections at the same
 hierarchical level under the book, with real sections/headings below Sections.
+Whole book, Title, ToC and Sections rows use the same row component as section
+rows (branch guides, kind badge, fold column) and the same viewport relation:
+rows whose content is in the canvas viewport get the light background, the
+current one the dark background, and **Follow scroll** keeps it in view. Clicking
+any row navigates by scrolling within a view that contains it (Title/ToC switch
+an isolated view back to Whole book) instead of isolating it; use **Show** to
+isolate a generated page or the sections. The Whole book and Sections rows fold
+their navigation children only.
 Use **Edit title-page metadata** for bibliographic changes; edit actual section
 titles/order to change the ToC. ToC buttons navigate to existing document ranges,
 including headings without IDs, without generating targets.

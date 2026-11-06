@@ -158,7 +158,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       selectionDoc = editor.state.doc;
     }
   });
-  let view = "book", sectionsCollapsed = false;
+  let view = "book", sectionsCollapsed = false, bookCollapsed = false;
   function applyView() {
     primary.value = view;
     title.hidden = !["book", "title"].includes(view);
@@ -169,11 +169,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       if (button.dataset.bookView === view) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     }
-  }
-  function element(tag, text) {
-    const node = owner.createElement(tag);
-    node.textContent = text;
-    return node;
   }
   function refresh(parts) {
     currentParts = parts;
@@ -237,52 +232,127 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     updateSelection();
     applyView();
   }
-  function navigation(outline) {
-    const root = outline.querySelector(".editor-outline-root [data-part]");
-    if (root) root.dataset.bookView = "book";
+  // Book-level entries use the same row component as section rows: tree guides, a
+  // kind badge, a controls column and a title button that navigates within the book.
+  function bookRow(value, label, kind, {depth = 1, last = false, fold = null} = {}) {
+    const row = owner.createElement("div");
+    row.className = "editor-outline-row editor-book-row";
+    row.dataset.bookRow = value;
+    const guides = owner.createElement("span");
+    guides.className = "editor-outline-guides";
+    guides.setAttribute("aria-hidden", "true");
+    const guide = owner.createElement("span");
+    guide.className = depth ? "editor-outline-branch" : "editor-outline-branch editor-outline-book-guide";
+    if (last) guide.classList.add("editor-outline-last");
+    guides.append(guide);
+    const header = owner.createElement("div");
+    header.className = "editor-outline-row-header";
+    const badge = element("span", kind);
+    badge.className = "editor-outline-kind";
+    const controls = owner.createElement("span");
+    controls.className = "editor-outline-row-controls";
+    if (fold) controls.append(fold);
+    else {
+      const spacer = owner.createElement("span");
+      spacer.className = "editor-outline-spacer";
+      controls.append(spacer);
+    }
+    header.append(badge, controls);
+    let button = outline.querySelector('[data-part=""]');
+    if (value !== "book" || !button) {
+      button = owner.createElement("button");
+      button.type = "button";
+    }
+    button.dataset.bookView = value;
+    button.title = `${label} — scroll to it in the book`;
+    button.replaceChildren(element("span", label));
+    button.firstChild.className = "editor-outline-title";
+    row.append(guides, header, button);
+    return row;
+  }
+  function foldButton(label, collapsed, toggle) {
+    const button = element("button", collapsed ? "+" : "\u2212");
+    button.type = "button";
+    const update = folded => {
+      button.textContent = folded ? "+" : "\u2212";
+      button.setAttribute("aria-label", `${folded ? "Expand" : "Fold"} ${label} navigation group`);
+      button.setAttribute("aria-expanded", String(!folded));
+    };
+    update(collapsed);
+    button.addEventListener("click", event => {
+      event.stopPropagation();
+      update(toggle());
+    });
+    return button;
+  }
+  let outline = null;
+  function navigation(target) {
+    outline = target;
     const rows = [...outline.querySelectorAll(".editor-outline-row")];
+    const groups = owner.createElement("div");
+    groups.className = "editor-book-groups";
+    groups.hidden = bookCollapsed;
+    const rootFold = foldButton("Whole book", bookCollapsed, () => {
+      bookCollapsed = !bookCollapsed;
+      groups.hidden = bookCollapsed;
+      root.classList.toggle("editor-book-row-collapsed", bookCollapsed);
+      return bookCollapsed;
+    });
+    rootFold.dataset.bookGroupFold = "book";
+    const root = bookRow("book", "Whole book", "Book", {depth: 0, fold: rootFold});
+    root.classList.toggle("editor-book-row-collapsed", bookCollapsed);
+    outline.querySelector('.editor-outline-root')?.remove();
     for (const [value, label] of views.slice(1)) {
       const group = owner.createElement("div");
       group.className = "editor-book-group";
       group.dataset.bookGroup = value;
-      const header = owner.createElement("div");
-      header.className = "editor-book-group-heading";
-      const button = element("button", label);
-      button.type = "button";
-      button.dataset.bookView = value;
       if (value === "sections") {
-        const toggle = element("button", sectionsCollapsed ? "+" : "\u2212");
-        toggle.type = "button";
-        toggle.dataset.bookGroupFold = "sections";
-        toggle.setAttribute("aria-label", `${sectionsCollapsed ? "Expand" : "Fold"} Sections navigation group`);
-        toggle.setAttribute("aria-expanded", String(!sectionsCollapsed));
         const children = owner.createElement("div");
         children.className = "editor-book-sections";
         children.hidden = sectionsCollapsed;
         children.append(...rows);
-        toggle.addEventListener("click", () => {
+        const fold = foldButton("Sections", sectionsCollapsed, () => {
           sectionsCollapsed = !sectionsCollapsed;
           children.hidden = sectionsCollapsed;
-          toggle.textContent = sectionsCollapsed ? "+" : "\u2212";
-          toggle.setAttribute("aria-expanded", String(!sectionsCollapsed));
-          toggle.setAttribute("aria-label", `${sectionsCollapsed ? "Expand" : "Fold"} Sections navigation group`);
+          return sectionsCollapsed;
         });
-        header.append(toggle, button);
-        group.append(header, children);
+        fold.dataset.bookGroupFold = "sections";
+        group.append(bookRow(value, label, "Content", {last: true, fold}), children);
       } else {
-        const spacer = owner.createElement("span");
-        spacer.setAttribute("aria-hidden", "true");
-        header.append(spacer, button);
-        group.append(header);
+        group.append(bookRow(value, label, "Page"));
       }
-      outline.append(group);
+      groups.append(group);
     }
+    outline.prepend(root, groups);
     applyView();
   }
+  function bounds(element) {
+    if (element.hidden || !element.isConnected || !element.getClientRects().length) return null;
+    return element.getBoundingClientRect();
+  }
+  // Bounding boxes of the book-level entries, so the outline can relate them to the viewport.
+  function targets() {
+    const pages = {title: bounds(title), toc: bounds(toc), sections: bounds(editor.view.dom)};
+    const shown = Object.values(pages).filter(Boolean);
+    return {
+      book: shown.length ? {top: Math.min(...shown.map(rect => rect.top)),
+        bottom: Math.max(...shown.map(rect => rect.bottom))} : null,
+      ...pages,
+    };
+  }
+  function element(tag, text) {
+    const node = owner.createElement(tag);
+    node.textContent = text;
+    return node;
+  }
   return {
-    filter, refresh, navigation,
+    filter, refresh, navigation, targets,
+    target(value) {
+      return {book: null, title, toc, sections: editor.view.dom}[value];
+    },
     expandNavigation() {
-      if (sectionsCollapsed) form.querySelector("[data-book-group-fold]")?.click();
+      if (bookCollapsed) form.querySelector('[data-book-group-fold="book"]')?.click();
+      if (sectionsCollapsed) form.querySelector('[data-book-group-fold="sections"]')?.click();
     },
     get view() { return view; },
     show(value) {

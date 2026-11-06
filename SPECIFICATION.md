@@ -385,7 +385,10 @@ editable document. The other choices isolate one of those three groups, which
 are siblings under the book root in navigation; actual sections/headings nest
 under Sections. Only Sections exposes the secondary Section filter. Switching
 primary views clears an existing part filter; outline/ToC destinations navigate
-without filtering and reveal editable prose when necessary.
+without filtering and reveal editable prose when necessary. Book, Title, ToC and
+Sections navigation rows share the section rows' component, viewport visible/
+current backgrounds, follow-scroll and click-to-scroll navigation; only Show
+isolates a view.
 
 The generated title uses current, including unsaved, bibliographic metadata:
 title, subtitle, author/source attribution, editor/translator/unconfirmed roles,

@@ -49,7 +49,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     initial.presentation);
   const sectionFilter = bookViews.filter;
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
-    () => bookViews.expandNavigation());
+    () => bookViews.expandNavigation(), () => bookViews.targets());
   mountSectionBoundaries(form, editor, showError, initial.structure?.parts || []);
   mountTargets(form, editor, showError);
   const noteRepairs = form.ownerDocument.querySelector("#editor-note-repair")
@@ -253,20 +253,32 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       editor.view.focus();
     } catch (failure) { showError(failure.message); }
   }
+  // Book-level rows navigate like section rows: reveal and scroll within a view that
+  // contains them; the View select isolates a generated page or the sections.
+  function navigateBook(value) {
+    try {
+      showError("");
+      closeMenu();
+      const shown = {book: ["book"], title: ["book", "title"], toc: ["book", "toc"],
+        sections: ["book", "sections"]}[value];
+      if (!shown.includes(bookViews.view)) bookViews.show(value === "sections" ? "sections" : "book");
+      if (visiblePart(editor)) showDocumentPart(editor, null);
+      refreshOutline();
+      const target = bookViews.target(value);
+      if (!target) surface.scrollTop = 0;
+      else surface.scrollTop += target.getBoundingClientRect().top - surface.getBoundingClientRect().top;
+      dynamicOutline.schedule();
+      outline.querySelector(`[data-book-view="${value}"]`)?.focus({preventScroll: true});
+    } catch (failure) { showError(failure.message); }
+  }
   outline.addEventListener("click", event => {
     const view = event.target.closest("[data-book-view]");
     if (view) {
-      const value = view.dataset.bookView;
-      chooseView(value);
-      outline.querySelector(`[data-book-view="${value}"]`)?.focus({preventScroll: true});
+      navigateBook(view.dataset.bookView);
       return;
     }
     const button = event.target.closest("[data-part]");
     if (!button) return;
-    if (button.dataset.part === "") {
-      chooseView("book");
-      return;
-    }
     navigatePart(Number(button.dataset.part));
   });
   form.querySelector("#editor-block-labels").addEventListener("change", event => {

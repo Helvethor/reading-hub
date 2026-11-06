@@ -20,7 +20,8 @@ export function outlineHierarchy(parts) {
   });
 }
 
-export function mountDynamicOutline(editor, outline, surface, showError, expandGroups = () => {}) {
+export function mountDynamicOutline(editor, outline, surface, showError, expandGroups = () => {},
+  bookTargets = () => ({})) {
   const owner = outline.ownerDocument;
   const collapsed = new Set();
   let parts = [], hierarchy = [], frame = null, lastActive = null;
@@ -74,38 +75,51 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     frame = null;
     const viewport = surface.getBoundingClientRect();
     const scope = visiblePart(editor);
-    let active = -1, activeTop = -Infinity;
-    const visible = [];
+    // Book-level rows (whole book, title, ToC, sections) and section rows share one
+    // viewport model: visible rows get a light background, the current one is dark.
+    const bookRows = [...outline.querySelectorAll("[data-book-row]")];
+    const pages = bookRows.length ? bookTargets() : {};
+    const candidates = bookRows.map(row => ({row, rect: pages[row.dataset.bookRow],
+      depth: row.dataset.bookRow === "book" ? 0 : 1, key: `book:${row.dataset.bookRow}`}));
+    const offset = bookRows.length ? 2 : 0;
     parts.forEach((part, index) => {
       if (scope && (part.to <= scope.from || part.from >= scope.to)) return;
-      const rect = bounds(part);
-      if (!rect || rect.bottom <= viewport.top || rect.top >= viewport.bottom) return;
-      visible.push(index);
-      if (rect.top <= viewport.top + 64 &&
-          (rect.top > activeTop || rect.top === activeTop &&
-            hierarchy[index].depth > (hierarchy[active]?.depth ?? -1))) {
-        active = index;
-        activeTop = rect.top;
-      }
+      const row = outline.querySelector(`[data-outline-index="${index}"]`);
+      if (row) candidates.push({row, rect: bounds(part), depth: hierarchy[index].depth + offset,
+        key: key(part), index});
     });
-    if (active < 0 && visible.length) active = visible[0];
-    const activeKey = active < 0 ? null : key(parts[active]);
+    let active = null;
+    const visible = new Set();
+    for (const candidate of candidates) {
+      const {rect} = candidate;
+      if (!rect || rect.bottom <= viewport.top || rect.top >= viewport.bottom) continue;
+      visible.add(candidate.row);
+      if (rect.top <= viewport.top + 64 && (!active || rect.top > active.rect.top ||
+          rect.top === active.rect.top && candidate.depth > active.depth)) active = candidate;
+    }
+    if (!active) active = candidates.find(candidate => visible.has(candidate.row)) || null;
+    const activeKey = active?.key ?? null;
     const activeChanged = activeKey !== lastActive;
     lastActive = activeKey;
-    outline.querySelectorAll("[data-outline-index]").forEach(row => {
-      const index = Number(row.dataset.outlineIndex);
-      row.classList.toggle("editor-outline-visible", visible.includes(index));
-      row.classList.toggle("editor-outline-active", index === active);
-      const button = row.querySelector("[data-part]");
-      if (index === active) button.setAttribute("aria-current", "location");
+    outline.querySelectorAll("[data-outline-index], [data-book-row]").forEach(row => {
+      row.classList.toggle("editor-outline-visible", visible.has(row));
+      row.classList.toggle("editor-outline-active", row === active?.row);
+      const button = row.querySelector(":scope > button");
+      if (!button || button.getAttribute("aria-current") === "page") return;
+      if (row === active?.row) button.setAttribute("aria-current", "location");
       else button.removeAttribute("aria-current");
     });
-    if (follow.checked && activeChanged && active >= 0) {
-      let index = active;
-      let row = outline.querySelector(`[data-outline-index="${index}"]`);
-      while (row?.hidden && hierarchy[index].parent >= 0) {
+    if (follow.checked && activeChanged && active) {
+      let row = active.row, index = active.index;
+      while (row?.hidden && index !== undefined && hierarchy[index].parent >= 0) {
         index = hierarchy[index].parent;
         row = outline.querySelector(`[data-outline-index="${index}"]`);
+      }
+      // Rows inside a folded navigation group follow their visible group row.
+      for (const group of ["sections", "book"]) {
+        if (row && (row.hidden || row.parentElement?.closest("[hidden]"))) {
+          row = outline.querySelector(`[data-book-row="${group}"]`) || row;
+        }
       }
       if (row) {
         const nav = outline.parentElement, rect = row.getBoundingClientRect(), container = nav.getBoundingClientRect();
@@ -235,5 +249,5 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     if (frame !== null) cancelAnimationFrame(frame);
     options.remove();
   });
-  return {render};
+  return {render, schedule};
 }
