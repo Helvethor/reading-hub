@@ -77,8 +77,13 @@ alignment, block labels and section borders; it has no in-text buttons. Right-cl
 removed content (or focus it and press Shift+F10/Menu) for **Restore selected text**
 (after selecting part of it), **Restore removal**, **Restore and replace added
 content** and the keyboard text-selection dialog. Shift+right-click keeps the
-browser menu. Edited blocks of the same kind are paired so their wording changes
-stay inline. Restoration is an ordinary unsaved edit with Undo. Show the whole document and expand sections
+browser menu. Similar blocks of the same kind (and blocks keeping their ID) are
+paired so their wording changes stay inline; dissimilar blocks are shown as a whole
+removal and addition. A changed block type or attribute (for example a heading level
+or section TOC numbering) shows an amber **Formatting changed** note whose menu offers
+**Restore previous formatting**; a block newly wrapped or unwrapped (for example a
+quotation moved into a figure) shows a **Structure changed** note with an inner
+word diff and **Restore previous structure**, which replaces the current block. Restoration is an ordinary unsaved edit with Undo. Show the whole document and expand sections
 first. Duplicate targets, incomplete target-bearing selections, stale locations and
 invalid structure refuse rather than stripping content. Title/metadata comparison
 is in Saved comparison. Material excluded before the pinned baseline is available

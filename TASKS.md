@@ -100,7 +100,9 @@ acceptance. Historical counts below describe their original slices.
   including unsaved content. Display semantic additions/removals with green/red
   backgrounds and screen-reader labels, removed content flowing as its original
   formatted blocks; restore selected text or complete semantic removals from a
-  right-click/Shift+F10 menu with atomic undo and stale/structure/target guards. Saving keeps the baseline;
+  right-click/Shift+F10 menu with atomic undo and stale/structure/target guards.
+  Similar/same-ID blocks, attribute/type changes and wrapped quotations stay
+  granular with restorable formatting/structure notes. Saving keeps the baseline;
   diff artifacts never enter saved/recovered/published HTML or PDF.
 - [x] Replace legacy reciprocal-note repair with a contextual editor operation:
   choose an exact note paragraph/list item and existing backlink, or explicitly

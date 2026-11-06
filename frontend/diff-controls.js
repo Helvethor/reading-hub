@@ -29,7 +29,8 @@ export function mountDifferenceControls(form, editor, initial, showError) {
       ? "Result view. Differences never change saved content."
       : `Content differences against ${baselineRevision === 0 ? "the pinned starting document" :
         `saved revision ${baselineRevision}`}. ${differences.length} changed range(s). ` +
-        "Green = added; red = removed. Restoration is an unsaved, undoable edit. " +
+        "Green = added; red = removed; changed block formatting is noted above the block. " +
+        "Right-click a change to restore it; restoration is an unsaved, undoable edit. " +
         "Metadata comparison is available in Saved comparison.";
   }
   function apply() {

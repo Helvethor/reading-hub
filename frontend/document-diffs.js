@@ -58,14 +58,64 @@ function inlineUnits(node, start) {
   return result;
 }
 
-let unpairable = 0;
-function shape(item) {
-  const {node} = item;
-  return {key: node.isLeaf || node.attrs.id ? `unpaired:${unpairable++}` :
-    `${node.type.name}:${JSON.stringify(attributes(node.attrs))}`};
+const MAX_PAIRING_CELLS = 250000;
+const wordCache = new WeakMap();
+function words(node) {
+  if (!wordCache.has(node)) {
+    wordCache.set(node, node.textContent.toLowerCase().match(/[\p{L}\p{N}_]+/gu) || []);
+  }
+  return wordCache.get(node);
 }
 
-function unmatched(old, next, callback, matched = null) {
+function similarity(a, b) {
+  const x = words(a), y = words(b);
+  if (!x.length || !y.length) return x.length === y.length ? 1 : 0;
+  const counts = new Map();
+  for (const word of x) counts.set(word, (counts.get(word) || 0) + 1);
+  let common = 0;
+  for (const word of y) {
+    const count = counts.get(word);
+    if (count) { common++; counts.set(word, count - 1); }
+  }
+  return 2 * common / (x.length + y.length);
+}
+
+// Pair edited blocks of the same kind only when most of their words survive.
+function similarPairs(old, next) {
+  if (old.length * next.length > MAX_PAIRING_CELLS) return [];
+  const score = (a, b) => {
+    if (a.isLeaf || b.isLeaf || a.attrs.id || b.attrs.id || a.type !== b.type) return 0;
+    const value = similarity(a, b);
+    return value >= .5 ? value : 0;
+  };
+  const width = next.length + 1, table = new Float64Array((old.length + 1) * width);
+  const scores = new Float64Array(old.length * next.length);
+  for (let i = old.length - 1; i >= 0; i--) {
+    for (let j = next.length - 1; j >= 0; j--) {
+      const value = scores[i * next.length + j] = score(old[i].node, next[j].node);
+      table[i * width + j] = Math.max(table[(i + 1) * width + j], table[i * width + j + 1],
+        value ? value + table[(i + 1) * width + j + 1] : 0);
+    }
+  }
+  const pairs = [];
+  let i = 0, j = 0;
+  while (i < old.length && j < next.length) {
+    const value = scores[i * next.length + j];
+    if (value && table[i * width + j] === value + table[(i + 1) * width + j + 1]) {
+      pairs.push([i, j]); i++; j++;
+    } else if (table[(i + 1) * width + j] >= table[i * width + j + 1]) i++;
+    else j++;
+  }
+  return pairs;
+}
+
+const separator = /^[^\p{L}\p{N}_]+$/u;
+
+function markup(node) {
+  return JSON.stringify([node.type.name, attributes(node.attrs)]);
+}
+
+function unmatched(old, next, callback) {
   let prefix = 0, suffix = 0;
   while (prefix < Math.min(old.length, next.length) &&
       old[prefix].key === next[prefix].key) prefix++;
@@ -93,11 +143,6 @@ function unmatched(old, next, callback, matched = null) {
       }
     }
   }
-  if (matched) {
-    for (let k = 0; k < prefix; k++) matched.push([k, k]);
-    matched.push(...matches);
-    for (let k = suffix; k > 0; k--) matched.push([old.length - k, next.length - k]);
-  }
   let i = prefix, j = prefix;
   for (const [x, y] of [...matches, [old.length - suffix, next.length - suffix]]) {
     if (x > i || y > j) callback(i, x, j, y, coarse);
@@ -105,38 +150,55 @@ function unmatched(old, next, callback, matched = null) {
   }
 }
 
+function wrappedChild(wrapper, node) {
+  if (wrapper.isLeaf || wrapper.isTextblock || node.isLeaf) return -1;
+  let found = -1;
+  wrapper.forEach((child, offset) => {
+    if (found < 0 && child.type === node.type && similarity(child, node) >= .5) found = offset;
+  });
+  return found;
+}
+
 export function documentDifferences(before, after) {
   const changes = [];
-  function compare(oldNode, newNode, oldStart, newStart) {
-    if (signature(oldNode) === signature(newNode)) return;
-    const inline = oldNode.isTextblock && newNode.isTextblock;
-    if (inline && Math.max(oldNode.content.size, newNode.content.size) > 100000) {
-      changes.push({before, doc: after, oldFrom: oldStart,
-        oldTo: oldStart + oldNode.content.size, from: newStart,
-        to: newStart + newNode.content.size, inline: true, coarse: true});
-      return;
-    }
-    const old = inline ? inlineUnits(oldNode, oldStart) : children(oldNode, oldStart);
-    const next = inline ? inlineUnits(newNode, newStart) : children(newNode, newStart);
-    const at = (items, index, end) => items[index]?.from ?? end;
-    const replaced = (a, b, c, d, coarse) => changes.push({
-      before, doc: after,
-      oldFrom: at(old, a, oldStart + oldNode.content.size),
-      oldTo: at(old, b, oldStart + oldNode.content.size),
-      from: at(next, c, newStart + newNode.content.size),
-      to: at(next, d, newStart + newNode.content.size),
-      inline, coarse,
+  // Compare contents of corresponding blocks; their own type/attribute change is reported separately.
+  function pair(oldItem, newItem) {
+    if (markup(oldItem.node) !== markup(newItem.node)) changes.push({
+      before, doc: after, markup: true, inline: false, coarse: false,
+      oldFrom: oldItem.from, oldTo: oldItem.from, from: newItem.from, to: newItem.from,
     });
+    compare(oldItem.node, newItem.node, oldItem.from + 1, newItem.from + 1);
+  }
+  // A block newly wrapped (e.g. a quotation figure) or unwrapped keeps a granular inner diff.
+  function restructured(oldItem, newItem) {
+    const wrapped = wrappedChild(newItem.node, oldItem.node) >= 0;
+    if (!wrapped && wrappedChild(oldItem.node, newItem.node) < 0) return false;
+    changes.push({
+      before, doc: after, structure: wrapped ? "wrapped" : "unwrapped",
+      oldFrom: oldItem.from, oldTo: oldItem.to, from: newItem.from, to: newItem.to,
+      inline: false, coarse: false,
+    });
+    if (wrapped) blocks([oldItem], children(newItem.node, newItem.from + 1), oldItem.to, newItem.to - 1);
+    else blocks(children(oldItem.node, oldItem.from + 1), [newItem], oldItem.to - 1, newItem.to);
+    return true;
+  }
+  function blocks(old, next, oldEnd, newEnd) {
+    const at = (items, index, end) => items[index]?.from ?? end;
+    const replaced = (a, b, c, d, coarse) => {
+      if (!coarse && b - a === 1 && d - c === 1 && restructured(old[a], next[c])) return;
+      changes.push({
+        before, doc: after, oldFrom: at(old, a, oldEnd), oldTo: at(old, b, oldEnd),
+        from: at(next, c, newEnd), to: at(next, d, newEnd), inline: false, coarse,
+      });
+    };
     unmatched(old, next, (a, b, c, d, coarse) => {
-      if (!inline && !coarse && b > a && d > c) {
-        // Pair edited blocks of the same kind so their wording changes stay inline.
-        const pairs = [];
-        unmatched(old.slice(a, b).map(shape), next.slice(c, d).map(shape), () => {}, pairs);
+      if (!coarse && b > a && d > c) {
+        const pairs = similarPairs(old.slice(a, b), next.slice(c, d));
         if (pairs.length) {
           let i = a, j = c;
           for (const [x, y] of [...pairs.map(([x, y]) => [x + a, y + c]), [b, d]]) {
             if (x > i || y > j) replaced(i, x, j, y, false);
-            if (x < b) compare(old[x].node, next[y].node, old[x].from + 1, next[y].from + 1);
+            if (x < b) pair(old[x], next[y]);
             i = x + 1; j = y + 1;
           }
           return;
@@ -145,22 +207,51 @@ export function documentDifferences(before, after) {
       replaced(a, b, c, d, coarse);
     });
     // ID matches align changed containers, not just identical content.
-    if (!inline) {
-      const byId = new Map(next.filter(item => item.node.attrs.id)
-        .map(item => [item.node.attrs.id, item]));
-      for (const item of old.filter(item => item.node.attrs.id)) {
-        const other = byId.get(item.node.attrs.id);
-        if (!other || signature(item.node) === signature(other.node)) continue;
-        if (changes.some(change => item.from >= change.oldFrom && item.to <= change.oldTo)) continue;
-        if (item.node.type === other.node.type &&
-            JSON.stringify(attributes(item.node.attrs)) === JSON.stringify(attributes(other.node.attrs))) {
-          compare(item.node, other.node, item.from + 1, other.from + 1);
-        } else changes.push({
-          before, doc: after, oldFrom: item.from, oldTo: item.to,
-          from: other.from, to: other.to, inline: false, coarse: false,
-        });
-      }
+    const byId = new Map(next.filter(item => item.node.attrs.id)
+      .map(item => [item.node.attrs.id, item]));
+    for (const item of old.filter(item => item.node.attrs.id)) {
+      const other = byId.get(item.node.attrs.id);
+      if (!other || signature(item.node) === signature(other.node)) continue;
+      if (changes.some(change => !change.structure &&
+          item.from >= change.oldFrom && item.to <= change.oldTo)) continue;
+      if (!item.node.isLeaf && !other.node.isLeaf &&
+          item.node.isTextblock === other.node.isTextblock) {
+        pair(item, other);
+      } else changes.push({
+        before, doc: after, oldFrom: item.from, oldTo: item.to,
+        from: other.from, to: other.to, inline: false, coarse: false,
+      });
     }
+  }
+  function compare(oldNode, newNode, oldStart, newStart) {
+    if (signature(oldNode) === signature(newNode)) return;
+    const oldEnd = oldStart + oldNode.content.size, newEnd = newStart + newNode.content.size;
+    if (!oldNode.isTextblock || !newNode.isTextblock) {
+      blocks(children(oldNode, oldStart), children(newNode, newStart), oldEnd, newEnd);
+      return;
+    }
+    if (Math.max(oldNode.content.size, newNode.content.size) > 100000) {
+      changes.push({before, doc: after, oldFrom: oldStart, oldTo: oldEnd,
+        from: newStart, to: newEnd, inline: true, coarse: true});
+      return;
+    }
+    const old = inlineUnits(oldNode, oldStart), next = inlineUnits(newNode, newStart);
+    const at = (items, index, end) => items[index]?.from ?? end;
+    const ranges = [];
+    const gap = (node, start, items) => items.every(item =>
+      separator.test(node.textBetween(item.from - start, item.to - start, "")));
+    unmatched(old, next, (a, b, c, d, coarse) => {
+      // Merge word changes separated only by spaces/punctuation into one readable change.
+      const last = ranges.at(-1);
+      if (last && !coarse && !last[4] && gap(oldNode, oldStart, old.slice(last[1], a)) &&
+          gap(newNode, newStart, next.slice(last[3], c))) {
+        last[1] = b; last[3] = d;
+      } else ranges.push([a, b, c, d, coarse]);
+    });
+    for (const [a, b, c, d, coarse] of ranges) changes.push({
+      before, doc: after, oldFrom: at(old, a, oldEnd), oldTo: at(old, b, oldEnd),
+      from: at(next, c, newEnd), to: at(next, d, newEnd), inline: true, coarse,
+    });
   }
   compare(before, after, 0, 0);
   return changes.sort((a, b) => a.from - b.from);
@@ -173,8 +264,62 @@ function serialized(doc, owner) {
   return root;
 }
 
+const attributeNames = {
+  "data-toc-style": "TOC numbering", class: "classes", id: "target ID",
+  "data-section-role": "section role", "data-section-title": "section title target",
+  "data-section-group": "section group", "data-excerpt-parent": "excerpt origin",
+};
+
+function typeName(node) {
+  return /^h[1-6]$/.test(node.type.name) ? node.type.name.toUpperCase() :
+    node.type.name === "p" ? "paragraph" : node.type.name.replace(/Text$|Block$/, "");
+}
+
+export function markupDifferences(change) {
+  const old = change.before.nodeAt(change.oldFrom), next = change.doc.nodeAt(change.from);
+  const result = [];
+  if (old.type !== next.type) result.push(["block type", typeName(old), typeName(next)]);
+  const a = attributes(old.attrs), b = attributes(next.attrs);
+  for (const name of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (JSON.stringify(a[name] ?? null) === JSON.stringify(b[name] ?? null)) continue;
+    result.push([attributeNames[name] || name.replace(/^data-/, "").replaceAll("-", " "),
+      a[name] ?? "none", b[name] ?? "none"]);
+  }
+  return result;
+}
+
+export function restoreMarkup(editor, change) {
+  if (editor.state.doc !== change.doc) throw new Error("The document changed. Select the change again.");
+  if (visiblePart(editor) || foldedDocumentParts(editor).length) {
+    throw new Error("Show the whole document and expand all sections before restoring content.");
+  }
+  const old = change.before.nodeAt(change.oldFrom), current = editor.state.doc.nodeAt(change.from);
+  const type = editor.schema.nodes[old.type.name];
+  if (!type.validContent(current.content)) {
+    throw new Error(`The current content cannot be placed in a ${typeName(old)} block.`);
+  }
+  const attrs = {...old.attrs};
+  if ("identity" in current.attrs) attrs.identity = current.attrs.identity;
+  const tr = closeHistory(editor.state.tr);
+  try {
+    tr.setNodeMarkup(change.from, type, attrs, current.marks);
+    tr.doc.check();
+  } catch (failure) {
+    throw new Error(`The previous formatting cannot be restored here: ${failure.message}`);
+  }
+  const ids = [...serialized(tr.doc, editor.view.dom.ownerDocument).querySelectorAll("[id]")]
+    .map(node => node.id);
+  if (new Set(ids).size !== ids.length) {
+    throw new Error("Restoring the previous formatting would duplicate a target ID.");
+  }
+  editor.view.dispatch(tr);
+  if (editor.state.doc !== tr.doc) throw new Error("The editor refused restoration. Expand the document and retry.");
+  editor.view.dispatch(closeHistory(editor.state.tr));
+}
+
 export function restoreDifference(editor, change, {oldFrom = change.oldFrom,
   oldTo = change.oldTo, replace = false} = {}) {
+  if (change.markup) return restoreMarkup(editor, change);
   if (editor.state.doc !== change.doc) throw new Error("The document changed. Select the removal again.");
   if (visiblePart(editor) || foldedDocumentParts(editor).length) {
     throw new Error("Show the whole document and expand all sections before restoring content.");
@@ -444,7 +589,9 @@ function differenceMenu(editor, onError) {
   const all = item("Restore removal", "all");
   const replace = item("Restore and replace added content", "replace");
   const keyboard = item("Select removed text by keyboard…", "keyboard");
-  menu.append(target, selected, all, replace, keyboard);
+  const formatting = item("Restore previous formatting", "markup");
+  const structure = item("Restore previous structure (replaces this block, including its later edits)", "structure");
+  menu.append(target, selected, all, replace, keyboard, formatting, structure);
   owner.body.append(menu);
   let current = null;
   function close(focus = true) {
@@ -460,11 +607,13 @@ function differenceMenu(editor, onError) {
     close(action !== "keyboard");
     if (action === "keyboard") { restoreDialog(editor, change, origin); return; }
     try {
+      if (action === "markup") { restoreMarkup(editor, change); return; }
+      if (action === "structure") { restoreDifference(editor, change, {replace: true}); return; }
       restoreDifference(editor, change, action === "selection" ? range :
         action === "replace" ? {replace: true} : {});
     } catch (failure) { onError(failure.message); }
   }
-  for (const button of [selected, all, replace, keyboard]) {
+  for (const button of [selected, all, replace, keyboard, formatting, structure]) {
     button.addEventListener("click", () => run(button.dataset.diffAction));
   }
   menu.addEventListener("keydown", event => {
@@ -489,8 +638,15 @@ function differenceMenu(editor, onError) {
     catch (failure) { problem = failure.message; }
     current = {change, range, origin};
     selected.disabled = !range;
-    replace.hidden = !(change.to > change.from);
-    target.textContent = problem || (range
+    const special = change.markup || change.structure;
+    replace.hidden = !(change.to > change.from) || !!special;
+    for (const button of [selected, all, keyboard]) button.hidden = !!special;
+    formatting.hidden = !change.markup;
+    structure.hidden = !change.structure;
+    target.textContent = change.structure ? structureDescription(change) :
+      change.markup ? "Formatting changed: " +
+      markupDifferences(change).map(([name, was, now]) => `${name} was ${was}, now ${now}`).join("; ") + "."
+      : problem || (range
       ? "Removed content: the selected text can be restored on its own"
       : "Removed content: select part of it first to restore only that text") +
       (change.coarse ? ". Large change: displayed as one exact replacement." : ".");
@@ -552,6 +708,11 @@ function removedWidget(view, change, menu) {
     owner.addEventListener("mousemove", move, true);
     owner.addEventListener("mouseup", end, true);
   });
+  attachMenu(root, focus, change, menu);
+  return root;
+}
+
+function attachMenu(root, focus, change, menu) {
   root.addEventListener("contextmenu", event => {
     event.stopPropagation();
     if (event.shiftKey) return;
@@ -566,6 +727,37 @@ function removedWidget(view, change, menu) {
       menu.open(change, root, focus, bounds.left, bounds.bottom);
     }
   });
+}
+
+function structureDescription(change) {
+  const old = change.before.nodeAt(change.oldFrom), next = change.doc.nodeAt(change.from);
+  return change.structure === "wrapped"
+    ? `Structure changed: ${typeName(old)} wrapped in ${typeName(next)}.`
+    : `Structure changed: ${typeName(old)} wrapper removed around ${typeName(next)}.`;
+}
+
+function markupWidget(view, change, menu) {
+  const owner = view.dom.ownerDocument;
+  const root = owner.createElement("div");
+  root.className = "editor-diff-markup";
+  root.contentEditable = "false";
+  root.dataset.diff = "markup";
+  root.tabIndex = 0;
+  root.title = "Formatting changed: right-click (or Shift+F10) to restore the previous formatting";
+  if (change.structure) {
+    root.append(structureDescription(change));
+    attachMenu(root, root, change, menu);
+    return root;
+  }
+  root.append("Formatting changed: ");
+  markupDifferences(change).forEach(([name, was, now], index) => {
+    if (index) root.append("; ");
+    const removed = owner.createElement("del"), added = owner.createElement("ins");
+    removed.textContent = was;
+    added.textContent = now;
+    root.append(`${name} `, removed, " → ", added);
+  });
+  attachMenu(root, root, change, menu);
   return root;
 }
 
@@ -587,6 +779,13 @@ export function differenceExtension(onError) {
             const changes = baseline && enabled ? documentDifferences(baseline, tr.doc) : [];
             const decorations = [];
             for (const item of changes) {
+              if (item.markup || item.structure) {
+                const node = tr.doc.nodeAt(item.from);
+                decorations.push(Decoration.widget(node.isTextblock ? item.from : item.from + 1,
+                  view => markupWidget(view, item, menu ??= differenceMenu(editor, onError)),
+                  {side: -1, stopEvent: () => true, ignoreSelection: true}));
+                continue;
+              }
               if (item.from < item.to) {
                 decorations.push(Decoration.widget(item.from,
                   view => hiddenText(view.dom.ownerDocument, "Added: "),

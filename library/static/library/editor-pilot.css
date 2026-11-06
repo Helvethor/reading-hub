@@ -13,6 +13,10 @@
 #editor-surface .editor-diff-added { background: #c9efce; color: #152c19; }
 #editor-surface .editor-diff-removed { background: #f9d0d0; color: #491515; }
 #editor-surface .editor-diff-removed-blocks { display: contents; }
+#editor-surface .editor-diff-markup { display: block; margin-block: .2rem; padding: .15rem .4rem; background: #fff6dc; color: #4a3b12; font: .75rem/1.5 system-ui, sans-serif; user-select: none; white-space: normal; }
+#editor-surface .editor-diff-markup del { background: #f9d0d0; color: #491515; }
+#editor-surface .editor-diff-markup ins { background: #c9efce; color: #152c19; text-decoration: none; }
+#editor-surface .editor-diff-markup:focus-visible { outline: 2px solid #486b38; }
 #editor-surface [data-diff=removed] { user-select: text; }
 #editor-surface .editor-diff-removed:focus-visible { outline: 2px solid #af5757; outline-offset: 1px; }
 .editor-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

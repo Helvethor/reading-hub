@@ -79,15 +79,55 @@ test("complete note and media restoration preserves exact IDs links and retained
   assert.equal(documentDifferences(before, editor.state.doc).length, 0);
 });
 
-test("changed block attributes require explicit replacement when restoration conflicts with a target", () => {
-  const editor = open('<h3 id="heading">Title</h3>');
-  const before = baseline(editor, '<h2 id="heading">Title</h2>');
-  const [change] = documentDifferences(before, editor.state.doc);
-  assert.equal(change.inline, false);
-  assert.throws(() => restoreDifference(editor, change), /duplicate a target/);
-  assert.equal(editor.getHTML(), '<h3 id="heading">Title</h3>');
-  restoreDifference(editor, change, {replace: true});
-  assert.equal(editor.getHTML(), '<h2 id="heading">Title</h2>');
+test("a retyped block with the same target keeps a granular diff and restores its type", () => {
+  const editor = open('<h3 id="heading">Title kept</h3>');
+  const before = baseline(editor, '<h2 id="heading">Title text kept</h2>');
+  const changes = documentDifferences(before, editor.state.doc);
+  const formatting = changes.find(change => change.markup);
+  assert(formatting);
+  const words = changes.find(change => change.inline);
+  assert.equal(before.textBetween(words.oldFrom, words.oldTo).trim(), "text");
+  restoreDifference(editor, formatting);
+  assert.equal(editor.getHTML(), '<h2 id="heading">Title kept</h2>');
+  assert.throws(() => restoreDifference(editor, formatting), /changed/);
+});
+
+test("a section whose numbering style changed is not replaced as a whole", () => {
+  const body = '<h2 id="h">Chapter</h2><p>One sentence about the party.</p><p>Second line.</p>';
+  const editor = open(`<section id="s" data-toc-style="upper-roman">${body.replace("Second", "Next")}</section>`);
+  const before = baseline(editor, `<section id="s">${body}</section>`);
+  showDocumentDifferences(editor, before, true);
+  const changes = currentDifferences(editor);
+  assert(changes.every(change => change.markup || change.inline));
+  const note = editor.view.dom.querySelector(".editor-diff-markup");
+  assert.match(note.textContent, /TOC numbering/);
+  assert.equal(editor.view.dom.querySelector(".editor-diff-removed").textContent.replace("Removed:", "").trim(), "Second");
+  restoreDifference(editor, changes.find(change => change.markup));
+  assert(!editor.getHTML().includes("upper-roman"));
+  assert(editor.getHTML().includes("Next line."));
+});
+
+test("dissimilar paragraphs are replaced whole instead of interleaving unrelated words", () => {
+  const editor = open("<p>Completely different words now appear.</p>");
+  const before = baseline(editor, "<p>Some older sentence about trade unions.</p>");
+  const changes = documentDifferences(before, editor.state.doc);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].inline, false);
+});
+
+test("a quotation newly wrapped in a figure keeps a granular inner diff", () => {
+  const editor = open("<figure><blockquote><p>Party struggles lend strength.</p></blockquote>" +
+    "<figcaption><p>Lassalle</p></figcaption></figure>");
+  const before = baseline(editor, "<blockquote><p>\u201cParty struggles lend strength.</p></blockquote>");
+  showDocumentDifferences(editor, before, true);
+  const changes = currentDifferences(editor);
+  const structure = changes.find(change => change.structure === "wrapped");
+  assert(structure);
+  assert(changes.filter(change => change !== structure).every(change => change.inline ||
+    change.oldFrom === change.oldTo));
+  assert.match(editor.view.dom.querySelector(".editor-diff-markup").textContent, /wrapped/);
+  restoreDifference(editor, structure, {replace: true});
+  assert.equal(editor.getHTML(), "<blockquote><p>\u201cParty struggles lend strength.</p></blockquote>");
 });
 
 test("hidden-scope restoration refuses without mutating content", () => {
@@ -101,12 +141,12 @@ test("hidden-scope restoration refuses without mutating content", () => {
 });
 
 test("large changed text has a bounded exact replacement rather than silently omitted differences", () => {
-  const editor = open(`<p>${"x ".repeat(1200)}</p>`);
-  const before = baseline(editor, `<p>${"y ".repeat(1200)}</p>`);
+  const editor = open(`<p>${"x y ".repeat(600)}</p>`);
+  const before = baseline(editor, `<p>${"y x ".repeat(600)}</p>`);
   const [change] = documentDifferences(before, editor.state.doc);
   assert.equal(change.coarse, true);
   restoreDifference(editor, change, {replace: true});
-  assert.equal(editor.getHTML(), `<p>${"y ".repeat(1200)}</p>`);
+  assert.equal(editor.getHTML(), `<p>${"y x ".repeat(600)}</p>`);
 });
 
 test("identical source markup ignores editor-only wrapper identities", () => {
@@ -116,13 +156,13 @@ test("identical source markup ignores editor-only wrapper identities", () => {
 });
 
 test("Unicode differences never split surrogate pairs and partial keyboard selection is guarded", () => {
-  const editor = open("<p>New.</p>");
-  const before = baseline(editor, "<p>\u{1f642}.</p>");
+  const editor = open("<p>Same words here New.</p>");
+  const before = baseline(editor, "<p>Same words here \u{1f642}.</p>");
   const [change] = documentDifferences(before, editor.state.doc);
   assert.throws(() => restoreDifference(editor, change,
     {oldFrom: change.oldFrom, oldTo: change.oldFrom + 1}), /complete Unicode/);
   restoreDifference(editor, change, {replace: true});
-  assert.equal(editor.getHTML(), "<p>\u{1f642}.</p>");
+  assert.equal(editor.getHTML(), "<p>Same words here \u{1f642}.</p>");
 });
 
 function menuItem(label) {

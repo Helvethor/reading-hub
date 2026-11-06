@@ -43,7 +43,9 @@ does not reset the baseline. Semantic word/block differences show added content 
 green backgrounds and removed content on red backgrounds, with screen-reader labels.
 Removed content flows with the result, rendered as its original block types with the
 same alignment, block labels and hierarchy borders; restore actions are in a
-right-click/Shift+F10 menu, not in-text controls. Removed text can be selected and restored; complete removed blocks/media can also
+right-click/Shift+F10 menu, not in-text controls. Similar or same-ID blocks keep
+word-level diffs; type/attribute changes and wrapping/unwrapping are shown as
+restorable formatting/structure notes rather than whole-block replacements. Removed text can be selected and restored; complete removed blocks/media can also
 be restored, or explicitly replace corresponding additions. Restorations are
 unsaved, atomic undo steps preserving semantic marks, IDs, links and retained
 asset references. Changed proposals, hidden/folded scope, partial target wrappers,
