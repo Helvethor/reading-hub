@@ -697,7 +697,9 @@ test("book views have exactly four choices, three navigation groups and a separa
   assert.equal(outline.querySelectorAll(".editor-book-sections [data-part]").length,
     documentParts(editor.state.doc).length);
   const rows = [...outline.querySelectorAll(".editor-outline-row")];
-  assert.deepEqual(rows.slice(0, 4).map(row => row.dataset.bookRow), ["book", "title", "toc", "sections"]);
+  assert.deepEqual(rows.slice(0, 3).map(row => row.dataset.bookRow), ["title", "toc", "sections"],
+    "Navigation starts with the pages and content; Whole book is only a Show choice.");
+  assert(!outline.querySelector('[data-book-view="book"], [data-part=""]'));
   for (const row of rows) {
     assert.deepEqual([...row.children].map(child => child.className.split(" ")[0] || child.tagName),
       ["editor-outline-guides", "editor-outline-row-header", "BUTTON"],
@@ -723,7 +725,8 @@ test("book views have exactly four choices, three navigation groups and a separa
     assert.equal(toc.hidden, tocHidden);
     assert.equal(editor.view.dom.hidden, proseHidden);
     assert.equal(filter.closest("label").hidden, view !== "sections");
-    assert.equal(outline.querySelector("[data-book-view][aria-current=page]").dataset.bookView, view);
+    assert.equal(outline.querySelector("[data-book-view][aria-current=page]")?.dataset.bookView,
+      view === "book" ? undefined : view);
     assert.equal(form.querySelector("#editor-tools").disabled, proseHidden);
     assert.equal(editor.getHTML(), original);
     assert.deepEqual(editor.getJSON(), json);
@@ -866,13 +869,12 @@ test("book, page and group rows follow the viewport like section rows and naviga
   const settle = () => new Promise(resolve => setTimeout(resolve, 10));
   surface.dispatchEvent(new dom.window.Event("scroll"));
   await settle();
-  assert.deepEqual(state(), {book: "visible", title: "active", toc: "visible", sections: ""});
+  assert.deepEqual(state(), {title: "active", toc: "visible", sections: ""});
   assert.equal(outline.querySelector('[data-book-view="title"]').getAttribute("aria-current"), "location");
-  assert.equal(outline.querySelector('[data-book-view="book"]').getAttribute("aria-current"), "page");
   offset = 150;
   surface.dispatchEvent(new dom.window.Event("scroll"));
   await settle();
-  assert.deepEqual(state(), {book: "visible", title: "", toc: "visible", sections: "active"});
+  assert.deepEqual(state(), {title: "", toc: "visible", sections: "active"});
   const original = editor.getHTML();
   offset = 0;
   surface.scrollTop = 0;
@@ -881,12 +883,7 @@ test("book, page and group rows follow the viewport like section rows and naviga
   assert.equal(surface.scrollTop, 100, "ToC navigation scrolls to the generated page.");
   assert.equal(document.activeElement.dataset.bookView, "toc");
   assert.equal(editor.getHTML(), original);
-  form.querySelector('[data-book-group-fold="book"]').click();
-  assert(form.querySelector(".editor-book-groups").hidden);
-  assert(!title.hidden && !toc.hidden && !editor.view.dom.hidden, "Navigation folding never hides content.");
-  [...form.querySelectorAll(".editor-outline-options button")]
-    .find(button => button.textContent === "Expand outline").click();
-  assert(!form.querySelector(".editor-book-groups").hidden);
+
 });
 
 test("Sections group folds independently and remains folded across content updates", () => {
@@ -2624,7 +2621,7 @@ test("workspace mounts section moves immediately and outline targets nested sect
   const sections = movableSections(editor.state.doc);
   assert.equal(sections[0].label, "opening");
   assert.equal(form.querySelectorAll("#editor-outline-items [data-part]").length,
-    documentParts(editor.state.doc).length + 1);
+    documentParts(editor.state.doc).length);
   const original = editor.getHTML();
   showDocumentPart(editor, documentParts(editor.state.doc)[0]);
   form.querySelector('[data-section-move="1"]').click();
@@ -2635,7 +2632,8 @@ test("workspace mounts section moves immediately and outline targets nested sect
   form.querySelector("#editor-section-filter").value = "0";
   form.querySelector("#editor-section-filter").dispatchEvent(new dom.window.Event("change"));
   assert.equal(visiblePart(editor).from, focused.from, "The secondary selector explicitly filters.");
-  form.querySelector('[data-part=""]').click();
+  form.querySelector('[data-book-view="sections"]').click();
+  assert.equal(visiblePart(editor), null, "Sections navigation clears the explicit filter.");
   const currentItem = form.querySelector('[data-section-move="1"]');
   currentItem.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, shiftKey: true}));
   const menu = form.querySelector("#editor-section-actions");

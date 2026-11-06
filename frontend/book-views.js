@@ -158,7 +158,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       selectionDoc = editor.state.doc;
     }
   });
-  let view = "book", sectionsCollapsed = false, bookCollapsed = false;
+  let view = "book", sectionsCollapsed = false;
   function applyView() {
     primary.value = view;
     title.hidden = !["book", "title"].includes(view);
@@ -234,7 +234,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   }
   // Book-level entries use the same row component as section rows: tree guides, a
   // kind badge, a controls column and a title button that navigates within the book.
-  function bookRow(value, label, kind, {depth = 1, last = false, fold = null} = {}) {
+  function bookRow(value, label, kind, {last = false, fold = null} = {}) {
     const row = owner.createElement("div");
     row.className = "editor-outline-row editor-book-row";
     row.dataset.bookRow = value;
@@ -242,7 +242,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     guides.className = "editor-outline-guides";
     guides.setAttribute("aria-hidden", "true");
     const guide = owner.createElement("span");
-    guide.className = depth ? "editor-outline-branch" : "editor-outline-branch editor-outline-book-guide";
+    guide.className = "editor-outline-branch";
     if (last) guide.classList.add("editor-outline-last");
     guides.append(guide);
     const header = owner.createElement("div");
@@ -258,15 +258,13 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       controls.append(spacer);
     }
     header.append(badge, controls);
-    let button = outline.querySelector('[data-part=""]');
-    if (value !== "book" || !button) {
-      button = owner.createElement("button");
-      button.type = "button";
-    }
+    const button = owner.createElement("button");
+    button.type = "button";
     button.dataset.bookView = value;
-    button.title = `${label} — scroll to it in the book`;
-    button.replaceChildren(element("span", label));
-    button.firstChild.className = "editor-outline-title";
+    button.title = `${label} \u2014 scroll to it in the book`;
+    const title = element("span", label);
+    title.className = "editor-outline-title";
+    button.append(title);
     row.append(guides, header, button);
     return row;
   }
@@ -285,23 +283,11 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     });
     return button;
   }
-  let outline = null;
-  function navigation(target) {
-    outline = target;
+  // The navigation tree starts with the generated pages and the content; the
+  // whole book is the default view, not a navigation destination of its own.
+  function navigation(outline) {
     const rows = [...outline.querySelectorAll(".editor-outline-row")];
-    const groups = owner.createElement("div");
-    groups.className = "editor-book-groups";
-    groups.hidden = bookCollapsed;
-    const rootFold = foldButton("Whole book", bookCollapsed, () => {
-      bookCollapsed = !bookCollapsed;
-      groups.hidden = bookCollapsed;
-      root.classList.toggle("editor-book-row-collapsed", bookCollapsed);
-      return bookCollapsed;
-    });
-    rootFold.dataset.bookGroupFold = "book";
-    const root = bookRow("book", "Whole book", "Book", {depth: 0, fold: rootFold});
-    root.classList.toggle("editor-book-row-collapsed", bookCollapsed);
-    outline.querySelector('.editor-outline-root')?.remove();
+    const groups = [];
     for (const [value, label] of views.slice(1)) {
       const group = owner.createElement("div");
       group.className = "editor-book-group";
@@ -321,9 +307,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       } else {
         group.append(bookRow(value, label, "Page"));
       }
-      groups.append(group);
+      groups.push(group);
     }
-    outline.prepend(root, groups);
+    outline.prepend(...groups);
     applyView();
   }
   function bounds(element) {
@@ -333,12 +319,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   // Bounding boxes of the book-level entries, so the outline can relate them to the viewport.
   function targets() {
     const pages = {title: bounds(title), toc: bounds(toc), sections: bounds(editor.view.dom)};
-    const shown = Object.values(pages).filter(Boolean);
-    return {
-      book: shown.length ? {top: Math.min(...shown.map(rect => rect.top)),
-        bottom: Math.max(...shown.map(rect => rect.bottom))} : null,
-      ...pages,
-    };
+    return pages;
   }
   function element(tag, text) {
     const node = owner.createElement(tag);
@@ -348,10 +329,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   return {
     filter, refresh, navigation, targets,
     target(value) {
-      return {book: null, title, toc, sections: editor.view.dom}[value];
+      return {title, toc, sections: editor.view.dom}[value];
     },
     expandNavigation() {
-      if (bookCollapsed) form.querySelector('[data-book-group-fold="book"]')?.click();
       if (sectionsCollapsed) form.querySelector('[data-book-group-fold="sections"]')?.click();
     },
     get view() { return view; },

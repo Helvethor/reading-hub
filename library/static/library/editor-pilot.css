@@ -91,11 +91,9 @@
 .editor-outline-kind { font: 600 .65rem/1.6 system-ui, sans-serif; letter-spacing: .04em; opacity: .7; }
 .editor-outline-title { width: 100%; }
 .editor-book-group, .editor-book-sections { position: relative; }
-.editor-outline-guides > .editor-outline-book-guide::before { top: 50%; }
 #editor-outline-items [data-book-view][aria-current=page] { box-shadow: inset 0 0 0 1px currentColor; }
 .editor-book-sections { margin-inline-start: .85rem; }
-.editor-book-row-collapsed .editor-outline-book-guide::before { display: none; }
-#document-editor .editor-section-filter-control[hidden], #editor-surface [hidden], .editor-book-sections[hidden], .editor-book-groups[hidden] { display: none !important; }
+#document-editor .editor-section-filter-control[hidden], #editor-surface [hidden], .editor-book-sections[hidden] { display: none !important; }
 .editor-generated-page { margin: 1rem; padding: 1.5rem; border: 1px solid var(--editor-border, #cbd1c4); background: var(--editor-paper, white); color: var(--ink, #302221); }
 .editor-title-page { text-align: center; min-height: 20rem; }
 .editor-title-page .document-metadata { text-align: start; max-width: 35rem; margin-inline: auto; }
@@ -134,6 +132,8 @@
 #editor-view-notice, #editor-selection-path { margin: 0; padding: .5rem .75rem; font: .8rem/1.4 system-ui, sans-serif; background: #f8f9f5; }
 #editor-selection-path { border-top: 1px solid #cbd1c4; overflow-wrap: anywhere; }
 #editor-surface { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; background: white; scrollbar-gutter: stable; }
+/* The editor canvas uses the available width; the reading measure applies to publications. */
+.publication-content #editor-surface.reader-content { max-width: none; margin-inline: 0; }
 .editor-part-control { flex: 1; min-width: 8rem; }
 #editor-part { width: min(100%, 22rem); max-width: 100%; }
 .editor-help { font-size: .85rem; }

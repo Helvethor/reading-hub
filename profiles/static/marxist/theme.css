@@ -63,7 +63,8 @@ button:hover, .button:hover { background: #7a1616; }
 #editor-outline-items button[aria-current="true"] { background: var(--editor-selected); color: #fffaf5; }
 .editor-outline { --editor-tree-line: var(--editor-border); --editor-drop-line: var(--accent); }
 .editor-outline-visible { background: var(--editor-hover); }
-#editor-outline-items .editor-outline-active > [data-part] { background: var(--editor-selected); color: #fffaf5; }
+#editor-outline-items .editor-outline-active > :is([data-part], [data-book-view]) { background: var(--editor-selected); color: #fffaf5; }
+#editor-outline-items [data-book-view][aria-current=page] { box-shadow: inset 0 0 0 1px var(--editor-selected); }
 #editor-surface .tiptap .editor-fold-placeholder { border-color: var(--accent); background: var(--editor-hover); color: var(--ink); }
 .editor-page :is(input, select, textarea),
 .editor-page dialog :is(input, select, textarea) {
@@ -78,16 +79,19 @@ button:hover, .button:hover { background: #7a1616; }
 .editor-metadata input[readonly] { background: var(--editor-panel); }
 .editor-page dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--editor-border); border-radius: .5rem; box-shadow: 0 .5rem 2rem #24050533; }
 .editor-page dialog::backdrop { background: #24050566; }
-#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
-#editor-context-menu button, #editor-outline-menu button, #editor-section-actions button, #editor-toc-menu button { color: var(--ink); background: transparent; }
+#editor-context-menu, #editor-outline-menu, #editor-section-actions, #editor-toc-menu, #editor-diff-menu { color: var(--ink); background: var(--editor-paper); border-color: var(--editor-border); box-shadow: 0 .3rem 1.5rem #24050533; }
+#editor-context-menu button, #editor-outline-menu button, #editor-section-actions button, #editor-toc-menu button, #editor-diff-menu button { color: var(--ink); background: transparent; }
 #editor-context-menu button:hover, #editor-context-menu button:focus-visible,
 #editor-outline-menu button:hover, #editor-outline-menu button:focus-visible,
 #editor-section-actions button:hover, #editor-section-actions button:focus-visible,
-#editor-toc-menu button:hover, #editor-toc-menu button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
+#editor-toc-menu button:hover, #editor-toc-menu button:focus-visible,
+#editor-diff-menu button:hover, #editor-diff-menu button:focus-visible { background: var(--editor-hover); color: var(--ink); outline-color: var(--accent); }
 #editor-context-menu button[aria-checked="true"], #editor-toc-menu button[aria-checked="true"] { background: var(--editor-selected); color: #fffaf5; }
 .editor-menu-group { border-color: var(--line); }
 #editor-context-menu button:focus-visible, #editor-outline-menu button:focus-visible,
-#editor-toc-menu button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline-color: var(--accent); }
+#editor-toc-menu button:focus-visible, #editor-diff-menu button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline-color: var(--accent); }
+.editor-diff-controls { background: var(--editor-panel); }
+#editor-surface .editor-diff-markup:focus-visible { outline-color: var(--accent); }
 #editor-figure-preview { border-inline-start-color: var(--accent); background: var(--editor-paper); }
 #editor-surface .tiptap .editor-figure-group { border-inline-start-color: var(--editor-border); }
 #editor-surface .tiptap .editor-figure-handle { background: var(--editor-panel); color: var(--editor-selected); border-color: var(--editor-border); }

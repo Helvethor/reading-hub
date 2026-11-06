@@ -183,7 +183,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       button.dataset.part = value;
       button.title = part.label;
       if (current) button.setAttribute("aria-current", "true");
-      outline.append(button);
+      if (index) outline.append(button);
       const sectionIndex = index ? sections.findIndex(section =>
         section.from + 1 === part.from && section.to - 1 === part.to) : -1;
       if (sectionIndex >= 0) {
@@ -259,9 +259,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     try {
       showError("");
       closeMenu();
-      const shown = {book: ["book"], title: ["book", "title"], toc: ["book", "toc"],
-        sections: ["book", "sections"]}[value];
-      if (!shown.includes(bookViews.view)) bookViews.show(value === "sections" ? "sections" : "book");
+      if (![value, "book"].includes(bookViews.view)) bookViews.show(value === "sections" ? "sections" : "book");
       if (visiblePart(editor)) showDocumentPart(editor, null);
       refreshOutline();
       const target = bookViews.target(value);
@@ -547,10 +545,10 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       const index = parts.findIndex(candidate => candidate.kind === part.kind &&
         (part.id ? candidate.id === part.id : candidate.from === part.from));
       (outline.querySelector(`[data-part="${index}"]`) ||
-        outline.querySelector('[data-part=""]'))?.focus({preventScroll: true});
+        outline.querySelector("[data-book-view]"))?.focus({preventScroll: true});
     } else if (target.closest("#editor-section-actions, #editor-outline-menu")) {
       (outline.querySelector('.editor-outline-active [data-part]') ||
-        outline.querySelector('[data-part=""]'))?.focus({preventScroll: true});
+        outline.querySelector("[data-book-view]"))?.focus({preventScroll: true});
     } else if (menu.contains(target)) trigger.focus({preventScroll: true});
   }
   form.addEventListener("keydown", workspaceHistory);

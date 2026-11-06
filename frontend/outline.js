@@ -80,8 +80,8 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     const bookRows = [...outline.querySelectorAll("[data-book-row]")];
     const pages = bookRows.length ? bookTargets() : {};
     const candidates = bookRows.map(row => ({row, rect: pages[row.dataset.bookRow],
-      depth: row.dataset.bookRow === "book" ? 0 : 1, key: `book:${row.dataset.bookRow}`}));
-    const offset = bookRows.length ? 2 : 0;
+      depth: 0, key: `book:${row.dataset.bookRow}`}));
+    const offset = bookRows.length ? 1 : 0;
     parts.forEach((part, index) => {
       if (scope && (part.to <= scope.from || part.from >= scope.to)) return;
       const row = outline.querySelector(`[data-outline-index="${index}"]`);
@@ -115,11 +115,9 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
         index = hierarchy[index].parent;
         row = outline.querySelector(`[data-outline-index="${index}"]`);
       }
-      // Rows inside a folded navigation group follow their visible group row.
-      for (const group of ["sections", "book"]) {
-        if (row && (row.hidden || row.parentElement?.closest("[hidden]"))) {
-          row = outline.querySelector(`[data-book-row="${group}"]`) || row;
-        }
+      // Rows inside the folded Sections group follow the visible Sections row.
+      if (row && (row.hidden || row.parentElement?.closest("[hidden]"))) {
+        row = outline.querySelector('[data-book-row="sections"]') || row;
       }
       if (row) {
         const nav = outline.parentElement, rect = row.getBoundingClientRect(), container = nav.getBoundingClientRect();
