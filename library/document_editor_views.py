@@ -305,7 +305,8 @@ def publication(request, pk):
             "toc": toc_tree(with_metadata_page(projection["entries"], version.metadata, book)),
             "contents_toc": contents_tree(projection["entries"]),
             "display_author": display_author,
-            **metadata_context(version.metadata, version.title, display_author, book),
+            **metadata_context(version.metadata, version.title, display_author, book,
+                               version.document.url),
             "content_html": projection["content_html"],
         })
     return panel_response(request, "library/document_publication.html", context, status=status)

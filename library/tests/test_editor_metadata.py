@@ -8,7 +8,9 @@ from pypdf import PdfReader
 
 from library.models import CanonicalAuthor
 from library.services.document_edits import save_revision, validate_editor_metadata
-from library.services.document_metadata import book_pages, metadata_entries, metadata_rows, page_preset
+from library.services.document_metadata import (
+    book_pages, fact_spans, metadata_entries, metadata_rows, page_preset, title_facts,
+)
 from library.services.document_publication import prepare_publication, publish_revision
 from library.services.pdf import render_pdf
 from library.tests import test_document_edits as foundation
@@ -129,6 +131,20 @@ class EditorMetadataTests(TestCase):
         ):
             with self.subTest(key=key, invalid=invalid[:20]), self.assertRaises(ValueError):
                 validate_editor_metadata(original, {**original, key: invalid})
+
+    def test_compact_title_facts_pack_rows_and_keep_order(self):
+        self.assertEqual(fact_spans([14, 17, 7, 140, 66]), [2, 2, 2, 6, 6])
+        self.assertEqual(fact_spans([14, 30, 10]), [3, 3, 6])
+        metadata = {"author": "Vladimir Lenin", "language": "en",
+                    "rights": "Lenin Internet Archive (1999). " * 4,
+                    "date_facts": [{"type": "written", "value": "1901-09", "end_value": "1902-02"},
+                                   {"type": "publication", "value": "1903-03"}]}
+        url = "https://www.marxists.org/archive/lenin/works/1901/witbd/index.htm"
+        facts = title_facts(metadata, "Vladimir Lenin", url)
+        self.assertEqual([(fact["field"], fact["span"]) for fact in facts],
+                         [("author", 2), ("written", 2), ("publication", 2), ("rights", 6),
+                          ("source_url", 6)])
+        self.assertEqual(facts[-1]["url"], url)
 
     def test_work_type_and_page_settings_validate_and_override_presets(self):
         original = self.draft.document["metadata"]

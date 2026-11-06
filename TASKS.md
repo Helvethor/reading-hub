@@ -329,6 +329,12 @@ acceptance. Historical counts below describe their original slices.
   server-side with tabs/Type/Metadata page present. Interactive behaviour was
   verified only in jsdom tests; the logged-in live page was not browsed and no
   live record was changed. Existing articles now default to the compact title.
+- [x] Lay out compact title facts in aligned rows (bold label and value on one
+  line; rows of 1, 2 or 3 columns packed by value length, order kept), identical
+  packing server-side and in the editor preview; PDF uses flex widths because
+  WeasyPrint over-sizes grid rows with wrapped text (presentation v11). The real
+  What Is To Be Done? metadata was rendered read-only in Chromium (wide and
+  narrow) and WeasyPrint; the logged-in editor page was not browsed.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

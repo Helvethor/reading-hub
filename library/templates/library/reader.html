@@ -1,7 +1,7 @@
 {% extends 'library/base.html' %}
 {% load static %}
 {% block title %}{{ version.title }} | {{ site.name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-facts"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endblock %}
 {% block content %}
 <div class="reader-toolbar">
   <a href="{% url 'home' %}">&larr; Library</a>

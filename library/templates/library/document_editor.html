@@ -4,7 +4,7 @@
 {% block head %}
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-book-pages">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-title-facts">
 {% if reading_style_url %}<link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}
 {% endblock %}
 {% block content %}
@@ -453,4 +453,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-book-pages"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-title-facts"></script>{% endif %}{% endblock %}

@@ -17,7 +17,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 10
+PDF_PRESENTATION_VERSION = 11
 
 
 def split_pdf_paragraph(paragraph, fraction):
@@ -286,7 +286,7 @@ def render_pdf(version, destination, reading_style=None, theme=""):
             or source_name(version.document.url),
             **metadata_context(version.metadata, version.title, version.metadata.get(
                 "author", "").strip() or source_name(version.document.url),
-                version.structure.get("book")),
+                version.structure.get("book"), version.document.url),
             "content_html": projection["content_html"],
             "toc": toc_tree(with_metadata_page(
                 projection["entries"], version.metadata, version.structure.get("book"))),

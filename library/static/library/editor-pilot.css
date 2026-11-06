@@ -105,8 +105,8 @@
 #editor-toc-menu p, #editor-metadata-menu p, #editor-title-menu p, #editor-page-menu p { margin: .25rem .4rem; font: .75rem/1.35 system-ui, sans-serif; }
 .editor-toc-page .editor-toc-hidden > [data-toc-part] { opacity: .6; text-decoration-style: dashed; }
 .editor-toc-hidden-note { font: italic .75em system-ui, sans-serif; }
-.editor-title-page.editor-title-compact { min-height: 0; padding-bottom: 1rem; }
-.editor-title-page .document-facts { justify-content: center; max-width: 42rem; }
+.editor-title-page.editor-title-compact { min-height: 0; padding-bottom: 1rem; text-align: start; }
+.editor-title-page .document-facts { text-align: start; max-width: 54rem; margin-inline: 0; }
 .editor-title-page.editor-title-full::after { content: "Page break"; display: block; margin: 1.5rem -1.5rem -1.5rem; padding: .2rem; border-top: 2px dashed var(--editor-border, #cbd1c4); font: .7rem/1.4 system-ui, sans-serif; color: var(--muted, #4c554b); text-align: center; }
 .editor-generated-page.editor-page-disabled { padding-block: .6rem; border-style: dashed; background: transparent; opacity: .75; }
 .editor-generated-page.editor-page-disabled h2 { margin: 0; font-size: 1rem; }

@@ -1,4 +1,4 @@
-import {bookPages, metadataEntries, pagePreset, titleLayouts, titlePageFields, titlePageRows,
+import {bookPages, factSpans, metadataEntries, pagePreset, titleLayouts, titlePageFields, titlePageRows,
   titlePageSelection, workTypes} from "./metadata-fields.js";
 import {outlineHierarchy} from "./outline.js";
 import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
@@ -408,8 +408,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     rows.tabIndex = 0;
     rows.title = "Right-click (Shift+F10) to choose which filled fields appear on the title page";
     const shown = titlePageSelection(metadata);
-    for (const [key, name, value] of metadataEntries(metadata, presentation)) {
-      if (!shown.has(key)) continue;
+    const entries = metadataEntries(metadata, presentation).filter(([key]) => shown.has(key));
+    const spans = factSpans(entries.map(([, , value]) => String(value).length));
+    for (const [index, [key, name, value]] of entries.entries()) {
       const description = element(compact ? "span" : "dd", value);
       if (key === "source_url") {
         const link = element("a", value);
@@ -419,12 +420,14 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       }
       if (compact) {
         const fact = owner.createElement("span");
-        fact.className = key === "author" ? "document-fact document-fact-author" : "document-fact";
+        fact.className = `document-fact document-fact-span-${spans[index]}` +
+          (key === "author" ? " document-fact-author" : "");
         fact.dataset.field = key;
         const term = element("span", name);
         term.className = "document-fact-label";
         description.removeAttribute("data-field");
-        fact.append(term, " ", ...description.childNodes);
+        description.className = "document-fact-value";
+        fact.append(term, " ", description);
         rows.append(fact);
         continue;
       }

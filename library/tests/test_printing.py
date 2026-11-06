@@ -115,7 +115,11 @@ class PrintingTests(TestCase):
         response = self.client.get(f"/versions/{self.version.pk}/")
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertIn("document-header-compact", soup.select_one(".document-header")["class"])
-        self.assertTrue(soup.select_one(".document-header .document-facts"))
+        facts = soup.select(".document-header .document-facts .document-fact")
+        self.assertEqual(facts[-1].select_one(".document-fact-label").get_text(), "Source")
+        self.assertTrue(all(fact.select_one(".document-fact-value") for fact in facts))
+        self.assertIn("document-fact-span-6", facts[-1]["class"],
+                      "A long source URL takes its own row.")
         self.assertFalse(soup.select_one(".document-contents"), "Articles omit the contents page by preset.")
         self.assertTrue(soup.select_one("#document-metadata table.document-metadata-table"))
         pdf = self.pdf()

@@ -28,7 +28,7 @@ import {mountWorkspace} from "./controls.js";
 import {mountEditorTabs} from "./editor-tabs.js";
 import {applySourceInsertion, sourceInsertionTarget} from "./source-insertion.js";
 import {mountMetadata} from "./metadata.js";
-import {bookPages, metadataEntries, noteDates, pagePreset, parseEditorialNote, titlePageSelection} from "./metadata-fields.js";
+import {bookPages, factSpans, metadataEntries, noteDates, pagePreset, parseEditorialNote, titlePageSelection} from "./metadata-fields.js";
 import {movableSections, moveSection, mountSectionMoves} from "./section-moves.js";
 import {prepareContentMove, applyContentMove, mountContentMoves} from "./content-moves.js";
 import {foldedDocumentParts, toggleDocumentFold} from "./workspace.js";
@@ -5075,6 +5075,13 @@ test("work type presets choose the page layout and explicit page settings overri
   assert.deepEqual(metadataEntries({work_type: "letter"})[0], ["work_type", "Type", "Letter"]);
 });
 
+test("compact title facts pack into aligned rows of one, two or three columns", () => {
+  assert.deepEqual(factSpans([14, 17, 7, 140, 66]), [2, 2, 2, 6, 6]);
+  assert.deepEqual(factSpans([14, 30, 10]), [3, 3, 6], "A medium value limits its row to two columns.");
+  assert.deepEqual(factSpans([10, 10, 10, 10]), [2, 2, 2, 6]);
+  assert.deepEqual(factSpans([]), []);
+});
+
 test("article layout shows compact facts, omitted ToC and page settings by right-click", () => {
   let value = {title: "Letter", metadata: {author: "Writer", rights: "Public Domain", language: "en"}};
   const events = [], tabs = [];
@@ -5089,6 +5096,9 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   assert.deepEqual([...title.querySelectorAll(".document-facts .document-fact")].map(fact => fact.dataset.field),
     ["author", "rights"]);
   assert(title.querySelector(".document-fact-author .document-fact-label"));
+  assert.deepEqual([...title.querySelectorAll(".document-fact")].map(fact => [...fact.classList].find(name =>
+    name.startsWith("document-fact-span-"))), ["document-fact-span-3", "document-fact-span-3"]);
+  assert.equal(title.querySelector(".document-fact-value").textContent, "Writer");
   assert(toc.classList.contains("editor-page-disabled"));
   assert(!toc.querySelector("[data-toc-part]"), "An omitted ToC page renders only a stub.");
   const outline = form.querySelector("#editor-outline-items");

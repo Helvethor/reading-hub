@@ -94,6 +94,31 @@ export function metadataEntries(metadata, presentation = {}) {
   return entries;
 }
 
+// Packs compact title facts into rows of a six-track grid (mirrors document_metadata.fact_spans):
+// short values share rows of up to three, a medium value limits its row to two, long ones fill it.
+export function factSpans(lengths) {
+  const spans = [];
+  let row = [];
+  const flush = () => {
+    spans.push(...row.map(() => 6 / row.length));
+    row = [];
+  };
+  for (const length of lengths) {
+    if (length > 48) {
+      if (row.length) flush();
+      spans.push(6);
+      continue;
+    }
+    const candidate = [...row, length];
+    if (candidate.length > (candidate.every(item => item <= 24) ? 3 : 2)) {
+      flush();
+      row = [length];
+    } else row = candidate;
+  }
+  if (row.length) flush();
+  return spans;
+}
+
 export function titlePageRows(metadata, presentation = {}) {
   const shown = titlePageSelection(metadata);
   return metadataEntries(metadata, presentation).filter(([key]) => shown.has(key))

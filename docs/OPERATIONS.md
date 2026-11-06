@@ -287,8 +287,10 @@ and Mark reviewed stay available on every tab.
 
 The Title page is a synthetic summary (default: author, translator, written,
 delivered, published, rights, source). Its layout is **Full** (title page then a
-page break) or **Compact** (facts in one line under the title; the ToC/sections
-follow on the same page). A **Metadata** page at the end of the book lists every
+page break) or **Compact** (bold-labelled facts in aligned rows under the title:
+short values share rows of up to three columns, a medium value limits its row to
+two, long values such as Rights or Source take a whole row; one column on narrow
+screens; the ToC/sections follow on the same page). A **Metadata** page at the end of the book lists every
 filled field. Right-click Title, ToC or Metadata in the navigation (or on the
 generated page; Shift+F10 also works) to switch the title layout or to include or
 exclude the ToC and Metadata pages; **Reset to preset** removes the explicit
@@ -296,7 +298,7 @@ choice. Presets come from the explicit **Type** (book, pamphlet, report: full
 title and ToC page; article, letter, speech, interview, essay, resolution, other: compact
 title and no ToC page) and, without a Type, from the Book checkbox/import
 classification. The Metadata page is on by default. Reader, publication and PDF
-use the same settings (PDF presentation version 10); a ToC page still appears
+use the same settings (PDF presentation version 11); a ToC page still appears
 only for generated book publications.
 
 The **Complete metadata** table is on the Metadata tab (outside the editing

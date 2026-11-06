@@ -133,6 +133,54 @@ def metadata_rows(metadata):
     return [(label, value) for key, label, value in metadata_entries(metadata) if key in shown]
 
 
+FACT_SHORT = 24
+FACT_MEDIUM = 48
+
+
+def fact_spans(lengths):
+    """Pack compact title facts into rows of a six-track grid, keeping their order.
+
+    Short values share rows of up to three columns, a medium value limits its row to two,
+    and long values take a whole row.
+    """
+    spans, row = [], []
+
+    def flush():
+        spans.extend([6 // len(row)] * len(row))
+        row.clear()
+
+    for length in lengths:
+        if length > FACT_MEDIUM:
+            if row:
+                flush()
+            spans.append(6)
+            continue
+        candidate = [*row, length]
+        if len(candidate) > (3 if all(item <= FACT_SHORT for item in candidate) else 2):
+            flush()
+            candidate = [length]
+        row[:] = candidate
+    if row:
+        flush()
+    return spans
+
+
+def title_facts(metadata, display_author, source_url=""):
+    shown = title_page_selection(metadata)
+    facts = []
+    if (not metadata.get("author") or metadata.get("author_is_fallback")) and "author" in shown:
+        facts.append({"field": "author", "label": "Source website", "value": display_author})
+    facts += [{"field": key, "label": label, "value": value}
+              for key, label, value in metadata_entries(metadata) if key in shown]
+    if source_url and "source_url" in shown:
+        facts.append({"field": "source_url", "label": "Source", "value": source_url,
+                      "url": source_url})
+    spans = fact_spans([len(str(fact["value"])) for fact in facts])
+    for fact, span in zip(facts, spans, strict=True):
+        fact["span"] = span
+    return facts
+
+
 def source_url_shown(metadata):
     return "source_url" in title_page_selection(metadata)
 
@@ -147,9 +195,10 @@ def metadata_page_rows(metadata, title, display_author):
     return rows + [(label, value) for _key, label, value in metadata_entries(metadata)]
 
 
-def metadata_context(metadata, title, display_author, book=False):
+def metadata_context(metadata, title, display_author, book=False, source_url=""):
     return {
         "metadata_rows": metadata_rows(metadata),
+        "title_facts": title_facts(metadata, display_author, source_url),
         "metadata_page_rows": metadata_page_rows(metadata, title, display_author),
         "book_pages": book_pages(metadata, book),
         "metadata_page_id": METADATA_PAGE_ID,

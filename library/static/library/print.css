@@ -58,9 +58,13 @@
   .document-header-compact { break-after: auto; page-break-after: auto; border: 0; }
   /* Sharing the content's named page keeps a compact title on the body's first page. */
   .document-header-compact, .document-header-compact ~ section { page: reading-content; }
-  .document-facts { display: block; margin: 0; font: 10.5pt/1.5 Georgia, serif; }
-  .document-fact { display: inline; }
-  .document-fact + .document-fact::before { content: " \00B7  "; }
+  /* WeasyPrint over-sizes grid rows holding wrapped text, so print packs the same rows with flex widths. */
+  .document-facts { display: flex; flex-wrap: wrap; gap: 1.6mm 6mm; max-width: none; margin: 0; font: 10.5pt/1.45 Georgia, serif; }
+  .document-fact { flex: none; width: 100%; display: flex; gap: 1.5mm; align-items: baseline; min-width: 0; }
+  .document-fact-span-3 { width: calc((100% - 6mm) / 2); }
+  .document-fact-span-2 { width: calc((100% - 12mm) / 3); }
+  .document-fact-label { flex: none; font-weight: bold; }
+  .document-fact-value { min-width: 0; overflow-wrap: anywhere; text-align: start; hyphens: manual; }
   .document-metadata-page { break-before: page; page-break-before: always; margin: 0; padding: 0; border: 0; }
   .document-metadata-page h2 { string-set: section-title content(); font: bold 16pt/1.3 Georgia, serif; margin: 0 0 5mm; }
   .document-metadata-table { font: 10pt/1.4 Georgia, serif; }
