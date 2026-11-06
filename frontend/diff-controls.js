@@ -7,6 +7,15 @@ export function mountDifferenceControls(form, editor, initial, showError) {
   const revision = form.querySelector("#editor-diff-revision");
   const load = form.querySelector("#editor-diff-baseline");
   const status = form.querySelector("#editor-diff-status");
+  if (!filter || !revision || !load || !status) {
+    for (const control of [filter, revision, load]) {
+      if (control) control.disabled = true;
+    }
+    showError("Content differences are unavailable because the editor page and JavaScript " +
+      "do not match. Restart the web server to reload its cached templates, then reload " +
+      "this page. Other editing remains available; saved editions and drafts are unchanged.");
+    return null;
+  }
   let baseline, baselineRevision = 0, pending = 0;
   function parse(value) {
     const candidate = createBoundedEditor(owner.createElement("div"), value.html);

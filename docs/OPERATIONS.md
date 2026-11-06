@@ -62,6 +62,11 @@ this no-autoreload configuration.
 The semantic editor is now enabled by default. Its historical
 `READING_HUB_EDITOR_PILOT=0` setting explicitly disables it, without re-enabling
 retired source-editing pages. Run `npm run build` after frontend source changes.
+When updating editor templates and JavaScript together, restart this
+`--noreload` server as well as rebuilding the bundle. Django caches templates
+with debug disabled: rebuilding JavaScript alone can pair new code with old
+markup. If Content differences reports mismatched page/JavaScript versions,
+save any pending edits, restart the web process, then reload the editor.
 
 Use **Content view: Result / Diffs** to inspect working content against the pinned
 starting document. Baseline revision 0 remains fixed after saves; use **Baseline

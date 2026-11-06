@@ -328,7 +328,7 @@ if (form) {
         initial.saved_review = result.review;
         initial.saved_verified_sections = result.verified_sections;
         initial.editorial = result.editorial;
-        differences.refresh();
+        differences?.refresh();
         updateSavedReview();
         if (!dirty) {
           title.value = result.document.title;
