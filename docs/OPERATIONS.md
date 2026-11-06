@@ -99,7 +99,9 @@ The default `profiles.marxist.site` paper/red theme remains unchanged. This is a
 presentation variant of the same Marxist profile, not a new source collection;
 source rules, profile identity, records and saved personal styles are retained.
 **Follow theme** uses the dark palette in the browser and PDF; explicit
-Standard/Cream/High contrast reading styles retain their own content palette.
+reading palettes (Neutral, Sepia, Lenin red, Slate blue, Forest green, each light
+or dark with low/standard/high contrast) retain their own content colours. Older
+Standard/Cream/High profiles are upgraded on read; stored rows are not rewritten.
 After the migration, restart the no-autoreload web process to load the updated
 templates and views. No frontend rebuild is needed for these directly served
 scripts. This work does not restart the running service or migrate the live data.

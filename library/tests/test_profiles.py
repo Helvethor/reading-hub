@@ -122,7 +122,7 @@ class ProfileTests(SimpleTestCase):
 
         from library.services.reading_styles import DEFAULTS, style_css
 
-        themed = style_css({**DEFAULTS, "contrast": "theme"})
+        themed = style_css({**DEFAULTS, "palette": "theme"})
         self.assertIn("var(--ink, #e6e6e6)", themed)
         self.assertIn("background: #181818", themed)
         standard = style_css({**DEFAULTS, "contrast": "standard"})

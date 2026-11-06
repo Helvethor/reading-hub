@@ -173,7 +173,8 @@ prefixes and PDF bookmarks carry the same numbering without rewriting titles.
 On a publication, expand **Reading & PDF style** and choose a profile or adjust
 settings: the display updates live without reloading. Download PDF uses the displayed
 settings, even if a saved profile changes later. Choose paragraph/title alignment,
-fonts (including bundled OpenDyslexic), size, spacing, line length, contrast,
+fonts (including bundled OpenDyslexic), size, spacing, line length, colour palette
+(Neutral, Sepia, Lenin red, Slate blue, Forest green), light/dark mode, contrast,
 hyphenation and optional italic/underline-to-bold display. Explicit block alignment
 is preserved. **Follow theme** leaves the content background transparent; PDF uses
 the site's configured paper/ink colors. Choosing a per-purpose font switches to

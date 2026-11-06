@@ -19,6 +19,8 @@ from library.models import ReadingStyleProfile
 from library.services.pdf import PDFExportError, cached_pdf, pdf_content_boxes, render_pdf
 from library.services.reading_styles import (
     DEFAULTS,
+    PALETTES,
+    SALT,
     STYLE_VERSION,
     style_css,
     style_digest,
@@ -52,6 +54,7 @@ class ReadingStyleTests(TestCase):
             ("font_size", 100), ("font_size", float("nan")), ("line_height", .1),
             ("letter_spacing", -1), ("word_spacing", 1), ("paragraph_align", "inherit"),
             ("body_font", 'url("https://example.org/font")'), ("contrast", "red"),
+            ("contrast", "cream"), ("palette", "red"), ("mode", "sepia"),
             ("italic_to_bold", "false"), ("font_mode", "custom"),
         ):
             with self.subTest(key=key, value=value), self.assertRaises(ValueError):
@@ -65,6 +68,63 @@ class ReadingStyleTests(TestCase):
                                          {"style": "tampered"}).status_code, 400)
         self.assertEqual(self.client.get(reverse("reader-pdf", args=[self.version.pk]),
                                          {"style": "tampered"}).status_code, 400)
+
+    def test_every_palette_mode_and_contrast_meets_its_contrast_ratio(self):
+        def luminance(color):
+            channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+            channels = [value / 12.92 if value <= .03928 else ((value + .055) / 1.055) ** 2.4
+                        for value in channels]
+            return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
+
+        def ratio(first, second):
+            high, low = sorted((luminance(first), luminance(second)), reverse=True)
+            return (high + .05) / (low + .05)
+
+        minimum = {"low": (4.5, 4.5), "standard": (7, 4.5), "high": (15, 7)}
+        self.assertIn("lenin", PALETTES)
+        for palette, (_label, modes) in PALETTES.items():
+            self.assertEqual(set(modes), {"light", "dark"})
+            for mode, levels in modes.items():
+                self.assertEqual(set(levels), set(minimum))
+                for level, (ink, paper, accent) in levels.items():
+                    with self.subTest(palette=palette, mode=mode, level=level):
+                        self.assertGreaterEqual(ratio(ink, paper), minimum[level][0])
+                        self.assertGreaterEqual(ratio(accent or ink, paper), minimum[level][1])
+                        self.assertEqual(luminance(paper) > luminance(ink), mode == "light")
+                if mode == "light":
+                    self.assertLess(ratio(*levels["low"][:2]), ratio(*levels["standard"][:2]))
+                self.assertLessEqual(ratio(*levels["standard"][:2]), ratio(*levels["high"][:2]))
+        css = style_css({**DEFAULTS, "palette": "lenin", "mode": "dark", "contrast": "high"})
+        self.assertIn("color: #ffffff", css)
+        self.assertIn("background: #0f0000", css)
+        self.assertIn("color: #ffa59c", css)
+        self.assertIn("color-scheme: dark", css)
+        self.assertNotIn("#ffa59c", style_css({**DEFAULTS, "palette": "neutral"}))
+
+    def test_version_four_contrast_settings_upgrade_on_read_without_rewriting_profiles(self):
+        legacy = {key: value for key, value in DEFAULTS.items() if key not in ("palette", "mode")}
+        for old, expected in (("theme", ("theme", "standard")), ("standard", ("neutral", "standard")),
+                              ("cream", ("sepia", "standard")), ("high", ("neutral", "high"))):
+            with self.subTest(old=old):
+                value = validate_style({**legacy, "contrast": old})
+                self.assertEqual((value["palette"], value["mode"], value["contrast"]),
+                                 (expected[0], "light", expected[1]))
+        from django.core import signing
+        token = signing.dumps({**legacy, "contrast": "cream"}, salt=SALT, compress=True)
+        self.assertEqual(token_style(token)["palette"], "sepia")
+        profile = ReadingStyleProfile.objects.create(
+            owner=self.user, name="Old cream", settings={**legacy, "contrast": "cream"})
+        self.client.force_login(self.user)
+        response = self.client.get(self.url, {"style_profile": profile.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<option value="sepia" selected>')
+        profile.refresh_from_db()
+        self.assertEqual(profile.settings, {**legacy, "contrast": "cream"})
+        response = self.client.get(self.url, {**{key: value for key, value in legacy.items()
+                                                 if value is not False},
+                                              "contrast": "high", "style_action": "apply"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reading_style"]["contrast"], "high")
 
     def test_anonymous_preset_apply_and_pdf_share_exact_settings_without_mutating_prose(self):
         response = self.client.get(self.url)
@@ -170,7 +230,7 @@ class ReadingStyleTests(TestCase):
 
     def test_live_snapshot_endpoint_and_theme_following_styles_are_read_only(self):
         url = reverse("reading-style-preview")
-        settings = {**self.custom, "contrast": "theme"}
+        settings = {**self.custom, "palette": "theme"}
         response = self.client.get(url, {**settings, "style_action": "apply"})
         self.assertEqual(response.status_code, 200)
         snapshot = response.json()
@@ -247,7 +307,7 @@ class ReadingStyleTests(TestCase):
             return document
 
         with patch.object(HTML, "render", capture):
-            render_pdf(self.version, io.BytesIO(), {**self.custom, "contrast": "theme"})
+            render_pdf(self.version, io.BytesIO(), {**self.custom, "palette": "theme"})
         self.assertEqual(headings["Table of contents"], headings["Section sentinel"])
 
     def test_actual_pdf_headers_footers_selected_font_emphasis_and_unchanged_source(self):

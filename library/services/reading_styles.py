@@ -33,12 +33,81 @@ DEFAULTS = {
     "metadata_font": "sans", "contents_font": "sans", "code_font": "mono",
     "paragraph_align": "left", "title_align": "left",
     "font_size": 14, "line_height": 1.65, "letter_spacing": 0, "word_spacing": 0,
-    "paragraph_spacing": 1, "line_width": 70, "contrast": "standard",
+    "paragraph_spacing": 1, "line_width": 70,
+    "palette": "neutral", "mode": "light", "contrast": "standard",
     "italic_to_bold": False, "underline_to_bold": False, "hyphenation": False,
 }
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
-STYLE_VERSION = 4
+STYLE_VERSION = 5
+
+# (ink, paper, accent) per palette, light/dark mode and contrast level. Accents colour headings
+# and links; None keeps them in the ink colour. Every combination is checked in tests: low
+# >= 4.5:1 (WCAG AA), standard >= 7:1 (AAA), high >= 15:1, accents >= 4.5:1 (7:1 for high).
+PALETTES = {
+    "neutral": ("Neutral", {
+        "light": {"low": ("#5b5552", "#f1eee9", None), "standard": ("#302221", "#ffffff", None),
+                  "high": ("#000000", "#ffffff", None)},
+        "dark": {"low": ("#b9b2aa", "#2a2826", None), "standard": ("#e6e0d8", "#1c1a19", None),
+                 "high": ("#ffffff", "#000000", None)},
+    }),
+    "sepia": ("Sepia", {
+        "light": {"low": ("#5c4d3c", "#f3e6c8", "#7a4a1e"),
+                  "standard": ("#24201c", "#fff4d8", "#6b3d12"),
+                  "high": ("#000000", "#fffaeb", "#4a2706")},
+        "dark": {"low": ("#c2b29a", "#2e261d", "#d9a066"),
+                 "standard": ("#eadbc2", "#211b14", "#e8b47c"),
+                 "high": ("#fff6e5", "#0d0a06", "#f7cf9f")},
+    }),
+    "lenin": ("Lenin red", {
+        "light": {"low": ("#5e4440", "#f6e9e2", "#a33a32"),
+                  "standard": ("#2a1615", "#fff8f3", "#a4161a"),
+                  "high": ("#000000", "#ffffff", "#7a0000")},
+        "dark": {"low": ("#d4b8b0", "#2d1514", "#f08a7e"),
+                 "standard": ("#f4e4dc", "#1f0a0a", "#ff7a6b"),
+                 "high": ("#ffffff", "#0f0000", "#ffa59c")},
+    }),
+    "slate": ("Slate blue", {
+        "light": {"low": ("#4c5666", "#eaeef3", "#345a8a"),
+                  "standard": ("#1e2733", "#f8fafc", "#1f4e8c"),
+                  "high": ("#000000", "#ffffff", "#0b3a75")},
+        "dark": {"low": ("#a8b2c1", "#222934", "#8fb3e6"),
+                 "standard": ("#dde4ee", "#141a22", "#8cb8ff"),
+                 "high": ("#ffffff", "#000814", "#bcd6ff")},
+    }),
+    "forest": ("Forest green", {
+        "light": {"low": ("#4b5746", "#eaf0e3", "#3f6b2f"),
+                  "standard": ("#1f2a1c", "#f9fbf5", "#2f5f22"),
+                  "high": ("#000000", "#ffffff", "#1d4512")},
+        "dark": {"low": ("#adb9a5", "#212820", "#9cc78a"),
+                 "standard": ("#dfe7d8", "#141a12", "#a9d98f"),
+                 "high": ("#ffffff", "#000000", "#c6f0b0")},
+    }),
+}
+# Style version 4 combined palette and contrast in one "contrast" choice.
+LEGACY_CONTRAST = {
+    "theme": ("theme", "standard"), "standard": ("neutral", "standard"),
+    "cream": ("sepia", "standard"), "high": ("neutral", "high"),
+}
+
+
+def upgrade_style(value):
+    """Read settings saved before palette/mode/contrast were separate without rewriting them."""
+    if not isinstance(value, dict) or "palette" in value or "mode" in value:
+        return value
+    legacy = LEGACY_CONTRAST.get(value.get("contrast"))
+    if legacy is None:
+        return value
+    palette, contrast = legacy
+    return {**value, "palette": palette, "mode": "light", "contrast": contrast}
+
+
+def palette_colors(value, profile):
+    """Return (ink, paper, accent); the theme palette follows the site's reading colours."""
+    if value["palette"] == "theme":
+        return profile.reading_ink, profile.reading_paper, None
+    ink, paper, accent = PALETTES[value["palette"]][1][value["mode"]][value["contrast"]]
+    return ink, paper, accent
 
 
 class ReadingStyleForm(forms.Form):
@@ -75,10 +144,19 @@ class ReadingStyleForm(forms.Form):
     )
     line_width = forms.IntegerField(label="Maximum line length (characters)", min_value=40,
                                    max_value=100)
-    contrast = forms.ChoiceField(label="Page contrast", choices=[
-        ("theme", "Follow theme (transparent page)"),
-        ("standard", "Standard: dark on white"), ("cream", "Dark on cream"),
-        ("high", "High contrast: black on white"),
+    palette = forms.ChoiceField(
+        label="Colour palette",
+        choices=[("theme", "Follow site theme (transparent page)")]
+        + [(key, label) for key, (label, _modes) in PALETTES.items()],
+        help_text="Follow site theme uses the site's colours; light/dark and contrast "
+                  "apply to the other palettes.",
+    )
+    mode = forms.ChoiceField(label="Light or dark", choices=[
+        ("light", "Light: dark text on a light page"), ("dark", "Dark: light text on a dark page"),
+    ])
+    contrast = forms.ChoiceField(label="Contrast", choices=[
+        ("low", "Low: softer text"), ("standard", "Standard"),
+        ("high", "High: maximum contrast"),
     ])
     italic_to_bold = forms.BooleanField(label="Show italics as bold, not slanted", required=False)
     underline_to_bold = forms.BooleanField(label="Show underlining as bold", required=False,
@@ -87,6 +165,7 @@ class ReadingStyleForm(forms.Form):
 
 
 def validate_style(value):
+    value = upgrade_style(value)
     if not isinstance(value, dict) or set(value) != set(DEFAULTS):
         raise ValueError("Reading style must contain exactly the supported settings.")
     for key in ("italic_to_bold", "underline_to_bold", "hyphenation"):
@@ -135,7 +214,7 @@ def selected_style(request):
     if request.GET.get("style"):
         return token_style(request.GET["style"])
     if request.GET.get("style_action") == "apply":
-        form = ReadingStyleForm(request.GET)
+        form = ReadingStyleForm(upgrade_style(request.GET.dict()))
         if not form.is_valid():
             raise ValueError("Invalid reading style: " + form.errors.as_text())
         return form.cleaned_data
@@ -183,8 +262,9 @@ def style_context(request):
             )]),
             ("Spacing & page", [form[key] for key in (
                 "line_height", "paragraph_spacing", "letter_spacing", "word_spacing",
-                "line_width", "contrast",
+                "line_width",
             )]),
+            ("Colours", [form[key] for key in ("palette", "mode", "contrast")]),
             ("Reading aids", [form[key] for key in (
                 "italic_to_bold", "underline_to_bold", "hyphenation",
             )]),
@@ -210,10 +290,8 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
             value[f"{concern}_font"] if value["font_mode"] == "mixed" else value["font_mode"]
         ][0]
     profile = get_profile() if profile is None else profile
-    theme = value["contrast"] == "theme"
-    ink, paper = {"theme": (profile.reading_ink, profile.reading_paper),
-                  "standard": ("#302221", "#ffffff"), "cream": ("#24201c", "#fff4d8"),
-                  "high": ("#000000", "#ffffff")}[value["contrast"]]
+    theme = value["palette"] == "theme"
+    ink, paper, accent = palette_colors(value, profile)
     scope = ".publication-content"
     text = f"{scope} .reader-content"
     titles = f"{scope} :is(h1,h2,h3,h4,h5,h6)"
@@ -259,6 +337,7 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
 {scope} .reader-content :is(.text-align-right) {{ text-align: right; }}
 {scope} .reader-content :is(.text-align-center) {{ text-align: center; }}
 {scope} .reader-content :is(.text-align-justify) {{ text-align: justify; }}
+{scope} {{ color-scheme: {'normal' if theme else value['mode']}; }}
 {scope} .reader-content a > :is(sup,sub) {{
   display: inline-block; text-decoration: inherit;
 }}
@@ -268,11 +347,23 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
   @page {{
     background: {paper}; color: {ink};
   }}
+  {scope} :is(.document-contents a,.print-toc a,.reader-content figcaption) {{ color: inherit; }}
+  {scope} .document-metadata-table :is(th,td) {{ border-bottom-color: currentColor; }}
   @page reading-content {{
     @top-left {{ font-family: {family('metadata')}; }}
     @top-right {{ font-family: {family('metadata')}; }}
     @bottom-center {{ font-family: {family('metadata')}; }}
   }}
+}}
+"""
+    if not theme:
+        css += f"""
+{scope} .eyebrow {{ color: {accent or ink}; }}
+"""
+    if accent:
+        css += f"""
+{titles}, {scope} :is(.reader-content,.document-metadata,.document-metadata-page) a[href] {{
+  color: {accent};
 }}
 """
     if value["italic_to_bold"]:

@@ -340,7 +340,7 @@ def cached_pdf(version, reading_style=None, theme=""):
     reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
     profile = profile_for_theme(theme)
     palette = ""
-    if reading_style["contrast"] == "theme":
+    if reading_style["palette"] == "theme":
         palette = "-" + hashlib.sha256(
             (profile.reading_paper + profile.reading_ink).encode("ascii")
         ).hexdigest()[:16]

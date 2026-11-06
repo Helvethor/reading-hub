@@ -502,8 +502,8 @@ not publication-wide editorial settings. Migration 0027 adds their separate tabl
 
 Settings include paragraph/title alignment, all-serif/all-sans/all-OpenDyslexic or
 per-concern prose/heading/metadata/contents/code fonts, general point size, line
-height, letter/word/paragraph spacing, maximum line length, contrast/background
-and hyphenation. Optional italic/underline-to-bold display leaves links underlined
+height, letter/word/paragraph spacing, maximum line length, colours and
+hyphenation. Optional italic/underline-to-bold display leaves links underlined
 and strikethrough visible. Explicit block alignment remains authoritative.
 Liberation and OpenDyslexic regular/bold/italic/bold-italic faces are bundled locally
 under their OFL licenses. Missing glyphs still depend on system fallback; neither
@@ -524,9 +524,19 @@ Changed settings are labeled Custom, with a separate explicit saved-profile targ
 refuses collisions rather than implicitly overwriting. Profile selection, creation,
 update and default selection do not reload the publication with JavaScript enabled.
 The shared Marxist preset stays immutable. No content write accompanies a preview.
-Theme-following contrast uses a transparent browser background and inherited
-theme ink; PDF uses the site's validated `reading_paper`/`reading_ink` palette.
-Existing white/cream/high-contrast options retain their settings.
+Colours are three independent settings: **palette** (Neutral, Sepia, Lenin red,
+Slate blue, Forest green, or Follow site theme), **mode** (Light/Dark) and
+**contrast** (Low/Standard/High). Each palette defines ink, paper and an optional
+accent for every mode/contrast; accents colour headings, content links and the
+eyebrow while ToC links keep the ink. Tests compute WCAG ratios for every
+combination: low ≥4.5:1, standard ≥7:1, high ≥15:1, accents ≥4.5:1 (≥7:1 at high).
+No human or assistive-technology evaluation has been performed. The defaults
+(Neutral, light, standard) reproduce the previous white page. Follow site theme
+uses a transparent browser background and inherited theme ink, ignoring mode and
+contrast; PDF uses the site's validated `reading_paper`/`reading_ink` palette.
+Style version 5 upgrades older single-contrast settings on read (theme → Follow
+theme, standard → Neutral, cream → Sepia, high → Neutral high, all light) without
+rewriting stored profiles; old signed PDF links and apply URLs keep working.
 
 The PDF
 link binds an exact signed settings snapshot, independent of later profile/default

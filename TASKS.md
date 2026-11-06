@@ -335,6 +335,13 @@ acceptance. Historical counts below describe their original slices.
   WeasyPrint over-sizes grid rows with wrapped text (presentation v11). The real
   What Is To Be Done? metadata was rendered read-only in Chromium (wide and
   narrow) and WeasyPrint; the logged-in editor page was not browsed.
+- [x] Split reading/PDF "Page contrast" into palette (Neutral, Sepia, Lenin red,
+  Slate blue, Forest green, Follow site theme), Light/Dark mode and Low/Standard/
+  High contrast (style v5). Accent on headings/content links/eyebrow; ToC stays
+  ink. Tests compute WCAG ratios for every combination and PDF stream colours;
+  legacy settings, signed tokens and profiles upgrade on read without DB writes.
+  The v80 reader was screenshotted in Chromium for several combinations; no
+  human accessibility evaluation and no large dark PDF render.
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

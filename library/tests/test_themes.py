@@ -84,7 +84,7 @@ class ThemeTests(TestCase):
         self.assertFalse(UserSettings.objects.exists())
 
     def test_follow_theme_css_uses_preference_without_changing_signed_style(self):
-        settings = {**DEFAULTS, "contrast": "theme"}
+        settings = {**DEFAULTS, "palette": "theme"}
         token = style_token(settings)
         self.choose("dark")
         response = self.client.get(reverse("reading-style-css"), {"style": token})
@@ -101,13 +101,21 @@ class ThemePDFTests(TestCase):
 
     def test_rendered_follow_theme_pdf_contains_dark_paper_and_off_white_ink(self):
         path = Path(self.temp.name) / "dark-theme.pdf"
-        render_pdf(self.version, path, {**DEFAULTS, "contrast": "theme"}, theme="dark")
+        render_pdf(self.version, path, {**DEFAULTS, "palette": "theme"}, theme="dark")
         stream = b"\n".join(page.get_contents().get_data() for page in PdfReader(path).pages)
         self.assertIn(b"0.094118 0.094118 0.094118 rg", stream)
         self.assertIn(b"0.901961 0.901961 0.901961 rg", stream)
 
+    def test_rendered_dark_lenin_palette_pdf_uses_its_paper_ink_and_accent(self):
+        path = Path(self.temp.name) / "lenin-dark.pdf"
+        render_pdf(self.version, path, {**DEFAULTS, "palette": "lenin", "mode": "dark"})
+        stream = b"\n".join(page.get_contents().get_data() for page in PdfReader(path).pages)
+        self.assertIn(b"0.121569 0.039216 0.039216 rg", stream, "Dark red-black paper")
+        self.assertIn(b"0.956863 0.894118 0.862745 rg", stream, "Warm off-white ink")
+        self.assertIn(b"1 0.478431 0.419608 rg", stream, "Red accent for headings")
+
     def test_theme_pdf_cache_binds_palette_and_subprocess_selection(self):
-        settings = {**DEFAULTS, "contrast": "theme"}
+        settings = {**DEFAULTS, "palette": "theme"}
         themes = []
 
         def build(command, **kwargs):
