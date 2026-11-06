@@ -84,7 +84,6 @@ dialog::backdrop, .editor-page dialog::backdrop { background: #0009; }
 #editor-surface .tiptap .editor-figure-handle { color: var(--ink); }
 .reader-content blockquote { color: inherit; border-color: var(--editor-border); }
 .publication-content .reader-content a { color: inherit; text-decoration-color: var(--accent); }
-.reader-content :target { background: #642b304d; }
 .reader-content :is(th, td, hr), #editor-paste-formatted { border-color: var(--editor-border); }
 
 /* Keep additions green, removals red and structure changes amber. */

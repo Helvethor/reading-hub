@@ -1,13 +1,12 @@
-.reader-content { font: 1.15rem/1.85 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.reader-content, .document-metadata-page { font: 1.15rem/1.85 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
 .reader-content p { margin: 0 0 1.4em; }
 .reader-content .document-subtitle { font-size: 1.2em; font-style: italic; line-height: 1.45; margin: .5em 0 1.5em; }
-.reader-content h2, .reader-content h3, .reader-content h4, .reader-content h5, .reader-content h6 { font-family: Georgia, serif; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; margin: 2.2em 0 .85em; text-wrap: balance; }
-.reader-content h2 { font-size: 1.75em; }
+.reader-content h2, .reader-content h3, .reader-content h4, .reader-content h5, .reader-content h6, .document-metadata-page > h2 { font-family: Georgia, serif; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; margin: 2.2em 0 .85em; text-wrap: balance; }
+.reader-content h2, .document-metadata-page > h2 { font-size: 1.75em; }
 .reader-content h3 { font-size: 1.4em; }
 .reader-content h4 { font-size: 1.2em; }
 .reader-content h5, .reader-content h6 { font-size: 1em; }
 .reader-content [id] { scroll-margin-top: 2rem; }
-.reader-content :target { background: #eeeacb; border-radius: 3px; }
 .reader-content img { display: block; max-width: 100%; height: auto; margin: 1.8rem auto .7rem; }
 .reader-content figure { margin: 2rem 0; }
 .reader-content figcaption { font: .78rem/1.6 system-ui, sans-serif; color: #686e65; margin-bottom: 1.8rem; }

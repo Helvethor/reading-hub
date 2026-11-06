@@ -22,6 +22,7 @@ from library.services.reading_styles import (
     PALETTES,
     SALT,
     STYLE_VERSION,
+    mix,
     style_css,
     style_digest,
     style_token,
@@ -101,9 +102,54 @@ class ReadingStyleTests(TestCase):
         self.assertIn("color-scheme: dark", css)
         self.assertNotIn("#ffa59c", style_css({**DEFAULTS, "palette": "neutral"}))
 
+    def test_palette_outranks_site_theme_for_contents_notice_and_metadata_section(self):
+        from weasyprint import CSS
+
+        static = Path(__file__).resolve().parents[2]
+        site = [CSS(filename=str(static / "library/static/library/app.css")),
+                CSS(filename=str(static / "library/static/library/reader.css")),
+                CSS(filename=str(static / "profiles/static/marxist/dark.css"))]
+        reading = CSS(string=style_css({**DEFAULTS, "palette": "lenin", "mode": "light"}))
+        markup = """<div class="publication-content">
+          <section class="notice document-review-status"><p>Review</p></section>
+          <nav class="document-contents"><a id="toc" href="#s">Section</a></nav>
+          <article class="reader-content"><h2 id="s">Section</h2>
+          <p><a id="link" href="#s">x</a></p></article>
+          <section class="document-metadata-page"><h2 id="m">Metadata</h2></section></div>"""
+        # The site theme loads after the reading style in the page head.
+        document = HTML(string=markup).render(stylesheets=[*site[:2], reading, site[2]])
+        boxes = {}
+
+        def walk(box):
+            element = getattr(box, "element", None)
+            if element is not None:
+                key = element.get("id") or element.get("class") or element.tag
+                boxes.setdefault(key, box.style)
+            for child in getattr(box, "children", []):
+                walk(child)
+        walk(document.pages[0]._page_box)
+
+        def rgb(style, name="color"):
+            return "#" + "".join(f"{round(channel * 255):02x}" for channel in style[name][:3])
+        ink, paper, accent = PALETTES["lenin"][1]["light"]["standard"]
+        self.assertEqual(rgb(boxes["toc"]), ink)
+        self.assertEqual(rgb(boxes["link"]), accent)
+        notice = boxes["notice document-review-status"]
+        self.assertEqual(rgb(notice), ink)
+        self.assertEqual(rgb(notice, "background_color"), mix(accent, paper, .08))
+        self.assertEqual(rgb(boxes["s"]), accent)
+        for name in ("font_family", "font_size", "font_weight", "margin_top", "color"):
+            self.assertEqual(boxes["m"][name], boxes["s"][name], name)
+        for name in ("max_width", "font_family", "font_size", "line_height"):
+            self.assertEqual(boxes["document-metadata-page"][name], boxes["reader-content"][name])
+        for css in ("library/static/library/reader.css", "profiles/static/marxist/theme.css",
+                    "profiles/static/marxist/dark.css"):
+            self.assertNotIn(":target", (static / css).read_text())
+
     def test_version_four_contrast_settings_upgrade_on_read_without_rewriting_profiles(self):
         legacy = {key: value for key, value in DEFAULTS.items() if key not in ("palette", "mode")}
-        for old, expected in (("theme", ("theme", "standard")), ("standard", ("neutral", "standard")),
+        for old, expected in (("theme", ("theme", "standard")),
+                              ("standard", ("neutral", "standard")),
                               ("cream", ("sepia", "standard")), ("high", ("neutral", "high"))):
             with self.subTest(old=old):
                 value = validate_style({**legacy, "contrast": old})

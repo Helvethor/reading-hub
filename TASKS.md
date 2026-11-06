@@ -342,6 +342,13 @@ acceptance. Historical counts below describe their original slices.
   legacy settings, signed tokens and profiles upgrade on read without DB writes.
   The v80 reader was screenshotted in Chromium for several combinations; no
   human accessibility evaluation and no large dark PDF render.
+- [x] Make explicit palettes out-rank the site theme (ToC links in palette ink,
+  publication links accent, review-status/notice tinted from the palette), drop
+  the `:target` background in every theme, and format the closing Metadata page
+  like a body section (width, font, heading; PDF rows unsplit, labels whole;
+  presentation v12). A WeasyPrint cascade test uses the real dark site theme;
+  the v91 publication was checked in headless Chromium (dark site + Lenin
+  light/dark) and its PDF rendered to /tmp (Lenin light/dark).
 - [x] Mirror ToC numbering as read-only prefixes on actual editor headings,
   outline titles and the Section selector, sharing per-parent/style series.
   Keep title text, clipboard prose and saved markup unchanged; follow title

@@ -45,7 +45,6 @@ button:hover, .button:hover { background: #7a1616; }
 .browse-controls select { font: inherit; color: var(--ink); background: #fffaf5; border: 1px solid #baa49b; border-radius: 5px; padding: .5rem .7rem; max-width: 100%; }
 .pagination { display: flex; justify-content: center; gap: 1.5rem; padding: 1.5rem 0; font-size: .85rem; }
 .reader-content blockquote { border-color: #c79b91; color: #59413b; }
-.reader-content :target { background: #f3dfbf; }
 .reader-content .note-backlink, .reader-content a { color: var(--accent); }
 .reader-content figcaption { color: var(--muted); }
 

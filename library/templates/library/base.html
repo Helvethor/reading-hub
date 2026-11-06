@@ -5,9 +5,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ site.name }}{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'library/app.css' %}?v={{ app_version }}-facts">
+  <link rel="stylesheet" href="{% static 'library/app.css' %}?v={{ app_version }}-palette">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}" data-site-theme>
+  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}-palette" data-site-theme>
   <script type="module" src="{% static 'library/themes.js' %}?v={{ app_version }}"></script>
 </head>
 <body>

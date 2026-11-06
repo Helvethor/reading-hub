@@ -415,7 +415,9 @@ and other-notes fields). The preview's right-click menu hides/shows filled field
 or resets the default; reader, publication and PDF use the same selection. The
 title page is synthetic (default fields: author, translator, written, delivered,
 published, rights, source) with a full (page break) or compact (labelled facts
-packed in order into rows of one to three aligned columns, content follows) layout; a closing Metadata page lists every filled field. The
+packed in order into rows of one to three aligned columns, content follows) layout; a closing Metadata page lists every filled field. It is
+formatted like any body section (same width, prose font, heading and spacing; in
+PDF it starts a page, with unsplit rows and whole-word labels). The
 explicit work type (book, pamphlet, report, article, letter, speech, interview,
 essay, resolution, other) or, failing that, the book/article classification presets the
 title layout and whether ToC/Metadata pages are included; navigation right-click
@@ -537,6 +539,11 @@ contrast; PDF uses the site's validated `reading_paper`/`reading_ink` palette.
 Style version 5 upgrades older single-contrast settings on read (theme → Follow
 theme, standard → Neutral, cream → Sepia, high → Neutral high, all light) without
 rewriting stored profiles; old signed PDF links and apply URLs keep working.
+The site theme stylesheet loads after the reading style, so explicit palettes use
+higher-specificity selectors: generated ToC links keep the palette ink, other
+publication links (including in notices) use the accent (or ink), and the review
+status and other notices inside the publication take a palette tint. Following a
+link no longer paints a background on its target in any theme.
 
 The PDF
 link binds an exact signed settings snapshot, independent of later profile/default

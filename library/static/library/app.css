@@ -187,10 +187,10 @@ details summary { cursor: pointer; }
 .document-fact-label { flex: none; font-weight: 700; }
 .document-fact-value { min-width: 0; overflow-wrap: anywhere; text-align: start; hyphens: manual; }
 @media (max-width: 40rem) { .document-facts .document-fact { grid-column: 1 / -1; } }
-.document-metadata-page { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.document-metadata-page { overflow-wrap: anywhere; }
 .document-metadata-table { border-collapse: collapse; width: 100%; }
 .document-metadata-table th, .document-metadata-table td { text-align: start; vertical-align: top; padding: .35rem .6rem; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
-.document-metadata-table th { width: 30%; font-weight: 600; }
+.document-metadata-table th { width: 30%; font-weight: 600; overflow-wrap: break-word; }
 .author { font-weight: 600; }
 .source-link { font-size: .8rem; }
 .version-details { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); font-size: .8rem; color: var(--muted); }

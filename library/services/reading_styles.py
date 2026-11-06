@@ -110,6 +110,16 @@ def palette_colors(value, profile):
     return ink, paper, accent
 
 
+def mix(color, base, amount):
+    """Blend `amount` of hex `color` into hex `base` (both #rgb or #rrggbb)."""
+    def rgb(value):
+        value = value.lstrip("#")
+        value = "".join(c * 2 for c in value) if len(value) == 3 else value
+        return [int(value[i:i + 2], 16) for i in (0, 2, 4)]
+    pairs = zip(rgb(color), rgb(base), strict=True)
+    return "#" + "".join(f"{round(a * amount + b * (1 - amount)):02x}" for a, b in pairs)
+
+
 class ReadingStyleForm(forms.Form):
     font_mode = forms.ChoiceField(label="Font combination", choices=[
         ("mixed", "Mixed: per-concern fonts"), ("serif", "All serif"), ("sans", "All sans-serif"),
@@ -303,10 +313,11 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
   line-height: {value['line_height']}; font-family: {family('body')};
   letter-spacing: {value['letter_spacing']}em; word-spacing: {value['word_spacing']}em;
 }}
-{scope} :is(.document-header,.document-contents,.reader-content) {{
+{scope} :is(.document-header,.document-contents,.reader-content,.document-metadata-page) {{
   max-width: {value['line_width']}ch; margin-inline: auto; box-sizing: border-box;
 }}
-{text} {{ font: inherit; color: inherit; hyphens: {'auto' if value['hyphenation'] else 'none'}; }}
+{scope} :is(.reader-content,.document-metadata-page) {{
+  font: inherit; color: inherit; hyphens: {'auto' if value['hyphenation'] else 'none'}; }}
 {text} p {{
   text-align: {value['paragraph_align']}; margin-block-end: {value['paragraph_spacing']}em;
 }}
@@ -316,7 +327,7 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
 }}
 {scope} h1 {{ font-size: 2em; }}
 {scope} h2 {{ font-size: 1.6em; }}
-{scope} :is(.document-contents > h2,.reader-content h2) {{
+{scope} :is(.document-contents > h2,.reader-content h2,.document-metadata-page > h2) {{
   font-weight: 600; margin-block: 2.2em .85em;
 }}
 {text} [data-reading-marker]::before {{ content: attr(data-reading-marker); }}
@@ -357,14 +368,26 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
 }}
 """
     if not theme:
+        # The site theme loads after this sheet, so palette rules out-rank its selectors.
+        link = accent or ink
+        blocks = (f"{scope} :is(.document-header,.document-contents,.reader-content,"
+                  ".document-metadata-page,.notice)")
         css += f"""
-{scope} .eyebrow {{ color: {accent or ink}; }}
+{scope} .eyebrow {{ color: {link}; }}
+{blocks} a[href], {blocks} a[href]:hover {{ color: {link}; text-decoration-color: currentColor; }}
+{scope} .document-contents a[href], {scope} .document-contents a[href]:hover {{ color: inherit; }}
+{scope} .document-contents a[href]:hover {{ text-decoration-color: {link}; }}
+{scope} .notice {{
+  color: inherit; background: {mix(link, paper, .08)}; border-color: {mix(link, paper, .45)};
+}}
+{scope} .reader-content :is(blockquote,figcaption,.media-credit) {{ color: inherit; }}
+{scope} :is(.reader-content,.document-metadata-page) :is(blockquote,th,td,hr) {{
+  border-color: {mix(ink, paper, .3)};
+}}
 """
     if accent:
         css += f"""
-{titles}, {scope} :is(.reader-content,.document-metadata,.document-metadata-page) a[href] {{
-  color: {accent};
-}}
+{titles} {{ color: {accent}; }}
 """
     if value["italic_to_bold"]:
         css += f"""

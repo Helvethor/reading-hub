@@ -17,7 +17,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 11
+PDF_PRESENTATION_VERSION = 12
 
 
 def split_pdf_paragraph(paragraph, fraction):
