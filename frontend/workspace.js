@@ -64,7 +64,6 @@ function foldBody(doc, part) {
 
 function decorations(doc, scope, labels, folds = []) {
   const result = [];
-  const labelDepths = new Map();
   const hidden = folds.map(part => foldBody(doc, part));
   const parts = documentParts(doc), numbering = tocNumberingEntries(doc, parts);
   parts.forEach((part, index) => {
@@ -160,52 +159,68 @@ function decorations(doc, scope, labels, folds = []) {
         return button;
       }, {side: -1, key: `figure-${pos}-${label}`, stopEvent: () => true}));
     }
-    const inTable = Array.from({length: resolved.depth}, (_, index) =>
-      resolved.node(index + 1).type.name).includes("table");
-    if (labels && !inTable && (node.isTextblock || node.isLeaf ||
-        ["table", "figure", "blockquote", "figcaption", "div", "li", "dd"].includes(node.type.name))) {
-      let tag = node.type.name === "inlineRun" ? "Text" :
-        node.type.name === "wrapperBlock" ? node.attrs.tag :
-          node.type.name.replace(/Text$|Block$/g, "").toUpperCase();
-      const ancestors = [];
-      for (let depth = 1; depth <= resolved.depth; depth++) {
-        const ancestor = resolved.node(depth);
-        ancestors.push(ancestor.type.name.replace(/Text$/g, "") +
-          (ancestor.attrs.id ? ` #${ancestor.attrs.id}` : ""));
-      }
-      if (node.type.name.startsWith("figcaption")) tag = "CAPTION";
-      else if (node.type.name.startsWith("blockquote")) tag = "QUOTE";
-      else if (node.isTextblock && node.childCount === 1 &&
-          node.firstChild.type.name === "img") tag = "IMG";
-      const short = {CAPTION: "CAP", FIGURE: "FIG", BLOCKQUOTE: "QUO",
-        EMPTYBLOCKTARGET: "TGT"}[tag] || (tag.length > 5 ? tag.slice(0, 3) : tag);
-      let labelDepth = 0;
-      for (let depth = 1; depth <= resolved.depth; depth++) {
-        if (labelDepths.has(resolved.before(depth))) labelDepth++;
-      }
-      labelDepths.set(pos, labelDepth);
-      const gutter = `--editor-label-gutter: var(--editor-label-column-${labelDepth}, 1.5rem)`;
-      // Replaced nodes and scrolling tables cannot paint a label outside their box.
-      const externalLabel = node.isLeaf || node.type.name === "table";
-      result.push(Decoration.node(pos, end, {
-        class: `editor-labelled-block${externalLabel ? " editor-external-block-label" : ""}`,
-        "data-editor-block": short, "data-editor-block-type": tag,
-        "data-editor-label-depth": String(labelDepth), style: gutter,
-        "data-editor-structure": [...ancestors, tag + (node.attrs.id ? ` #${node.attrs.id}` : "")].join(" / "),
-      }));
-      if (externalLabel) result.push(Decoration.widget(pos, view => {
-        const label = view.dom.ownerDocument.createElement("span");
-        label.className = "editor-leaf-label";
-        label.dataset.editorBlock = short;
-        label.style.cssText = gutter;
-        label.title = tag;
-        label.setAttribute("contenteditable", "false");
-        label.setAttribute("aria-hidden", "true");
-        return label;
-      }, {side: -1, key: `block-label-${pos}-${tag}-${labelDepth}`, stopEvent: () => true}));
+    const label = labels && blockLabel(doc, pos, node);
+    if (label) {
+      result.push(Decoration.node(pos, end, label.attrs));
+      if (label.external) result.push(Decoration.widget(pos,
+        view => leafLabel(view.dom.ownerDocument, label),
+        {side: -1, key: `block-label-${pos}-${label.tag}-${label.depth}`, stopEvent: () => true}));
     }
   });
   return DecorationSet.create(doc, result);
+}
+
+function labelled(node, ancestors) {
+  return !ancestors.some(ancestor => ancestor.type.name === "table") &&
+    (node.isTextblock || node.isLeaf ||
+      ["table", "figure", "blockquote", "figcaption", "div", "li", "dd"].includes(node.type.name));
+}
+
+// Shared with removed-content diff widgets so they render the same gutters and borders.
+export function blockLabel(doc, pos, node) {
+  const resolved = doc.resolve(pos);
+  const chain = Array.from({length: resolved.depth}, (_, index) => resolved.node(index + 1));
+  if (!node.isBlock || !labelled(node, chain)) return null;
+  let tag = node.type.name === "inlineRun" ? "Text" :
+    node.type.name === "wrapperBlock" ? node.attrs.tag :
+      node.type.name.replace(/Text$|Block$/g, "").toUpperCase();
+  const ancestors = chain.map(ancestor => ancestor.type.name.replace(/Text$/g, "") +
+    (ancestor.attrs.id ? ` #${ancestor.attrs.id}` : ""));
+  if (node.type.name.startsWith("figcaption")) tag = "CAPTION";
+  else if (node.type.name.startsWith("blockquote")) tag = "QUOTE";
+  else if (node.isTextblock && node.childCount === 1 &&
+      node.firstChild.type.name === "img") tag = "IMG";
+  const short = {CAPTION: "CAP", FIGURE: "FIG", BLOCKQUOTE: "QUO",
+    EMPTYBLOCKTARGET: "TGT"}[tag] || (tag.length > 5 ? tag.slice(0, 3) : tag);
+  const depth = chain.filter((ancestor, index) => labelled(ancestor, chain.slice(0, index))).length;
+  const gutter = `--editor-label-gutter: var(--editor-label-column-${depth}, 1.5rem)`;
+  // Replaced nodes and scrolling tables cannot paint a label outside their box.
+  const external = node.isLeaf || node.type.name === "table";
+  return {tag, short, depth, gutter, external, attrs: {
+    class: `editor-labelled-block${external ? " editor-external-block-label" : ""}`,
+    "data-editor-block": short, "data-editor-block-type": tag,
+    "data-editor-label-depth": String(depth), style: gutter,
+    "data-editor-structure": [...ancestors, tag + (node.attrs.id ? ` #${node.attrs.id}` : "")].join(" / "),
+  }};
+}
+
+export function leafLabel(owner, label) {
+  const element = owner.createElement("span");
+  element.className = "editor-leaf-label";
+  element.dataset.editorBlock = label.short;
+  element.style.cssText = label.gutter;
+  element.title = label.tag;
+  element.setAttribute("contenteditable", "false");
+  element.setAttribute("aria-hidden", "true");
+  return element;
+}
+
+export function blockLabelsShown(state) {
+  return workspaceKey.getState(state)?.labels ?? false;
+}
+
+export function workspaceChanged(tr) {
+  return !!tr.getMeta(workspaceKey);
 }
 
 function inside(selection, scope) {

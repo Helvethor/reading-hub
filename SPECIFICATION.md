@@ -40,8 +40,10 @@ capture is created only inside the confirmed transaction.
 including unsaved edits, against the immutable pinned starting document (revision
 0), or an explicitly selected exact saved revision in the current history. Saving
 does not reset the baseline. Semantic word/block differences show added content on
-green backgrounds and removed content on red backgrounds, with textual labels.
-Removed text can be selected and restored; complete removed blocks/media can also
+green backgrounds and removed content on red backgrounds, with screen-reader labels.
+Removed content flows with the result, rendered as its original block types with the
+same alignment, block labels and hierarchy borders; restore actions are in a
+right-click/Shift+F10 menu, not in-text controls. Removed text can be selected and restored; complete removed blocks/media can also
 be restored, or explicitly replace corresponding additions. Restorations are
 unsaved, atomic undo steps preserving semantic marks, IDs, links and retained
 asset references. Changed proposals, hidden/folded scope, partial target wrappers,

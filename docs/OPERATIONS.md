@@ -71,9 +71,14 @@ save any pending edits, restart the web process, then reload the editor.
 Use **Content view: Result / Diffs** to inspect working content against the pinned
 starting document. Baseline revision 0 remains fixed after saves; use **Baseline
 saved revision** and **Use baseline** for another exact saved version. Green means
-added, red means removed; labels also identify the change. Restore a complete
-removal, select removed text, or open its keyboard text-selection dialog. Restoration
-is an ordinary unsaved edit with Undo. Show the whole document and expand sections
+added, red means removed; hidden "Added:"/"Removed:" text identifies changes for
+screen readers. Removed content flows with the result in its original block type,
+alignment, block labels and section borders; it has no in-text buttons. Right-click
+removed content (or focus it and press Shift+F10/Menu) for **Restore selected text**
+(after selecting part of it), **Restore removal**, **Restore and replace added
+content** and the keyboard text-selection dialog. Shift+right-click keeps the
+browser menu. Edited blocks of the same kind are paired so their wording changes
+stay inline. Restoration is an ordinary unsaved edit with Undo. Show the whole document and expand sections
 first. Duplicate targets, incomplete target-bearing selections, stale locations and
 invalid structure refuse rather than stripping content. Title/metadata comparison
 is in Saved comparison. Material excluded before the pinned baseline is available

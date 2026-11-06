@@ -62,7 +62,7 @@ test("current template mounts differences and preserves the immutable baseline a
   const filter = form.querySelector("select");
   filter.value = "diffs";
   filter.dispatchEvent(new window.Event("change"));
-  assert.match(form.querySelector(".editor-diff-removed-content").textContent, /Original/);
+  assert.match(form.querySelector("[data-diff=removed]").textContent, /Original/);
   initial.revision = 1;
   controls.refresh();
   assert.equal(form.querySelector("#editor-diff-revision").max, "1");

@@ -98,8 +98,9 @@ acceptance. Historical counts below describe their original slices.
   preview/confirmation, retaining audited undo and annotation safeguards.
 - [x] Add Result / Diffs against immutable revision 0 or an exact saved baseline,
   including unsaved content. Display semantic additions/removals with green/red
-  backgrounds and text labels; restore selected text or complete semantic removals
-  with atomic undo and stale/structure/target guards. Saving keeps the baseline;
+  backgrounds and screen-reader labels, removed content flowing as its original
+  formatted blocks; restore selected text or complete semantic removals from a
+  right-click/Shift+F10 menu with atomic undo and stale/structure/target guards. Saving keeps the baseline;
   diff artifacts never enter saved/recovered/published HTML or PDF.
 - [x] Replace legacy reciprocal-note repair with a contextual editor operation:
   choose an exact note paragraph/list item and existing backlink, or explicitly
