@@ -166,27 +166,27 @@ class NoteCorrectionTests(TestCase):
     def test_workspace_stays_available_when_baseline_links_are_broken(self):
         expected = self.source()
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(response, "Footnote references and backlinks")
-        self.assertContains(response, "Preview unavailable:")
-        self.assertContains(response, "Repair footnote reference")
-        self.assertEqual(self.request(expected, action="preview").status_code, 200)
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        result = preview(self.s, self.p, self.b, expected)
+        self.assertIn("Back to reference", result["html"])
         self.assertFalse(self.capture.corrections.exists())
-
-    request = test_corrections.CorrectionTests.request
 
     def test_save_api_restores_saved_controls_and_reports_conflicts(self):
         expected = self.source()
-        response = self.request(expected)
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["revision"], 1)
-        self.assertEqual(self.request(expected).status_code, 409)
-        response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertEqual(response.context["expected"]["notes"], expected["notes"])
-        self.assertEqual(response.context["note_links"], self.links)
-        self.assertNotContains(response, "Preview unavailable:")
+        saved = save_correction(self.capture, self.reviewer, expected, 0, "Repair references")
+        self.assertEqual(saved.revision, 1)
+        self.assertEqual(saved.expected["notes"], expected["notes"])
+        with self.assertRaises(CorrectionConflict):
+            save_correction(self.capture, self.reviewer, expected, 0, "Stale")
+        history = self.client.get(reverse("correction-revisions", args=[self.capture.pk]))
+        self.assertContains(history, "Repair references")
         invalid = deepcopy(expected)
         invalid["notes"][0]["target"] = -1
-        self.assertEqual(self.request(invalid, revision=1).status_code, 400)
+        with self.assertRaises(ValueError):
+            validate_expected(invalid, self.b, self.s)
+        self.assertEqual(
+            self.client.post(self.url, invalid, content_type="application/json").status_code, 410
+        )
         self.assertEqual(self.capture.corrections.count(), 1)
 
     def test_note_repairs_combine_with_media_without_losing_reference(self):

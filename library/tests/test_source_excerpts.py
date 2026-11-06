@@ -212,21 +212,20 @@ class SourceExcerptTests(TestCase):
             format_rendition(manifest, warnings, spec)
 
     def test_evidence_endpoint_is_reviewer_only_read_only_and_validates_ranges(self):
-        url = reverse("content-organization")
-        params = {"source_evidence": "1", "source_url": BOOK}
+        capture = retain_rendition_capture(self.book, 0)
+        url = reverse("source-excerpts", args=[capture.pk])
+        params = {}
         before = ContentOrganizationDecision.objects.count()
         response = self.client.get(url, params)
         self.assertEqual(response.status_code, 200)
         result = response.json()
         self.assertTrue(any(row["text"].startswith("History before") for row in result["blocks"]))
         selection = self.selection(self.entry(), "History before", "Second history")
-        response = self.client.get(url, {**params, **selection})
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Second history", response.json()["text"])
-        self.assertNotIn("Endnotes", response.json()["text"])
-        self.assertEqual(
-            self.client.get(url, {**params, "start": "bad", "end": "0"}).status_code, 422
-        )
+        selected = select_excerpt(self.entry(), selection).get_text(" ", strip=True)
+        self.assertIn("Second history", selected)
+        self.assertNotIn("Endnotes", selected)
+        with self.assertRaises((ValueError, ImportFailure)):
+            select_excerpt(self.entry(), {**selection, "start": "bad", "end": 0})
         self.assertEqual(ContentOrganizationDecision.objects.count(), before)
         self.assertEqual(Client().get(url, params).status_code, 302)
         regular = get_user_model().objects.create_user("ordinary-reader")
@@ -512,8 +511,8 @@ class SourceExcerptTests(TestCase):
         self.assertEqual(current_spec(BOOK)["parts"][0]["excerpt"], value)
         published.refresh_from_db()
         self.assertEqual(published.html, original_html)
-        workspace = self.client.get(reverse("content-organization"), {"url": BOOK})
-        self.assertContains(workspace, "Renamed history")
+        workspace = self.client.get(reverse("source-excerpts", args=[first.capture.pk]))
+        self.assertEqual(workspace.json()["definitions"][0]["name"], "Renamed history")
         deleted = self.named(
             definition=str(first.definition),
             revision=2,
@@ -637,26 +636,24 @@ class SourceExcerptTests(TestCase):
             "blocks": [selection["start"]],
         }
         response = self.client.post(endpoint, payload, content_type="application/json")
-        self.assertEqual(response.status_code, 200)
-        first = response.json()["saved"]
+        self.assertEqual(response.status_code, 410)
+        self.assertFalse(SourceExcerptRevision.objects.exists())
+        first = revision_data(save_definition(capture, self.reviewer, payload))
         self.assertEqual(first["reason"], "")
         payload.update(
             definition=first["definition"], revision=1, name="Renamed grouping", reason=""
         )
-        response = self.client.post(endpoint, payload, content_type="application/json")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["saved"]["name"], "Renamed grouping")
+        saved = save_definition(capture, self.reviewer, payload)
+        self.assertEqual(saved.name, "Renamed grouping")
         payload.update(revision=2, deleted=True)
         payload.pop("reason")
-        response = self.client.post(endpoint, payload, content_type="application/json")
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["saved"]["deleted"])
+        self.assertTrue(save_definition(capture, self.reviewer, payload).deleted)
         self.assertEqual(SourceExcerptRevision.objects.count(), 3)
         for invalid in (None, 3, "a" * 2001):
             with self.subTest(reason=type(invalid)):
                 payload.update(reason=invalid)
-                response = self.client.post(endpoint, payload, content_type="application/json")
-                self.assertEqual(response.status_code, 422)
+                with self.assertRaises(ValueError):
+                    save_definition(capture, self.reviewer, payload)
 
     def test_named_endpoint_permissions_csrf_errors_history_and_read_only_get(self):
         capture = retain_rendition_capture(self.book, 0)
@@ -679,23 +676,17 @@ class SourceExcerptTests(TestCase):
             "blocks": [selection["start"]],
         }
         response = self.client.post(endpoint, payload, content_type="application/json")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["saved"]["revision"], 1)
+        self.assertEqual(response.status_code, 410)
+        self.assertEqual(save_definition(capture, self.reviewer, payload).revision, 1)
         history = self.client.get(endpoint).json()["history"]
         self.assertEqual(history[0]["name"], "Named history")
-        evidence_response = self.client.get(
-            reverse("content-organization"),
-            {
-                "source_evidence": "1",
-                "source_url": BOOK,
-            },
-        ).json()
+        evidence_response = self.client.get(endpoint).json()
         self.assertEqual(evidence_response["definitions"][0]["name"], "Named history")
         self.assertEqual(
-            self.client.post(endpoint, "[]", content_type="application/json").status_code, 422
+            self.client.post(endpoint, "[]", content_type="application/json").status_code, 410
         )
         self.assertEqual(
-            self.client.post(endpoint, "{", content_type="application/json").status_code, 422
+            self.client.post(endpoint, "{", content_type="application/json").status_code, 410
         )
         regular = get_user_model().objects.create_user("excerpt-reader")
         self.client.force_login(regular)

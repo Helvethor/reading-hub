@@ -33,6 +33,17 @@ Restorable semantic content diffs and explicit reciprocal-note repair are
 implemented. This completes surface consolidation, not representative human
 acceptance or a claim that every source-quality defect is resolved.
 
+Implementation validation used isolated synthetic article and multi-page book
+fixtures, with fetching mocked during seeding, not live corrections. Browser
+checks exercised saved review/publication, retained-page detachment while pending
+edits survived, chosen style propagation, source-policy inspection, native
+keyboard/pointer substring restoration and undo, and a 390px workflow panel.
+Published book semantic round-trip and article/book PDF checks preserved retained prose,
+notes and image credit without diff controls. These checks do not substitute for
+representative screen-reader or complete keyboard-only workflow acceptance.
+The final focused regression run passed 361 backend and 238 frontend tests;
+the frontend build, scoped Ruff and Django checks also passed.
+
 ## 2. Current situation
 
 The foundation is substantial: retained sources/assets, versioned editions,

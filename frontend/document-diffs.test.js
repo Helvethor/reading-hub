@@ -138,10 +138,21 @@ test("keyboard selection and widget restoration are UI-only until an explicit re
   const dialog = document.querySelector(".editor-restore-text");
   const textarea = dialog.querySelector("textarea");
   assert.equal(textarea.value, "removed words");
-  assert.equal(textarea.readOnly, true);
+  assert.equal(textarea.getAttribute("aria-readonly"), "true");
+  const typing = new window.InputEvent("beforeinput", {
+    bubbles: true, cancelable: true, inputType: "insertText", data: "x",
+  });
+  assert.equal(textarea.dispatchEvent(typing), false);
+  assert.equal(textarea.value, "removed words");
   textarea.setSelectionRange(0, 7);
   const button = [...dialog.querySelectorAll("button")].find(button => button.textContent === "Restore selected text");
   assert.equal(editor.getHTML(), "<p>Before  after.</p>");
+  textarea.value = "edited text";
+  button.click();
+  assert.match(dialog.querySelector('[role="alert"]').textContent, /cannot be edited/);
+  assert.equal(editor.getHTML(), "<p>Before  after.</p>");
+  textarea.value = "removed words";
+  textarea.setSelectionRange(0, 7);
   button.click();
   assert.equal(editor.getHTML(), "<p>Before removed after.</p>");
   assert.equal(document.querySelector(".editor-restore-text"), null);

@@ -57,8 +57,10 @@ class CorrectionTests(TestCase):
         )
         self.assertEqual(saved.expected["metadata"]["subtitle"], "Reviewed subtitle")
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(response, 'data-override="subtitle"')
-        self.assertContains(response, 'aria-label="Corrected subtitle"')
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        history = self.client.get(reverse("correction-revisions", args=[self.capture.pk]))
+        self.assertContains(history, "Reviewed subtitle")
+        self.assertContains(history, saved.source_digest)
 
     def test_retained_lookup_fetches_only_latest_revision_with_capture_and_site(self):
         for revision in range(3):
@@ -151,23 +153,37 @@ class CorrectionTests(TestCase):
             fingerprint="d" * 64,
         )
         endpoint = reverse("correction-page-type", args=[self.capture.pk])
-        response = self.client.post(
-            endpoint, {"action": "discovery", "reason": "Author bibliography", "revision": "0"}
+        self.assertEqual(
+            self.client.post(
+                endpoint,
+                {"action": "discovery", "reason": "Author bibliography", "revision": "0"},
+            ).status_code,
+            410,
         )
-        self.assertRedirects(response, reverse("correction-workspace", args=[self.capture.pk]))
+        from library.services.page_types import classify
+
+        decision = classify(
+            self.capture, self.reviewer, "discovery", "Author bibliography", "0"
+        )
         for row in (self.capture, second, entry):
             row.refresh_from_db()
             self.assertTrue(row.discovery_only)
         other.refresh_from_db()
         self.assertFalse(other.discovery_only)
-        decision = PageTypeDecision.objects.get()
+        self.assertEqual(PageTypeDecision.objects.get(), decision)
         self.assertEqual(decision.reviewer, self.reviewer)
         self.assertEqual(decision.reason, "Author bibliography")
-        self.assertNotContains(self.client.get(reverse("metadata-review")), "Test person")
-        self.assertContains(
-            self.client.get(reverse("correction-workspace", args=[self.capture.pk])),
-            "Undo manual index classification",
+        self.assertEqual(
+            self.client.post(
+                endpoint,
+                {"action": "undo", "reason": "Mistaken page type", "revision": str(decision.pk)},
+            ).status_code,
+            410,
         )
+        self.assertNotContains(self.client.get(reverse("metadata-review")), "Test person")
+        history = self.client.get(reverse("correction-revisions", args=[self.capture.pk]))
+        self.assertContains(history, "Page classification evidence (read-only)")
+        self.assertContains(history, "Author bibliography")
         from library.services.page_types import is_discovery_page
         from library.sources.base import parse_html
         from profiles.marxist.catalogue import MarxistCatalogue
@@ -179,9 +195,14 @@ class CorrectionTests(TestCase):
         )
         with self.assertRaisesMessage(ImportFailure, "discovery index"):
             enqueue(ARTICLE)
-        self.client.post(
-            endpoint,
-            {"action": "undo", "reason": "Mistaken page type", "revision": str(decision.pk)},
+        from library.services.page_types import classify
+
+        classify(
+            self.capture,
+            self.reviewer,
+            "undo",
+            "Mistaken page type",
+            str(decision.pk),
         )
         for row in (self.capture, second, entry):
             row.refresh_from_db()
@@ -199,10 +220,18 @@ class CorrectionTests(TestCase):
     def test_page_type_requires_permission_csrf_reason_and_current_revision(self):
         endpoint = reverse("correction-page-type", args=[self.capture.pk])
         self.assertEqual(self.client.get(endpoint).status_code, 405)
-        self.client.post(endpoint, {"action": "discovery", "reason": "", "revision": "0"})
+        response = self.client.post(
+            endpoint, {"action": "discovery", "reason": "Index", "revision": "0"}
+        )
+        self.assertEqual(response.status_code, 410)
         self.assertFalse(PageTypeDecision.objects.exists())
-        self.client.post(endpoint, {"action": "discovery", "reason": "Index", "revision": "0"})
-        self.client.post(endpoint, {"action": "undo", "reason": "Stale form", "revision": "0"})
+        from library.services.page_types import classify
+
+        with self.assertRaisesMessage(ValueError, "1-2000"):
+            classify(self.capture, self.reviewer, "discovery", "", "0")
+        classify(self.capture, self.reviewer, "discovery", "Index", "0")
+        with self.assertRaisesMessage(ValueError, "changed since"):
+            classify(self.capture, self.reviewer, "undo", "Stale form", "0")
         self.assertEqual(PageTypeDecision.objects.count(), 1)
         self.capture.refresh_from_db()
         self.assertTrue(self.capture.discovery_only)
@@ -251,15 +280,13 @@ class CorrectionTests(TestCase):
     def test_source_hyperlink_and_page_type_control_survive_extraction_error(self):
         url = reverse("correction-workspace", args=[self.capture.pk])
         response = self.client.get(url)
-        self.assertContains(
-            response, f'href="{self.capture.url}" target="_blank" rel="noopener noreferrer"'
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        mutation = self.client.post(
+            reverse("correction-page-type", args=[self.capture.pk]),
+            {"action": "discovery", "reason": "Unsupported layout", "revision": "0"},
         )
-        with patch(
-            "library.correction_views.extraction", side_effect=ValueError("Unsupported layout")
-        ):
-            response = self.client.get(url)
-        self.assertContains(response, "Correct page type", status_code=422)
-        self.assertContains(response, f'href="{self.capture.url}"', status_code=422)
+        self.assertEqual(mutation.status_code, 410)
+        self.assertFalse(PageTypeDecision.objects.exists())
 
     def setUp(self):
         temp = TemporaryDirectory()
@@ -280,15 +307,6 @@ class CorrectionTests(TestCase):
             ),
         )
         self.url = reverse("correction-update", args=[self.capture.pk])
-
-    def request(self, expected, *, action="save", revision=0, reason="Reviewed source"):
-        return self.client.post(
-            self.url,
-            json.dumps(
-                {"expected": expected, "action": action, "revision": revision, "reason": reason}
-            ),
-            content_type="application/json",
-        )
 
     def edits(self):
         source, part, body, _ = extraction(self.capture)
@@ -319,11 +337,18 @@ class CorrectionTests(TestCase):
             self.assertEqual(
                 self.client.get(reverse(name, args=[self.capture.pk])).status_code, 403
             )
-        self.assertEqual(self.request({}).status_code, 403)
+        self.assertEqual(
+            self.client.post(self.url, "{}", content_type="application/json").status_code,
+            403,
+        )
         csrf = Client(enforce_csrf_checks=True)
         csrf.force_login(self.reviewer)
         self.assertEqual(
             csrf.post(self.url, "{}", content_type="application/json").status_code, 403
+        )
+        self.client.force_login(self.reviewer)
+        self.assertEqual(
+            self.client.post(self.url, "{}", content_type="application/json").status_code, 410
         )
         self.assertFalse(SourceCorrection.objects.exists())
 
@@ -344,31 +369,28 @@ class CorrectionTests(TestCase):
         )
         self.capture.save(update_fields=["response"])
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(response, "Advanced source evidence")
-        self.assertContains(response, "&lt;html&gt;")
-        self.assertContains(response, "Sanitized normalized correction preview")
-        preview = self.request(self.edits(), action="preview")
-        self.assertEqual(preview.status_code, 200)
-        self.assertNotIn("Unwanted block", preview.json()["html"])
-        self.assertEqual(preview.json()["title"], "Reviewed title")
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        source, part, body, _ = extraction(self.capture)
+        expected = self.edits()
+        validate_expected(expected, body, source)
+        result = preview(source, part, body, expected)
+        self.assertNotIn("Unwanted block", result["html"])
+        self.assertEqual(result["title"], "Reviewed title")
         for unsafe in ("<script", "<iframe", "onclick=", "onerror=", "href=", "src="):
-            self.assertNotIn(unsafe, preview.json()["html"])
-        self.assertEqual(preview.json()["structure"]["toc"][0]["level"], 4)
+            self.assertNotIn(unsafe, result["html"])
+        self.assertEqual(result["structure"]["toc"][0]["level"], 4)
         self.assertFalse(SourceCorrection.objects.exists())
 
     def test_save_preserves_baseline_and_records_complete_revisions(self):
         expected = self.edits()
-        response = self.request(expected)
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["revision"], 1)
-        correction = SourceCorrection.objects.get()
+        correction = save_correction(self.capture, self.reviewer, expected, 0, "Reviewed source")
+        self.assertEqual(correction.revision, 1)
         self.assertEqual(correction.original["title"], "Test article")
         self.assertEqual(correction.expected, expected)
         self.assertEqual(correction.source_digest, self.capture.response["digest"])
         self.assertEqual(correction.reviewer, self.reviewer)
-        self.assertEqual(self.request({}, revision=1).json()["revision"], 2)
-        correction.refresh_from_db()
-        self.assertEqual(correction.expected, expected)
+        reset = save_correction(self.capture, self.reviewer, {}, 1, "Reset")
+        self.assertEqual(reset.revision, 2)
         self.assertEqual(SourceCorrection.objects.count(), 2)
         exported = self.client.get(reverse("correction-export", args=[self.capture.pk])).json()
         self.assertEqual(exported["dataset_schema"], SCHEMA_VERSION)
@@ -377,9 +399,15 @@ class CorrectionTests(TestCase):
         self.assertNotIn("password", json.dumps(exported))
 
     def test_conflicting_reviewer_revision_does_not_overwrite_history(self):
-        self.assertEqual(self.request({}).status_code, 200)
-        stale = self.request({"metadata": {"title": "Other review"}})
-        self.assertEqual(stale.status_code, 409)
+        save_correction(self.capture, self.reviewer, {}, 0, "Initial")
+        with self.assertRaises(CorrectionConflict):
+            save_correction(
+                self.capture,
+                self.reviewer,
+                {"metadata": {"title": "Other review"}},
+                0,
+                "Stale",
+            )
         self.assertEqual(SourceCorrection.objects.count(), 1)
         with self.assertRaises(CorrectionConflict):
             save_correction(self.capture, self.reviewer, {}, 0, "")
@@ -548,8 +576,7 @@ class CorrectionTests(TestCase):
             [{"name": "Editor", "role": "editor", "source_name": "Ed."}],
         )
         workspace = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(workspace, "Original parsed attribution")
-        self.assertContains(workspace, 'id="correction-parsed-people"')
+        self.assertRedirects(workspace, reverse("work-review"), fetch_redirect_response=False)
         self.assertFalse(SourceCorrection.objects.exists())
 
     def test_canonical_lookup_reuses_reviewed_alias_matches_without_changing_facts(self):
@@ -584,22 +611,26 @@ class CorrectionTests(TestCase):
             "authority_uri": author.authority_uri,
         }
         expected["metadata"]["people"][0]["role"] = "translator"
-        response = self.request(expected)
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["metadata"]["authors"], [])
-        contributors = response.json()["metadata"]["contributors"]
+        source, part, body, _ = extraction(self.capture)
+        validate_expected(expected, body, source)
+        result = preview(source, part, body, expected)
+        self.assertEqual(result["metadata"]["authors"], [])
+        contributors = result["metadata"]["contributors"]
         self.assertEqual(contributors[0]["canonical"]["name"], author.name)
         self.assertEqual(contributors[0]["role"], "translator")
         self.assertEqual(contributors[1]["role"], "unknown")
         self.assertFalse(AuthorAlias.objects.exists())
+        save_correction(self.capture, self.reviewer, expected, 0, "Reviewed contributors")
         exported = self.client.get(reverse("correction-export", args=[self.capture.pk])).json()
         self.assertEqual(exported["corrections"][0]["schema_version"], SCHEMA_VERSION)
         self.assertEqual(exported["corrections"][0]["expected"], expected)
         expected["metadata"]["people"][0]["name"] = "Other name"
-        self.assertEqual(self.request(expected, action="preview").status_code, 400)
+        with self.assertRaises(ValueError):
+            validate_expected(expected, body, source)
         expected["metadata"]["people"][0]["name"] = author.name
         author.delete()
-        self.assertEqual(self.request(expected, action="preview").status_code, 400)
+        with self.assertRaises(ValueError):
+            validate_expected(expected, body, source)
         self.assertEqual(SourceCorrection.objects.count(), 1)
 
     def test_history_uses_latest_language_and_preserves_all_revisions(self):
@@ -624,15 +655,10 @@ class CorrectionTests(TestCase):
         self.assertContains(revisions, "Revision 1")
         self.assertContains(revisions, "Revision 2")
         self.assertContains(revisions, "French title")
-        with patch(
-            "library.correction_views.extraction", side_effect=AssertionError("must not extract")
-        ):
-            self.assertEqual(
-                self.client.get(
-                    reverse("correction-revisions", args=[self.capture.pk])
-                ).status_code,
-                200,
-            )
+        self.assertEqual(
+            self.client.get(reverse("correction-revisions", args=[self.capture.pk])).status_code,
+            200,
+        )
         self.assertEqual(SourceCorrection.objects.count(), 2)
         self.assertEqual(first.expected["metadata"]["language"], "fr")
         self.assertEqual(
@@ -670,21 +696,26 @@ class CorrectionTests(TestCase):
             {"value": "2000-02-29", "type": "online_edition"},
             {"value": "1892", "type": "unknown"},
         ]
-        response = self.request({"metadata": {"dates": dates}})
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["metadata"]["date_facts"], dates)
+        expected = {"metadata": {"dates": dates}}
+        source, part, body, _ = extraction(self.capture)
+        validate_expected(expected, body, source)
+        result = preview(source, part, body, expected)
+        self.assertEqual(result["metadata"]["date_facts"], dates)
+        correction = save_correction(self.capture, self.reviewer, expected, 0, "Add date facts")
         workspace = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(workspace, 'id="correction-date-template"')
-        self.assertContains(workspace, "Add date")
-        self.assertNotContains(workspace, 'textarea name="dates"')
-        self.assertEqual(workspace.context["expected"]["metadata"]["dates"], dates)
-        cleared = self.request({"metadata": {"dates": []}}, revision=1)
-        self.assertEqual(cleared.status_code, 200, cleared.content)
-        self.assertEqual(cleared.json()["metadata"]["date_facts"], [])
-        self.assertEqual(cleared.json()["metadata"]["published"], "")
-        reset = self.request({}, revision=2)
-        self.assertEqual(reset.status_code, 200, reset.content)
-        self.assertEqual(SourceCorrection.objects.latest("revision").expected, {})
+        self.assertRedirects(workspace, reverse("work-review"), fetch_redirect_response=False)
+        cleared = save_correction(
+            self.capture,
+            self.reviewer,
+            {"metadata": {"dates": []}},
+            correction.revision,
+            "Clear dates",
+        )
+        cleared_preview = preview(source, part, body, cleared.expected)
+        self.assertEqual(cleared_preview["metadata"]["date_facts"], [])
+        self.assertEqual(cleared_preview["metadata"]["published"], "")
+        reset = save_correction(self.capture, self.reviewer, {}, cleared.revision, "Reset")
+        self.assertEqual(reset.expected, {})
 
     def test_invalid_values_are_errors_not_partial_saves(self):
         for expected in [
@@ -710,9 +741,9 @@ class CorrectionTests(TestCase):
             {"metadata": {"people": [{"name": "X", "source_name": "X", "role": []}]}},
         ]:
             with self.subTest(expected=expected):
-                response = self.request(expected)
-                self.assertEqual(response.status_code, 400, response.content)
-                self.assertIn("error", response.json())
+                source, _, body, _ = extraction(self.capture)
+                with self.assertRaises((ValueError, TypeError)):
+                    validate_expected(expected, body, source)
         self.assertFalse(SourceCorrection.objects.exists())
 
     def test_date_ranges_preserve_precision_history_and_export(self):
@@ -721,13 +752,15 @@ class CorrectionTests(TestCase):
             {"value": "1890-02", "end_value": "1891-03", "type": "written"},
             {"value": "2000-02-29", "end_value": "2000-03-01", "type": "online_edition"},
         ]
-        response = self.request({"metadata": {"dates": dates}})
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["metadata"]["published"], "1891 / 1892")
-        self.assertEqual(response.json()["metadata"]["date_facts"], dates)
+        expected = {"metadata": {"dates": dates}}
+        source, part, body, _ = extraction(self.capture)
+        validate_expected(expected, body, source)
+        result = preview(source, part, body, expected)
+        self.assertEqual(result["metadata"]["published"], "1891 / 1892")
+        self.assertEqual(result["metadata"]["date_facts"], dates)
+        save_correction(self.capture, self.reviewer, expected, 0, "Add date ranges")
         workspace = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertEqual(workspace.context["expected"]["metadata"]["dates"], dates)
-        self.assertContains(workspace, "End date (optional)")
+        self.assertRedirects(workspace, reverse("work-review"), fetch_redirect_response=False)
         exported = self.client.get(reverse("correction-export", args=[self.capture.pk])).json()
         self.assertEqual(exported["dataset_schema"], SCHEMA_VERSION)
         self.assertEqual(exported["corrections"][0]["schema_version"], SCHEMA_VERSION)
@@ -736,15 +769,14 @@ class CorrectionTests(TestCase):
     def test_invalid_date_ranges_are_not_saved(self):
         for end in ("1890", "1892-02", "", None, [], "1892-02-30"):
             with self.subTest(end=end):
-                response = self.request(
-                    {
-                        "metadata": {
-                            "dates": [{"value": "1891", "end_value": end, "type": "publication"}]
-                        }
+                expected = {
+                    "metadata": {
+                        "dates": [{"value": "1891", "end_value": end, "type": "publication"}]
                     }
-                )
-                self.assertEqual(response.status_code, 400, response.content)
-                self.assertIn("error", response.json())
+                }
+                source, _, body, _ = extraction(self.capture)
+                with self.assertRaises((ValueError, TypeError)):
+                    validate_expected(expected, body, source)
         self.assertFalse(SourceCorrection.objects.exists())
 
     def test_legacy_date_corrections_still_apply_and_keep_schema_version(self):
@@ -978,8 +1010,7 @@ class CorrectionTests(TestCase):
         self.assertTrue(source.book)
         self.assertTrue(block_rows(body))
         response = self.client.get(reverse("correction-workspace", args=[index.pk]))
-        self.assertContains(response, "Normalized page preview")
-        self.assertNotContains(response, "intentionally empty")
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
         correction = save_correction(
             index, self.reviewer, {"metadata": {"title": "Verified book title"}}, 0, ""
         )
@@ -1026,10 +1057,7 @@ class CorrectionTests(TestCase):
             )
         index = captures[0]
         response = self.client.get(reverse("correction-workspace", args=[index.pk]))
-        self.assertContains(response, "Book cover images")
-        self.assertContains(
-            response, 'data-exclude-cover value="' + BOOK.replace("index.htm", "cover.png")
-        )
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
         expected = {"metadata": {"excluded_covers": [BOOK.replace("index.htm", "cover.png")]}}
         correction = save_correction(index, self.reviewer, expected, 0, "Exclude title banner")
         exported = dataset([correction])

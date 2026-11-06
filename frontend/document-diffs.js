@@ -293,9 +293,12 @@ function removedWidget(editor, change, onError) {
     const help = owner.createElement("p");
     help.textContent = "Select text using Shift and the arrow keys, then Restore selection. Select within one removed block without splitting target-bearing wrappers.";
     const input = owner.createElement("textarea");
-    input.readOnly = true;
+    // Native readonly fields disable keyboard caret movement in some browsers.
+    input.setAttribute("aria-readonly", "true");
+    input.addEventListener("beforeinput", event => event.preventDefault());
     input.setAttribute("aria-label", "Removed text: select the portion to restore");
-    input.value = change.before.textBetween(change.oldFrom, change.oldTo, "");
+    const removedText = change.before.textBetween(change.oldFrom, change.oldTo, "");
+    input.value = removedText;
     const apply = owner.createElement("button");
     apply.type = "button";
     apply.textContent = "Restore selected text";
@@ -306,6 +309,9 @@ function removedWidget(editor, change, onError) {
     error.setAttribute("role", "alert");
     apply.addEventListener("click", () => {
       try {
+        if (input.value !== removedText) {
+          throw new Error("Removed text cannot be edited. Cancel and select the original text again.");
+        }
         const range = textSelectionPositions(change, input.selectionStart, input.selectionEnd);
         restoreDifference(editor, change, range);
         dialog.close();

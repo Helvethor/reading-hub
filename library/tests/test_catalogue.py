@@ -282,9 +282,10 @@ class CatalogueTests(TestCase):
         self.assertEqual(read_blob(capture.response["digest"])[:6], b"<html>")
         self.assertNotContains(self.client.get(reverse("catalogue")), "Emma Goldman index")
         self.assertNotContains(self.client.get(reverse("metadata-review")), "Navigation text")
-        self.assertContains(
+        self.assertRedirects(
             self.client.get(reverse("correction-workspace", args=[capture.pk])),
-            "Discovery index, not a readable work",
+            reverse("work-review"),
+            fetch_redirect_response=False,
         )
         response = self.client.post(
             reverse("metadata-review-decision", args=[suggestion.pk]),

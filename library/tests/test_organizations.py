@@ -104,6 +104,8 @@ class OrganizationTests(TestCase):
         self.assertContains(saved, "Membership published")
         self.assertContains(saved, "Switch to a newly published source edition")
         self.assertEqual(saved.context["saved_decision"].after[0]["parts"], changed["parts"])
+        self.assertEqual(saved.context["decisions"][0], saved.context["saved_decision"])
+        self.assertContains(saved, "Preview audited undo")
         self.assertEqual(saved["Cache-Control"], "no-store")
         self.assertTrue(saved.editor_panel)
         self.assertTrue(DocumentDraftBase.objects.filter(pk=draft.pk).exists())
@@ -133,6 +135,7 @@ class OrganizationTests(TestCase):
             },
         )
         self.assertEqual(undone.status_code, 200)
+        self.assertEqual(undone.context["decisions"][0], undone.context["saved_decision"])
         self.assertEqual(ContentOrganizationDecision.objects.count(), 2)
         self.assertEqual(ContentOrganizationDecision.objects.latest("pk").undo_of_id,
                          saved.context["saved_decision"].pk)
@@ -302,7 +305,7 @@ class OrganizationTests(TestCase):
         )
         self.assertContains(
             self.client.get(reverse("correction-dataset-import")),
-            "Dataset import is retired",
+            "Dataset JSON",
         )
 
     def test_reviewed_metadata_title_overrides_stale_organization_title_on_reformat(self):

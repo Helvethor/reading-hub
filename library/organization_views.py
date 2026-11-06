@@ -130,6 +130,7 @@ def editor_membership(request, pk):
             )
             decision = commit_change(payload, request.user, payload["reason"], undo_of=undo)
             context["saved_decision"] = decision
+            context["decisions"] = _membership_decisions(root.document.url)
             context["saved_renditions"] = [
                 (url, rendition_id)
                 for url, rendition_id in decision.evidence["renditions"].items()

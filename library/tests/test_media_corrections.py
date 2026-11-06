@@ -94,8 +94,9 @@ class MediaCorrectionTests(TestCase):
         with self.assertRaisesMessage(ValueError, "lacks corresponding"):
             prepare_import(parse_dataset(json.dumps(shortened).encode()))
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(response, "Images, captions and credits")
-        self.assertContains(response, "Associate image with caption")
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        history = self.client.get(reverse("correction-revisions", args=[self.capture.pk]))
+        self.assertContains(history, "Associate caption")
         save_correction(self.capture, self.reviewer, {}, 2, "Restore source layout")
         s, _, b, _ = extraction(self.capture)
         apply_retained_correction(s, b, self.capture.response, metadata=True)
@@ -245,8 +246,8 @@ class MediaCorrectionTests(TestCase):
             ),
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("<figcaption>", response.json()["html"])
+        self.assertEqual(response.status_code, 410)
+        self.assertIn("<figcaption>", preview(self.s, self.p, self.b, expected)["html"])
         self.assertFalse(self.capture.corrections.exists())
         expected["media"][0]["caption"] = self.image
         response = self.client.post(
@@ -261,5 +262,7 @@ class MediaCorrectionTests(TestCase):
             ),
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 410)
+        with self.assertRaises(ValueError):
+            validate_expected(expected, self.b, self.s)
         self.assertFalse(self.capture.corrections.exists())

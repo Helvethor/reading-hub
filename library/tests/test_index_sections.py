@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from dataclasses import asdict
 
@@ -5,6 +6,7 @@ from bs4 import BeautifulSoup
 from django.test import TestCase
 from django.urls import reverse
 
+from library.correction_views import preview
 from library.models import ContentOrganization, CrawlCapture
 from library.services.corrections import (
     baseline,
@@ -30,7 +32,6 @@ from library.sources.index_sections import content, sections, selected
 from library.sources.normalize import make_id, normalize
 from library.tests import test_organizations
 from library.tests.test_sources import BOOK, PARAGRAPH, book_index
-from library.versions import APP_VERSION
 
 
 def mixed_index():
@@ -101,8 +102,13 @@ class IndexSectionTests(TestCase):
         self.assertNotIn("Editorial publication history.", html)
         self.assertIn("the second chapter", html)
         response = self.client.get(reverse("correction-workspace", args=[capture.pk]))
-        self.assertFalse(response.context["metadata_only"])
-        self.assertTrue(response.context["preview"]["blocks"])
+        self.assertRedirects(
+            response,
+            reverse("document-editor", args=[self.book.pk])
+            + f"?review_capture={capture.pk}&review_version={self.book.pk}",
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(rows)
         self.assertEqual(baseline(source, body)["blocks"], rows)
 
     def test_default_index_is_first_editable_part_in_import_reformat_and_organization(self):
@@ -111,11 +117,12 @@ class IndexSectionTests(TestCase):
         self.assertEqual(spec["parts"][0]["role"], "preface")
         capture = self.capture()
         response = self.client.get(reverse("correction-workspace", args=[capture.pk]))
-        self.assertFalse(response.context["metadata_only"])
-        self.assertIn("Editorial publication history.", response.context["preview"]["html"])
-        self.assertIn("First chapter", response.context["preview"]["html"])
-        self.assertIn("data-excerpt-block", response.context["preview"]["html"])
-        self.assertNotContains(response, "intentionally empty")
+        self.assertEqual(response.status_code, 302)
+        source, part, body, _ = extraction(capture, excerpt_mapping=True)
+        result = preview(source, part, body, {})
+        self.assertIn("Editorial publication history.", result["html"])
+        self.assertIn("First chapter", result["html"])
+        self.assertIn("data-excerpt-block", result["html"])
         manifest = deepcopy(self.book.snapshot.manifest)
         manifest["parts"] = [part for part in manifest["parts"] if part["url"] != BOOK]
         old_html = self.book.html
@@ -138,7 +145,8 @@ class IndexSectionTests(TestCase):
         self.assertEqual(len(current_spec(BOOK)["parts"]), 2)
         self.assertEqual(len(ContentOrganization.objects.get().rendition.structure["parts"]), 2)
         response = self.client.get(reverse("content-organization"), {"url": BOOK})
-        self.assertEqual(response.context["section_candidates"][0]["title"], "Endnotes")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(sections(parse_html(mixed_index()), BOOK)[0][0].title, "Endnotes")
 
     def test_legacy_metadata_only_index_correction_remains_applicable(self):
         capture = self.capture()
@@ -153,7 +161,7 @@ class IndexSectionTests(TestCase):
         self.assertEqual(source.metadata["topics"], ["Editorial"])
         self.assertIn("Editorial publication history.", html)
         response = self.client.get(reverse("correction-workspace", args=[capture.pk]))
-        self.assertFalse(response.context["stale"])
+        self.assertEqual(response.status_code, 302)
         from library.services.correction_patterns import current_compatibility
 
         result = current_compatibility(correction.profile)["results"][0]
@@ -170,9 +178,11 @@ class IndexSectionTests(TestCase):
         _, html, _, _, _ = format_rendition(manifest, warnings)
         self.assertNotIn("Editorial publication history.", html)
         response = self.client.get(reverse("content-organization"), {"url": BOOK})
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f"/static/library/organization.js?v={APP_VERSION}")
-        self.assertEqual(response.context["section_candidates"][0]["title"], "Endnotes")
+        self.assertEqual(response.status_code, 302)
+        panel = self.client.get(reverse("document-editor-membership", args=[self.book.pk]))
+        self.assertEqual(panel.status_code, 200)
+        self.assertEqual(json.loads(panel.context["specification"]), old)
+        self.assertEqual(sections(parse_html(mixed_index()), BOOK)[0][0].title, "Endnotes")
 
     def test_section_identity_validation_and_missing_evidence_fail_explicitly(self):
         spec = deepcopy(self.spec)

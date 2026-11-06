@@ -26,7 +26,6 @@ from library.tests.test_sources import article_html
 
 class PreviewBlockTests(TestCase):
     setUp = test_corrections.CorrectionTests.setUp
-    request = test_corrections.CorrectionTests.request
 
     def source(self, markup):
         self.capture.response = save_response(
@@ -95,21 +94,14 @@ class PreviewBlockTests(TestCase):
 
     def test_integrated_excerpt_controls_share_preview_and_do_not_nest_forms_or_csrf_tokens(self):
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        parsed = BeautifulSoup(response.content, "html.parser")
-        self.assertEqual(len(parsed.select("#correction-preview")), 1)
-        self.assertIsNotNone(parsed.select_one(".correction-preview-workspace #source-excerpts"))
-        self.assertIsNone(parsed.select_one("#excerpt-source-blocks"))
-        self.assertIsNone(parsed.select_one("#excerpt-preview-mode"))
-        self.assertIsNone(parsed.select_one("#excerpt-preview-actions"))
-        self.assertIsNone(parsed.select_one("#excerpt-definition-form"))
-        self.assertIsNone(parsed.select_one("#excerpt-definition-reason"))
-        self.assertIsNone(parsed.select_one("#excerpt-source-menu"))
-        self.assertEqual(
-            parsed.select_one("#open-preview-block-menu").get_text(), "Selection actions"
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        self.assertFalse(self.capture.corrections.exists())
+        response = self.client.post(
+            reverse("source-excerpts", args=[self.capture.pk]),
+            {"name": "Obsolete controls"},
+            content_type="application/json",
         )
-        form = parsed.select_one("#correction-form")
-        self.assertEqual(len(form.select("[name=csrfmiddlewaretoken]")), 1)
-        self.assertIsNone(form.select_one("form"))
+        self.assertEqual(response.status_code, 410)
 
     def test_exclusion_uses_existing_saved_block_semantics(self):
         self.source("<p>Keep</p><p>Remove</p>")
@@ -202,19 +194,13 @@ class PreviewBlockTests(TestCase):
     def test_workspace_and_preview_api_expose_mapping_without_writes(self):
         self.source("<p>Selectable</p>")
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertContains(response, 'id="open-preview-block-menu"')
-        self.assertNotContains(response, 'class="preview-block-tools"')
-        self.assertNotContains(response, 'id="preview-block-scope"')
-        self.assertNotContains(response, 'id="preview-block-type"')
-        self.assertNotContains(response, 'id="preview-source-inspector"')
-        self.assertContains(response, 'id="preview-block-menu"')
-        self.assertContains(response, 'role="menu" aria-label="Selected block actions"')
-        self.assertNotContains(response, 'class="correction-columns"')
-        self.assertNotContains(response, 'class="correction-block"')
-        self.assertNotContains(response, 'id="preview-block-changes"')
-        response = self.request({}, action="preview")
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("parents", response.json()["blocks"][0])
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        result = preview(self.s, self.p, self.b, {})
+        self.assertIn("parents", result["blocks"][0])
+        response = self.client.post(
+            self.url, {"action": "preview", "expected": {}}, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 410)
         self.assertFalse(self.capture.corrections.exists())
 
     def test_private_mapping_never_survives_normal_reading_normalization(self):
@@ -231,24 +217,15 @@ class PreviewBlockTests(TestCase):
         self.source("<p>Repairable source</p>")
         with patch("library.correction_views.preview", side_effect=ImportFailure("Broken link")):
             response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Preview unavailable", response.context["preview"]["error"])
-        self.assertTrue(response.context["preview"]["blocks"])
-        self.assertEqual(response.context["preview"]["blocks"][0]["index"], self.rows[0]["index"])
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        self.assertTrue(block_rows(self.b))
+        self.assertEqual(block_rows(self.b)[0]["index"], self.rows[0]["index"])
+        self.assertFalse(self.capture.corrections.exists())
 
     def test_form_guidance_uses_named_help_popovers_without_hiding_status(self):
         self.source("<p>Selectable</p>")
         response = self.client.get(reverse("correction-workspace", args=[self.capture.pk]))
-        soup = BeautifulSoup(response.content, "html.parser")
-        triggers = soup.select(".help-trigger")
-        self.assertGreaterEqual(len(triggers), 10)
-        for trigger in triggers:
-            self.assertEqual(trigger["type"], "button")
-            self.assertTrue(trigger["aria-label"].startswith("Help: "))
-            popup = soup.find(id=trigger["popovertarget"])
-            self.assertIsNotNone(popup)
-            self.assertTrue(popup.has_attr("popover"))
-            self.assertEqual(trigger["aria-describedby"], popup["id"])
-            self.assertTrue(popup.get_text(strip=True))
-        self.assertFalse(soup.select_one("#correction-status").find_parent(attrs={"popover": True}))
-        self.assertFalse(soup.select_one("#correction-error").find_parent(attrs={"popover": True}))
+        self.assertRedirects(response, reverse("work-review"), fetch_redirect_response=False)
+        result = preview(self.s, self.p, self.b, {})
+        self.assertIn("Selectable", result["html"])
+        self.assertFalse(self.capture.corrections.exists())

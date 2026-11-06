@@ -20,8 +20,8 @@ next-step instructions with completion, consolidation, curation and automation.
 Local testing runtime is 0.53.0 (format 20, Marxist adapter 20).
 Unchecked tasks may contain delivered foundations; their remaining scope is
 explicit below. A checked bounded implementation is not whole-work acceptance.
-Tiptap core is selected for the opt-in development pilot. No portable
-document-pair dataset format or trained model is implied.
+Tiptap core is selected for the bounded semantic editor, now enabled by default.
+No portable document-pair dataset format or trained model is implied.
 
 Keep immutable evidence/editions, homogeneous renderer-controlled output, explicit
 publication, exact revision bindings and server validation. Saved/untouched content
@@ -108,6 +108,11 @@ acceptance. Historical counts below describe their original slices.
   keyboard-only and native-pointer interaction, narrow-screen reachability and
   representative screen-reader checks. Publication/reader/PDF output must remain
   faithful to the saved semantic document and chosen presentation.
+  Isolated synthetic article/book browser checks cover save/review/publication,
+  membership detachment without replacing pending edits, source-policy inspection,
+  style propagation and a 390px panel viewport. Native keyboard substring
+  restoration, whole-removal buttons and undo were exercised. Representative
+  screen-reader and complete keyboard-only workflow acceptance remain outstanding.
 
 - [x] Add explicit original-retained-source generation, excluding previous
   corrections and organization, with preview/digest-confirmed input policy.
