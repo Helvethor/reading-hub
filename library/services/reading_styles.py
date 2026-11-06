@@ -259,6 +259,9 @@ def style_css(settings, font_base="/static/library/fonts/"):
 {scope} .reader-content :is(.text-align-right) {{ text-align: right; }}
 {scope} .reader-content :is(.text-align-center) {{ text-align: center; }}
 {scope} .reader-content :is(.text-align-justify) {{ text-align: justify; }}
+{scope} .reader-content a > :is(sup,sub) {{
+  display: inline-block; text-decoration: inherit;
+}}
 @media print {{
   html, body {{ background: {paper} !important; }}
   {scope} {{ color: {ink}; }}
