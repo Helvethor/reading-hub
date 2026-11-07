@@ -179,6 +179,26 @@ class DocumentPublication(ImmutableDocumentEvidence):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class DocumentLineageArchive(ImmutableDocumentEvidence):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(
+        Document, on_delete=models.PROTECT, related_name="lineage_archives"
+    )
+    scope = models.JSONField()
+    reason = models.TextField()
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class DocumentLineageRestore(ImmutableDocumentEvidence):
+    archive = models.OneToOneField(
+        DocumentLineageArchive, on_delete=models.PROTECT, related_name="restore"
+    )
+    reason = models.TextField(blank=True, default="")
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class ReviewerTask(ImmutableDocumentEvidence):
     starting_draft = models.ForeignKey(DocumentDraftBase, on_delete=models.PROTECT)
     title = models.CharField(max_length=200)

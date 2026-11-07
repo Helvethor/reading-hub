@@ -5,7 +5,7 @@
 {% block content %}
 <div class="reader-toolbar">
   <a href="{% url 'home' %}">&larr; Library</a>
-  <a href="{% url 'history' version.document_id %}">Version history ({{ other_versions|length }})</a>
+  <a href="{% url 'document-lineage' version.document_id %}?selected=edition%3A{{ version.pk }}">Lineage &amp; versions</a>
   <form method="post" action="{% url 'refresh' version.document_id %}">{% csrf_token %}<button class="secondary" type="submit">Refresh source</button></form>
   <form method="post" action="{% url 'reformat' version.pk %}">{% csrf_token %}<button class="secondary" type="submit">Reformat stored source</button></form>
   <a href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}" data-reading-pdf>Download PDF</a>
@@ -74,9 +74,6 @@
       </dl>
       <p>Refresh downloads the source again. Reformat uses this version's saved source and images without network access. Neither action overwrites existing versions.</p>
       {% if version.document_publication %}<p>Refresh and reformat generate from source; they do not reapply this edition's direct edits.</p>{% endif %}
-      <details><summary>Choose a saved version</summary><ul>{% for item in other_versions %}
-        <li><a href="{% url 'reader' item.pk %}">{{ item.created_at|date:"Y-m-d H:i:s T" }} &middot; app {{ item.app_version }}, rules {{ item.format_version }}</a>{% if item.pk == version.pk %} (current){% endif %}</li>
-      {% endfor %}</ul></details>
     </section>
   </div>
 </div>

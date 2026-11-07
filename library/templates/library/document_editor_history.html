@@ -14,7 +14,8 @@
     <li><a href="{% url 'document-editor' version.pk %}?draft={{ item.pk }}" data-workflow-switch>Continue latest correction</a> · <a href="?draft={{ item.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Versions</a> · {{ item.created_at }} · {{ item.reviewer }} · <small>{{ item.pk }}</small></li>
   {% empty %}<li>No saved corrections yet. Start from the source-derived edition above.</li>{% endfor %}</ul>
   {% else %}
-  <p><a href="{% url 'document-editor' version.pk %}?draft={{ draft.pk }}" data-workflow-switch>Continue latest correction in this history</a> · <a href="{% url 'document-editor-history' version.pk %}{% if embedded %}?embedded=1{% endif %}">All correction histories</a></p>
+  {% if draft_archived %}<p class="notice warning" role="alert">This history is archived. Restore it from <a href="{% url 'document-lineage' version.document_id %}?filter=archived&amp;selected=history%3A{{ draft.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Lineage &amp; versions</a> before continuing or saving. Pending editor content is preserved.</p>
+  {% else %}<p><a href="{% url 'document-editor' version.pk %}?draft={{ draft.pk }}" data-workflow-switch>Continue latest correction in this history</a> · <a href="{% url 'document-editor-history' version.pk %}{% if embedded %}?embedded=1{% endif %}">All correction histories</a></p>{% endif %}
   {% if draft.evidence.correction_origin %}
   <p>This history starts from <a href="?draft={{ draft.evidence.correction_origin.draft }}&amp;revision={{ draft.evidence.correction_origin.revision }}{% if embedded %}&amp;embedded=1{% endif %}">version {{ draft.evidence.correction_origin.revision }} of its parent history</a>. Review approval was not inherited.</p>
   {% endif %}
@@ -25,11 +26,12 @@
   {% if selected %}
   <h2>Saved version {{ selected.number }}: {{ selected.row.document.title }}</h2>
   <p>Read-only saved content below. To edit this exact version, start a separate correction. Later corrections remain intact.</p>
-  <form method="post">{% csrf_token %}
+  {% if not draft_archived %}<form method="post">{% csrf_token %}
     <input type="hidden" name="draft" value="{{ draft.pk }}">
     <input type="hidden" name="revision" value="{{ selected.number }}">
     <button type="submit">Start a separate correction from this version</button>
   </form>
+  {% else %}<p>Branching from an archived history is disabled until it is restored.</p>{% endif %}
   <details><summary>Exact saved markup (read-only)</summary><pre class="correction-history-markup">{{ selected.row.document.html }}</pre></details>
   {% endif %}
   {% endif %}

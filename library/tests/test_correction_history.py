@@ -41,7 +41,7 @@ class CorrectionHistoryTests(TestCase):
         self.assertEqual(response.context["initial"]["document"], row.document)
         self.assertEqual(response.context["initial"]["revision"], 1)
         self.assertContains(response, "Mark reviewed")
-        self.assertContains(response, "Version history")
+        self.assertContains(response, "Lineage &amp; versions")
         self.assertNotContains(response, "Define a review task")
         self.assertEqual(response["Cache-Control"], "no-store")
         self.assertEqual(before, (

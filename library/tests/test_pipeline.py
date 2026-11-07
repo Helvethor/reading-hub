@@ -75,7 +75,8 @@ class PipelineTests(TestCase):
         self.assertIn("img-src 'self'", response.headers["Content-Security-Policy"])
         self.assertEqual(client.get(f"/jobs/{job.pk}/status/").json()["status"], "ready")
         self.assertContains(
-            client.get(f"/documents/{job.document_id}/versions/"), "Version history"
+            client.get(f"/documents/{job.document_id}/versions/", follow=True),
+            "Lineage &amp; versions",
         )
         response = client.post(
             "/request/",

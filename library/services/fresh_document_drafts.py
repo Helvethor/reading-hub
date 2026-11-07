@@ -99,6 +99,12 @@ def preview_fresh_draft(rendition, *, original_source=False):
 def create_fresh_draft(rendition, reviewer, preview_digest, *, original_source=False):
     Rendition.objects.filter(pk=rendition.pk).update(id=F("id"))
     rendition = Rendition.objects.select_related("document", "snapshot").get(pk=rendition.pk)
+    from library.services.document_lineage import node_is_archived
+
+    if node_is_archived(rendition.document, f"edition:{rendition.pk}"):
+        raise DocumentEditConflict(
+            "This generation is archived. Restore it before regenerating from this edition."
+        )
     proposal = preview_fresh_draft(rendition, original_source=original_source)
     if preview_digest != proposal["digest"]:
         raise DocumentEditConflict(

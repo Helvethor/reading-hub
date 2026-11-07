@@ -1,0 +1,69 @@
+.document-lineage {
+  max-width: 76rem;
+}
+
+.lineage-tree {
+  overflow-wrap: anywhere;
+}
+
+.lineage-node {
+  margin: .35rem 0 .35rem .65rem;
+  padding-inline-start: .55rem;
+  border-inline-start: 1px solid currentColor;
+}
+
+.lineage-node > summary {
+  cursor: pointer;
+  padding: .35rem;
+}
+
+.lineage-node summary:focus-visible,
+.document-lineage a:focus-visible,
+.document-lineage button:focus-visible,
+.document-lineage select:focus-visible,
+.document-lineage textarea:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+.lineage-node-type {
+  font-weight: 700;
+  margin-inline-end: .4rem;
+}
+
+.lineage-node time {
+  margin-inline-start: .35rem;
+  font-size: .9em;
+}
+
+.lineage-node.is-archived > summary {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.lineage-node.is-context > summary {
+  font-style: italic;
+}
+
+.lineage-node.is-selected > summary {
+  font-weight: 700;
+  outline: 2px solid currentColor;
+}
+
+.document-lineage textarea {
+  display: block;
+  box-sizing: border-box;
+  width: min(100%, 42rem);
+  min-height: 5rem;
+}
+
+.document-lineage code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .lineage-node {
+    margin-inline-start: .25rem;
+    padding-inline-start: .3rem;
+  }
+}

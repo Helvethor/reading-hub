@@ -46,7 +46,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'data-comparison-url="'
                             + reverse("document-comparison", args=[self.rendition.pk]) + '"')
         self.assertContains(response, 'id="editor-comparison"')
-        for panel in ("Version history", "Regenerate a separate draft",
+        for panel in ("Lineage &amp; versions", "Regenerate a separate draft",
                       "Original retained source", "Saved comparison", "Publication preview"):
             self.assertContains(response, f'data-workflow-panel="{panel}"')
         self.assertContains(response, "excludes unsaved edits")

@@ -24,6 +24,7 @@ from library.services.document_edits import (
     save_revision,
     saved_state,
 )
+from library.services.document_lineage import archived_draft_ids, node_is_archived
 from library.services.document_metadata import WORK_TYPES
 from library.services.document_publication import prepare_publication, publish_revision
 from library.services.editor_sources import (
@@ -73,7 +74,9 @@ def workspace(request, pk):
     error, initial, draft, choose_history = "", None, None, False
     histories = DocumentDraftBase.objects.filter(
         rendition=version, profile=get_profile().key,
-    ).exclude(pk__in=ReviewerRun.objects.values("draft_id")).order_by("-created_at")
+    ).exclude(pk__in=ReviewerRun.objects.values("draft_id")).exclude(
+        pk__in=archived_draft_ids(version.document)
+    ).order_by("-created_at")
     try:
         draft_id = request.GET.get("draft")
         if not draft_id and request.GET.get("start") != "source":
@@ -130,6 +133,9 @@ def workspace(request, pk):
     response = render(request, "library/document_editor.html", {
         **reading_style,
         "version": version, "initial": initial, "editor_error": error, "draft": draft,
+        "draft_archived": bool(
+            draft and node_is_archived(version.document, f"history:{draft.pk}")
+        ),
         "choose_history": choose_history, "work_types": WORK_TYPES,
         "evaluation_run": ReviewerRun.objects.filter(draft=draft, reviewer=request.user).first()
         if draft else None,
@@ -167,11 +173,16 @@ def history(request, pk):
         error, status = "Another writer is active. Retry starting from this version.", 409
     histories = DocumentDraftBase.objects.filter(
         rendition=version, profile=get_profile().key,
-    ).exclude(pk__in=ReviewerRun.objects.values("draft_id")).select_related("reviewer")
+    ).exclude(pk__in=ReviewerRun.objects.values("draft_id")).exclude(
+        pk__in=archived_draft_ids(version.document)
+    ).select_related("reviewer")
     return panel_response(request, "library/document_editor_history.html", {
         "version": version, "draft": draft, "selected": selected,
         "histories": histories.order_by("-created_at"),
         "revisions": draft.revisions.select_related("reviewer") if draft else [],
+        "draft_archived": bool(
+            draft and node_is_archived(version.document, f"history:{draft.pk}")
+        ),
         "history_error": error, "switch_url": switch_url,
     }, status=status)
 

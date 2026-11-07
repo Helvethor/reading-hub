@@ -181,7 +181,6 @@ def reader(request, pk):
             "contents_toc": contents_tree(projection["entries"]),
             "content_html": projection["content_html"],
             "generated_book": bool(getattr(rendition, "document_publication", None)),
-            "other_versions": rendition.document.renditions.order_by("-created_at"),
             "last_check": rendition.document.checks.order_by("-checked_at").first(),
         },
     )
@@ -193,15 +192,7 @@ def history(request, pk):
     destination = redirect_member(document)
     if destination:
         return destination
-    return render(
-        request,
-        "library/history.html",
-        {
-            "document": document,
-            "versions": document.renditions.select_related("snapshot").order_by("-created_at"),
-            "checks": document.checks.order_by("-checked_at")[:20],
-        },
-    )
+    return redirect("document-lineage", pk=document.pk)
 
 
 @require_POST

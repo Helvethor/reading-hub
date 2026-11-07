@@ -25,6 +25,12 @@ PUBLICATION_VERSION = 4
 
 
 def prepare_publication(draft, expected_revision):
+    from library.services.document_lineage import node_is_archived
+
+    if node_is_archived(draft.rendition.document, f"history:{draft.pk}"):
+        raise DocumentEditConflict(
+            "This correction history is archived. Restore it before previewing publication."
+        )
     if type(expected_revision) is not int or expected_revision < 1:
         raise ValueError("Preview an exact saved revision before publishing.")
     if draft.profile != get_profile().key:

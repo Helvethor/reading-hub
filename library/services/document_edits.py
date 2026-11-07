@@ -61,6 +61,13 @@ def saved_source_tickets(draft, row):
 @transaction.atomic
 def branch_draft(draft, reviewer, number):
     """Start from an exact saved state, retaining generation and immediate ancestry."""
+    from library.services.document_lineage import node_is_archived
+
+    if node_is_archived(draft.rendition.document, f"history:{draft.pk}"):
+        raise DocumentEditConflict(
+            "This correction history is archived. Restore it before branching; no evidence "
+            "or editor content was changed."
+        )
     row = saved_state(draft, number)
     evidence = deepcopy(draft.evidence)
     origin = evidence.get("correction_origin", {})
@@ -283,6 +290,12 @@ def preview_rendition_import(rendition):
 def create_draft(rendition, reviewer, *, conversion_approval=None):
     """Pin an existing edition exactly; do not claim it is a verified ML target."""
     rendition = Rendition.objects.select_related("snapshot", "document").get(pk=rendition.pk)
+    from library.services.document_lineage import node_is_archived
+
+    if node_is_archived(rendition.document, f"edition:{rendition.pk}"):
+        raise DocumentEditConflict(
+            "This generation is archived. Restore it before starting a correction."
+        )
     adapter_for(rendition.document.url)
     proposal = preview_rendition_import(rendition)
     if proposal["requires_approval"] and conversion_approval != proposal["approval_digest"]:
@@ -340,6 +353,13 @@ def save_revision(draft, reviewer, document, expected_revision, *,
     # The existing rendition row serializes even the first save on SQLite.
     draft = DocumentDraftBase.objects.get(pk=draft.pk)
     Rendition.objects.filter(pk=draft.rendition_id).update(id=F("id"))
+    from library.services.document_lineage import node_is_archived
+
+    if node_is_archived(draft.rendition.document, f"history:{draft.pk}"):
+        raise DocumentEditConflict(
+            "This correction history is archived. Restore it before saving. Your pending "
+            "editor content remains available; this request changed no saved evidence."
+        )
     if draft.profile != get_profile().key:
         raise ValueError("Switch to the draft's profile before editing.")
     if (

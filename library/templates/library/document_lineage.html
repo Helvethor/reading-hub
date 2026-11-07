@@ -1,0 +1,183 @@
+{% extends panel_base %}
+{% load static %}
+{% block title %}Lineage &amp; versions | {{ site.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">{% endblock %}
+{% block content %}
+<main class="page-container document-lineage">
+  <h1>Lineage &amp; versions</h1>
+  <p>{{ document.title|default:document.url }} · entire catalogue work</p>
+  <p>Primary links show derivation and editing ancestry. Shared retained snapshots are linked as evidence, not copied into each correction branch. Archival hides workflow choices only; published editions, readers, PDFs, catalogue membership, annotations and shared source/assets remain unchanged.</p>
+  {% if lineage_error %}<p class="error" role="alert">{{ lineage_error }}</p>{% endif %}
+  <form method="get" aria-label="Filter lineage">
+    {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
+    {% if selected_id %}<input type="hidden" name="selected" value="{{ selected_id }}">{% endif %}
+    <label for="lineage-filter">Show</label>
+    <select id="lineage-filter" name="filter">
+      <option value="all"{% if lineage_filter == "all" %} selected{% endif %}>Active lineage</option>
+      <option value="publications"{% if lineage_filter == "publications" %} selected{% endif %}>Publications</option>
+      <option value="corrections"{% if lineage_filter == "corrections" %} selected{% endif %}>Active corrections</option>
+      <option value="generations"{% if lineage_filter == "generations" %} selected{% endif %}>All generations</option>
+      <option value="archived"{% if lineage_filter == "archived" %} selected{% endif %}>Archived elements</option>
+    </select>
+    <button type="submit">Apply filter</button>
+  </form>
+
+  {% if lineage %}
+  <section aria-labelledby="lineage-tree-heading">
+    <h2 id="lineage-tree-heading">Work derivation</h2>
+    {% if lineage.tree.children %}
+    <div class="lineage-tree" aria-label="Work derivation and correction history">
+      {% include "library/document_lineage_node.html" with node=lineage.tree %}
+    </div>
+    {% else %}
+    <p>No elements match this filter. Ancestors are retained whenever a matching descendant exists.</p>
+    {% endif %}
+  </section>
+
+  <section id="lineage-inspection" aria-labelledby="lineage-inspection-heading">
+    <h2 id="lineage-inspection-heading" tabindex="-1" autofocus>Inspect: {{ lineage.selected.label }}</h2>
+    {% if lineage.selection_error %}<p class="error" role="alert">{{ lineage.selection_error }}</p>{% endif %}
+    {% if lineage.selected.context_only %}<p>This element is shown only to preserve the ancestry of a filtered result.</p>{% endif %}
+    {% if lineage.selected.archived %}<p class="notice warning">Archived workflow element. Evidence and published output are retained.</p>{% endif %}
+    {% if lineage.selected.unknown_ancestry %}<p class="notice warning" role="status">{{ lineage.selected.unknown_ancestry }}</p>{% endif %}
+    {% if lineage.selected.integrity_errors %}<ul class="error" role="alert">{% for issue in lineage.selected.integrity_errors %}<li>{{ issue }}</li>{% endfor %}</ul>{% endif %}
+    {% if lineage.selected.details %}
+    <dl>
+      {% for item in lineage.selected.details %}
+      <dt>{{ item.0 }}</dt><dd>{{ item.1 }}</dd>
+      {% endfor %}
+      {% if lineage.selected.created_at %}<dt>Date</dt><dd>{{ lineage.selected.created_at|date:"Y-m-d H:i:s T" }}</dd>{% endif %}
+      {% if lineage.selected.reviewer %}<dt>Reviewer</dt><dd>{{ lineage.selected.reviewer }}</dd>{% endif %}
+      {% if lineage.selected.review %}<dt>Review state</dt><dd>{{ lineage.selected.review }}</dd>{% endif %}
+      {% if lineage.selected.issues %}<dt>Unresolved issues</dt><dd><ul>{% for issue in lineage.selected.issues %}<li>{{ issue }}</li>{% endfor %}</ul></dd>{% endif %}
+    </dl>
+    {% endif %}
+
+    {% if lineage.selected.type == "snapshot" %}
+      <h3>Retained source pages</h3>
+      {% if lineage.selected.manifest.pages %}
+      <ol>{% for page in lineage.selected.manifest.pages %}
+        <li>{% if page.url %}<code>{{ page.url }}</code>{% else %}Source page {{ forloop.counter }}{% endif %}
+          {% if page.digest %} · retained digest <code>{{ page.digest }}</code>{% endif %}</li>
+      {% endfor %}</ol>
+      {% else %}<p class="warning-text">The retained page manifest is missing or malformed.</p>{% endif %}
+      {% if lineage.selected.related_editions %}
+      <h3>Generations sharing this snapshot</h3>
+      <ul>{% for edition in lineage.selected.related_editions %}
+        <li><a href="{{ edition.reader_url }}" target="_blank" rel="noopener noreferrer">{{ edition.label }} · read</a>
+          {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source' edition.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}" data-workflow-panel="Inspect retained source">Inspect retained source</a>{% endif %}
+          {% if can_review and not lineage.selected.context_only and not edition.archived %}· <a href="{% url 'document-fresh-draft' edition.rendition_id %}{% if embedded %}?embedded=1{% endif %}" data-workflow-panel="Preview retained-source regeneration">Preview fresh-source regeneration</a>{% endif %}</li>
+      {% endfor %}</ul>
+      {% endif %}
+      {% if lineage.selected.related_generations %}<ul>{% for generation in lineage.selected.related_generations %}
+        <li>{{ generation.label }} · no intermediate edition; inspect its correction history in the tree.
+          {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source' generation.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}" data-workflow-panel="Inspect retained source">Inspect retained source</a>{% endif %}
+          {% if can_review and not lineage.selected.context_only and not generation.archived %}· <a href="{% url 'document-fresh-draft' generation.rendition_id %}{% if embedded %}?embedded=1{% endif %}" data-workflow-panel="Preview retained-source regeneration">Preview regeneration from this snapshot</a>{% endif %}</li>
+      {% endfor %}</ul>{% endif %}
+    {% endif %}
+
+    {% if lineage.selected.secondary_links %}
+    <p>Shared source evidence:</p>
+    <ul>{% for link in lineage.selected.secondary_links %}
+      <li><a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;selected={{ link.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">{{ link.label }}</a></li>
+    {% endfor %}</ul>
+    {% endif %}
+
+    {% if lineage.selected.type == "edition" or lineage.selected.type == "publication" %}
+      <p><a href="{{ lineage.selected.reader_url }}" target="_blank" rel="noopener noreferrer">Read this edition</a>
+        · <a href="{{ lineage.selected.pdf_url }}" target="_blank" rel="noopener noreferrer">Open its PDF</a></p>
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only and lineage.selected.type == "publication" %}
+        <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source" data-workflow-switch>Start a new correction from this published edition</a></p>
+    {% elif can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+        <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source" data-workflow-switch>Start a correction from this generated edition</a></p>
+      {% endif %}
+    {% elif lineage.selected.type == "generation" %}
+      <p>This fresh retained-source generation is represented in draft evidence; it did not create an intermediate reading edition or replay saved editor revisions.</p>
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}" data-workflow-switch>Open the correction history based on this generation</a></p>
+    {% elif lineage.selected.archived %}
+    <p>Restore this generation before starting or continuing its correction history.</p>
+    {% endif %}
+    {% elif lineage.selected.type == "history" %}
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}" data-workflow-switch>Continue this correction's latest saved revision</a></p>
+    {% elif lineage.selected.archived %}
+    <p>Restore this history before continuing or saving it.</p>
+    {% endif %}
+    {% elif lineage.selected.type == "revision" %}
+    {% if can_review and not lineage.selected.context_only %}
+    <p>
+        <a href="{% url 'document-comparison' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;from=0&amp;to={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Compare saved revision"{% endif %}>Compare with this history's starting base</a>
+        · <a href="{% url 'document-editor-history' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Inspect saved revision"{% endif %}>{% if lineage.selected.archived %}Inspect archived revision{% else %}Inspect exact revision or branch from it{% endif %}</a>
+      </p>
+      {% if lineage.selected.latest and not lineage.selected.archived %}
+      <p>
+        <a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}#editor-mark-reviewed" data-workflow-switch>Continue latest saved revision and review</a>
+        · <a href="{% url 'document-publication' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Preview exact saved revision for publication"{% endif %}>Preview this exact latest saved revision for publication</a>
+      </p>
+      {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {% if lineage.selected.type == "edition" or lineage.selected.type == "generation" or lineage.selected.type == "history" %}
+      {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      <p><a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;archive={{ lineage.selected.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Preview archive impact for this branch/generation</a></p>
+      {% endif %}
+    {% endif %}
+
+    {% if archive_preview and archive_preview.target.id == lineage.selected.id %}
+    <section aria-labelledby="archive-impact-heading">
+      <h3 id="archive-impact-heading">Archive impact preview</h3>
+      <p>Exact scope: {{ archive_preview.scope_ids|length }} lineage element{{ archive_preview.scope_ids|length|pluralize }}. Nothing is archived until the reason and confirmation are submitted. Existing published output and catalogue routing are not changed.</p>
+      <h4>Affected elements</h4>
+      <ul>{% for item in archive_preview.affected %}<li>{{ item.label }} <small>({{ item.id }})</small></li>{% endfor %}</ul>
+      <h4>Published descendants that survive</h4>
+      <ul>{% for item in archive_preview.preserved_publications %}<li>{{ item.label }} — reader/PDF and publication evidence remain available.</li>{% empty %}<li>No published descendants.</li>{% endfor %}</ul>
+      <h4>Surviving generations sharing the source</h4>
+      <ul>{% for item in archive_preview.surviving_siblings %}<li>{{ item.label }} remains independently available.</li>{% empty %}<li>No sibling generation was found.</li>{% endfor %}</ul>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="archive">
+        <input type="hidden" name="node_id" value="{{ archive_preview.target.id }}">
+        <input type="hidden" name="preview_digest" value="{{ archive_preview.digest }}">
+        <label for="archive-reason">Reason (required)</label>
+        <textarea id="archive-reason" name="reason" maxlength="2000" required></textarea>
+        <label><input type="checkbox" name="confirm" value="yes" required> I reviewed this exact impact and want to archive this scope.</label>
+        <button type="submit">Archive branch/generation</button>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if lineage.selected.archive_history %}
+    <h3>Archive audit history</h3>
+    <ul>{% for operation in lineage.selected.archive_history %}
+      <li>Archive {{ operation.id }} · {{ operation.created_at|date:"Y-m-d H:i:s T" }} by {{ operation.reviewer }} · {{ operation.reason }}
+        {% if operation.restored %} · restored {{ operation.restored_at|date:"Y-m-d H:i:s T" }} by {{ operation.restored_by }}{% if operation.restore_reason %}: {{ operation.restore_reason }}{% endif %}
+        {% else %}
+          {% if can_review %}<a href="{% url 'document-lineage' document.pk %}?filter=archived&amp;selected={{ lineage.selected.id|urlencode }}&amp;restore={{ operation.id }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Review restore action</a>{% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}</ul>
+    {% endif %}
+
+    {% if can_review and restore_selected and not restore_selected.restored %}
+    <section aria-labelledby="restore-heading">
+      <h3 id="restore-heading">Restore archive {{ restore_selected.id }}</h3>
+      <p>Restoring this operation removes only its coverage. Other active overlapping archive operations continue to cover their shared elements.</p>
+      <ul>{% for node_id in restore_selected.node_ids %}<li>{{ node_id }}</li>{% endfor %}</ul>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="restore">
+        <input type="hidden" name="archive_id" value="{{ restore_selected.id }}">
+        <input type="hidden" name="node_id" value="{{ restore_selected.target_id }}">
+        <label for="restore-reason">Restore note (optional)</label>
+        <textarea id="restore-reason" name="reason" maxlength="2000"></textarea>
+        <label><input type="checkbox" name="confirm" value="yes" required> I confirm restoring this archive operation.</label>
+        <button type="submit">Restore this operation</button>
+      </form>
+    </section>
+    {% endif %}
+  </section>
+  {% endif %}
+</main>
+{% endblock %}
