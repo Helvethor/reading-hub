@@ -3,9 +3,9 @@
 {% block title %}Document editor pilot | {{ site.name }}{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
+<link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-title-facts">
-{% if reading_style_url %}<link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -23,7 +23,6 @@
   <p><small>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a></small></p>
   {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
   {% if initial %}
-  {% if reading_style_url %}{% include "library/reading_style_controls.html" %}{% endif %}
   <details class="editor-book-structure">
     <summary>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
     <p>This is the unchanged source structure, not the current edited order. Manage corrected sections directly in the left Book outline: move, add or restore sections, repair headings into sections, and edit title/URL/role. These changes save with the document and publish only after separate confirmation.</p>
@@ -37,6 +36,13 @@
     <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" data-workflow-panel="Retained-page membership">Retained-page membership and affected works</a> uses an explicit preview and confirmation. Regenerated editions never replace pending or saved editor corrections.</p>
   </details>
   <p class="editor-book-title">{{ initial.document.title }}</p>
+  <div class="editor-workspace" data-editor-tab="editor">
+    <div class="editor-tabs" role="tablist" aria-label="Editor workspace">
+      <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Editor</button>
+      <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
+      <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review &amp; publish</button>
+      {% if reading_style_url %}<button type="button" role="tab" id="editor-tab-style" aria-controls="editor-panel-style" aria-selected="false" tabindex="-1" data-editor-tab="style">Publication &amp; PDF style</button>{% endif %}
+    </div>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
     {% csrf_token %}
     {% if initial.requires_approval %}
@@ -46,12 +52,6 @@
       <label><input name="approve_conversion" type="checkbox"> I approve this exact conversion for the draft.</label>
     </details>
     {% endif %}
-    <div class="editor-workspace" data-editor-tab="editor">
-      <div class="editor-tabs" role="tablist" aria-label="Editor workspace">
-        <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Editor</button>
-        <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
-        <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review &amp; publish</button>
-      </div>
       <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands">
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
         <button type="button" data-history="undo" disabled>Undo</button>
@@ -88,7 +88,7 @@
           <details class="editor-outline-help"><summary>Section workflow help</summary><p>Branch lines trace the book, sections and headings. Right-click a section or heading (Shift+F10 by keyboard) for title/URL/role, move, add or boundary repair. Drag a section title onto another section's row: upper third = before, middle third = inside, lower third = after. A line marks before/after; an inset outline marks inside. Move section offers the same placements without dragging. The left control column stacks +/− for outline branches, the triangle for editor content, and … for actions. Click a title to scroll; Show focuses one part.</p></details>
           <div id="editor-outline-items"></div>
         </nav>
-        <div class="editor-canvas publication-content">
+        <div class="editor-canvas">
           <p id="editor-view-notice" role="status">Whole book. Saving always includes all parts.</p>
           <div id="editor-surface" class="reader-content"></div>
           <p id="editor-selection-path" aria-label="Current block structure"></p>
@@ -171,7 +171,6 @@
       <p><a id="editor-comparison" data-workflow-panel="Saved comparison" hidden>Compare saved revisions and pinned starting document (excludes unsaved edits)</a></p>
       <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
       </div>
-    </div>
     <p class="editor-help">Drag the editor's bottom-right resize handle to adjust its height. The outline and canvas resize together; this does not change saved content.</p>
     <p id="editor-help" class="editor-help">Ctrl/Cmd-click blocks to toggle whole-block selection within one section: paragraphs, headings, lists, tables, figures, quotations and other blocks can be combined. Selected blocks are outlined; click normally or press Escape to clear. Right-click → Separate as excerpt section requires contiguous blocks (no gaps); it never includes unselected intervening blocks. Click within a list/table/figure to select that whole section-level block. Ctrl/Cmd-click on a link still follows it; use another part of its block to select the block. Select text and right-click for formatting, or press Shift+F10. Selection tools provides the same menu by keyboard or touch. Ctrl+X cuts semantic content; Ctrl+V pastes it at the cursor in this editor, preserving formatting, links and retained images without a dialog. Cut removes immediately; Ctrl+Z restores it. Paste before closing or reloading the editor. Use the outline to reach another chapter, or Whole document for cross-chapter selections. External clipboard paste still opens a preview. Shift+right-click opens the native browser menu.</p>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
@@ -219,6 +218,12 @@
     <p>Move paragraph up/down moves the whole paragraph, heading or preformatted block containing the cursor or selected text, past one adjacent text block in the same container. It preserves links and targets and can be undone. It does not cross sections, lists, tables or media.</p>
     <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
   </form>
+  {% if reading_style_url %}
+    <div class="editor-tab-panel" id="editor-panel-style" role="tabpanel" aria-labelledby="editor-tab-style" hidden>
+      {% include "library/reading_style_controls.html" with style_defaults_only=True %}
+    </div>
+  {% endif %}
+  </div>
   <dialog id="editor-section-details" aria-labelledby="editor-section-details-heading">
     <h2 id="editor-section-details-heading">Section title, URL and role</h2>
     <label>Heading used as section title <select name="heading"></select></label>

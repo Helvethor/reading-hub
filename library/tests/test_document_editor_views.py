@@ -36,7 +36,8 @@ class DocumentEditorViewTests(TestCase):
         before = DocumentDraftBase.objects.count()
         response = self.client.get(self.url)
         for asset in (
-            "library/reader.css", "library/generated/editor-pilot.css",
+            "library/reader.css", "library/reading-style-controls.css",
+            "library/generated/editor-pilot.css",
             "library/editor-pilot.css", "library/generated/editor-pilot.js",
         ):
             self.assertContains(response, f'/static/{asset}?v={APP_VERSION}')
@@ -108,6 +109,29 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'aria-label="Matching document targets"')
         self.assertContains(response, 'id="editor-link"')
         self.assertEqual(DocumentDraftBase.objects.count(), before)
+        self.assertEqual(DocumentEditRevision.objects.count(), 0)
+
+    def test_style_defaults_are_in_a_separate_tab_without_editor_stylesheet(self):
+        from bs4 import BeautifulSoup
+
+        from library.services.reading_styles import DEFAULTS, style_token
+
+        response = self.client.get(self.url, {"style": style_token({**DEFAULTS, "font_size": 28})})
+        self.assertEqual(response.status_code, 200)
+        page = BeautifulSoup(response.content, "html.parser")
+        self.assertIsNone(page.select_one("link[data-reading-style]"))
+        self.assertIsNone(page.select_one(".editor-canvas.publication-content"))
+        self.assertIsNone(page.select_one('link[href*="print.css"]'))
+        panel = page.select_one("#editor-panel-style")
+        self.assertTrue(panel.has_attr("hidden"))
+        self.assertEqual(panel["aria-labelledby"], "editor-tab-style")
+        self.assertEqual(page.select_one("#editor-tab-style")["aria-controls"], panel["id"])
+        self.assertTrue(panel.select_one(".reading-style-controls").has_attr("data-defaults-only"))
+        for form in panel.select("form"):
+            self.assertIsNone(form.find_parent("form"))
+        self.assertEqual(len(panel.select("form")), 3)
+        self.assertEqual(response.context["reading_style"]["font_size"], 28)
+        self.assertContains(response, "The editor always follows the site theme.")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
 
     def test_link_repairs_save_and_reopen_preserving_note_targets_and_original(self):

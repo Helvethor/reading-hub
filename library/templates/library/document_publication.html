@@ -1,7 +1,7 @@
 {% extends panel_base %}
 {% load static %}
 {% block title %}Review publication | {{ site.name }}{% endblock %}
-{% block head %}{% if candidate or published %}<link rel="stylesheet" href="{% if published %}{% url 'reader-css' published.rendition_id %}{% else %}?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1{% endif %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-toc"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}{% endblock %}
+{% block head %}{% if candidate or published %}<link rel="stylesheet" href="{% if published %}{% url 'reader-css' published.rendition_id %}{% else %}?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1{% endif %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-toc"><link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}{% endblock %}
 {% block content %}
 <div class="page-container">
   <h1>Review publication</h1>

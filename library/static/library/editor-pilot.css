@@ -114,13 +114,14 @@
 .editor-metadata-page h2 { margin-top: 0; }
 .editor-metadata-page .document-metadata-table { margin-top: .75rem; font-size: .9rem; }
 #editor-outline-items .editor-book-row-disabled .editor-outline-title { font-style: italic; opacity: .7; }
-.editor-tabs { display: flex; gap: .15rem; padding: .35rem .35rem 0; border-bottom: 1px solid #cbd1c4; background: #eef1ea; }
+.editor-tabs { display: flex; flex-wrap: wrap; gap: .15rem; padding: .35rem .35rem 0; border-bottom: 1px solid #cbd1c4; background: #eef1ea; }
 .editor-tabs [role="tab"] { margin-bottom: -1px; padding: .35rem .85rem; border: 1px solid transparent; border-bottom: 0; border-radius: .3rem .3rem 0 0; background: transparent; color: #4c554b; font: 600 .8rem/1.3 system-ui, sans-serif; cursor: pointer; }
 .editor-tabs [role="tab"]:hover { background: #e5eadf; color: #302221; }
 .editor-tabs [role="tab"][aria-selected="true"] { border-color: #cbd1c4; background: #f8f9f5; color: #302221; }
 .editor-tabs [role="tab"]:focus-visible { outline: 3px solid #486b38; outline-offset: -3px; }
 .editor-tab-panel[hidden] { display: none !important; }
-#editor-panel-metadata, #editor-panel-review { padding: .75rem 1rem 1rem; }
+#editor-panel-metadata, #editor-panel-review, #editor-panel-style { padding: .75rem 1rem 1rem; }
+.editor-workspace #document-editor[hidden] { display: none; }
 #editor-panel-metadata .editor-metadata { margin-top: 0; padding-top: 0; border-top: 0; max-width: none; }
 .editor-workspace:not([data-editor-tab="editor"]) .editor-pilot-toolbar > :not([type="submit"], #editor-mark-reviewed) { display: none; }
 .editor-outline-visible { background: #edf1e8; }
@@ -153,7 +154,7 @@
 #editor-selection-path { border-top: 1px solid #cbd1c4; overflow-wrap: anywhere; }
 #editor-surface { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; background: white; scrollbar-gutter: stable; }
 /* The editor canvas uses the available width; the reading measure applies to publications. */
-.publication-content #editor-surface.reader-content { max-width: none; margin-inline: 0; }
+#editor-surface.reader-content { max-width: none; margin-inline: 0; }
 .editor-part-control { flex: 1; min-width: 8rem; }
 #editor-part { width: min(100%, 22rem); max-width: 100%; }
 .editor-help { font-size: .85rem; }

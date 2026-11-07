@@ -1,6 +1,5 @@
-// Editor workspace tabs: the editor canvas, the complete metadata table and review/publication.
 export function mountEditorTabs(form) {
-  const workspace = form.querySelector(".editor-workspace");
+  const workspace = form.closest(".editor-workspace");
   const tabs = [...(workspace?.querySelectorAll('[role="tab"][data-editor-tab]') || [])];
   if (!tabs.length) return null;
   const panel = tab => form.ownerDocument.getElementById(tab.getAttribute("aria-controls"));
@@ -14,6 +13,7 @@ export function mountEditorTabs(form) {
       panel(tab).hidden = !active;
     }
     workspace.dataset.editorTab = name;
+    form.hidden = name === "style";
     if (focus) chosen.focus();
   }
   for (const tab of tabs) tab.addEventListener("click", () => select(tab.dataset.editorTab));

@@ -1,5 +1,6 @@
 export function mountReadingStyles(panel) {
   const owner = panel.ownerDocument, view = owner.defaultView;
+  const defaultsOnly = panel.hasAttribute("data-defaults-only");
   const form = panel.querySelector(".reading-style-settings");
   const profile = form.elements.style_profile;
   const save = panel.querySelector(".reading-style-save");
@@ -74,7 +75,7 @@ export function mountReadingStyles(panel) {
     downloads.forEach((link, index) => { if (oldLinks[index]) link.dataset.appliedHref = oldLinks[index]; });
     syncControls();
     showError("");
-    status.textContent = "Updating displayed style and PDF…";
+    status.textContent = defaultsOnly ? "Updating publication & PDF defaults…" : "Updating displayed style and PDF…";
     let sheet;
     try {
       if (!loadProfile && !form.reportValidity()) throw new Error("Check the highlighted settings.");
@@ -86,8 +87,8 @@ export function mountReadingStyles(panel) {
         signal, headers: {Accept: "application/json"},
       }));
       if (current !== generation) return;
-      sheet = await prepareSheet(data.stylesheet, signal);
-      if (current !== generation) { sheet.remove(); return; }
+      if (!defaultsOnly) sheet = await prepareSheet(data.stylesheet, signal);
+      if (current !== generation) { sheet?.remove(); return; }
       if (signal.aborted) throw new Error("Style update timed out.");
       const url = new URL(view.location.href);
       for (const name of [...settingNames, "style_action"]) url.searchParams.delete(name);
@@ -102,9 +103,11 @@ export function mountReadingStyles(panel) {
           else input.value = value;
         }
       }
-      owner.querySelector("[data-reading-style]")?.remove();
-      sheet.media = "all";
-      sheet.dataset.readingStyle = "";
+      if (!defaultsOnly) {
+        owner.querySelector("[data-reading-style]")?.remove();
+        sheet.media = "all";
+        sheet.dataset.readingStyle = "";
+      }
       for (const input of panel.querySelectorAll('input[name="style"]')) input.value = data.token;
       downloads.forEach((link, index) => {
         link.href = `${pdfPaths[index]}?style=${encodeURIComponent(data.token)}`;
@@ -114,11 +117,15 @@ export function mountReadingStyles(panel) {
         save.elements.profile_id.value = profile.value === "marxist" ? "" : profile.value;
       }
       if (!loadProfile) profile.value = "";
-      status.textContent = "Displayed style and PDF are in sync. Profile changes are saved only with Update or Save as new.";
+      status.textContent = defaultsOnly
+        ? "Publication & PDF settings are ready. Save or update a profile, then Set default to reuse it. Editor appearance is unchanged."
+        : "Displayed style and PDF are in sync. Profile changes are saved only with Update or Save as new.";
     } catch (failure) {
       sheet?.remove();
       if (current !== generation) return;
-      showError(`${failure.message} The previous displayed style and PDF are unchanged.`);
+      showError(`${failure.message} ` + (defaultsOnly
+        ? "The previous publication & PDF settings are unchanged."
+        : "The previous displayed style and PDF are unchanged."));
       status.textContent = "Style not applied.";
     } finally {
       view.clearTimeout(timeout);
@@ -206,7 +213,9 @@ export function mountReadingStyles(panel) {
       }
     });
   }
-  status.textContent = "Live preview. PDF follows the displayed settings.";
+  status.textContent = defaultsOnly
+    ? "Publication & PDF defaults only. Editor appearance follows the site theme."
+    : "Live preview. PDF follows the displayed settings.";
   syncControls();
 }
 

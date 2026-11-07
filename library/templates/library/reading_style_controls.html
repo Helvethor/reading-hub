@@ -1,8 +1,9 @@
 {% load static %}
-<details class="reading-style-controls" data-preview-url="{% url 'reading-style-preview' %}" data-default="{{ reading_default_profile }}">
+<details class="reading-style-controls" data-preview-url="{% url 'reading-style-preview' %}" data-default="{{ reading_default_profile }}"{% if style_defaults_only %} data-defaults-only open{% endif %}>
   <summary>Reading &amp; PDF style <span class="reading-style-summary">Fonts · spacing · profiles</span></summary>
   <div class="reading-style-panel">
-    <p class="reading-style-intro">Presentation only. PDF follows the displayed style; page wrapping may differ.</p>
+    {% if style_defaults_only %}<p class="reading-style-intro">Defaults for publication &amp; PDF only. The editor always follows the site theme. Save or update a personal profile, then Set default to reuse it on publication pages. This does not change document content or publish it.</p>
+    {% else %}<p class="reading-style-intro">Presentation only. PDF follows the displayed style; page wrapping may differ.</p>{% endif %}
     <form method="get" class="reading-style-settings">
       {% if style_preview %}<input type="hidden" name="draft" value="{{ request.GET.draft }}"><input type="hidden" name="revision" value="{{ candidate.revision.revision }}">{% endif %}
       <div class="reading-style-profile-bar">

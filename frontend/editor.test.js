@@ -668,7 +668,7 @@ test("original restoration recovers missing descendant targets for existing inbo
 
 function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace, showError, book = true} = {}) {
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
-  document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
+  document.body.innerHTML = template.slice(template.indexOf('<div class="editor-workspace"'),
     template.indexOf('<dialog id="editor-image"'));
   const form = document.querySelector("#document-editor");
   editor = createBoundedEditor(form.querySelector("#editor-surface"), html);
@@ -2549,7 +2549,7 @@ test("metadata page offers the original title, publisher, series and original la
   assert(!title.contains(sheet), "The complete metadata table is outside the generated Title page.");
   assert.equal(sheet.closest('[role="tabpanel"]').id, "editor-panel-metadata",
     "The complete metadata table is the Metadata tab of the editor widget.");
-  assert(form.querySelector(".editor-workspace").contains(sheet));
+  assert(form.closest(".editor-workspace").contains(sheet));
   for (const name of ["title", "subtitle", "original_title", "publisher", "series", "publication_note",
     "source_edition", "translation_note", "online_version", "transcription", "proofreading", "rights",
     "notes", "language", "original_language", "subjects"]) {
@@ -5166,24 +5166,33 @@ test("page settings are saved only when they differ and reset to the preset by r
 test("editor widget tabs switch panels by click, arrow keys and events while sharing the toolbar", () => {
   const form = mountSectionWorkspace("<p>Body</p>");
   const tabs = mountEditorTabs(form);
-  const workspace = form.querySelector(".editor-workspace");
-  const panel = name => form.querySelector(`#editor-panel-${name}`);
+  const workspace = form.closest(".editor-workspace");
+  const panel = name => workspace.querySelector(`#editor-panel-${name}`);
   assert.equal(tabs.current, "editor");
   assert(!panel("editor").hidden && panel("metadata").hidden && panel("review").hidden);
   assert(panel("metadata").querySelector(".editor-metadata"));
   assert(panel("review").querySelector("#editor-publication"));
   assert(!panel("editor").contains(form.querySelector(".editor-pilot-toolbar")), "The toolbar is shared by all tabs.");
-  form.querySelector("#editor-tab-metadata").click();
+  workspace.querySelector("#editor-tab-metadata").click();
   assert.equal(workspace.dataset.editorTab, "metadata");
   assert(panel("editor").hidden && !panel("metadata").hidden);
-  assert.equal(form.querySelector("#editor-tab-metadata").getAttribute("aria-selected"), "true");
-  assert.equal(form.querySelector("#editor-tab-editor").tabIndex, -1);
-  form.querySelector("#editor-tab-metadata").dispatchEvent(new dom.window.KeyboardEvent("keydown",
+  assert.equal(workspace.querySelector("#editor-tab-metadata").getAttribute("aria-selected"), "true");
+  assert.equal(workspace.querySelector("#editor-tab-editor").tabIndex, -1);
+  workspace.querySelector("#editor-tab-metadata").dispatchEvent(new dom.window.KeyboardEvent("keydown",
     {key: "ArrowRight", bubbles: true, cancelable: true}));
   assert.equal(tabs.current, "review");
   assert.equal(document.activeElement.id, "editor-tab-review");
   document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
+  assert.equal(tabs.current, "style");
+  assert.equal(document.activeElement.id, "editor-tab-style");
+  assert(!panel("style").hidden && form.hidden);
+  assert(!form.contains(panel("style")), "Style forms must not nest inside the document-save form.");
+  const original = editor.getHTML(), selection = editor.state.selection.toJSON();
+  document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
   assert.equal(tabs.current, "editor");
+  assert(!form.hidden && panel("style").hidden);
+  assert.equal(editor.getHTML(), original);
+  assert.deepEqual(editor.state.selection.toJSON(), selection);
   form.dispatchEvent(new dom.window.CustomEvent("editor-show-tab", {detail: {tab: "metadata"}}));
   assert.equal(tabs.current, "metadata");
   assert.throws(() => tabs.select("missing"), /supported editor tab/);

@@ -75,6 +75,15 @@ ordinary corrections. No automatic training, publication or gate approval follow
 
 Theme selection (2026-11-06): guests can retain a browser choice, while account
 choices persist in User settings; Site default follows the installation profile.
+The editor canvas follows only that site theme. Publication/PDF profile settings
+have their own formatted editor tab and only become reusable defaults through
+explicit profile save/update and Set default; they never restyle the editor.
+Focused validation: 253 frontend and 86 backend checks passed, including actual
+PDF rendering. An isolated in-memory browser fixture confirmed shared widget
+layout at 390px, profile save/default reuse on the reader, and pending-edit
+preservation through style-tab and site-theme changes. Browser actions used
+programmatic events/selection; native-pointer and screen-reader acceptance remain
+outstanding. No live document or deployment was changed.
 Live header changes preserve pending content and notify embedded panels.
 Focused account/theme/reading-style checks include rendered dark PDF colors and
 palette-specific PDF cache transport. Isolated browser checks used real CSRF

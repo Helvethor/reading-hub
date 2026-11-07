@@ -37,8 +37,13 @@ The editor hosts history/branching, saved comparison, retained-source regenerati
 and exact saved-revision publication in same-page panels. Panel close/cancel keeps
 pending content and canvas context. Switching to another history or newly generated
 edition is an explicit navigation with a pending-edit warning; generating/publishing
-never overwrites the current draft. Reading styles and personal profiles are
-available directly on the editor, including before saving. Membership has its own
+never overwrites the current draft. The editor canvas always follows the global
+site theme, never personal publication/PDF styles. A **Publication & PDF style**
+tab alongside Editor, Metadata and Review & publish offers the shared formatted
+style controls, including before saving. These controls only prepare settings
+for personal profiles; explicitly save/update a profile and Set default to reuse
+it on publication/PDF pages. Style changes do not alter draft content or publish.
+Membership has its own
 same-page affected-work preview and explicit confirmation, retaining offline-source,
 stale-preview, annotation and audited-undo safeguards. Corrected document sections
 and retained-source catalogue membership remain distinct transactions.

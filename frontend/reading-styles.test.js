@@ -6,11 +6,11 @@ import {applyTheme} from "../library/static/library/themes.js";
 
 let dom;
 afterEach(() => dom?.window.close());
-function fixture() {
-  dom = new JSDOM(`<!doctype html><head><link rel="stylesheet" href="/old.css" data-reading-style></head>
+function fixture({defaultsOnly = false} = {}) {
+  dom = new JSDOM(`<!doctype html><head>${defaultsOnly ? "" : '<link rel="stylesheet" href="/old.css" data-reading-style>'}</head>
     <body><a href="/versions/2/download.pdf?style=old" data-reading-pdf>Download PDF</a>
     <article><h2 data-reading-marker="I. ">Exact title</h2><p>Unchanged prose.</p></article>
-    <details class="reading-style-controls" data-preview-url="/reading-style/preview/">
+    <details class="reading-style-controls" data-preview-url="/reading-style/preview/"${defaultsOnly ? " data-defaults-only" : ""}>
     <form class="reading-style-settings"><select name="style_profile">
     <option value="">Custom</option><option value="marxist" selected>Marxist</option>
     <option value="1">Comfort</option></select>
@@ -69,6 +69,57 @@ test("a reading style changed after a theme refresh removes the current sheet", 
   assert.equal(view.document.querySelectorAll("link[data-reading-style]").length, 1);
   assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"),
     "/reading-style.css?style=after-theme");
+});
+
+test("editor defaults update and save exact profiles without loading publication CSS or changing content", async () => {
+  const {view, panel, form} = fixture({defaultsOnly: true});
+  const original = view.document.querySelector("article").innerHTML;
+  const theme = view.document.createElement("link");
+  theme.rel = "stylesheet";
+  theme.href = "/dark.css";
+  theme.dataset.siteTheme = "";
+  view.document.head.append(theme);
+  view.fetch = async () => json(snapshot("editor-default", 22));
+  change(view, form.elements.style_profile, "1");
+  await tick();
+  assert.equal(form.elements.font_size.value, "22");
+  assert.equal(form.elements.italic_to_bold.checked, true);
+  assert.equal(panel.querySelector('input[name=style]').value, "editor-default");
+  assert.equal(view.document.querySelectorAll("link").length, 1);
+  assert.equal(view.document.querySelector("[data-site-theme]"), theme);
+  assert.match(panel.querySelector(".reading-style-status").textContent, /Editor appearance is unchanged/);
+  const save = panel.querySelector(".reading-style-save");
+  let posted;
+  view.fetch = async (url, options) => {
+    posted = options.body;
+    return json({id: 1, name: "Comfort", default: "marxist"});
+  };
+  save.requestSubmit(save.querySelector("[value=update]"));
+  await tick();
+  assert.equal(posted.get("style"), "editor-default");
+  assert.equal(posted.get("csrfmiddlewaretoken"), "csrf-fixture");
+  const defaults = panel.querySelector(".reading-style-default");
+  defaults.elements.style_profile.value = "1";
+  view.fetch = async (url, options) => {
+    posted = options.body;
+    return json({default: "1"});
+  };
+  defaults.requestSubmit();
+  await tick();
+  assert.equal(posted.get("style_profile"), "1");
+  assert.equal(panel.dataset.default, "1");
+  assert.equal(view.document.querySelector("article").innerHTML, original);
+  assert.equal(view.document.querySelectorAll("link").length, 1);
+});
+
+test("failed editor default settings preserve the previous token and expose the error", async () => {
+  const {view, panel, form} = fixture({defaultsOnly: true});
+  view.fetch = async () => json({error: "Invalid style"}, 400);
+  change(view, form.elements.font_size, "18");
+  await tick();
+  assert.equal(panel.querySelector('input[name=style]').value, "old");
+  assert.match(panel.querySelector(".reading-style-error").textContent, /Invalid style.*settings are unchanged/);
+  assert.equal(view.document.querySelectorAll("link").length, 0);
 });
 
 test("live settings atomically bind CSS, PDF, saved snapshot and history without changing prose", async () => {
