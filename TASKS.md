@@ -4,6 +4,22 @@ Direction reconciled 2026-11-06 for a single-page reviewer workspace. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
+## Current delivery: catalogue membership / editor separation (2026-11-07)
+
+- [ ] Replace the ordered membership editor with a separate catalogue-level
+  attach/detach page. Preview routing, confirm with a reason, retain audited undo;
+  no title/role/order controls or parent/donor-book rebuild.
+- [ ] Preserve explicit membership across discovery, refresh and reformat.
+  Handle members absent from published sections with a book landing-page link.
+  Provide an explicitly confirmed retained-source standalone edition on detach
+  when no edition exists; retain drafts, publications, annotations and old audits.
+- [ ] Offer current member sources in Add section and support supported retained
+  non-member URLs. Require explicit capture/import for missing pages. Persist
+  exact source and asset evidence through recovery/save/branch/publication.
+- [ ] Validate isolated member/non-member insertion, detach after insertion,
+  routing, stale/conflicting decisions, undo and source/asset integrity. Run
+  focused backend/frontend regressions and build; record mocked/untested limits.
+
 ## Goal and guardrails
 
 The long-term goal is **ML-assisted production of near-perfect, faithful reading

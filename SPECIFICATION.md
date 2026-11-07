@@ -23,6 +23,33 @@ administration use the same preference; **Follow theme** PDF caches bind the
 selected palette. Personal reading styles and source-profile identity remain
 independent. Migration 0028 adds account preferences without changing documents.
 
+### Catalogue membership and editorial sections (agreed 2026-11-07)
+
+Catalogue membership is an unordered source-URL-to-book relationship, global to
+the catalogue work rather than an editor draft or publication. Keep its own
+page. It offers attaching a retained source URL and detaching into a separate
+work, with routing-impact preview, explicit confirmation, reason and audited
+undo. It does not edit titles, roles, reading order or book classification.
+Conflicting ownership, nested books, unavailable source evidence and stale
+previews must refuse explicitly. A detach needs an available standalone edition;
+if missing, preview and explicitly confirm an offline retained-source edition.
+Do not rebuild the parent or donor book or modify drafts to change ownership.
+
+Editor section navigation alone controls draft-specific inclusion, title, role,
+order and containment. Add section proposes current catalogue-member sources,
+but any supported retained non-member URL is eligible too. Missing URLs require
+explicit capture/import through the existing workflow, never implicit fetching.
+Source insertion persists exact retained source/asset bindings through recovery,
+save, branch and publication. Inserting content does not attach its URL; removing
+membership never removes content from drafts or immutable publications.
+
+Explicit membership decisions outrank automatic catalogue discovery, refresh and
+reformat. Historical ordered organization specifications remain retained source
+generation evidence, not a second editable hierarchy or new membership authority.
+Membership may differ from any edition's included sections: route to the book's
+matching section when present, otherwise its landing page, never a broken anchor.
+Immutable corrected publications retain their version-specific reader URLs.
+
 ### Single-page document workspace (implemented 2026-11-06)
 
 The document editor is enabled by default; the historical
@@ -43,10 +70,9 @@ tab alongside Editor, Metadata and Review & publish offers the shared formatted
 style controls, including before saving. These controls only prepare settings
 for personal profiles; explicitly save/update a profile and Set default to reuse
 it on publication/PDF pages. Style changes do not alter draft content or publish.
-Membership has its own
-same-page affected-work preview and explicit confirmation, retaining offline-source,
-stale-preview, annotation and audited-undo safeguards. Corrected document sections
-and retained-source catalogue membership remain distinct transactions.
+Catalogue membership is the separate global-work operation specified above, not
+a same-page editor panel. Corrected sections and membership have independent
+lifecycles and separate explicit confirmations.
 
 Retained-source classification also has an editor panel: choose an exact retained
 page, inspect its latest URL-scoped decision, then explicitly confirm classification
