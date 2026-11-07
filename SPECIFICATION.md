@@ -264,8 +264,9 @@ reading editions, measured by content integrity and reviewer effort rather than
 operation-prediction accuracy alone. Reviewers should correct the result directly,
 not have to describe parser operations. Preserve source evidence and old readers;
 store complete generated and corrected documents so learning methods can evolve.
-The bounded result-first editor is enabled in the local installation for testing;
-the complete editor and document-pair dataset remain unfinished.
+The bounded result-first editor and single-page reviewer workspace are
+implemented and enabled by default in configuration. Representative workflow
+acceptance and the document-pair dataset remain unfinished.
 
 Success means readers can request supported articles or complete books, read them
 with homogeneous semantic presentation and a generated ToC, and revisit immutable
@@ -1146,7 +1147,7 @@ HTML and the approved conversion report remain in immutable draft evidence.
 Approval authorizes conversion only; it never certifies content or publishes an
 edition. Directly compatible documents need no conversion approval.
 
-### Bounded editor pilot (implemented in development)
+### Bounded semantic editor (enabled by default; representative acceptance pending)
 
 The approved engine is self-hosted [Tiptap open-source core](https://tiptap.dev/docs/editor/getting-started/overview),
 built on [ProseMirror](https://prosemirror.net/), rather than a homemade
@@ -1160,10 +1161,10 @@ and [premium Footnotes plugin](https://www.tiny.cloud/docs/tinymce/latest/footno
 need a different integration/licensing decision. Tiptap core is MIT-licensed;
 bundled dependency notices are generated with the local build.
 
-The pilot is disabled by default (`READING_HUB_EDITOR_PILOT=1` enables it).
-Authorized reviewers can open `/versions/<id>/editor/`, edit wording/title,
-split/join paragraphs, use headings and six inline styles, undo/redo, compare
-the retained starting content and save append-only partial draft revisions.
+The editor is enabled by default; `READING_HUB_EDITOR_PILOT=0` explicitly
+disables it. Authorized reviewers can open `/versions/<id>/editor/`, edit text
+and title, split/join paragraphs, use headings and six inline styles, undo/redo,
+compare the retained starting content and save append-only partial revisions.
 GET does not create a draft. Existing drafts reopen by exact draft ID; stale
 saves return a conflict without replacing the reviewer's unsaved content.
 Unsaved content has tab-local recovery and a navigation warning; it is not a
@@ -1440,7 +1441,7 @@ The [pilot evaluation guide](docs/REVIEW-PILOT.md) specifies initial shared
 synthetic correction tasks and automated layer coverage, while distinguishing
 them from representative reviewer measurements and acceptance thresholds.
 
-#### Saved-result publication (development)
+#### Saved-result publication
 
 Publication is separate from saving and verification. After saving all edits, a
 reviewer opens the canonical saved-result preview in a separate tab. GET never
@@ -1462,7 +1463,7 @@ Publication revalidates semantic structure, base/revision evidence, internal
 targets, retained part targets, asset bindings and actual asset bytes/checksums.
 Unavailable placeholders, empty results, broken relationships or corrupt/missing
 image blobs block publication with explicit errors and no partial edition.
-The pilot allows validated author, subtitle and language edits. Contributor roles,
+The editor allows validated author, subtitle and language edits. Contributor roles,
 source dates, subjects and other parser metadata remain pinned to the draft base.
 Titles and semantic content may also be edited.
 Part/source mappings and catalogue ownership are not rewritten. Edited editions
@@ -1474,16 +1475,18 @@ Publication adds no verification. The same canonical reader/ToC/PDF paths are us
 including the dedicated bibliographic first PDF page. Reformat/refresh regenerate
 from retained/fetched source; they do not replay direct edits. Existing organization
 pointers are not moved automatically, so an edited edition may need to be selected
-explicitly from history. Migrations 0023-0025 and the feature-flagged pilot are
-enabled in the local installation for user testing; migration 0026 adds new-save
-lineage in 0.41.0 without rewriting historical document/evidence digests.
+explicitly from history. The editor is enabled by default in configuration;
+deployment still requires applying migrations through the normal process and
+building the self-hosted frontend bundle. Migration 0026 adds new-save lineage
+without rewriting historical document/evidence digests.
 
-The normalized document becomes the primary editing surface, not a collection
-of parser-operation forms. Reviewers directly repair wording, merge/split
-paragraphs and headings, adjust reading order, restore omitted source material,
-and repair captions and notes. They need not supply operation labels or block
-indices. The existing operation-based preview remains implemented until this
-replacement passes the migration and quality gates.
+The normalized document is the primary editing surface, not a collection of
+parser-operation forms. Reviewers directly repair wording, merge/split paragraphs
+and headings, adjust reading order, restore omitted source material, and repair
+captions and notes without supplying operation labels or block indices. Legacy
+standalone correction and organization mutation surfaces are retired; historical
+evidence and separate operational tools remain. Representative workflow
+acceptance is still open and does not change the default local editor workflow.
 
 ### Editor and publication contract
 

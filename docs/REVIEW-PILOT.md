@@ -1,7 +1,10 @@
 # Bounded correction pilot: tasks and evidence
 
-This is the evaluation entry point for the result-first editor, not a declaration
-that it replaces the existing reviewer tools. Read the
+This guide records bounded implementation checks and open acceptance evidence
+for the result-first editor; it is not a declaration of representative reviewer,
+accessibility or whole-work acceptance. The single-page workspace is implemented
+and enabled by default in configuration; standalone correction/organization
+mutation pages are retired, while historical evidence remains. Read the
 [product contract](../SPECIFICATION.md) and [ordered roadmap](../TASKS.md).
 
 ## What is reproducible now
@@ -520,16 +523,18 @@ and migration-drift checks. An isolated SQLite/browser check on the real edition
 typed online-edition date and subjects, then reopened the exact saved revision.
 Keyboard recovery restored unsaved subjects after reload. Dirty edits disabled
 Mark reviewed and the 390-pixel layout had no horizontal
-overflow. No live data was edited. Note/media relationships and book structure
-remain next; legacy retirement and destructive reset are not included.
+overflow. No live data was edited. At this checkpoint, note/media relationships
+and book structure remained next; legacy retirement and destructive reset were
+not included.
 
 ### Retained-source insertion checkpoint (0.42.0)
 
-The single-editor consolidation is in progress, not complete. The source panel
-inspects exact retained pages and inserts selected blocks as ordinary editable
-content, without named excerpts. Explicit original-input generation excludes old
-source corrections and organization while preserving current source policies.
-No reset or legacy editor retirement is included in this checkpoint.
+At the 0.42.0 checkpoint, single-editor consolidation was still in progress.
+The source panel inspected exact retained pages and inserted selected blocks as
+ordinary editable content, without named excerpts. Explicit original-input
+generation excluded old source corrections and organization while preserving
+current source policies. This checkpoint did not include reset or legacy editor
+retirement; both are described separately in the current specification.
 
 All 126 related backend tests and 107 frontend tests pass, with Ruff, Django and
 migration-drift checks. Original-input generation of real editions 52 and 80
@@ -650,22 +655,21 @@ bounds before declaring Gate A/B acceptance.
 
 ## Evaluation and repair gaps after workflow simplification
 
-First deliver direct correction and trustworthy version ancestry; the following
-gaps inform its validation and later repair priorities, not a task/run prerequisite.
+Direct correction/history and the single-page workspace are implemented. The
+following gaps inform acceptance and repair priorities, not a task/run prerequisite.
 
 1. Expand to representative retained works: numbered split headings, omitted index
    prose/endnotes, repeated passages, multilingual text, complex tables,
    media/captions, shared-source sections and existing annotations.
 2. Exercise browser interaction and failure recovery on those works; inspect
    reader/PDF output visually and verify Unicode and accessibility independently.
-3. Prioritize unsupported source-backed repairs from observed failures: media
-   insertion/replacement, caption relationships, note creation/renumbering,
-   cross-container moves and restoration with honest source mappings. Existing
-   advanced controls remain fallback; do not bypass the fidelity gate.
-4. Complete selection-to-book-section integration and remaining relationship/
-   asset semantics. Saved-revision comparison and bounded offline fresh-draft
-   provenance now exist; other generation paths, visual source alignment and a
-   training-dataset contract remain open. Do not silently rebase edits.
+3. Use observed failures to prioritize guarded target removal and broader
+   note/media relationship repair. Existing semantic moves, source insertion,
+   section integration and bounded offline fresh-draft provenance are implemented;
+   preserve the fidelity gate and do not silently rebase edits.
+4. Curate eligible source/draft/result pairs after confirming review scope and
+   provenance. Saved-revision comparison exists, but a separately versioned
+   training dataset, leakage-safe benchmark and broad quality scoring remain open.
 5. Only then curate eligible, explicitly scoped source/draft/result examples and
    a leakage-safe benchmark. Model training/promotion and automatic publication
    are not authorized by passing these synthetic tasks.

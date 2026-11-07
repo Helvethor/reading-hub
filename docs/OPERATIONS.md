@@ -13,11 +13,10 @@ editor's history, regeneration, comparison and publication links to open panels,
 and close them to return to pending edits. Retained-page membership is available
 from Pinned source Book structure. Standalone `/corrections` and `/organization`
 editing entry points are retired; historical evidence remains retained.
-Separate source-graph
-transactions still need affected-work preview and explicit confirmation; ordinary
-saves must not mutate other works or replace corrected documents. See the
+Source-graph transactions use affected-work preview and explicit confirmation;
+ordinary saves must not mutate other works or replace corrected documents. See the
 [current workflow contract](../SPECIFICATION.md#primary-correction-workflow-reconciled-2026-11-06)
-and [remaining integration work](../TASKS.md#current-milestone--complete-the-single-page-reviewer-workspace).
+and [remaining acceptance work](../TASKS.md#current-milestone--complete-the-single-page-reviewer-workspace).
 Global maintenance and optional experiments are not publication-tailoring steps.
 
 ## 1. Local setup and start
@@ -1140,13 +1139,14 @@ enter saved HTML. Genuine empty paragraphs and source line breaks remain editabl
 and are not removed. Typing text next to an image restores normal line height;
 the layout correction also applies with block labels off.
 
-The self-hosted Tiptap/ProseMirror pilot is off by default in configuration.
-It is enabled for user testing in the local 0.31.1 installation. Existing review
-tools/readers remain available. To enable it in another approved deployment:
+The self-hosted Tiptap/ProseMirror editor is enabled by default in configuration;
+`READING_HUB_EDITOR_PILOT=0` explicitly disables it. The following deployment
+steps describe the current editor setup, not its original feature-flag rollout.
+Existing historical evidence remains available. For a new or updated deployment:
 
-1. Back up the database and apply migrations 0023 and 0024 through the normal deployment
-   process (`.venv/bin/python manage.py migrate`). Do not use live data for
-   destructive or fabricated review tests.
+1. Back up the database and apply all pending migrations through the normal
+   deployment process (`.venv/bin/python manage.py migrate`). Do not use live
+   data for destructive or fabricated review tests.
 2. Install the locked build dependencies, run the frontend tests and build:
 
    ```sh
@@ -1161,10 +1161,10 @@ tools/readers remain available. To enable it in another approved deployment:
    `collectstatic` or serving static assets; do not install with `--omit=dev`
    in the build environment. No CDN, telemetry or cloud editor account is used.
    Missing local JS/CSS produces an explicit HTTP 503 setup message.
-3. Set `READING_HUB_EDITOR_PILOT=1` in that server's environment and restart it.
-   Authorized metadata reviewers/staff see **Document editor pilot** in reviewer
-   tools, or can visit `/versions/<id>/editor/`. Normal active-profile and CSRF
-   restrictions apply. Leave the flag unset to keep the pilot unavailable.
+3. The flag normally needs no setting. If the server environment explicitly sets
+   `READING_HUB_EDITOR_PILOT=0`, change it to `1` and restart the server to enable
+   the editor. Authorized reviewers can visit `/versions/<id>/editor/`; normal
+   active-profile and CSRF restrictions apply.
 
 GET is read-only; the first save atomically creates a rendition-bound draft and
 revision 1. The URL then identifies that draft. Each save appends a partial

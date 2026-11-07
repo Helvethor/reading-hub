@@ -210,11 +210,11 @@ acceptance. Historical counts below describe their original slices.
   across current/focus/drop states, and independent excerpt moves in all three
   placements with origin preserved and exact Undo. Native-pointer usability
   remains unvalidated; live corrections were not changed.
-- [ ] Consolidate cross-work catalogue attach/detach and donor rebuilding without
-  overwriting corrected documents. Present required publication-tailoring actions
-  on the editor page, with affected-work preview and explicit confirmation.
-  These remain distinct source-graph transactions, not ordinary save effects or
-  a requirement to send reviewers to separate administration pages.
+- [x] Consolidate cross-work catalogue attach/detach and donor-book rebuilding
+  behind affected-work preview/confirmation on the editor page, without
+  overwriting corrected documents.
+  Corrected documents and historical evidence remain separate from source-graph
+  membership changes; no parallel source-editing page is required.
 - [x] Compact selection tools with representative styled letters, office-style
   alignment icons and toggle-off-to-inherit behavior. Hide type-inapplicable
   commands/groups; share outline/canvas context-menu styling. Support navigation
@@ -478,13 +478,14 @@ acceptance. Historical counts below describe their original slices.
   start/end/before/after/inside destinations, outline context-menu actions and a mobile
   toolbar action. Preserve entire nodes/targets, independent undo/redo and
   ordinary save/reopen/publication; refuse cycles and stale proposals.
-- [ ] Integrate retained-source page membership and affected-work safeguards on
+- [x] Integrate retained-source page membership and affected-work safeguards on
   the editor page. Saved document title/roles/order/nesting and excerpt origins
-  already drive corrected publication; they are not this remaining source-graph
-  task. Adding/removing pages or transferring membership must preview affected
-  works, preserve corrected documents and require explicit confirmation.
-  Content copied from an index is ordinary document content.
-- [ ] Retire legacy content-editing routes/navigation after replacement checks.
+  already drive corrected publication; they are distinct from source-graph
+  membership. The panel previews affected works, preserves corrected documents,
+  and requires explicit confirmation. Content copied from an index is ordinary
+  document content.
+- [x] Retire legacy content-editing routes/navigation after replacement checks;
+  retain historical records and explicitly refuse obsolete mutations.
 - [ ] Deferred, not a consolidation prerequisite: inventory and rehearse the
   previously authorized fresh slate, with renewed confirmation of the exact
   current scope before any live deletion. The original scope would discard old
@@ -494,7 +495,8 @@ acceptance. Historical counts below describe their original slices.
   been applied as of 2026-11-01. New corrections/publications exist; preserve them
   pending that decision, and do not delete records before parity is ready.
 
-The source-insertion and metadata slices do not complete the single-editor milestone.
+At the 0.42.0 source-insertion/metadata checkpoint, those slices alone did not
+complete the single-editor milestone.
 Full clipboard structural import, persistent per-character source mappings and
 automatic local repair of links to unselected source content are not implied.
 Historical source-insertion/metadata validation: 126 related backend tests and
@@ -595,25 +597,30 @@ refusals without bypasses. Browser previews and intercepted confirmation leave
 all real draft/revision/edition records unchanged. See the
 [fresh-draft checkpoint](docs/REVIEW-PILOT.md#offline-fresh-draft-provenance-checkpoint-0390).
 
-1. [ ] Define the smallest canonical semantic document supporting existing
+1. [x] Define the bounded canonical semantic document supporting existing
    paragraphs, headings, lists, quotations, tables, media/captions, links, notes
-   and inline styling. Define serialization/round-trip invariants and supported
-   split/merge/move/text-repair behavior; no arbitrary HTML/CSS authoring.
-2. [ ] Define append-only edited revisions and exact source/asset/generated-draft
+   and inline styling. Serialization/round-trip invariants and supported
+   split/merge/move/text-repair behavior are specified; this does not certify
+   every retained work or source layout.
+2. [x] Define append-only edited revisions and exact source/asset/generated-draft
    bindings, reviewer provenance, draft recovery, stale-save rejection and
-   explicit publication. Specify partial/section/full verification and
-   invalidation after edits; separate faithful repairs from editorial rewriting.
-3. [ ] Define legacy materialization and coexistence: capture operations used in
+   explicit publication. Partial/section/full verification, edit invalidation
+   and the distinction between faithful repair and editorial rewriting are
+   specified and implemented within the bounded editor.
+3. [x] Define legacy materialization and coexistence: capture operations used in
    the starting draft, never apply them twice, preserve old datasets/editions,
    and make choosing saved edits versus fresh extraction explicit on reformat.
-   Define new section pinning semantics without changing existing excerpts.
-4. [ ] Select representative article/book fixtures: numbered split headings,
+   New section/origin semantics preserve existing historical evidence.
+4. [x] Select retained article/book fixtures, including numbered split headings,
    omitted index prose/endnotes, paragraph merges/moves, inline markup, Unicode,
-   tables, captions, notes/backlinks and shared-source sections. Establish current
-   reviewer effort and residual-error baselines on these tasks.
-5. [ ] Compare a small set of editor options using these fixtures: semantic
-   fidelity, source-mapping behavior, keyboard/mobile use, licensing and resource
-   cost. Select a package only with evidence; no frontend rewrite by default.
+   tables, captions, notes/backlinks and shared-source sections. Retained
+   editions 52/70/80 and synthetic fixtures provide bounded regression evidence.
+   Establish independent reviewer-effort and residual-error baselines remains
+   open and is not required for ordinary correction.
+5. [x] Select and implement a self-hosted editor based on semantic fidelity,
+   bounded-schema and licensing requirements; Tiptap core is selected. The
+   implementation and selection are not independent keyboard/mobile or
+   accessibility acceptance.
 
 Optional controlled evaluation uses the [bounded correction pilot guide](docs/REVIEW-PILOT.md)
 and shared synthetic article/book tasks. The editor and backend use the same
@@ -881,13 +888,17 @@ Initial foundation implemented in development on 2026-10-23 (not Gate A complete
   save retains full-book targets/backlinks and title without picker markup;
   no stored user draft was changed.
 
-**Gate A:** agreed document/review/migration contracts, reproducible fixtures and
-an editor feasibility result. Preserve fallback review and historical meaning.
-This gate does not require reviewers to create tasks/runs for ordinary corrections.
+**Gate A (historical implementation gate):** agreed document/review/migration
+contracts, reproducible fixtures and editor feasibility. These bounded technical
+artifacts now exist; this is not representative human acceptance, an effort
+baseline or model-readiness evidence. Preserve fallback review and historical
+meaning. It does not require tasks/runs for ordinary corrections.
 
 ### Priority B — Deliver and evaluate the result-first editor
 
-Depends on Gate A; representative fixture preparation may begin during Priority A.
+The bounded editor implementation is delivered. Representative end-to-end
+acceptance remains open below; reviewer-effort and model claims still depend on
+separate measured evidence.
 
 6. [x] Deliver bounded isolated drafts and semantic editing: direct text repair,
    split/merge/move, undo/redo, supported paste, recovery and visible errors.
@@ -897,11 +908,12 @@ Depends on Gate A; representative fixture preparation may begin during Priority 
    refuse publication; partial drafts may retain visible issues. Focused tests
    cover stale saves/publications, recovery and verification invalidation.
    This is not a complete typed note validator or universal rendering acceptance.
-8. [ ] Complete source membership and affected-work integration on the editor
+8. [x] Complete source membership and affected-work integration on the editor
    page. Document titles/roles/order/nesting, retained-source insertion and
-   document-local excerpt sections are delivered within stated bounds.
-   Finish source-graph conflict/duplicate-membership safeguards without replacing
-   corrected documents; no parallel excerpt-definition lifecycle is required.
+   document-local excerpt sections are delivered within stated bounds. The
+   same-page membership panel provides affected-work preview, explicit
+   confirmation, conflict handling and audited undo without replacing corrected
+   documents; no parallel excerpt-definition lifecycle is required.
 9. [ ] Validate direct correction/history on representative articles and whole
    books from one editor page, including existing annotations, recovery,
    publication confirmation and accessibility. Existing regression/copy-fixture
@@ -909,10 +921,12 @@ Depends on Gate A; representative fixture preparation may begin during Priority 
    run a bounded comparative study when claiming reviewer-effort improvements;
    agree numerical bounds before claiming acceptance, not before normal editing.
 
-**Gate B:** direct review without task/run overhead or content/semantic regressions,
-safe migration and recoverable drafts. Keep measured effort claims separate.
-Only then make the simplified flow primary; do not remove useful
-fallback controls or require inferred operation labels for saving.
+**Gate B acceptance:** representative article/book review without task/run
+overhead or content/semantic regressions, with safe migration and recoverable
+drafts. The semantic editor is already the default local workflow; this gate
+remains an acceptance/evidence bar, not a prerequisite for enabling ordinary
+correction. Keep measured effort claims separate and do not require inferred
+operation labels for saving.
 
 ### Priority C — Build document-pair evidence and a quality benchmark
 
@@ -1166,8 +1180,9 @@ Unrestricted authorship/modernization as faithful reconstruction, arbitrary
 HTML/CSS authoring, realtime collaboration, PDF/EPUB input, OCR and public hosting.
 Automatic publishing/training and removing human review are not authorized.
 Semantic editor integration, faithful text repair, split/merge and reading-order
-editing are in Priorities A/B, not out of scope. Tiptap core is selected for the
-bounded pilot; full replacement and publication remain gated.
+editing are implemented within the stated bounds. Tiptap core is selected; the
+editor and explicit publication are implemented and enabled by default, while
+representative workflow acceptance remains open.
 
 ## Completed legacy foundation (historical; not the current next milestone)
 

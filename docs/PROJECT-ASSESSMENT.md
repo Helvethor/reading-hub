@@ -232,11 +232,13 @@ Avoid treating these as reasons for unrelated platform migration.
 
 ### A. Complete one reliable article/book correction workflow
 
-Use the established retained sample (article 52, books 70/80) and general
-selection/relocation/section/target primitives. Finish observed target removal,
-relationship and retained-media gaps; validate the displaced note as a complete
-repair rather than an arbitrary move. Saved document role/order/nesting is
-implemented; source-page membership and affected-work integration remain.
+The single-page workspace, saved document structure, retained-page membership
+preview/confirmation and legacy mutation retirement are implemented. Use the
+established retained sample (article 52, books 70/80) and general
+selection/relocation/section/target primitives to validate representative
+end-to-end correction. Remaining implementation gaps include guarded target
+removal and broader relationship/media repair; prioritize only gaps evidenced
+by real correction needs.
 
 Exit condition: complete an article and a multi-page book using only the new
 editor page through inspection, correction, comparison, review and explicit
@@ -246,11 +248,10 @@ checks; passing unit tests alone is not acceptance.
 
 ### B. Consolidate and retire
 
-Promote one editor workspace, integrate document-relevant catalogue/source
-membership actions on that page and simplify starting-source choices.
-Source-graph changes retain affected-work previews and separate confirmation;
-ordinary saves must not change other works or replace corrected documents.
-Retire old mutation paths only after parity and preservation checks.
+The one-editor workspace and retirement of standalone correction/organization
+mutation pages are complete. Preserve affected-work previews and separate
+confirmation for source-graph changes; ordinary saves must not change other
+works or replace corrected documents. Do not restore parallel mutation surfaces.
 Document-local excerpt sections are supported; separate raw-source excerpt
 definition/revision/adoption administration is not the replacement workflow.
 Global maintenance and controlled experiments remain separate.
@@ -279,19 +280,17 @@ assessment.
 
 ## 8. Immediate next steps
 
-1. Complete the single-page workflow: source inspection, history/comparison,
-   review, publication preview/confirmation and styles without required page
-   changes or lost pending edits. Use existing validated services, not parallel
-   implementations.
-2. Close observed target/relationship/media gaps and validate a complete
-   article/book repair, including correct note placement, exact preservation,
-   save/reopen, recovery, reader/PDF and native keyboard/pointer/accessibility.
-3. Integrate source-page membership and affected-work safeguards on the same
-   editor page, then retire replacement-covered legacy mutation paths.
-4. Curate eligible document-pair evidence and evaluate automation. Storage and
-   comparison already exist; a portable curated dataset and broad quality
-   benchmark do not. Defer a dedicated note shortcut unless observed effort
-   justifies it; no reset or platform migration is needed for this milestone.
+1. Validate a representative article and multi-page book end to end through the
+   implemented single-page workspace: source inspection, correction, comparison,
+   review, publication, save/reopen/recovery, reader/ToC/PDF and keyboard,
+   narrow-screen and independent accessibility checks.
+2. Use those tasks to confirm real needs for target removal and broader
+   note/media repairs; implement only evidenced gaps and preserve exact content,
+   relationships and assets.
+3. Then curate eligible document-pair evidence and a leakage-safe quality
+   benchmark. Storage and comparison exist; a portable curated dataset and broad
+   quality benchmark do not. Defer a dedicated note shortcut unless observed
+   effort justifies it. No reset or platform migration is needed.
 
 The dated delivery checkpoints below describe what was delivered and tested at
 each point. Their then-current gap lists are superseded by this current assessment,

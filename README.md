@@ -5,17 +5,19 @@ configured websites in a consistent format. Retain original sources, generate
 tables of contents, cache immutable editions, and review extraction mistakes
 without overwriting historical readers or private annotations.
 
-See the [project assessment, reconciled 2026-11-06](docs/PROJECT-ASSESSMENT.md) for the
-revised direction: a full-capability semantic editor, complete article/book
-correction before legacy retirement, then evidence curation and measured
-automation. General precise selection/structural relocation with target
-preservation is tested by manually repairing displaced inline footnotes.
+See the [project assessment, reconciled 2026-11-06](docs/PROJECT-ASSESSMENT.md)
+for the revised direction. The single-page semantic reviewer workspace is
+implemented; representative article/book acceptance and the remaining repair
+gaps are next, followed by evidence curation and measured automation. General
+selection/structural relocation preserves targets in bounded tests; a complete,
+correct repair of a displaced inline footnote remains an acceptance case.
 A dedicated footnote shortcut is optional, not an ML requirement.
 The target reviewer experience is **one editor page for tailoring a publication**:
 content, metadata, source inspection/restoration, structure/membership,
 history/comparison, review, publication confirmation and styles. Prefer actions
 in the document, with same-page panels/dialogs where needed. This integration
-is not yet complete; existing separate routes remain during migration.
+is implemented and the old standalone correction/organization mutation surfaces
+are retired; representative human and accessibility acceptance remains open.
 Since 0.46.0, **Move selected content…** relocates inline content or complete
 sibling blocks with targets/formatting intact, including into a new titled
 section. This is a bounded general operation, not full structural clipboard import.
@@ -36,18 +38,18 @@ content remain unchanged. Repeated pastes are collision-safe and independently
 undoable. Ctrl/Cmd+Z and redo also work while the outline or command buttons
 have focus, without taking over native history in text fields.
 
-Project direction (2026-10-23): reviewers will directly correct a semantic rich
-document; immutable source, generated draft and corrected result will support
-ML-assisted near-perfect editions. An opt-in draft editor is implemented in
-development and enabled for local testing; the complete editing and document-pair
-learning workflow is not yet finished.
+Project direction (2026-10-23): reviewers directly correct a semantic rich
+document; immutable source, generated draft and corrected result can support
+later measured automation. The editor is enabled by default in configuration
+(`READING_HUB_EDITOR_PILOT=0` disables it); the bounded workspace is implemented,
+while representative acceptance and the document-pair learning workflow remain
+unfinished.
 
-An initial development foundation now provides a versioned semantic HTML contract,
-immutable rendition-based draft/revision records and a read-only
-`semantic_document_check` command. A self-hosted Tiptap pilot adds direct editing,
-undo/redo, partial draft revisions and tab-local recovery behind
-`READING_HUB_EDITOR_PILOT=1` (off by default). It refuses lossy imports and never
-automatically certifies a document. Valid saved results now have a separate read-only publication
+The semantic HTML contract, immutable rendition-based draft/revision records and
+read-only `semantic_document_check` command support the self-hosted Tiptap editor.
+It provides direct editing, undo/redo, partial draft revisions and tab-local
+recovery; lossy imports refuse explicitly and no edit automatically certifies a
+document. Valid saved results have a separate read-only publication
 preview and explicit confirmation to create immutable reader/PDF editions.
 Partial review remains clearly labeled unverified; publishing never certifies it.
 Saved drafts also provide a read-only comparison of the pinned starting document
@@ -216,7 +218,9 @@ the cursor/select text within it and use Selection tools. Edit the whole link's
 destination and optional title without changing its text, nested formatting, IDs
 or note/backlink classes. Use absolute HTTP(S)/mailto URLs or an existing `#target`
 (including hidden chapters). Apply/cancel, validation and undo/redo are explicit;
-clearing the title removes it. Reciprocal footnote/backlink changes remain manual.
+clearing the title removes it. Use the explicit reciprocal-note repair operation
+to pair an existing reference and return link; pairing and renumbering are never
+inferred automatically.
 
 Select unlinked text within one block and choose **Create link from selection**
 to add a link with the same validated destination/title dialog. Mixed inline
@@ -529,32 +533,20 @@ relationship parity and representative whole-work acceptance remain open.
 
 ## Next direction
 
-The editor page is to become the complete document-scoped reviewer workspace,
-not merely a content editor linked to separate tailoring pages. The 0.42.0 slice adds
-**Insert retained source content**: select exact retained-page blocks, preview,
-then insert ordinary editable content before/after the cursor's block or at the
-whole document's end. No raw-source excerpt definition is created; document-local
-excerpt sections are supported separately. Selected links/targets and
-bound images are preserved with collision-free IDs and atomic undo. Links to
-unselected content remain source-site links rather than inferred local notes.
-An explicit original-source generation preview excludes old corrections and
-organization without fetching or deleting anything.
+The single-page document workspace is implemented: content, metadata, retained
+source inspection/insertion, corrected book structure, cross-work membership,
+history/comparison, review, publication and reading styles are available on the
+editor page. Legacy standalone correction/organization mutations are retired;
+historical evidence remains. Source rebuilding is a separate, preview-confirmed
+action and does not silently replace saved editor corrections.
 
-Document metadata and saved section title/role/order/nesting are integrated.
-Remaining work includes single-page history/comparison/publication/style access,
-target/relationship/media gaps, source-page membership and affected-work safeguards,
-then legacy retirement after replacement checks. The fresh-slate reset is deferred;
-any live deletion needs a current inventory, rehearsal, verified backup and renewed
-confirmation. No reset is a prerequisite for this workflow.
-
-The implemented pilot provides **result-first semantic rich editing**:
-repair text, merge/split paragraphs or headings, move content and fix notes/media
-without declaring parser operations. Structure stays internal; the renderer still
-owns homogeneous typography, ToC and PDF. Source evidence and advanced current
-controls remain fallback tools during migration. Source-page membership and
-cross-work changes have separate data safeguards, but their reviewer actions
-belong on the editor page. Ordinary saves do not mutate other works; source
-rebuilding must not silently replace corrected documents.
+The next outcome is representative end-to-end article and multi-page book
+acceptance, including source fidelity, save/reopen/recovery, reader/ToC/PDF,
+keyboard-only interaction and independent accessibility checks. Close observed
+target-removal and broader note/media relationship gaps without adding speculative
+commands. The fresh-slate reset is deferred; any live deletion needs a current
+inventory, rehearsal, verified backup and renewed confirmation. No reset is a
+prerequisite for acceptance.
 
 Draft/revision storage retains **immutable source evidence + exact pinned draft
 + complete corrected semantic document**, with revision provenance and explicit
@@ -565,15 +557,13 @@ possibly ambiguous interpretations, not the only stored evidence. Existing
 corrections/dataset format 1 remain partial evidence; no old edition becomes a
 fully verified target automatically.
 
-The bounded direct correction/history flow now preserves immediate parentage when
-starting from source-derived content or a previous correction, with lightweight
-review status. Next close observed source-backed repair gaps and assess real
-article/book usability and accessibility without task/run administration.
-Then curate a versioned document-pair corpus, freeze work-level splits,
-and evaluate content integrity, severe errors, whole-work acceptance and reviewer
-effort. Compare deterministic rules, retrieval and local ML on the same benchmark.
-ML may propose whole drafts or local changes; it need not output legacy operations.
-Training is not the immediate next step, and publication remains explicit.
+Direct correction/history records immediate parentage and lightweight review
+status without task/run administration. After representative workflow acceptance
+and observed repair gaps, curate a versioned document-pair corpus, freeze
+work-level splits, and evaluate content integrity, severe errors, whole-work
+acceptance and reviewer effort. Compare deterministic rules, retrieval and local
+ML on the same benchmark. Training is not the immediate next step, and
+publication remains explicit.
 
 The existing `correction_benchmark` validates narrow block-type manifests, not
 document-pair quality. See [the specification](SPECIFICATION.md) and
