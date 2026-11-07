@@ -98,6 +98,41 @@ Controlled studies and agreed numerical effort/quality bounds remain necessary
 for claims of reviewer savings or model acceptance, not for permission to perform
 ordinary corrections. No automatic training, publication or gate approval follows.
 
+### Proposed workflow visibility and simplification (2026-11-07)
+
+User-requested direction, not implemented or authorization to delete live data:
+
+- Replace the publication's flat version listing with a work-wide lineage view:
+  retained snapshots, generation results, correction starting bases, exact saved
+  revisions, branches, review scope and published editions. Expose this same view
+  from the editor without losing pending content. Distinguish derivation from
+  shared source evidence; label unavailable historical ancestry rather than
+  inventing it. Fresh retained-source generation may exist only in draft evidence,
+  without an intermediate reading edition.
+- Offer node-specific inspect/compare, continue latest correction, branch from an
+  exact earlier revision, review and publication actions through the existing
+  explicit workflow. Review is an exact revision's state, not a mandatory stage
+  before publication. Keep generated and corrected end products distinguishable.
+- Address obsolete-branch removal. Proposed first step: reversible, audited
+  archival with show/restore and dependency-impact preview, separate from
+  immutable evidence. Archival must not silently change reader routing, latest
+  edition selection or publication availability. Permanent deletion, descendant
+  scope, permissions and retention remain undecided; assess protected references,
+  JSON ancestry, annotations, publications and shared source/assets first.
+- Retain the agreed simplifications: unambiguous capture/update, regenerate,
+  save, review and publish labels; visible current/saved/published revision and
+  review state; naturally sequenced but separate confirmations; actionable legacy
+  generation-conflict recovery; distinguish latest generated, published and saved
+  states; preserve source-update candidates separately without automatic merging.
+
+Recommended bounded acceptance: on isolated article/book histories, trace a
+publication back to its source, distinguish generations sharing a snapshot,
+follow a fork from an earlier revision, continue or branch from the intended
+node, and publish only an explicitly previewed saved result. Demonstrate reversible
+obsolete-branch archival without broken provenance, reader links or pending edits.
+Representative reviewer/keyboard acceptance is required, not merely test counts.
+No new editor, automatic correction merging or training infrastructure is implied.
+
 ### Current milestone — Complete the single-page reviewer workspace
 
 Theme selection (2026-11-06): guests can retain a browser choice, while account
