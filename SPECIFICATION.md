@@ -738,6 +738,52 @@ Target behavior (the bounded 0.41.0 implementation is described above):
   inspection when useful, not as mandatory steps. Publication remains explicit,
   validated and immutable; it does not certify otherwise unreviewed content.
 
+### Work-wide lineage and reversible archival (implemented 2026-11-07)
+
+The reader and editor expose one **Lineage & versions** workspace for the full
+catalogue work. Its bounded primary tree connects retained snapshots, generated
+editions, fresh retained-source generations evidenced only by a draft, correction
+histories, exact saved revisions, and publications. Shared snapshots are secondary
+evidence rather than duplicated ancestry; generations from one snapshot remain
+siblings, and regeneration never replays saved corrections. A correction from a
+publication starts from that published edition. Missing or conflicting historical
+bindings are identified as unknown or corrupt instead of being inferred.
+
+Nodes expose their kind, available date/reviewer, review and issue state, generation
+input policy, and reader/PDF availability. Selection opens an inspection pane;
+hashes and detailed evidence stay there. Filters cover publications, active
+corrections, generations and archived elements while retaining ancestors needed
+to explain matches. From the editor, the same workspace opens in the existing
+workflow panel and leaves unsaved editor content in place. Snapshot inspection,
+comparison, branching, continuing, review and publication all use existing
+guarded workflows. Only the latest saved revision in its correction history may
+be previewed for publication; publication remains explicit and review is optional.
+
+Archival is a separate, append-only reviewer lifecycle record. A preview identifies
+the exact branch or generation scope, descendants, surviving publications and
+shared-source siblings; confirmation requires a reason and a current preview
+digest. Restore adds its own audit record and removes only that operation's
+coverage, so overlapping archive scopes remain effective. Archived elements are
+excluded from ordinary active-history choices and are discoverable under the
+archived filter. Existing editors retain pending work; saving or continuing an
+archived history returns an explicit recoverable conflict.
+
+Archival does not delete or rewrite snapshots, drafts, revisions, publications,
+assets or annotations, and does not change catalogue membership, reader/PDF
+routes, latest-edition selection or published output. It is not publication
+withdrawal. Permanent deletion, blob collection, merging and publication
+withdrawal remain out of scope.
+
+Correctness coverage includes isolated article and multi-page book histories,
+branched revisions, review-only revisions, publication ancestry, fresh-generation
+evidence, unknown/corrupt ancestry, reviewer/CSRF checks, stale archive previews,
+overlapping restore, active-choice filtering and archived-editor conflicts.
+Synthetic browser exercises also traced an article and book publication and
+archived/restored a branch while preserving pending editor text. These are
+implementation checks, not representative human or accessibility acceptance.
+Native keyboard-only use, screen-reader behavior and reviewer usability still
+require direct acceptance; no deployment or live migration is implied.
+
 The system records exact starting/result documents, immediate-parent identity,
 original source and asset lineage, generation/configuration versions, schema
 versions, reviewer and timestamp without asking the reviewer to administer ML

@@ -98,40 +98,56 @@ Controlled studies and agreed numerical effort/quality bounds remain necessary
 for claims of reviewer savings or model acceptance, not for permission to perform
 ordinary corrections. No automatic training, publication or gate approval follows.
 
-### Proposed workflow visibility and simplification (2026-11-07)
+### Work-wide lineage and reversible archival — implemented (2026-11-07)
 
-User-requested direction, not implemented or authorization to delete live data:
+The reader's flat version list is replaced by **Lineage & versions** for the full
+catalogue work, also available in the editor's existing workflow panel. The
+bounded derivation tree represents retained snapshots, generated editions,
+fresh retained-source generations present only in draft evidence, correction
+starting bases, exact sequential revisions and publications attached to their
+saved revisions. Shared snapshot evidence stays secondary; alternative
+generations are siblings and regeneration does not replay saved corrections.
+Unknown or conflicting ancestry is surfaced, not inferred. Node inspection,
+filters and contextual actions reuse source inspection, comparison, branch,
+continue, review and publication flows. The existing latest-saved-revision
+publication rule and explicit publication confirmation remain in force.
 
-- Replace the publication's flat version listing with a work-wide lineage view:
-  retained snapshots, generation results, correction starting bases, exact saved
-  revisions, branches, review scope and published editions. Expose this same view
-  from the editor without losing pending content. Distinguish derivation from
-  shared source evidence; label unavailable historical ancestry rather than
-  inventing it. Fresh retained-source generation may exist only in draft evidence,
-  without an intermediate reading edition.
-- Offer node-specific inspect/compare, continue latest correction, branch from an
-  exact earlier revision, review and publication actions through the existing
-  explicit workflow. Review is an exact revision's state, not a mandatory stage
-  before publication. Keep generated and corrected end products distinguishable.
-- Address obsolete-branch removal. Proposed first step: reversible, audited
-  archival with show/restore and dependency-impact preview, separate from
-  immutable evidence. Archival must not silently change reader routing, latest
-  edition selection or publication availability. Permanent deletion, descendant
-  scope, permissions and retention remain undecided; assess protected references,
-  JSON ancestry, annotations, publications and shared source/assets first.
-- Retain the agreed simplifications: unambiguous capture/update, regenerate,
-  save, review and publish labels; visible current/saved/published revision and
-  review state; naturally sequenced but separate confirmations; actionable legacy
-  generation-conflict recovery; distinguish latest generated, published and saved
-  states; preserve source-update candidates separately without automatic merging.
+Branch and generation archival use separate immutable lifecycle and restore
+records. A current impact preview lists the exact affected scope, surviving
+publications and shared-source siblings. Archiving requires reviewer permission,
+confirmation, reason and a matching preview digest. Restore records reviewer,
+time and scope, and overlapping active scopes remain effective. Archived
+histories leave active choices; open editors keep pending content and receive an
+explicit conflict when saving or continuing archived work. No evidence is
+deleted or rewritten, and reader/PDF links, latest-edition selection, catalogue
+membership, annotations and shared assets remain unchanged. Archival is not
+publication withdrawal; permanent deletion, merge, blob collection and withdrawal
+remain out of scope.
 
-Recommended bounded acceptance: on isolated article/book histories, trace a
-publication back to its source, distinguish generations sharing a snapshot,
-follow a fork from an earlier revision, continue or branch from the intended
-node, and publish only an explicitly previewed saved result. Demonstrate reversible
-obsolete-branch archival without broken provenance, reader links or pending edits.
-Representative reviewer/keyboard acceptance is required, not merely test counts.
-No new editor, automatic correction merging or training infrastructure is implied.
+**Validation evidence:** 160 focused Django regressions passed across lineage,
+editor, correction-history, publication, fresh-draft, editor-source and pipeline
+modules. These include synthetic article
+and multi-page book branches, fresh-generation evidence, exact publication
+ancestry, corrupt/unknown ancestry, reviewer/CSRF behavior, stale previews,
+restore overlap, reader/PDF preservation, active-choice filtering and archived
+editor recovery. The frontend suite passed 271 tests; the frontend build and a
+semantic editor check on a synthetic document passed. Ruff, migration consistency
+and CRLF-aware whitespace checks passed.
+
+A programmatic browser exercise with isolated synthetic article and book data
+opened publication ancestry, confirmed both book sections, and inspected,
+archived and restored a branch from the editor panel while unsaved editor text
+remained present. This observed workflow is not human usability or accessibility
+certification. Native keyboard-only and screen-reader acceptance and broader
+reviewer evaluation remain outstanding. Only the isolated browser fixture
+database was migrated; no live migration, record change, publication or
+deployment occurred.
+
+Adjacent simplifications remain separate work: clarify capture/update and
+regenerate labels, show current/saved/published states, improve legacy generation
+conflict recovery, and preserve source-update candidates without automatic
+merging. No new editor, automatic correction merging or training infrastructure
+is implied.
 
 ### Current milestone — Complete the single-page reviewer workspace
 
