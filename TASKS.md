@@ -139,9 +139,12 @@ opened publication ancestry, confirmed both book sections, and inspected,
 archived and restored a branch from the editor panel while unsaved editor text
 remained present. This observed workflow is not human usability or accessibility
 certification. Native keyboard-only and screen-reader acceptance and broader
-reviewer evaluation remain outstanding. Only the isolated browser fixture
-database was migrated; no live migration, record change, publication or
-deployment occurred.
+reviewer evaluation remain outstanding. These implementation checks used
+isolated test data. The local-only deployment followed on 2026-11-07: migration
+0030 was applied to the live local database, with no document edits or new
+publications. The pre-deployment backup, integrity checks and endpoint evidence
+are recorded in [Operations](docs/OPERATIONS.md). This was not a public
+deployment.
 
 Adjacent simplifications remain separate work: clarify capture/update and
 regenerate labels, show current/saved/published states, improve legacy generation

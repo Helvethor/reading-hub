@@ -782,7 +782,8 @@ Synthetic browser exercises also traced an article and book publication and
 archived/restored a branch while preserving pending editor text. These are
 implementation checks, not representative human or accessibility acceptance.
 Native keyboard-only use, screen-reader behavior and reviewer usability still
-require direct acceptance; no deployment or live migration is implied.
+require direct acceptance. Runtime deployment status and migration history are
+recorded in [Operations](docs/OPERATIONS.md).
 
 The system records exact starting/result documents, immediate-parent identity,
 original source and asset lineage, generation/configuration versions, schema

@@ -32,7 +32,18 @@ Global maintenance and optional experiments are not publication-tailoring steps.
 The revamped membership page requires additive migration `0029_book_membership`.
 Back up the live database and retained blobs before applying migrations through
 the normal deployment/setup workflow. Implementation tests used isolated databases;
-the live migration was not applied as part of this change.
+see the local deployment record below for the migration status.
+
+Local deployment status (2026-11-07): additive migration `0030_documentlineagearchive_documentlineagerestore`
+is applied to `data/library.sqlite3`. Before applying it, the SQLite backup API
+created `data/backups/pre-lineage-deploy-20261107T164000Z/library.sqlite3`; its
+`PRAGMA quick_check` passed. The retained-blob backup at
+`data/backups/pre-lineage-deploy-20261107T164000Z/blobs/` matched the source's
+5,012 files and 319,470,626 bytes. The local-only web process was restarted on
+`127.0.0.1:8765`; home, lineage, existing reader and lineage CSS returned HTTP
+200. Existing document, snapshot, rendition, draft, publication, annotation and
+catalogue-organization counts were unchanged. This is not a public deployment;
+no document was edited or newly published.
 
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
