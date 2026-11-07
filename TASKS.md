@@ -6,10 +6,10 @@ status, not a second description of product behavior.
 
 ## Current delivery: catalogue membership / editor separation (2026-11-07)
 
-- [ ] Replace the ordered membership editor with a separate catalogue-level
+- [x] Replace the ordered membership editor with a separate catalogue-level
   attach/detach page. Preview routing, confirm with a reason, retain audited undo;
   no title/role/order controls or parent/donor-book rebuild.
-- [ ] Preserve explicit membership across discovery, refresh and reformat.
+- [x] Preserve explicit membership across discovery, refresh and reformat.
   Handle members absent from published sections with a book landing-page link.
   Provide an explicitly confirmed retained-source standalone edition on detach
   when no edition exists; retain drafts, publications, annotations and old audits.
@@ -19,6 +19,10 @@ status, not a second description of product behavior.
 - [ ] Validate isolated member/non-member insertion, detach after insertion,
   routing, stale/conflicting decisions, undo and source/asset integrity. Run
   focused backend/frontend regressions and build; record mocked/untested limits.
+  Membership milestone: 69 focused backend tests passed on isolated retained
+  article/book fixtures (network mocked only when seeding), including routing,
+  offline standalone creation, draft preservation, conflict refusal and audit
+  protections. No live membership or migration was applied.
 
 ## Goal and guardrails
 
@@ -127,8 +131,9 @@ acceptance. Historical counts below describe their original slices.
   collapse save/review/publication into one implicit action.
 - [x] Retire standalone source-correction/organization editing surfaces. Resolve
   legacy entries into the editor; retain historical evidence and explicitly refuse
-  obsolete mutations. Retained-page membership uses a same-page affected-work
-  preview/confirmation, retaining audited undo and annotation safeguards.
+  obsolete mutations. The former membership panel is superseded by the separate
+  catalogue ownership page agreed 2026-11-07; titles, roles and order stay in the
+  document editor.
 - [x] Add Result / Diffs against immutable revision 0 or an exact saved baseline,
   including unsaved content. Display semantic additions/removals with green/red
   backgrounds and screen-reader labels, removed content flowing as its original
@@ -240,6 +245,8 @@ acceptance. Historical counts below describe their original slices.
   overwriting corrected documents.
   Corrected documents and historical evidence remain separate from source-graph
   membership changes; no parallel source-editing page is required.
+  Historical delivery: superseded 2026-11-07 by catalogue-only attach/detach on a
+  separate page, without donor/parent rebuilds or draft-specific section edits.
 - [x] Compact selection tools with representative styled letters, office-style
   alignment icons and toggle-off-to-inherit behavior. Hide type-inapplicable
   commands/groups; share outline/canvas context-menu styling. Support navigation
@@ -503,12 +510,10 @@ acceptance. Historical counts below describe their original slices.
   start/end/before/after/inside destinations, outline context-menu actions and a mobile
   toolbar action. Preserve entire nodes/targets, independent undo/redo and
   ordinary save/reopen/publication; refuse cycles and stale proposals.
-- [x] Integrate retained-source page membership and affected-work safeguards on
-  the editor page. Saved document title/roles/order/nesting and excerpt origins
-  already drive corrected publication; they are distinct from source-graph
-  membership. The panel previews affected works, preserves corrected documents,
-  and requires explicit confirmation. Content copied from an index is ordinary
-  document content.
+- [x] Integrate retained-source page membership safeguards (historical 2026-11-06
+  panel, superseded by the separate catalogue-only page on 2026-11-07).
+  Saved document titles/roles/order/nesting and excerpt origins drive corrected
+  publication independently; membership changes never rewrite draft sections.
 - [x] Retire legacy content-editing routes/navigation after replacement checks;
   retain historical records and explicitly refuse obsolete mutations.
 - [ ] Deferred, not a consolidation prerequisite: inventory and rehearse the
@@ -936,9 +941,9 @@ separate measured evidence.
 8. [x] Complete source membership and affected-work integration on the editor
    page. Document titles/roles/order/nesting, retained-source insertion and
    document-local excerpt sections are delivered within stated bounds. The
-   same-page membership panel provides affected-work preview, explicit
-   confirmation, conflict handling and audited undo without replacing corrected
-   documents; no parallel excerpt-definition lifecycle is required.
+   former same-page membership panel is superseded by a separate catalogue-only
+   ownership page with explicit routing preview and audited undo, without
+   replacing corrected documents or rebuilding books.
 9. [ ] Validate direct correction/history on representative articles and whole
    books from one editor page, including existing annotations, recovery,
    publication confirmation and accessibility. Existing regression/copy-fixture

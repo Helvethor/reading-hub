@@ -621,22 +621,21 @@ needed to tailor a publication**, not a sequence of separate administration page
 Prefer direct manipulation and contextual actions in the document; use panels,
 dialogs or other controls on that same page when the operation does not fit the
 canvas. Source inspection/restoration, metadata, sections/excerpts, notes/media,
-source-page membership, relevant catalogue changes, history/comparison, review,
+history/comparison, review,
 publication preview/confirmation and publication styles belong to that workspace.
 The reviewer keeps one coherent view of the document and its pending changes.
 This is a UI/workflow requirement, not a requirement for monolithic code or a
 single transaction.
 
-Document section order/roles and source-graph membership are different data
-responsibilities, not reasons for different reviewer pages. Adding/removing
-retained pages from a book or moving membership between works must show affected
-works and preserve corrected documents, source evidence and private annotations.
-Existing legacy source rebuilding does not merge saved editor corrections;
-integration must make that boundary explicit rather than silently replace edits.
-Ordinary document saves must not mutate another work. Cross-work actions require
-their own preview, conflict checks and explicit confirmation on the editor page.
-Global operational maintenance and optional controlled experiments remain outside
-publication tailoring.
+Catalogue membership is explicitly outside that draft-specific workflow.
+Its separate page changes the global URL owner only, with routing preview,
+confirmation and audited undo. It neither inserts/deletes sections nor rebuilds
+parent/donor books. Section order, titles and roles belong only to editor revisions.
+Ordinary document saves must not mutate another work or its catalogue assignment.
+Historical source rebuilding remains separate from corrected publications and
+never overlays saved edits. Explicit membership decisions survive discovery and
+reformat. Global maintenance and optional experiments remain outside publication
+tailoring.
 
 Single-page integration is implemented through contextual semantic operations and
 same-page workflow panels. Separate backend routes remain, but are not required

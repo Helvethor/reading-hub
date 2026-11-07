@@ -128,7 +128,7 @@ def navigation(request, context):
                 "active": route == "rendition-corrections",
             }
         )
-    if version and settings.READING_HUB_EDITOR_PILOT:
+    if version:
         items.append(
             {
                 "label": "Page membership",

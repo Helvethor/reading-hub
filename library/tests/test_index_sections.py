@@ -1,4 +1,3 @@
-import json
 from copy import deepcopy
 from dataclasses import asdict
 
@@ -181,7 +180,8 @@ class IndexSectionTests(TestCase):
         self.assertEqual(response.status_code, 302)
         panel = self.client.get(reverse("document-editor-membership", args=[self.book.pk]))
         self.assertEqual(panel.status_code, 200)
-        self.assertEqual(json.loads(panel.context["specification"]), old)
+        self.assertNotContains(panel, 'name="specification"')
+        self.assertEqual(current_spec(BOOK), old)
         self.assertEqual(sections(parse_html(mixed_index()), BOOK)[0][0].title, "Endnotes")
 
     def test_section_identity_validation_and_missing_evidence_fail_explicitly(self):

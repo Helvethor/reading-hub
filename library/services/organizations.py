@@ -453,6 +453,13 @@ def commit_change(preview, reviewer, reason, *, undo_of=None):
         raise ValueError("Formatting changed since preview. Preview again before saving.")
     membership_before = graph_membership(fresh["before"])
     membership = graph_membership(fresh["after"], undo_of=undo_of)
+    affected = {spec["url"] for spec in fresh["after"]}
+    for entry in entries().filter(membership_reviewed=True).filter(
+        Q(book__url__in=affected) | Q(url__in=affected) | Q(url__in=membership),
+    ):
+        expected = entries().filter(url=membership.get(entry.url)).first()
+        if entry.book_id != (expected.pk if expected else None):
+            raise ValueError("Explicit catalogue membership prevents legacy reassignment.")
     built = {}
     for work in fresh["works"]:
         spec = work["spec"]
@@ -505,7 +512,10 @@ def member_destination(document, version=None):
     )
     if not member:
         retained = override(document.url)
+        explicit = entries().filter(url=document.url, membership_reviewed=True).exists()
         if (
+            not explicit
+            and
             version is not None
             and not version.structure.get("book")
             and retained
@@ -524,10 +534,8 @@ def member_destination(document, version=None):
         raise ImportFailure(
             "The complete book is unavailable; preserved evidence is safe.", "incomplete"
         )
-    parts = rendition.structure.get("parts") or rendition.snapshot.manifest.get("parts", [])
+    parts = rendition.structure.get("parts", rendition.snapshot.manifest.get("parts", []))
     for index, part in enumerate(parts):
-        if canonical_url(part["url"]) == member.url:
+        if part.get("url") and canonical_url(part["url"]) == member.url:
             return rendition, part.get("id", f"c{index + 1}")
-    raise ImportFailure(
-        "The published book is missing this member. Review its organization.", "incomplete"
-    )
+    return rendition, ""

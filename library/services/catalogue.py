@@ -133,7 +133,9 @@ def register_book(site, url, source, *, rendition=None):
     rendered = rendition.structure.get("parts") or rendition.snapshot.manifest.get("parts", [])
     if [part.url for part in source.parts] != [part["url"] for part in rendered]:
         return book
-    if book.chapters.exclude(url__in=[part.url for part in parts]).exists():
+    if book.chapters.filter(membership_reviewed=False).exclude(
+        url__in=[part.url for part in parts],
+    ).exists():
         raise ImportFailure(
             "Automatic book membership changed. Review content organization.", "book_structure"
         )
@@ -150,6 +152,8 @@ def register_book(site, url, source, *, rendition=None):
         )
         if chapter is None:
             raise ImportFailure("A book chapter has no title.", "book_structure")
+        if chapter.membership_reviewed:
+            continue
         if chapter.book_id and chapter.book_id != book.pk:
             raise ImportFailure(f"Chapter belongs to another book: {part.url}", "book_structure")
         if chapter.chapters.exists():

@@ -322,6 +322,7 @@ class CrawlPage(models.Model):
 
 
 class CatalogueEntry(models.Model):
+    membership_reviewed = models.BooleanField(default=False)
     metadata_overrides = models.JSONField(default=dict)
     metadata_baseline = models.JSONField(default=dict)
     book = models.ForeignKey(
@@ -353,6 +354,20 @@ class ContentOrganization(models.Model):
     )
     specification = models.JSONField()
     rendition = models.ForeignKey(Rendition, on_delete=models.PROTECT)
+
+
+class BookMembershipDecision(models.Model):
+    entry = models.ForeignKey(CatalogueEntry, on_delete=models.PROTECT)
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.TextField()
+    before = models.JSONField()
+    after = models.JSONField()
+    evidence = models.JSONField()
+    undo_of = models.ForeignKey("self", null=True, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-pk"]
 
 
 class CatalogueOverlayDecision(models.Model):

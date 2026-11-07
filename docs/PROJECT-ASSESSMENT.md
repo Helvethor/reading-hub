@@ -20,15 +20,18 @@ reproducible evidence, then measured automation. The editor is central to achiev
 quality, not an incidental accessory. ML is a possible means, not an immediate
 prerequisite or the definition of success.
 
-The target is one editor page for every reviewer operation needed to tailor a
+The target is one editor page for every draft-specific operation needed to tailor a
 publication. Prefer direct document/contextual manipulation; use same-page panels
-or dialogs for source inspection, metadata, membership, history/comparison,
+or dialogs for source inspection, metadata, history/comparison,
 review, publication preview/confirmation and presentation profiles. One coherent
 document context does not require monolithic code or collapsing distinct save,
 review and publication transactions. The 2026-11-06 implementation now hosts
 history/comparison, regeneration and publication in same-page panels, with reading
-styles directly on the editor and retained-page membership in an affected-work
-panel. Legacy editing entry points are retired without deleting evidence.
+styles directly on the editor. The former retained-page membership panel is
+superseded 2026-11-07 by a separate global catalogue ownership page. Its attach/
+detach operations do not manage title/role/order, rebuild books or alter draft
+sections. Legacy ordered organization records remain source-generation evidence.
+Explicit membership decisions now protect ownership across automatic discovery.
 Restorable semantic content diffs and explicit reciprocal-note repair are
 implemented. This completes surface consolidation, not representative human
 acceptance or a claim that every source-quality defect is resolved.
@@ -59,12 +62,12 @@ document-local excerpt sections retain origin links. Generated title/ToC,
 numbering and accessible style profiles project into publication/PDF output.
 
 Remaining correction gaps include guarded target removal and broader relationship/
-media repairs. Retained-source page membership and affected-work safeguards now
-have an editor panel; source inspection, version workflows and publication no
+media repairs. Catalogue membership now has a separate ownership page; source
+inspection, version workflows and publication no
 longer require leaving the editor. Source-page membership
 means adding/removing retained pages from a book or changing membership between
-works, not reordering corrected sections. Its separate data safeguards are not
-a reason to require a separate reviewer page. Legacy source rebuilding currently
+works, not reordering corrected sections. Its catalogue-wide scope is distinct
+from editor drafts. Legacy source rebuilding currently
 returns to a source-derived edition, without merging saved editor corrections.
 Obsolete legacy mutation requests now refuse explicitly; necessary semantic
 correction and membership outcomes use editor surfaces. Historical records and
@@ -232,8 +235,8 @@ Avoid treating these as reasons for unrelated platform migration.
 
 ### A. Complete one reliable article/book correction workflow
 
-The single-page workspace, saved document structure, retained-page membership
-preview/confirmation and legacy mutation retirement are implemented. Use the
+The single-page workspace, saved document structure, separate catalogue membership
+preview/confirmation and legacy ordered-mutation retirement are implemented. Use the
 established retained sample (article 52, books 70/80) and general
 selection/relocation/section/target primitives to validate representative
 end-to-end correction. Remaining implementation gaps include guarded target

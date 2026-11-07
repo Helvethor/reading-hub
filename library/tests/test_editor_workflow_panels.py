@@ -130,7 +130,6 @@ class EditorWorkflowPanelTests(TestCase):
                 (self.comparison, {"draft": self.draft.pk, "to": 1}),
                 (self.publication, {"draft": self.draft.pk, "revision": 1}),
                 (self.fresh, {}),
-                (reverse("document-editor-membership", args=[self.rendition.pk]), {}),
             ):
                 with self.subTest(url=url):
                     normal = self.client.get(url, params)

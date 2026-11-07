@@ -10,11 +10,16 @@ Reviewer workflow target clarified 2026-11-06: all document-scoped publication
 tailoring should be available on one editor page, directly in the canvas or
 through same-page panels/dialogs. This integration is now implemented: use the
 editor's history, regeneration, comparison and publication links to open panels,
-and close them to return to pending edits. Retained-page membership is available
-from Pinned source Book structure. Standalone `/corrections` and `/organization`
-editing entry points are retired; historical evidence remains retained.
-Source-graph transactions use affected-work preview and explicit confirmation;
-ordinary saves must not mutate other works or replace corrected documents. See the
+and close them to return to pending edits. Catalogue book membership is a separate
+page, linked from the reader, review navigation and Pinned source Book structure.
+It changes URL ownership with preview/confirmation and audited undo, not titles,
+roles or order. Attach does not insert content; detach leaves existing draft
+sections/publications intact. An unavailable standalone edition is previewed and
+built offline only on explicit detach confirmation; no parent/donor book rebuilds.
+Historical ordered `/organization` mutations are retired; evidence is retained.
+Add section offers current member sources and supported retained non-member URLs.
+Missing pages require explicit capture/import; insertion does not attach them.
+Ordinary saves must not mutate other works or replace corrected documents. See the
 [current workflow contract](../SPECIFICATION.md#primary-correction-workflow-reconciled-2026-11-06)
 and [remaining acceptance work](../TASKS.md#current-milestone--complete-the-single-page-reviewer-workspace).
 Global maintenance and optional experiments are not publication-tailoring steps.
