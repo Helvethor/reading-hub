@@ -10,7 +10,12 @@ from library import versions
 from library.models import Blob, DocumentPublication, Rendition, RenditionAsset
 from library.profile import get_profile
 from library.services.book_views import publication_toc
-from library.services.document_edits import DocumentEditConflict, validate_editor_metadata
+from library.services.document_edits import (
+    DocumentEditConflict,
+    saved_source_tickets,
+    validate_editor_metadata,
+)
+from library.services.editor_sources import ticket_evidence
 from library.services.editor_structure import section_structure
 from library.services.semantic_documents import canonical_document, document_issues, fingerprint
 from library.services.storage import read_blob
@@ -67,7 +72,9 @@ def prepare_publication(draft, expected_revision):
         draft.document["metadata"], document["metadata"],
     )
     document = canonical_document(document)
-    issues = document_issues(document, set(evidence["assets"]))
+    source_tickets = saved_source_tickets(draft, revision)
+    extra_assets = ticket_evidence(source_tickets, rendition=source)
+    issues = document_issues(document, set(evidence["assets"]) | set(extra_assets))
     if issues:
         raise ValueError("Resolve document issues before publishing: " + "; ".join(issues))
     soup = BeautifulSoup(document["html"], "html.parser")
@@ -76,6 +83,7 @@ def prepare_publication(draft, expected_revision):
         Blob.objects.in_bulk(evidence["assets"]) if fresh else
         {asset.blob_id: asset.blob for asset in source.assets.select_related("blob")}
     )
+    bindings.update(Blob.objects.in_bulk(extra_assets))
     for digest in assets:
         if digest not in bindings:
             raise ValueError(f"Publication asset is no longer bound to the source: {digest}")
@@ -85,9 +93,12 @@ def prepare_publication(draft, expected_revision):
             raise ValueError(f"Publication asset is unavailable or corrupt: {digest}") from exc
         if len(data) != bindings[digest].size:
             raise ValueError(f"Publication asset size does not match its evidence: {digest}")
-        if fresh and evidence["asset_bindings"][digest] != {
-            "size": bindings[digest].size, "media_type": bindings[digest].media_type,
-        }:
+        if (
+            fresh and digest in evidence["asset_bindings"]
+            and evidence["asset_bindings"][digest] != {
+                "size": bindings[digest].size, "media_type": bindings[digest].media_type,
+            }
+        ):
             raise ValueError(f"Publication asset differs from fresh draft evidence: {digest}")
     toc = publication_toc(soup)
     structure = {
@@ -110,6 +121,7 @@ def prepare_publication(draft, expected_revision):
         "evidence_digest": draft.evidence_digest, "output": output, "assets": assets,
         "review": revision.review, "verified_sections": revision.verified_sections,
         "editorial": revision.editorial,
+        **({"source_tickets": source_tickets} if source_tickets else {}),
     })
     return {"revision": revision, "output": output, "assets": assets, "digest": digest}
 

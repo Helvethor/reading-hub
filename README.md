@@ -13,11 +13,15 @@ selection/structural relocation preserves targets in bounded tests; a complete,
 correct repair of a displaced inline footnote remains an acceptance case.
 A dedicated footnote shortcut is optional, not an ML requirement.
 The target reviewer experience is **one editor page for tailoring a publication**:
-content, metadata, source inspection/restoration, structure/membership,
+content, metadata, source inspection/restoration, section structure,
 history/comparison, review, publication confirmation and styles. Prefer actions
 in the document, with same-page panels/dialogs where needed. This integration
 is implemented and the old standalone correction/organization mutation surfaces
 are retired; representative human and accessibility acceptance remains open.
+Catalogue membership is deliberately separate: its page attaches/detaches source
+URLs globally, with no title/role/order editing and no changes to draft sections.
+Editor Add section suggests current members and also accepts supported retained
+non-member URLs; adding content never changes catalogue ownership.
 Since 0.46.0, **Move selected content…** relocates inline content or complete
 sibling blocks with targets/formatting intact, including into a new titled
 section. This is a bounded general operation, not full structural clipboard import.
@@ -452,7 +456,13 @@ operations stay separate from PDF, refresh/reformat and private annotations.
 2. **Preview, save, reformat:** preview is one inert normalized page, not a
    whole-book guarantee. Saving appends a scoped revision. Reformat creates
    a new edition using matching retained evidence; old editions stay intact.
-3. **Content organization:** preview and confirm book membership, part roles
+3. **Historical content organization (retired):** the ordered source-organization
+   controls described below are retained documentation of the earlier workflow,
+   not available editing instructions. Use the separate **Catalogue book
+   membership** page for URL attach/detach, and editor section navigation for
+   content inclusion, title, role and order. Membership changes do not rebuild
+   books or alter existing drafts/publications. Older functionality:
+   preview and confirm book membership, part roles
    and order with a required reason and audited undo. Chapters are presented
    as part of the complete book, not separate library works.
    Recognized book indexes are included as the first **Contents** part by
@@ -534,11 +544,13 @@ relationship parity and representative whole-work acceptance remain open.
 ## Next direction
 
 The single-page document workspace is implemented: content, metadata, retained
-source inspection/insertion, corrected book structure, cross-work membership,
+source inspection/insertion, corrected book structure,
 history/comparison, review, publication and reading styles are available on the
 editor page. Legacy standalone correction/organization mutations are retired;
 historical evidence remains. Source rebuilding is a separate, preview-confirmed
 action and does not silently replace saved editor corrections.
+Catalogue membership is a separate work-wide page; source URLs are unordered
+ownership relationships, not another draft/publication hierarchy.
 
 The next outcome is representative end-to-end article and multi-page book
 acceptance, including source fidelity, save/reopen/recovery, reader/ToC/PDF,

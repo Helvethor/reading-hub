@@ -219,6 +219,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
 
   const source = insertion.querySelector("[name=source]");
   const pageSelect = insertion.querySelector("[name=page]");
+  const member = insertion.querySelector("[name=member]");
   const candidate = insertion.querySelector("[name=candidate]");
   const sourceUrl = insertion.querySelector("[name=url]");
   const insertTitle = insertion.querySelector("[name=title]");
@@ -231,14 +232,15 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   const apply = insertion.querySelector("[data-apply]");
   const loadButton = insertion.querySelector("[data-load]");
   const urlButton = insertion.querySelector("[data-url]");
-  const loadingControls = [source, pageSelect, candidate, sourceUrl, loadButton, urlButton];
-  let target, chosen, ticket = 0, listing;
+  const loadingControls = [source, pageSelect, member, candidate, sourceUrl, loadButton, urlButton];
+  let target, chosen, ticket = 0, listing, selectedUrl = null;
   async function fetchSource(params) {
     const endpoint = new URL(form.querySelector("#editor-source-open").dataset.sourceUrl, location.href);
     for (const [key, value] of Object.entries(params)) endpoint.searchParams.set(key, value);
     // The currently pinned draft may be created by an earlier save in this tab.
     const draft = new URL(owner.querySelector("#editor-history").href).searchParams.get("draft");
     if (draft) endpoint.searchParams.set("draft", draft);
+    endpoint.searchParams.set("revision", String(initial.sourceRevision?.() ?? 0));
     const response = await fetch(endpoint, {headers: {Accept: "application/json"}});
     if (!response.headers.get("Content-Type")?.includes("application/json")) {
       throw new Error(`Source inspection failed (${response.status}). Sign in again if needed.`);
@@ -254,7 +256,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     preview.replaceChildren();
     insertError.textContent = "";
   }
-  async function loadPage(number = 0) {
+  async function loadPage(number = 0, url = null) {
     invalidate();
     const generation = ticket;
     for (const control of loadingControls) control.disabled = true;
@@ -262,11 +264,15 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     candidate.replaceChildren();
     status.textContent = "Loading retained source choices…";
     try {
-      const data = await fetchSource({page: String(number)});
+      const data = await fetchSource(url ? {url} : {page: String(number)});
       if (ticket !== generation || !insertion.open) return;
       listing = data;
+      selectedUrl = url ? data.url : null;
       pageSelect.replaceChildren(...data.pages.map(page => new Option(page.url, String(page.number))));
       pageSelect.value = String(data.page);
+      member.replaceChildren(new Option("Choose a member URL…", ""),
+        ...(data.members || []).map(item => new Option(item.title, item.url)));
+      member.value = data.members?.some(item => item.url === data.url) ? data.url : "";
       sourceUrl.value = data.url;
       candidate.replaceChildren(new Option("Choose a parsed range or saved excerpt…", ""),
         ...data.candidates.map((item, index) => new Option(`${item.kind}: ${item.title}`, String(index))));
@@ -281,7 +287,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
         label.append(input, ` ${item.index + 1}. ${item.tag}: ${item.text}`);
         return label;
       }));
-      status.textContent = `Retained snapshot ${data.snapshot}. No network fetching or original-source changes.`;
+      status.textContent = `Retained ${data.snapshot ? `snapshot ${data.snapshot}` : "capture"}. No live fetching or catalogue changes.`;
     } catch (failure) {
       if (ticket === generation) {
         insertError.textContent = failure.message;
@@ -303,6 +309,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     insertRole.value = "chapter";
     placement.value = index === null ? "end" : "after";
     listing = null;
+    selectedUrl = null;
     pageSelect.replaceChildren();
     sourceUrl.value = "";
     insertion.showModal();
@@ -335,15 +342,23 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
       insertTitle.value = original.title;
       sourceUrl.value = original.url || "";
       insertRole.value = original.role || "chapter";
-    } else loadPage(pageSelect.value);
+    } else loadPage(pageSelect.value, selectedUrl);
   });
-  pageSelect.addEventListener("change", () => { source.value = "retained"; loadPage(pageSelect.value); });
+  pageSelect.addEventListener("change", () => {
+    source.value = "retained";
+    const page = listing?.pages.find(item => String(item.number) === pageSelect.value);
+    loadPage(pageSelect.value, selectedUrl ? page?.url : null);
+  });
+  member.addEventListener("change", () => {
+    if (member.value) { source.value = "retained"; loadPage(0, member.value); }
+  });
+  sourceUrl.addEventListener("input", invalidate);
   urlButton.addEventListener("click", () => {
-    const match = listing?.pages.find(page => page.url === sourceUrl.value.trim().split("#")[0]);
-    if (!match) {
+    const url = sourceUrl.value.trim();
+    if (!url) {
       invalidate();
-      insertError.textContent = "This URL is not retained in this edition. Capture it through the existing import workflow first; this editor never fetches live URLs.";
-    } else { source.value = "retained"; loadPage(match.number); }
+      insertError.textContent = "Enter a retained source URL.";
+    } else { source.value = "retained"; loadPage(0, url); }
   });
   loadButton.addEventListener("click", async () => {
     invalidate();
@@ -354,13 +369,14 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
       if (!original && !selection.length) throw new Error("Choose a parsed section, excerpt or source blocks.");
       const data = await fetchSource(original
         ? {original_section: original.id}
-        : {page: pageSelect.value, blocks: selection.join(",")});
+        : {...(selectedUrl ? {url: selectedUrl} : {page: pageSelect.value}),
+          blocks: selection.join(",")});
       if (ticket !== generation || !insertion.open) return;
       const template = owner.createElement("template");
       template.innerHTML = data.html;
       for (const link of template.content.querySelectorAll("a")) link.removeAttribute("href");
       preview.append(template.content);
-      chosen = {data, original};
+      chosen = {data, original, revision: initial.sourceRevision?.() ?? 0};
       status.textContent = `${data.repairs.length} conversion repair(s). Review the content before inserting. Existing canvas text is not replaced; use Repair heading into section if it is already present.`;
       apply.disabled = false;
     } catch (failure) { if (ticket === generation) insertError.textContent = failure.message; }
@@ -369,12 +385,22 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     try {
       if (!chosen) throw new Error("Preview source content first.");
       if (!insertTitle.value.trim()) throw new Error("Enter a section title.");
-      applySourceInsertion(editor, target, chosen.data.html, placement.value, {
-        section: {
-          title: insertTitle.value.trim(), url: chosen.data.url,
-          role: insertRole.value, restoreId: chosen.original?.id,
-        },
-      });
+      if (chosen.revision !== (initial.sourceRevision?.() ?? 0)) {
+        throw new Error("The draft changed. Preview source again.");
+      }
+      const token = chosen.data.source_ticket;
+      initial.registerSource?.(token);
+      try {
+        applySourceInsertion(editor, target, chosen.data.html, placement.value, {
+          section: {
+            title: insertTitle.value.trim(), url: chosen.data.url,
+            role: insertRole.value, restoreId: chosen.original?.id,
+          },
+        });
+      } catch (failure) {
+        initial.unregisterSource?.(token);
+        throw failure;
+      }
       insertion.close();
     } catch (failure) { insertError.textContent = failure.message; }
   });

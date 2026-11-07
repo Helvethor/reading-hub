@@ -13,16 +13,23 @@ status, not a second description of product behavior.
   Handle members absent from published sections with a book landing-page link.
   Provide an explicitly confirmed retained-source standalone edition on detach
   when no edition exists; retain drafts, publications, annotations and old audits.
-- [ ] Offer current member sources in Add section and support supported retained
+- [x] Offer current member sources in Add section and support supported retained
   non-member URLs. Require explicit capture/import for missing pages. Persist
   exact source and asset evidence through recovery/save/branch/publication.
-- [ ] Validate isolated member/non-member insertion, detach after insertion,
+- [x] Validate isolated member/non-member insertion, detach after insertion,
   routing, stale/conflicting decisions, undo and source/asset integrity. Run
   focused backend/frontend regressions and build; record mocked/untested limits.
   Membership milestone: 69 focused backend tests passed on isolated retained
   article/book fixtures (network mocked only when seeding), including routing,
   offline standalone creation, draft preservation, conflict refusal and audit
   protections. No live membership or migration was applied.
+  Final delivery: 169 backend tests across focused workflow/source/publication
+  runs and 271 frontend tests passed; build, scoped Ruff, Django checks,
+  migration consistency and a synthetic editor round-trip passed. The actual
+  membership service detach-after-save fixture preserves external text/images
+  through reopen, branch and publication. Frontend interaction evidence is
+  jsdom, not native browser or representative accessibility acceptance.
+  Additive migration 0029 is provided but has not been applied to live data.
 
 ## Goal and guardrails
 

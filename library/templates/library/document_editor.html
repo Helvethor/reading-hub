@@ -33,7 +33,7 @@
       <li>Part details are unavailable in this edition’s structure.</li>
       {% endfor %}
     </ol>
-    <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" data-workflow-panel="Retained-page membership">Retained-page membership and affected works</a> uses an explicit preview and confirmation. Regenerated editions never replace pending or saved editor corrections.</p>
+    <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" target="_blank" rel="noopener noreferrer">Catalogue book membership (separate page)</a> controls URL ownership only, not this draft's sections. Regenerated editions never replace pending or saved editor corrections.</p>
   </details>
   <p class="editor-book-title">{{ initial.document.title }}</p>
   <div class="editor-workspace" data-editor-tab="editor">
@@ -264,8 +264,10 @@
     <p>Restore an original edition section, or insert retained source content as a section. If the text already exists but its boundary disappeared, cancel and use Repair heading into section instead. Nothing replaces or deletes your current edits.</p>
     <label>Content source <select name="source"></select></label>
     <label>Retained page <select name="page"></select></label>
+    <label>Current catalogue book member <select name="member"><option value="">Choose a member URL…</option></select></label>
     <label>Retained source URL <input name="url" type="url"></label>
     <button type="button" data-url>Choose retained URL</button>
+    <p>Any supported retained URL can be inserted, including non-members. Inspection never fetches a live URL. <a href="{% url 'request' %}" target="_blank" rel="noopener">Capture or import a missing source</a>.</p>
     <label>Parsed section / saved excerpt <select name="candidate"></select></label>
     <details><summary>Or select source blocks</summary><div data-blocks></div></details>
     <label>Title (used when source has no heading) <input name="title" maxlength="500"></label>

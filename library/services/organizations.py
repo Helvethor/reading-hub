@@ -530,7 +530,7 @@ def member_destination(document, version=None):
         return None
     parent = Document.objects.filter(url=member.book.url).first()
     rendition = parent.latest() if parent else None
-    if not rendition or not rendition.structure.get("book"):
+    if not rendition:
         raise ImportFailure(
             "The complete book is unavailable; preserved evidence is safe.", "incomplete"
         )

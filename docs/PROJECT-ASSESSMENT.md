@@ -251,10 +251,11 @@ checks; passing unit tests alone is not acceptance.
 
 ### B. Consolidate and retire
 
-The one-editor workspace and retirement of standalone correction/organization
-mutation pages are complete. Preserve affected-work previews and separate
-confirmation for source-graph changes; ordinary saves must not change other
-works or replace corrected documents. Do not restore parallel mutation surfaces.
+The one-editor workspace and retirement of legacy ordered correction/organization
+mutations are complete. Catalogue membership is a separate page for global URL
+ownership, not a second editorial hierarchy. Preserve routing preview and explicit
+confirmation; ordinary document saves must not change other works or replace
+corrected documents.
 Document-local excerpt sections are supported; separate raw-source excerpt
 definition/revision/adoption administration is not the replacement workflow.
 Global maintenance and controlled experiments remain separate.

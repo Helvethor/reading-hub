@@ -39,6 +39,7 @@ if (form) {
   let editor, dirty = false, saving = false;
   let recoverable = null;
   let structuredMetadata = null;
+  let sourceTickets = [];
   let workspace = null;
   let differences = null;
   const metadata = () => {
@@ -65,6 +66,7 @@ if (form) {
   const formPayload = () => ({
     document: documentValue(), review: reviewValue(), verified_sections: sectionsValue(),
     editorial: form.elements.editorial.checked,
+    source_tickets: sourceTickets,
   });
   function showError(message) { error.textContent = message; }
   function selectReview(value) {
@@ -209,6 +211,17 @@ if (form) {
     title.addEventListener("input", metadataChanged);
     for (const field of metadataFields) field.addEventListener("input", metadataChanged);
     structuredMetadata = mountMetadata(form, initial.document.metadata, metadataChanged);
+    initial.sourceRevision = () => initial.revision;
+    initial.registerSource = token => {
+      if (saving) throw new Error("Wait for the current save before inserting source.");
+      if (token) sourceTickets = [...sourceTickets, token];
+    };
+    initial.unregisterSource = token => {
+      if (token) {
+        const index = sourceTickets.lastIndexOf(token);
+        if (index >= 0) sourceTickets = sourceTickets.filter((_, position) => position !== index);
+      }
+    };
     workspace = mountWorkspace(form, editor, showError, initial,
       () => ({title: title.value.trim(), metadata: metadata()}));
     function clearPaste() {
@@ -270,6 +283,12 @@ if (form) {
       let candidate;
       try {
         candidate = createBoundedEditor(target, recoverable.document.html);
+        if (recoverable.source_tickets !== undefined &&
+            (!Array.isArray(recoverable.source_tickets) ||
+             recoverable.source_tickets.some(token => typeof token !== "string"))) {
+          throw new Error("Invalid retained source recovery evidence.");
+        }
+        sourceTickets = recoverable.source_tickets || [];
         showDocumentPart(editor, null);
         editor.commands.setContent(candidate.getJSON());
         title.value = recoverable.document.title;
@@ -324,10 +343,12 @@ if (form) {
         }
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Save failed (${response.status}).`);
+        const changedDuringSave = JSON.stringify(formPayload()) !== JSON.stringify(submitted);
+        sourceTickets = sourceTickets.filter(token => !submitted.source_tickets.includes(token));
         initial.draft = result.draft;
         initial.revision = result.revision;
         // Edits made during the request stay dirty; do not overwrite them.
-        dirty = JSON.stringify(formPayload()) !== JSON.stringify(submitted);
+        dirty = changedDuringSave;
         initial.document = result.document;
         initial.saved_review = result.review;
         initial.saved_verified_sections = result.verified_sections;

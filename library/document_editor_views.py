@@ -16,7 +16,6 @@ from library.models import CanonicalAuthor, DocumentDraftBase, Rendition, Review
 from library.profile import get_profile, source_name
 from library.services.book_views import publication_view
 from library.services.document_comparison import compare_documents
-from library.services.document_metadata import WORK_TYPES
 from library.services.document_edits import (
     DocumentEditConflict,
     branch_draft,
@@ -25,8 +24,15 @@ from library.services.document_edits import (
     save_revision,
     saved_state,
 )
+from library.services.document_metadata import WORK_TYPES
 from library.services.document_publication import prepare_publication, publish_revision
-from library.services.editor_sources import original_section, source_page
+from library.services.editor_sources import (
+    member_choices,
+    original_section,
+    retained_url_source,
+    source_page,
+    source_ticket,
+)
 from library.services.errors import ImportFailure
 from library.services.fresh_document_drafts import create_fresh_draft, preview_fresh_draft
 from library.services.semantic_documents import MAX_BYTES
@@ -195,6 +201,10 @@ def retained_source(request, pk):
         draft = get_draft(draft_id, source) if draft_id else None
         if draft:
             saved_state(draft, 0)
+        revision = int(request.GET.get("revision", "0"))
+        current = draft.revisions.first() if draft else None
+        if request.GET.get("url") and revision != (current.revision if current else 0):
+            raise DocumentEditConflict("The draft changed. Reload before inspecting source.")
         assets = (
             draft.evidence["assets"] if draft else
             source.assets.values_list("blob_id", flat=True)
@@ -204,9 +214,25 @@ def retained_source(request, pk):
                 source, request.GET["original_section"], allowed_assets=assets,
             )
         else:
-            result = source_page(source, page, selection, allowed_assets=assets)
+            url = request.GET.get("url")
+            selected_source, selected_page = (
+                retained_url_source(source, url) if url else (source, page)
+            )
+            result = source_page(
+                selected_source, selected_page, selection, allowed_assets=None if url else assets,
+                require_images=bool(url),
+            )
+            if url and selection is not None:
+                result["source_ticket"] = source_ticket(
+                    result, source, draft_id, revision, request.user,
+                )
+        result["members"] = member_choices(source)
+    except DocumentEditConflict as exc:
+        response = JsonResponse({"error": str(exc)}, status=409)
     except (ValueError, ImportFailure, OSError) as exc:
-        response = JsonResponse({"error": str(exc)}, status=422)
+        response = JsonResponse({
+            "error": str(exc), "capture_url": reverse("request"),
+        }, status=422)
     else:
         response = JsonResponse(result)
     response["Cache-Control"] = "no-store"
@@ -441,10 +467,13 @@ def save(request, version):
         return JsonResponse({"error": "The draft request exceeds its size limit."}, status=413)
     try:
         value = json.loads(request.body)
-        if not isinstance(value, dict) or set(value) != {
+        required = {
             "draft", "revision", "document", "conversion_approval",
             "review", "verified_sections", "editorial",
-        }:
+        }
+        if not isinstance(value, dict) or not required <= set(value) or set(value) - (
+            required | {"source_tickets"}
+        ):
             raise ValueError(
                 "Provide the draft, expected revision, document, review scope, verified "
                 "sections, editorial flag and conversion approval."
@@ -464,6 +493,7 @@ def save(request, version):
                 draft, request.user, value["document"], value["revision"],
                 review=value["review"], verified_sections=value["verified_sections"],
                 editorial=value["editorial"],
+                source_tickets=value.get("source_tickets", []), ticket_draft_id=value["draft"],
             )
     except DocumentEditConflict as exc:
         return JsonResponse({"error": str(exc)}, status=409)

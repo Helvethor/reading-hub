@@ -13,6 +13,7 @@ from library.models import DocumentDraftBase, DocumentEditRevision, Rendition
 from library.profile import get_profile
 from library.services.document_metadata import TEXT_FIELDS as METADATA_TEXT_FIELDS
 from library.services.document_metadata import TITLE_LAYOUTS, TITLE_PAGE_FIELDS, WORK_TYPES
+from library.services.editor_sources import ticket_evidence
 from library.services.semantic_documents import (
     SCHEMA_VERSION,
     canonical_document,
@@ -47,7 +48,14 @@ def saved_state(draft, number):
         raise ValueError("That saved version does not exist in this history.")
     if fingerprint(row.document) != row.document_digest:
         raise ValueError("The saved document failed its integrity check.")
+    ticket_evidence(saved_source_tickets(draft, row), rendition=draft.rendition)
     return row
+
+
+def saved_source_tickets(draft, row):
+    if row is draft:
+        return draft.evidence.get("correction_origin", {}).get("source_tickets", [])
+    return row.lineage.get("source_tickets", [])
 
 
 @transaction.atomic
@@ -64,6 +72,7 @@ def branch_draft(draft, reviewer, number):
         "generated_metadata": origin.get("generated_metadata", draft.document["metadata"]),
         "app": versions.APP_VERSION,
         "editorial": row.editorial if number else origin.get("editorial", False),
+        "source_tickets": deepcopy(saved_source_tickets(draft, row)),
     }
     # Evaluation membership belongs to the old working copy, not this correction.
     evidence.pop("evaluation_origin", None)
@@ -319,7 +328,8 @@ def create_draft(rendition, reviewer, *, conversion_approval=None):
 
 @transaction.atomic
 def save_revision(draft, reviewer, document, expected_revision, *,
-                  review="partial", verified_sections=None, editorial=None):
+                  review="partial", verified_sections=None, editorial=None, source_tickets=None,
+                  ticket_draft_id=None):
     if type(expected_revision) is not int or expected_revision < 0:
         raise ValueError("Provide the exact nonnegative current revision.")
     if (
@@ -342,6 +352,15 @@ def save_revision(draft, reviewer, document, expected_revision, *,
         raise DocumentEditConflict("The document changed. Reload before saving another revision.")
     if current and fingerprint(current.document) != current.document_digest:
         raise ValueError("The previous saved document failed its integrity check.")
+    inherited = saved_source_tickets(draft, current if current else draft)
+    new_tickets = [] if source_tickets is None else source_tickets
+    ticket_evidence(inherited, rendition=draft.rendition)
+    ticket_evidence(
+        new_tickets, rendition=draft.rendition, draft_id=ticket_draft_id,
+        revision=expected_revision, reviewer=reviewer, check_scope=True,
+    )
+    retained_tickets = list(dict.fromkeys([*inherited, *new_tickets]))
+    additional_assets = ticket_evidence(retained_tickets, rendition=draft.rendition)
     if editorial is None:
         editorial = current.editorial if current else draft.evidence.get(
             "correction_origin", {},
@@ -351,7 +370,7 @@ def save_revision(draft, reviewer, document, expected_revision, *,
         draft.document["metadata"], document["metadata"],
     )
     document = canonical_document(document)
-    issues = document_issues(document, set(draft.evidence["assets"]))
+    issues = document_issues(document, set(draft.evidence["assets"]) | set(additional_assets))
     sections = [] if verified_sections is None else verified_sections
     if (
         not isinstance(sections, list)
@@ -378,5 +397,6 @@ def save_revision(draft, reviewer, document, expected_revision, *,
             "version": 1, "draft": str(draft.pk), "revision": expected_revision,
             "document_digest": current.document_digest if current else draft.document_digest,
             "evidence_digest": draft.evidence_digest, "app": versions.APP_VERSION,
+            "source_tickets": retained_tickets,
         },
     )

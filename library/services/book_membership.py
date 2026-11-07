@@ -55,7 +55,7 @@ def preview_membership(book, url, action, *, undo=None):
         raise ValueError("Choose a root work in the active catalogue profile.")
     parent = Document.objects.filter(url=book.url).first()
     edition = parent.latest() if parent else None
-    if not edition or not edition.structure.get("book"):
+    if not edition or not parent.renditions.filter(structure__book=True).exists():
         raise ValueError("The catalogue work needs an available book edition.")
     url = canonical_url(url)
     adapter_for(url)

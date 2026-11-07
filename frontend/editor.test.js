@@ -1404,7 +1404,7 @@ test("sidebar context actions edit details and drag sections before inside and a
   assert(editor.getHTML().includes('href="#n"'));
 });
 
-test("section source dialog clears stale choices and loads only explicitly retained URLs", async t => {
+test("section source dialog proposes current members and inspects arbitrary URLs offline", async t => {
   const previousFetch = globalThis.fetch;
   const previousLocation = globalThis.location;
   globalThis.location = dom.window.location;
@@ -1417,9 +1417,16 @@ test("section source dialog clears stale choices and loads only explicitly retai
     const url = new URL(endpoint);
     requests.push(url);
     if (requests.length === 1) await first;
-    const number = Number(url.searchParams.get("page") || 0);
+    const requested = url.searchParams.get("url");
+    if (requested === "https://example.org/unretained") {
+      return {ok: false, headers: new Map([["Content-Type", "application/json"]]),
+        json: async () => ({error: "No retained source. Capture it first."})};
+    }
+    const number = requested ? Math.max(0, pages.findIndex(page => page.url === requested))
+      : Number(url.searchParams.get("page") || 0);
     const data = {
-      pages, page: number, url: pages[number].url, snapshot: 1, blocks: [],
+      pages, page: number, url: requested || pages[number].url, snapshot: 1, blocks: [],
+      members: [{url: pages[1].url, title: "Current member"}],
       candidates: [{kind: "Parsed heading range", title: "Appendix", blocks: [0]}],
     };
     return {ok: true, headers: new Map([["Content-Type", "application/json"]]), json: async () => data};
@@ -1438,22 +1445,79 @@ test("section source dialog clears stale choices and loads only explicitly retai
   await new Promise(setImmediate);
   assert(!dialog.querySelector("[data-url]").disabled);
   assert.equal(dialog.querySelector("[name=page]").options.length, 2);
+  assert.equal(dialog.querySelector("[name=member]").options[1].value, pages[1].url);
   dialog.querySelector("[name=url]").value = "https://example.org/unretained";
   dialog.querySelector("[data-url]").click();
-  assert(dialog.querySelector("[role=alert]").textContent.includes("not retained"));
-  assert.equal(requests.length, 1, "An unretained URL never causes a network fetch.");
-  dialog.querySelector("[name=url]").value = pages[1].url;
-  dialog.querySelector("[data-url]").click();
+  await new Promise(setImmediate);
+  assert(dialog.querySelector("[role=alert]").textContent.includes("Capture"));
+  assert.equal(requests[1].pathname, "/versions/80/editor/source/",
+    "Inspection only calls the local endpoint, never the source URL.");
+  dialog.querySelector("[name=member]").value = pages[1].url;
+  dialog.querySelector("[name=member]").dispatchEvent(new dom.window.Event("change"));
   assert(dialog.querySelector("[name=source]").disabled);
   await new Promise(setImmediate);
   assert.equal(dialog.querySelector("[name=page]").value, "1");
-  assert.equal(requests[1].searchParams.get("draft"), "known-draft");
+  assert.equal(requests[2].searchParams.get("draft"), "known-draft");
+  dialog.querySelector("[name=url]").value = "https://example.org/nonmember";
+  dialog.querySelector("[data-url]").click();
+  await new Promise(setImmediate);
+  assert.equal(requests[3].searchParams.get("url"), "https://example.org/nonmember");
   dialog.querySelector("[data-cancel]").click();
   form.querySelector("#editor-add-section-open").click();
   assert.equal(dialog.querySelector("[name=page]").options.length, 0,
     "Reopening cannot expose stale choices while loading.");
   await new Promise(setImmediate);
   assert.equal(dialog.querySelector("[name=page]").value, "0");
+});
+
+test("external section previews carry evidence and reject stale insertion", async t => {
+  const previousFetch = globalThis.fetch, previousLocation = globalThis.location;
+  globalThis.location = dom.window.location;
+  t.after(() => { globalThis.fetch = previousFetch; globalThis.location = previousLocation; });
+  let revision = 2;
+  const tokens = [];
+  globalThis.fetch = async endpoint => {
+    const url = new URL(endpoint);
+    const sourceUrl = url.searchParams.get("url") || "https://example.org/base";
+    const selection = url.searchParams.has("blocks");
+    const data = {
+      pages: [{number: 0, url: sourceUrl}], page: 0, url: sourceUrl, snapshot: 1,
+      members: [], blocks: [{index: 0, tag: "p", text: "External"}],
+      candidates: [{kind: "Parsed heading range", title: "External", blocks: [0]}],
+      ...(selection ? {html: "<p>External</p>", repairs: [], source_ticket: "signed-preview"} : {}),
+    };
+    return {ok: true, headers: new Map([["Content-Type", "application/json"]]),
+      json: async () => data};
+  };
+  const form = mountSectionWorkspace('<section id="main"><h2>Main</h2></section>', {
+    sourceRevision: () => revision,
+    registerSource: token => { if (token) tokens.push(token); },
+    unregisterSource: token => tokens.splice(tokens.indexOf(token), 1),
+  });
+  form.querySelector("#editor-source-open").dataset.sourceUrl = "/versions/80/editor/source/";
+  const history = document.createElement("a");
+  history.id = "editor-history";
+  history.href = "/versions/80/editor/history/?draft=known-draft";
+  document.body.prepend(history);
+  form.querySelector("#editor-add-section-open").click();
+  await new Promise(setImmediate);
+  const dialog = document.querySelector("#editor-add-section");
+  dialog.querySelector("[name=url]").value = "https://example.org/nonmember";
+  dialog.querySelector("[data-url]").click();
+  await new Promise(setImmediate);
+  dialog.querySelector("[name=candidate]").value = "0";
+  dialog.querySelector("[name=candidate]").dispatchEvent(new dom.window.Event("change"));
+  dialog.querySelector("[data-load]").click();
+  await new Promise(setImmediate);
+  revision++;
+  dialog.querySelector("[data-apply]").click();
+  assert.match(dialog.querySelector("[role=alert]").textContent, /draft changed/i);
+  assert.deepEqual(tokens, []);
+  dialog.querySelector("[data-load]").click();
+  await new Promise(setImmediate);
+  dialog.querySelector("[data-apply]").click();
+  assert.deepEqual(tokens, ["signed-preview"]);
+  assert.match(editor.getHTML(), /External/);
 });
 
 test("anchor navigation hands inline target to Target ID and renames every marked run and reference", () => {

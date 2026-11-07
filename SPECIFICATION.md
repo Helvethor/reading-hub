@@ -681,8 +681,15 @@ source mapping or new training labels are claimed.
 
 **Add / restore section** also offers original edition parts, parsed retained
 heading ranges, current named excerpts bound to the exact retained source digest,
-and individual source blocks. URL selection resolves only pages already in the
-edition's retained snapshot; it never silently fetches a live URL. Original
+and individual source blocks. It also proposes current global catalogue-member
+URLs and resolves supported arbitrary retained URLs independently of membership.
+Missing pages require explicit capture/import, never an implicit fetch. External
+source previews carry signed page, snapshot/manifest and selected-asset bindings
+scoped to reviewer/profile/edition/draft/revision. Saving retains that evidence in
+revision lineage and branching ancestry without changing the immutable draft base.
+Recovery tickets have no expiry, but require the stable local signing key and
+retained source/asset bytes; forged, cross-scope or corrupt evidence refuses.
+External images must already be retained in an imported snapshot. Original
 section restoration keeps a missing section ID and unused original descendant
 IDs, recovering existing inbound links; conflicting descendant IDs and inserted
 internal links remap together. Existing content is never replaced automatically. When the

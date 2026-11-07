@@ -19,12 +19,20 @@ built offline only on explicit detach confirmation; no parent/donor book rebuild
 Historical ordered `/organization` mutations are retired; evidence is retained.
 Add section offers current member sources and supported retained non-member URLs.
 Missing pages require explicit capture/import; insertion does not attach them.
+External images need an imported snapshot retaining their bytes. Signed insertion
+evidence survives tab recovery and saved revision/branch lineage; keep the signing
+key stable and source/blob backups intact.
 Ordinary saves must not mutate other works or replace corrected documents. See the
 [current workflow contract](../SPECIFICATION.md#primary-correction-workflow-reconciled-2026-11-06)
 and [remaining acceptance work](../TASKS.md#current-milestone--complete-the-single-page-reviewer-workspace).
 Global maintenance and optional experiments are not publication-tailoring steps.
 
 ## 1. Local setup and start
+
+The revamped membership page requires additive migration `0029_book_membership`.
+Back up the live database and retained blobs before applying migrations through
+the normal deployment/setup workflow. Implementation tests used isolated databases;
+the live migration was not applied as part of this change.
 
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
@@ -442,11 +450,11 @@ still require exact revalidation; no historical revision is rewritten.
 Historical dataset imports retain strict baseline verification and may require
 revalidation against the newly exposed index body.
 
-To include source-index Endnotes in an already reviewed book, open its content
-organization, choose **Include index section: Endnotes**, set the desired role
-and position, and preview before confirming with a reason. Editing the selected
-index source controls parsing/exclusion but does not change saved membership.
-No source refresh is required when the index and chapters are already retained.
+To include source-index Endnotes, use editor **Add / restore section**, select
+the retained index and its parsed heading range or source blocks, preview content,
+then choose section title/role/placement in the editor. Save and explicitly
+publish through the normal document workflow. This does not change membership.
+The older **Include index section** organization control is retired.
 
 ### Quotation and source review
 
@@ -639,8 +647,9 @@ before write operations. These commands do not authorize changing crawl states.
 Removing `--dry-run` from proposal generation saves pending review suggestions,
 not accepted facts. Metadata rebuild respects active catalogue overlays.
 Classification preserves captures/history; book registration publishes
-membership only when a matching complete rendition is available. Use the
-reviewed organization preview workflow for editorial organization changes.
+membership only when a matching complete rendition is available; explicit
+catalogue membership decisions are never overwritten. Use the separate membership
+page for ownership and the editor for editorial section changes.
 Unknown metadata is not an error to be filled with guesses.
 
 The profile's `topic_rules` use literal whole-word, case/accent-insensitive

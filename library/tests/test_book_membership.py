@@ -129,6 +129,18 @@ class BookMembershipTests(TestCase):
         self.book.save(update_fields=["structure"])
         self.assertEqual(member_destination(document), (self.book, ""))
 
+    def test_current_article_layout_does_not_erase_global_book_membership(self):
+        current = Rendition.objects.create(
+            document=self.book.document, snapshot=self.book.snapshot,
+            identity="1" * 64, output_digest="2" * 64, title=self.book.title,
+            html="<p>Selected book content.</p>", structure={"book": False, "parts": [], "toc": []},
+        )
+        url = self.spec["parts"][1]["url"]
+        document = Document.objects.create(url=url)
+        self.assertEqual(member_destination(document), (current, ""))
+        proposal = self.preview(url, "detach")
+        self.assertEqual(proposal["parent_rendition"], current.pk)
+
     def test_permission_csrf_and_tampered_confirmation(self):
         url = reverse("document-editor-membership", args=[self.book.pk])
         strict = Client(enforce_csrf_checks=True)
