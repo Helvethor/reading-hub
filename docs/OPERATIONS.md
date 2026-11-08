@@ -541,6 +541,22 @@ resets review to partial and does not publish or overwrite the historical editio
 
 ### Preview-first retained-image recovery
 
+Local deployment (2026-11-08): image-host fix `4c3a584` runs from the isolated
+committed release at `data/releases/4c3a584`, keeping unrelated worktree edits
+out of the running service. The web process listens only on `127.0.0.1:8765`;
+all six previously active workers run that release at their existing 1024 MiB
+limits. Home, version 93 and the rebuilt editor bundle returned HTTP 200.
+Before deployment, the SQLite backup API and verified copies of all 5,014 blobs
+and the private signing key created
+`data/backups/image-host-deploy-20261108T184400Z/`. Pending committed migration
+0033 was rehearsed on a database copy, preserving every library row, then
+applied locally. Live integrity checks passed and all pre-existing
+non-operational library rows survived; concurrent editing added new rows.
+A real recovery preview using the deployed release verified all eight failed
+images in snapshot 42. Recovery was not applied: historical version 93,
+publications and selected reader targets were not changed by deployment.
+The separate port-8000 service was not touched.
+
 The Marxist profile permits `media.marxist.com` as an asset-only host, including
 in the dark theme. WebP, JPEG, PNG and GIF still require matching response types
 and verified raster bytes; arbitrary subdomains are not allowed. This shared
