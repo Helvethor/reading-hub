@@ -9,6 +9,10 @@ from django.views.decorators.http import require_GET, require_http_methods
 from library.metadata_views import metadata_reviewer_required
 from library.models import Annotation, BookMembershipDecision, Document, Rendition
 from library.profile import get_profile
+from library.services.book_generation import (
+    generate_from_membership,
+    preview_membership_generation,
+)
 from library.services.book_membership import (
     catalogue_book,
     commit_membership,
@@ -21,6 +25,7 @@ from library.services.organizations import member_destination
 from library.sources.adapters import adapter_for
 
 SALT = "catalogue-membership-v1"
+GENERATION_SALT = "book-membership-generation-v1"
 
 
 def membership_root(version):
@@ -65,6 +70,45 @@ def editor_membership(request, pk):
                 context["saved_decision"] = commit_membership(
                     payload["preview"], request.user, payload["reason"],
                 )
+            elif action == "generation-preview":
+                if not reason or len(reason) > 2000:
+                    raise ValueError("Explain this source-generated book in 1-2000 characters.")
+                generation = preview_membership_generation(book)
+                context["generation_preview"] = generation
+                context["generation_reason"] = reason
+                context["generation_token"] = signing.dumps(
+                    {
+                        "reviewer": request.user.pk,
+                        "book": book.pk,
+                        "profile": get_profile().key,
+                        "reason": reason,
+                        "revision": generation["revision"],
+                        "digest": generation["digest"],
+                    },
+                    salt=GENERATION_SALT,
+                    compress=True,
+                )
+            elif action == "generation-apply":
+                payload = signing.loads(
+                    request.POST.get("generation_token", ""),
+                    salt=GENERATION_SALT,
+                    max_age=1800,
+                )
+                if (
+                    payload["reviewer"] != request.user.pk
+                    or payload["book"] != book.pk
+                    or payload["profile"] != get_profile().key
+                ):
+                    raise ValueError("This generation preview belongs to another reviewer or work.")
+                if request.POST.get("confirm") != "yes":
+                    raise ValueError("Explicitly confirm generating this source edition.")
+                context["generated_rendition"] = generate_from_membership(
+                    book,
+                    request.user,
+                    payload["reason"],
+                    payload["revision"],
+                    payload["digest"],
+                )
             else:
                 if not reason or len(reason) > 2000:
                     raise ValueError("Explain the membership change in 1-2000 characters.")
@@ -94,6 +138,11 @@ def editor_membership(request, pk):
     if book:
         context["members"] = book.chapters.order_by("url")
         context["decisions"] = decisions_for(book)
+        from library.models import BookMembershipGeneration
+
+        context["generation_history"] = BookMembershipGeneration.objects.filter(
+            rendition__document__url=book.url,
+        ).select_related("rendition", "reviewer").order_by("-created_at", "-pk")[:20]
     response = render(
         request, "library/editor_membership.html", context,
         status=422 if context.get("error") else 200,

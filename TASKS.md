@@ -4,7 +4,7 @@ Direction reconciled 2026-11-06 for a single-page reviewer workspace. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
-## Current delivery: catalogue membership / editor separation (2026-11-07)
+## Completed delivery: catalogue membership / editor separation (2026-11-07)
 
 - [x] Replace the ordered membership editor with a separate catalogue-level
   attach/detach page. Preview routing, confirm with a reason, retain audited undo;
@@ -30,6 +30,29 @@ status, not a second description of product behavior.
   through reopen, branch and publication. Frontend interaction evidence is
   jsdom, not native browser or representative accessibility acceptance.
   Additive migration 0029 is provided but has not been applied to live data.
+
+## Current delivery: work-centred versions and membership generation (2026-11-08)
+
+- [x] Normalize immutable work-version identities and correction branches.
+  Bind publications to their exact saved content version, preserve review-only
+  events without duplicate content identities, and map unverifiable ancestry to
+  unknown rather than guessing.
+- [x] Add an independent, audited reader target with stale-preview protection,
+  explicit reviewer selection, reader routing and non-explicit source fallback.
+- [x] Generate source editions from current catalogue membership with retained
+  contents-page ordering, deterministic warnings for unresolved member order,
+  bound capture/snapshot/correction/asset evidence, missing-content refusal,
+  stale-preview invalidation and unchanged-output reuse.
+- [x] Verify migrations 0031 and 0032 on a private SQLite backup. Protected
+  source, rendition, draft, revision and publication rows/hashes remained
+  unchanged; normalized links, evidence digests, ancestry and previous effective
+  reader targets passed integrity assertions. The live database remains at 0030.
+- [x] Pass 109 focused Django tests across organization/generation, lineage,
+  editing, publication and pipeline behavior; scoped Ruff, Django checks and
+  migration consistency also pass.
+- [ ] Back up database and retained blobs, then deploy migrations 0031-0032 to
+  the authorized local-only service and verify preserved targets, versions,
+  membership and reader workflows. Do not publish or edit real documents.
 
 ## Goal and guardrails
 

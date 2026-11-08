@@ -33,6 +33,44 @@
       <p>Use a supported retained URL. Missing pages must be captured/imported first; this page never fetches. A URL owned by another book must be detached there first.</p>
     </fieldset>
   </form>
+  <section aria-labelledby="membership-generation-title">
+    <h2 id="membership-generation-title">Generate a book from current membership</h2>
+    <p>This creates a source-generated edition from the currently attached URLs. Listed members follow the retained contents-page order; members without a retained ordering are appended with a warning, and listed non-members are excluded with a warning. It does not change membership, drafts or saved publications. An explicitly selected reader version remains selected.</p>
+    {% if generated_rendition %}
+      <p class="notice" role="status">Source edition saved as version {{ generated_rendition.pk }}. <a href="{% url 'reader' generated_rendition.pk %}">Open generated edition</a>.</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="generation-preview">
+      <label>Reason <input name="reason" maxlength="2000" required></label>
+      <button type="submit">Preview source-generated book</button>
+    </form>
+    {% if generation_preview %}
+      <section id="book-generation-preview" aria-label="Book generation preview">
+        <h3>Review membership-seeded edition</h3>
+        <p>{{ generation_preview.members|length }} member URLs will be included in {{ generation_preview.title }}.</p>
+        <ul>
+          {% for url in generation_preview.members %}<li>{{ url }}</li>{% endfor %}
+        </ul>
+        {% if generation_preview.existing_rendition %}
+          <p>The output matches existing version {{ generation_preview.existing_rendition }}; confirmation will reuse it.</p>
+        {% endif %}
+        {% for warning in generation_preview.warnings %}
+          <p class="notice warning" role="status">{{ warning }}</p>
+        {% empty %}
+          <p>No unresolved ordering or retained-asset warnings.</p>
+        {% endfor %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="generation-apply">
+          <input type="hidden" name="generation_token" value="{{ generation_token }}">
+          <label><input type="checkbox" name="confirm" value="yes" required> Confirm generating this source edition from the reviewed membership and retained evidence.</label>
+          <p>Reason: {{ generation_reason }}. Confirmation expires in 30 minutes; changed membership or retained evidence requires another preview.</p>
+          <button type="submit">Generate source edition</button>
+        </form>
+      </section>
+    {% endif %}
+  </section>
   {% if preview %}
     <section id="membership-preview" aria-label="Membership routing preview">
       <h2>Preview catalogue routing change</h2>
@@ -70,5 +108,13 @@
       </form>
     </details>
   {% empty %}<p>No catalogue-only membership decisions. Historical ordered organization evidence remains retained.</p>{% endfor %}
+  <h2>Membership-seeded generation history</h2>
+  {% for generation in generation_history %}
+    <details>
+      <summary>Version {{ generation.rendition_id }} — {{ generation.created_at }} — {{ generation.reviewer }}</summary>
+      <p>{{ generation.reason }}</p>
+      <p>Binding {{ generation.binding_digest }}: {{ generation.binding.membership|length }} member URLs, {{ generation.binding.sources|length }} retained pages, {{ generation.binding.assets|length }} asset references.</p>
+    </details>
+  {% empty %}<p>No membership-seeded editions have been generated.</p>{% endfor %}
 </div>
 {% endblock %}

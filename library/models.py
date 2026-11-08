@@ -316,6 +316,25 @@ class DocumentReaderSelection(ImmutableDocumentEvidence):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class BookMembershipGeneration(ImmutableDocumentEvidence):
+    rendition = models.ForeignKey(
+        Rendition, on_delete=models.PROTECT, related_name="membership_generations",
+    )
+    binding = models.JSONField()
+    binding_digest = models.CharField(max_length=64)
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rendition", "binding_digest"],
+                name="unique_book_membership_generation_binding",
+            ),
+        ]
+
+
 class ReviewerTask(ImmutableDocumentEvidence):
     starting_draft = models.ForeignKey(DocumentDraftBase, on_delete=models.PROTECT)
     title = models.CharField(max_length=200)

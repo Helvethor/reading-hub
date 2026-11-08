@@ -12,6 +12,8 @@ from django.urls import reverse
 
 from library.models import (
     Annotation,
+    Blob,
+    BookMembershipGeneration,
     CatalogueEntry,
     ContentOrganization,
     ContentOrganizationDecision,
@@ -20,12 +22,20 @@ from library.models import (
     DocumentDraftBase,
     DocumentEditRevision,
     DocumentPublication,
+    DocumentVersion,
     Job,
     PageTypeDecision,
     Rendition,
+    RenditionAsset,
+    Snapshot,
     SourceCorrection,
 )
+from library.services.book_generation import (
+    generate_from_membership,
+    preview_membership_generation,
+)
 from library.services.catalogue import configured_sites, register_book
+from library.services.document_lineage import build_lineage
 from library.services.errors import ImportFailure
 from library.services.fetch import Fetcher, Response
 from library.services.organizations import (
@@ -35,8 +45,8 @@ from library.services.organizations import (
     preview_change,
     undo_plan,
 )
-from library.services.pipeline import claim_job, enqueue, process_job
-from library.services.storage import save_response
+from library.services.pipeline import claim_job, enqueue, process_job, snapshot_digest
+from library.services.storage import save_response, store_blob
 from library.tests.test_sources import ARTICLE, BOOK, article_html, book_index, chapter
 
 
@@ -442,6 +452,219 @@ class OrganizationTests(TestCase):
         )
         self.assertEqual(CatalogueEntry.objects.get(url=ARTICLE).book.url, BOOK)
         self.assertEqual(current_spec(BOOK), changed)
+
+    def test_membership_generation_binds_sources_and_reuses_unchanged_version(self):
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        preview = preview_membership_generation(book_entry)
+        self.assertEqual(preview["url"], BOOK)
+        self.assertEqual(
+            set(preview["members"]),
+            {entry.url for entry in book_entry.chapters.all()},
+        )
+        self.assertEqual(
+            len(preview["binding"]["membership"]),
+            book_entry.chapters.count(),
+        )
+        self.assertEqual(
+            set(preview["binding"]["sources"]),
+            {BOOK, *preview["members"]},
+        )
+        self.assertIn("assets", preview["binding"])
+
+        before = (Rendition.objects.count(), DocumentVersion.objects.count())
+        first = generate_from_membership(
+            book_entry, self.reviewer, "Generate from current membership.",
+            preview["revision"], preview["digest"],
+        )
+        after_first = (Rendition.objects.count(), DocumentVersion.objects.count())
+        self.assertEqual(after_first, before)
+        first_version = first.document_version
+        generation = BookMembershipGeneration.objects.get()
+        self.assertEqual(generation.rendition_id, first.pk)
+        self.assertEqual(generation.binding, preview["binding"])
+        self.assertEqual(generation.reviewer_id, self.reviewer.pk)
+        self.assertEqual(generation.reason, "Generate from current membership.")
+        self.assertEqual(first_version.evidence.get("book_membership_binding"), None)
+        generation.reason = "Changed evidence"
+        with self.assertRaisesMessage(ValueError, "immutable"):
+            generation.save()
+        lineage_node = build_lineage(first.document)["nodes"][f"edition:{first.pk}"]
+        self.assertIn(
+            ("Membership binding digest", generation.binding_digest),
+            lineage_node["details"],
+        )
+        self.assertEqual(lineage_node["integrity_errors"], [])
+        self.assertEqual(first.document.latest().pk, first.pk)
+
+        next_preview = preview_membership_generation(book_entry)
+        self.assertEqual(next_preview["existing_rendition"], first.pk)
+        second = generate_from_membership(
+            book_entry, self.reviewer, "Confirm unchanged generated source.",
+            next_preview["revision"], next_preview["digest"],
+        )
+        self.assertEqual(second.pk, first.pk)
+        self.assertEqual(
+            (Rendition.objects.count(), DocumentVersion.objects.count()), after_first,
+        )
+        self.assertEqual(BookMembershipGeneration.objects.count(), 1)
+
+        Document.objects.filter(pk=first.document_id).update(
+            reader_rendition=self.book, reader_selection_explicit=True,
+        )
+        current_preview = preview_membership_generation(book_entry)
+        generate_from_membership(
+            book_entry, self.reviewer, "Keep explicit reader choice.",
+            current_preview["revision"], current_preview["digest"],
+        )
+        first.document.refresh_from_db()
+        self.assertEqual(first.document.reader_target().pk, self.book.pk)
+        self.assertTrue(first.document.reader_selection_explicit)
+
+    def test_membership_generation_warns_for_unordered_member_and_refuses_missing_source(self):
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        enqueue(ARTICLE)
+        process_job(claim_job())
+        article_entry, _ = CatalogueEntry.objects.get_or_create(
+            site=self.sites["communistusa.org"], url=ARTICLE, defaults={"title": "Standalone"},
+        )
+        response = Response(ARTICLE, article_html(), "text/html", {})
+        CrawlCapture.objects.create(
+            site=self.sites["communistusa.org"],
+            url=ARTICLE,
+            response=save_response(response, ARTICLE),
+        )
+        article_entry.book = book_entry
+        article_entry.save(update_fields=["book"])
+
+        preview = preview_membership_generation(book_entry)
+        self.assertEqual(preview["specification"]["parts"][-1]["url"], ARTICLE)
+        self.assertTrue(any(ARTICLE in warning for warning in preview["warnings"]))
+        self.assertEqual(
+            preview["binding"]["sources"][ARTICLE]["kind"],
+            "capture",
+        )
+        generated = generate_from_membership(
+            book_entry, self.reviewer, "Include the retained member.",
+            preview["revision"], preview["digest"],
+        )
+        self.assertEqual(
+            generated.document_version.evidence["book_membership_binding"],
+            preview["binding"],
+        )
+        self.assertEqual(
+            build_lineage(generated.document)["nodes"][f"edition:{generated.pk}"][
+                "integrity_errors"
+            ],
+            [],
+        )
+        generated.document.refresh_from_db()
+        self.assertEqual(generated.document.reader_target().pk, generated.pk)
+        self.assertFalse(generated.document.reader_selection_explicit)
+
+        missing_url = "https://www.marxists.org/francais/test/unretained.htm"
+        CatalogueEntry.objects.create(
+            site=self.sites["www.marxists.org"],
+            url=missing_url,
+            title="Unretained member",
+            book=book_entry,
+        )
+        with self.assertRaisesMessage(ValueError, "Missing retained pages"):
+            preview_membership_generation(book_entry)
+
+    def test_membership_generation_refuses_a_stale_preview(self):
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        preview = preview_membership_generation(book_entry)
+        member = book_entry.chapters.first()
+        member.membership_reviewed = True
+        member.save(update_fields=["membership_reviewed"])
+        count = Rendition.objects.count()
+
+        with self.assertRaisesMessage(ValueError, "changed since preview"):
+            generate_from_membership(
+                book_entry, self.reviewer, "Stale membership preview.",
+                preview["revision"], preview["digest"],
+            )
+        self.assertEqual(Rendition.objects.count(), count)
+
+    def test_membership_generation_binds_retained_assets_to_new_version(self):
+        body = b"retained generation asset"
+        digest = store_blob(body)
+        Blob.objects.create(digest=digest, media_type="image/png", size=len(body))
+        manifest = {
+            "pages": self.book.snapshot.manifest["pages"],
+            "assets": {
+                "https://www.marxists.org/test/generation-asset.png": {
+                    "digest": digest,
+                    "media_type": "image/png",
+                    "size": len(body),
+                },
+            },
+        }
+        Snapshot.objects.create(
+            document=self.book.document,
+            digest=snapshot_digest(manifest),
+            manifest=manifest,
+            warnings=[],
+        )
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        preview = preview_membership_generation(book_entry)
+        asset_url = "https://www.marxists.org/test/generation-asset.png"
+        self.assertEqual(preview["binding"]["assets"][asset_url]["digest"], digest)
+        self.assertIn(asset_url, preview["binding"]["asset_sources"])
+
+        generated = generate_from_membership(
+            book_entry, self.reviewer, "Bind retained asset evidence.",
+            preview["revision"], preview["digest"],
+        )
+        self.assertEqual(
+            generated.document_version.evidence["book_membership_binding"],
+            preview["binding"],
+        )
+        self.assertTrue(
+            RenditionAsset.objects.filter(rendition=generated, blob_id=digest).exists()
+        )
+
+    def test_membership_generation_view_requires_confirmation_and_fresh_preview(self):
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        url = reverse("document-editor-membership", args=[self.book.pk])
+        before = Rendition.objects.count()
+        preview = self.client.post(url, {
+            "action": "generation-preview",
+            "reason": "Build from current catalogue membership.",
+        })
+        self.assertEqual(preview.status_code, 200)
+        self.assertContains(preview, "Review membership-seeded edition")
+        token = preview.context["generation_token"]
+
+        unconfirmed = self.client.post(url, {
+            "action": "generation-apply", "generation_token": token,
+        })
+        self.assertEqual(unconfirmed.status_code, 422)
+        self.assertEqual(BookMembershipGeneration.objects.count(), 0)
+
+        member = book_entry.chapters.first()
+        member.membership_reviewed = True
+        member.save(update_fields=["membership_reviewed"])
+        stale = self.client.post(url, {
+            "action": "generation-apply", "generation_token": token, "confirm": "yes",
+        })
+        self.assertEqual(stale.status_code, 422)
+        self.assertContains(stale, "changed since preview", status_code=422)
+        self.assertEqual(Rendition.objects.count(), before)
+        self.assertEqual(BookMembershipGeneration.objects.count(), 0)
+
+        fresh = self.client.post(url, {
+            "action": "generation-preview",
+            "reason": "Build from current catalogue membership.",
+        })
+        generated = self.client.post(url, {
+            "action": "generation-apply",
+            "generation_token": fresh.context["generation_token"],
+            "confirm": "yes",
+        })
+        self.assertEqual(generated.status_code, 200)
+        self.assertContains(generated, "Source edition saved")
+        self.assertEqual(BookMembershipGeneration.objects.count(), 1)
 
     def test_take_member_from_another_book_rebuilds_donor(self):
         second_url = BOOK.replace("/test/", "/second/")

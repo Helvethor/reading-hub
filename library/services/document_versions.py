@@ -19,7 +19,7 @@ class ReaderSelectionConflict(ValueError):
 
 
 @transaction.atomic
-def version_for_rendition(rendition):
+def version_for_rendition(rendition, *, generation_evidence=None):
     rendition = Rendition.objects.select_related("document", "snapshot").get(pk=rendition.pk)
     if rendition.document_version_id:
         version = rendition.document_version
@@ -35,6 +35,11 @@ def version_for_rendition(rendition):
         "snapshot": rendition.snapshot_id,
         "snapshot_digest": rendition.snapshot.digest,
     }
+    membership_binding = rendition.snapshot.manifest.get("book_membership_binding")
+    if isinstance(membership_binding, dict):
+        evidence["book_membership_binding"] = membership_binding
+    if isinstance(generation_evidence, dict):
+        evidence.update(generation_evidence)
     version = DocumentVersion.objects.create(
         document_id=rendition.document_id,
         origin=DocumentVersion.Origin.SOURCE_GENERATED,

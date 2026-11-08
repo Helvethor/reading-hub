@@ -131,7 +131,7 @@ class CorrectionHistoryTests(TestCase):
         query = f"?draft={self.draft.pk}&revision=1"
         response = self.client.get(self.history + query)
         self.assertEqual(response.context["selected"]["row"], row)
-        self.assertContains(response, "Start a separate correction")
+        self.assertContains(response, "Start an alternative from this exact saved version")
         self.assertEqual(DocumentDraftBase.objects.count(), before)
         secure = Client(enforce_csrf_checks=True)
         secure.force_login(self.reviewer)

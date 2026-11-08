@@ -804,6 +804,38 @@ infrastructure or controlled reviewer trials the next prerequisite for workflow
 improvements. It does not waive preservation checks, accessibility validation or
 evidence-based model-promotion gates.
 
+### Work-centred version identity and reader selection (implemented 2026-11-08)
+
+Each immutable content version belongs to one catalogue work and records its
+semantic content digest, retained-source evidence, origin and verified ancestry.
+Correction branches separately identify their base version and exact starting
+revision event. Review-only saves remain review records on the same content
+identity. A generated rendition is bound to the exact saved version it publishes;
+rendered publication HTML is not treated as an editable source identity.
+
+Reader routing uses a work's selected reader target, independently of the latest
+source-generated edition used by generation and maintenance. Reviewers can
+explicitly select a retained non-archived rendition with confirmation and a
+reason; stale selections conflict, and every change is audited. Source generation
+advances only a non-explicit fallback. The additive migration preserves each
+work's previously effective reader target.
+
+Catalogue membership can seed a confirmed source-generated book edition without
+changing membership, editor drafts or saved publications. Listed members follow
+the retained contents-page order; current members absent from that source order
+are appended deterministically with warnings. Generation binds the membership
+state, source captures/snapshots, source corrections and retained asset references.
+Missing retained pages, changed previews and unsupported book indexes refuse
+explicitly. Identical output reuses the existing rendition; the immutable
+generation record preserves the exact membership/input binding even when output
+is reused.
+
+Migrations `0031_work_versions_reader_selection` and
+`0032_book_membership_generation` are additive. Their mapping was rehearsed on an
+isolated SQLite backup with protected source, edition, draft, revision and
+publication rows verified unchanged; deployment state is recorded in
+[Operations](docs/OPERATIONS.md).
+
 ### Earlier semantic-editing direction (2026-10-23, retained constraints)
 
 - Replace operation-first review as the primary experience with constrained

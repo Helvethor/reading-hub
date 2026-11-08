@@ -448,7 +448,10 @@ def format_rendition(manifest, asset_warnings, organization=None, *,
 
 
 @transaction.atomic
-def publish(job, manifest, asset_warnings, *, organization=None, register_membership=True):
+def publish(
+    job, manifest, asset_warnings, *, organization=None, register_membership=True,
+    generation_evidence=None,
+):
     from library.services.organizations import lock_organization
 
     lock_organization()
@@ -505,7 +508,9 @@ def publish(job, manifest, asset_warnings, *, organization=None, register_member
         )
         from library.services.document_versions import version_for_rendition
 
-        version_for_rendition(rendition)
+        rendition.document_version = version_for_rendition(
+            rendition, generation_evidence=generation_evidence,
+        )
         for asset in manifest["assets"].values():
             if "digest" in asset:
                 RenditionAsset.objects.get_or_create(rendition=rendition, blob_id=asset["digest"])

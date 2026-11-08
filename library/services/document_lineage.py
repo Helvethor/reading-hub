@@ -6,6 +6,7 @@ from datetime import datetime
 from django.db import transaction
 
 from library.models import (
+    BookMembershipGeneration,
     Document,
     DocumentDraftBase,
     DocumentEditRevision,
@@ -16,6 +17,7 @@ from library.models import (
     ReviewerRun,
     Snapshot,
 )
+from library.services.pipeline import fingerprint as output_fingerprint
 from library.services.pipeline import snapshot_digest
 from library.services.semantic_documents import fingerprint
 
@@ -161,7 +163,16 @@ def build_lineage(document, *, selected="", filter_name="all"):
         .order_by("draft_id", "revision"),
         "saved revisions",
     )
-    if len(snapshots) + len(renditions) + len(drafts) + len(revisions) > MAX_LINEAGE_ELEMENTS:
+    generations = _bounded(
+        BookMembershipGeneration.objects.filter(rendition__document=document)
+        .select_related("rendition", "reviewer")
+        .order_by("created_at", "pk"),
+        "membership-seeded generations",
+    )
+    if (
+        len(snapshots) + len(renditions) + len(drafts) + len(revisions)
+        + len(generations) > MAX_LINEAGE_ELEMENTS
+    ):
         raise LineageLimitExceeded(
             f"This work exceeds the {MAX_LINEAGE_ELEMENTS}-element lineage display limit."
         )
@@ -223,6 +234,9 @@ def build_lineage(document, *, selected="", filter_name="all"):
             latest_revision_by_draft.get(key, 0), row.revision,
         )
     snapshot_siblings = {}
+    generations_by_rendition = {}
+    for generation in generations:
+        generations_by_rendition.setdefault(generation.rendition_id, []).append(generation)
     for rendition in renditions:
         snapshot_siblings.setdefault(rendition.snapshot_id, []).append(rendition)
         try:
@@ -264,13 +278,42 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 ("Content origin", version.get_origin_display()),
                 ("Version ancestry", version.get_ancestry_display()),
             ])
+        generation_issues = []
+        for generation in generations_by_rendition.get(rendition.pk, []):
+            binding = generation.binding if isinstance(generation.binding, dict) else {}
+            try:
+                if fingerprint(generation.binding) != generation.binding_digest:
+                    generation_issues.append(
+                        f"Membership generation {generation.pk} binding digest does not match."
+                    )
+            except (TypeError, ValueError, RecursionError) as exc:
+                generation_issues.append(
+                    f"Membership generation {generation.pk} binding is corrupt: {exc}"
+                )
+            members = binding.get("membership")
+            sources = binding.get("sources")
+            assets = binding.get("assets")
+            details.extend([
+                ("Membership generation", generation.pk),
+                ("Membership binding digest", generation.binding_digest),
+                ("Bound member URLs", len(members) if isinstance(members, list) else "Unavailable"),
+                ("Bound retained pages", len(sources) if isinstance(sources, dict)
+                 else "Unavailable"),
+                ("Bound assets", len(assets) if isinstance(assets, dict) else "Unavailable"),
+                ("Generation reviewer", generation.reviewer.get_username()),
+                ("Generation reason", generation.reason),
+            ])
         try:
-            calculated_output_digest = fingerprint([
+            output_parts = [
                 rendition.html, rendition.structure, rendition.metadata,
                 rendition.title, rendition.stylesheet,
-            ])
+            ]
+            calculated_output_digests = {
+                fingerprint(output_parts),
+                output_fingerprint(output_parts),
+            }
             rendition_issue = (
-                "" if calculated_output_digest == rendition.output_digest else
+                "" if rendition.output_digest in calculated_output_digests else
                 "Edition output fingerprint does not match its stored digest."
             )
         except (TypeError, ValueError, RecursionError) as exc:
@@ -295,7 +338,9 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 "The generation input policy and any earlier correction ancestry were not "
                 "recorded for this edition."
             ) if not publication else "",
-            "integrity_errors": [rendition_issue] if rendition_issue else [],
+            "integrity_errors": (
+                ([rendition_issue] if rendition_issue else []) + generation_issues
+            ),
             "details": details,
             **({
                 "publication_draft_id": str(publication.revision.draft_id),
