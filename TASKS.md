@@ -46,13 +46,18 @@ status, not a second description of product behavior.
 - [x] Verify migrations 0031 and 0032 on a private SQLite backup. Protected
   source, rendition, draft, revision and publication rows/hashes remained
   unchanged; normalized links, evidence digests, ancestry and previous effective
-  reader targets passed integrity assertions. The live database remains at 0030.
-- [x] Pass 109 focused Django tests across organization/generation, lineage,
+  reader targets passed integrity assertions. This rehearsal preceded live
+  deployment.
+- [x] Pass 173 focused Django tests across organization/generation, lineage,
   editing, publication and pipeline behavior; scoped Ruff, Django checks and
   migration consistency also pass.
-- [ ] Back up database and retained blobs, then deploy migrations 0031-0032 to
-  the authorized local-only service and verify preserved targets, versions,
-  membership and reader workflows. Do not publish or edit real documents.
+- [x] Back up the live database and retained blobs, then apply migrations
+  0031-0032 to the authorized local-only service. Live row counts and hashes,
+  reader fallbacks, normalized lineage, database integrity and home/reader
+  routes passed post-deployment checks. The six-worker pool was restored with
+  its prior configuration. No real document, publication or membership was
+  changed; full-suite, human workflow and accessibility acceptance remain open.
+  See [Operations](docs/OPERATIONS.md) for the backup and deployment record.
 
 ## Goal and guardrails
 

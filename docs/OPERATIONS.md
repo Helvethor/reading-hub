@@ -45,6 +45,27 @@ created `data/backups/pre-lineage-deploy-20261107T164000Z/library.sqlite3`; its
 catalogue-organization counts were unchanged. This is not a public deployment;
 no document was edited or newly published.
 
+Local deployment status (2026-11-08): additive migrations
+`0031_work_versions_reader_selection` and
+`0032_book_membership_generation` are applied to `data/library.sqlite3`. Before
+deployment, the SQLite backup API created the private backup at
+`data/backups/pre-work-versions-deploy-20261108T112705Z/library.sqlite3`;
+`PRAGMA quick_check` passed. Its retained-blob copy matched all 5,012 files and
+319,470,626 bytes, and the unchanged signing key was copied privately with mode
+0600. The migration plan contained only 0031 and 0032. After migration,
+`PRAGMA quick_check` passed and `PRAGMA foreign_key_check` reported no
+violations. Counts for documents, snapshots, renditions, draft bases, revisions
+and publications remained 37, 41, 91, 11, 49 and 7; hashes of their
+pre-existing columns matched the backup. All 127 normalized versions and 11
+branches were present, with no unmapped rendition/draft/revision or lineage
+integrity errors. All 37 effective reader targets matched their prior latest
+rendition; the two publication-backed targets remain marked explicit. The local
+web process was restarted only on `127.0.0.1:8765`; home and an existing reader
+route returned HTTP 200. The six managed workers returned to running with their
+existing profile and 6 x 1024 MiB configuration. The separate port-8000 service
+was not touched. No real document, publication or membership was changed, and
+this was not a public deployment.
+
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
 Normal robots, fetch limits, URL/asset validation and immutable cache rules
