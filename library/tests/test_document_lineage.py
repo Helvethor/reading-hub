@@ -17,6 +17,7 @@ from library.models import (
     DocumentLineageArchive,
     DocumentLineageRestore,
     DocumentReaderSelection,
+    DocumentVersion,
     Rendition,
     RenditionAsset,
     Snapshot,
@@ -142,6 +143,38 @@ class DocumentLineageTests(TestCase):
 
         self.assertTrue(contains(filtered["tree"], publication_node["id"]))
         self.assertTrue(filtered["selected"]["context_only"])
+
+    def test_review_only_event_keeps_publication_continuation_on_same_content(self):
+        reviewed = self.save(review="partial")
+        publication = self.publish(self.draft, reviewed.revision)
+        review_event = self.save(
+            document=reviewed.document, revision=reviewed.revision, review="full",
+        )
+        self.assertEqual(
+            review_event.document_version_id, publication.revision.document_version_id,
+        )
+
+        lineage = build_lineage(
+            self.rendition.document, selected=f"edition:{publication.rendition_id}",
+        )
+        self.assertTrue(lineage["selected"]["publication_is_latest"])
+
+        self.client.force_login(self.reviewer)
+        response = self.client.get(
+            reverse("document-editor", args=[publication.rendition_id]),
+        )
+        self.assertRedirects(
+            response,
+            reverse("document-editor", args=[self.rendition.pk])
+            + f"?draft={self.draft.pk}",
+        )
+
+        version_count = DocumentVersion.objects.count()
+        continuation = branch_draft(self.draft, self.reviewer, review_event.revision)
+        self.assertEqual(DocumentVersion.objects.count(), version_count)
+        self.assertEqual(
+            continuation.branch.base_version_id, review_event.document_version_id,
+        )
 
     def test_shared_snapshot_fresh_generation_and_unknown_ancestry_are_explicit(self):
         other = self.create_rendition(

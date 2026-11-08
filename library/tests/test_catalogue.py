@@ -929,6 +929,24 @@ class CachedCatalogueTests(TestCase):
         self.mock.assert_not_called()
         self.assertEqual(Job.objects.count(), 1)
 
+    def test_catalogue_open_returns_explicit_reader_target_after_newer_import(self):
+        site = configured_sites().get(host="communistusa.org")
+        entry = CatalogueEntry.objects.create(site=site, url=ARTICLE, title="Hint")
+        selected = self.import_article()
+        self.content = article_html(title="A newer source version")
+        enqueue(ARTICLE, Job.Mode.REFRESH)
+        newer = process_job(claim_job())
+        self.assertNotEqual(newer.pk, selected.pk)
+        self.assertEqual(selected.document.latest().pk, newer.pk)
+        Document.objects.filter(pk=selected.document_id).update(
+            reader_rendition=selected, reader_selection_explicit=True,
+        )
+
+        self.mock.reset_mock()
+        response = self.client.post(reverse("catalogue-open", args=[entry.pk]))
+        self.assertRedirects(response, reverse("reader", args=[selected.pk]))
+        self.mock.assert_not_called()
+
     def test_missing_source_author_defaults_to_website_and_preserves_real_author(self):
         self.content = article_html().replace(b'<meta name="author" content="Test Author">', b"")
         site = configured_sites().get(host="communistusa.org")

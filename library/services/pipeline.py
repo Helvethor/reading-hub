@@ -113,9 +113,9 @@ def enqueue(url, mode=Job.Mode.IMPORT, snapshot=None):
         if active:
             return active
         if mode == Job.Mode.IMPORT:
-            latest = document.latest()
-            if latest:
-                return latest
+            reader_target = document.reader_target()
+            if reader_target:
+                return reader_target
         if mode == Job.Mode.REFORMAT and (snapshot is None or snapshot.document_id != document.pk):
             raise ImportFailure(
                 "Select a stored source snapshot belonging to this document.", "invalid_snapshot"

@@ -20,6 +20,7 @@ from library.models import (
     Rendition,
     Snapshot,
     SourceCorrection,
+    URLAlias,
 )
 from library.profile import get_profile
 from library.services.errors import ImportFailure
@@ -92,7 +93,16 @@ def stored_source(url):
         )
         initial = capture.response if capture else None
         if initial is None:
-            for snapshot in Snapshot.objects.order_by("-pk").iterator():
+            candidate_urls = {url}
+            entry = entries().filter(url=url).select_related("book").first()
+            if entry and entry.book_id:
+                candidate_urls.add(entry.book.url)
+            candidate_urls.update(
+                URLAlias.objects.filter(url=url).values_list("document__url", flat=True)
+            )
+            for snapshot in Snapshot.objects.filter(
+                document__url__in=candidate_urls,
+            ).order_by("-pk"):
                 initial = next(
                     (page for page in snapshot.manifest.get("pages", []) if page["url"] == url),
                     None,
@@ -294,8 +304,17 @@ def graph_membership(specs, *, undo_of=None):
 def retained_manifest(spec):
     urls = list(dict.fromkeys([spec["url"], *[part["url"] for part in spec["parts"]]]))
     pages, assets, warnings = {}, {}, []
-    # Immutable snapshots are fallback evidence when no crawler capture exists.
-    for snapshot in Snapshot.objects.order_by("pk").iterator():
+    candidate_urls = set(urls)
+    candidate_urls.update(
+        entries().filter(url__in=urls, book__isnull=False)
+        .values_list("book__url", flat=True)
+    )
+    candidate_urls.update(
+        URLAlias.objects.filter(url__in=urls).values_list("document__url", flat=True)
+    )
+    for snapshot in Snapshot.objects.filter(
+        document__url__in=candidate_urls,
+    ).order_by("pk"):
         relevant = False
         for page in snapshot.manifest.get("pages", []):
             if canonical_url(page["url"]) in urls:

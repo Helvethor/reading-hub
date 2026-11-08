@@ -127,7 +127,7 @@ def register_book(site, url, source, *, rendition=None):
             "A book contents page is already part of another book.", "book_structure"
         )
     document = Document.objects.filter(url=url).first()
-    rendition = rendition or (document.latest() if document else None)
+    rendition = rendition or (document.reader_target() if document else None)
     if not rendition or not rendition.structure.get("book"):
         return book
     rendered = rendition.structure.get("parts") or rendition.snapshot.manifest.get("parts", [])

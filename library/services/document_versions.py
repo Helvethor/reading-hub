@@ -81,20 +81,23 @@ def create_working_copy(
             if key in evidence
         },
     }
-    version = DocumentVersion.objects.create(
-        document_id=rendition.document_id,
-        parent=parent_version,
-        origin=origin,
-        source_snapshot=source_snapshot,
-        ancestry=(
-            parent_version.ancestry if parent_version else
-            DocumentVersion.Ancestry.KNOWN
-        ),
-        content_digest=fingerprint(document),
-        evidence=base_evidence,
-        evidence_digest=fingerprint(base_evidence),
-        created_at=now,
-    )
+    document_digest = fingerprint(document)
+    version = parent_version
+    if version is None or version.content_digest != document_digest:
+        version = DocumentVersion.objects.create(
+            document_id=rendition.document_id,
+            parent=parent_version,
+            origin=origin,
+            source_snapshot=source_snapshot,
+            ancestry=(
+                parent_version.ancestry if parent_version else
+                DocumentVersion.Ancestry.KNOWN
+            ),
+            content_digest=document_digest,
+            evidence=base_evidence,
+            evidence_digest=fingerprint(base_evidence),
+            created_at=now,
+        )
     draft = DocumentDraftBase.objects.create(
         id=draft_id,
         rendition=rendition,

@@ -12,6 +12,7 @@ from library.models import (
     Rendition,
     Snapshot,
     SourceCorrection,
+    URLAlias,
 )
 from library.profile import get_profile
 from library.services.fetch import MAX_PAGES, canonical_url
@@ -96,7 +97,13 @@ def _generation_spec(book, members):
 
 def _source_binding(book, members, manifest):
     urls = list(dict.fromkeys([book.url, *[entry.url for entry in members]]))
-    snapshots = list(Snapshot.objects.order_by("pk"))
+    snapshot_urls = set(urls)
+    snapshot_urls.update(
+        URLAlias.objects.filter(url__in=urls).values_list("document__url", flat=True)
+    )
+    snapshots = list(
+        Snapshot.objects.filter(document__url__in=snapshot_urls).order_by("pk")
+    )
     selected_pages = {
         canonical_url(page["url"]): page for page in manifest["pages"]
     }

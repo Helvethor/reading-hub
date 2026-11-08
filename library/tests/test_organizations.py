@@ -6,8 +6,9 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from library.models import (
@@ -455,7 +456,20 @@ class OrganizationTests(TestCase):
 
     def test_membership_generation_binds_sources_and_reuses_unchanged_version(self):
         book_entry = CatalogueEntry.objects.get(url=BOOK)
-        preview = preview_membership_generation(book_entry)
+        unrelated = Document.objects.create(url="https://example.org/unrelated")
+        Snapshot.objects.create(
+            document=unrelated, digest="f" * 64, manifest={"pages": [], "assets": {}},
+        )
+        with CaptureQueriesContext(connection) as queries:
+            preview = preview_membership_generation(book_entry)
+        snapshot_queries = [
+            query["sql"] for query in queries
+            if "FROM \"library_snapshot\"" in query["sql"]
+        ]
+        self.assertTrue(snapshot_queries)
+        self.assertTrue(all("WHERE" in query.upper() for query in snapshot_queries))
+        self.assertTrue(any("IN" in query.upper() for query in snapshot_queries))
+        self.assertTrue(all(unrelated.url not in query for query in snapshot_queries))
         self.assertEqual(preview["url"], BOOK)
         self.assertEqual(
             set(preview["members"]),

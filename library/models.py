@@ -164,7 +164,7 @@ class DocumentDraftBase(ImmutableDocumentEvidence):
     rendition = models.ForeignKey(
         Rendition, on_delete=models.PROTECT, related_name="document_drafts"
     )
-    document_version = models.OneToOneField(
+    document_version = models.ForeignKey(
         "DocumentVersion", null=True, blank=True, on_delete=models.PROTECT,
         related_name="draft_base",
     )

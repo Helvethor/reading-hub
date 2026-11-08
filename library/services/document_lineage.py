@@ -230,9 +230,9 @@ def build_lineage(document, *, selected="", filter_name="all"):
     latest_revision_by_draft = {}
     for row in revisions:
         key = str(row.draft_id)
-        latest_revision_by_draft[key] = max(
-            latest_revision_by_draft.get(key, 0), row.revision,
-        )
+        current = latest_revision_by_draft.get(key)
+        if current is None or row.revision > current.revision:
+            latest_revision_by_draft[key] = row
     snapshot_siblings = {}
     generations_by_rendition = {}
     for generation in generations:
@@ -262,9 +262,10 @@ def build_lineage(document, *, selected="", filter_name="all"):
              "Not recorded for this historical generation"),
         ]
         if publication:
-            latest_revision_number = latest_revision_by_draft.get(
-                str(publication.revision.draft_id), 0,
+            latest_revision = latest_revision_by_draft.get(
+                str(publication.revision.draft_id),
             )
+            latest_revision_number = latest_revision.revision if latest_revision else 0
             details.extend([
                 ("Published from", f"{publication.revision.draft_id} revision "
                  f"{publication.revision.revision}"),
@@ -348,7 +349,9 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 "publication_revision_number": publication.revision.revision,
                 "publication_latest_revision_number": latest_revision_number,
                 "publication_is_latest": (
-                    latest_revision_number == publication.revision.revision
+                    latest_revision is not None
+                    and latest_revision.document_version_id
+                    == publication.revision.document_version_id
                 ),
                 "publication_history_archived": (
                     f"history:{publication.revision.draft_id}" in archived_ids
@@ -374,7 +377,7 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 and not isinstance(evidence.get("correction_origin"), dict)
                 else f"history:{draft.pk}"
             )
-            version_node_ids[draft.document_version_id] = node_id
+            version_node_ids.setdefault(draft.document_version_id, node_id)
     for row in revisions:
         if row.document_version_id:
             version_node_ids.setdefault(

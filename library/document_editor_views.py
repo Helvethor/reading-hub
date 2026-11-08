@@ -107,7 +107,8 @@ def workspace(request, pk):
                 latest_revision = source_draft.revisions.first()
                 if (
                     latest_revision
-                    and latest_revision.revision == publication.revision.revision
+                    and latest_revision.document_version_id
+                    == publication.revision.document_version_id
                 ):
                     target = reverse(
                         "document-editor", args=[source_draft.rendition_id],
