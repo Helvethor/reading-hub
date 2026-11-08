@@ -804,7 +804,19 @@ infrastructure or controlled reviewer trials the next prerequisite for workflow
 improvements. It does not waive preservation checks, accessibility validation or
 evidence-based model-promotion gates.
 
-### Work-centred version identity and reader selection (implemented 2026-11-08)
+### Work-centred version identity and reader selection (foundations 2026-11-08)
+
+Completion status reconciled 2026-11-08: the normalized identities, dedicated
+membership-generation service and reader-selection audit below are implemented
+foundations, not the complete approved workflow. Catalogue opening still bypasses
+reader selection in an import/cache path; unchanged-content review events can
+force publication branching; working-copy opening still creates extra content
+identities. Ordinary editor regeneration remains snapshot-based and the approved
+work-centred vocabulary/interface is not yet delivered. The current
+[task milestone](TASKS.md#current-milestone-complete-the-work-centred-workflow-2026-11-08)
+and [implementation contract](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) define the
+required completion behavior and take precedence over conflicting legacy
+workflow terminology. The following describes the bounded foundation.
 
 Each immutable content version belongs to one catalogue work and records its
 semantic content digest, retained-source evidence, origin and verified ancestry.

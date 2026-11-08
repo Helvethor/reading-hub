@@ -1,8 +1,97 @@
 # Reading Hub: ordered implementation priorities
 
-Direction reconciled 2026-11-06 for a single-page reviewer workspace. Read
+Direction reconciled 2026-11-08 for the complete work-centred workflow. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
+
+## Current milestone: complete the work-centred workflow (2026-11-08)
+
+**Target:** catalogue -> work -> read or choose a working copy -> edit -> save
+version -> reopen -> optionally review -> preview and explicitly publish.
+Continue published content without an artificial branch; show genuine
+alternatives inside one work history. Automatically seed new book generations
+from current retained membership. Reader selection and archived evidence remain
+independent of editing.
+
+The [implementation handoff](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) defines the
+approved model, scope, acceptance matrix and local deployment gates. This
+milestone supersedes older next-step ordering below. Model normalization and a
+successful deployment are prerequisites, not completion of this outcome.
+
+Read-only reconciliation on 2026-11-08 found the approved vocabulary and
+work-centred interface absent, catalogue opening bypassing explicit reader
+selection, review-only records causing artificial publication divergence, and
+generation policies split across entry points. Existing normalized storage still
+creates content-version identities when opening unchanged working copies.
+75 focused backend and 271 frontend tests passed, but did not prevent these gaps.
+In-memory reproductions confirmed the routing and continuation defects; browser
+inspection confirmed the deployed old vocabulary. These are implementation gaps,
+not merely outstanding human acceptance.
+
+### A. Exact continuation and catalogue routing
+
+- [ ] Add regression cases reproducing catalogue selection bypass and
+  publication continuation after an unchanged-content review event.
+- [ ] Centralize exact-content continuation in workflow services and wire all
+  catalogue, reader, editor and contextual entry points. Continue the existing
+  branch when appropriate; explicitly offer latest versus alternative when
+  content has diverged. Do not select another reviewer's working copy silently.
+- [ ] Make catalogue root/member routing and ordinary reader links honor the
+  selected output, including when newer generations or imports exist.
+
+### B. Complete the bounded model
+
+- [ ] Separate working-copy context, immutable content versions, branch
+  ancestry, review events and immutable publication output in operational
+  services, not just labels or added identities. Opening unchanged editing
+  context must not manufacture a saved content version.
+- [ ] Attach publication and review to exact content identities. Review-only
+  events must neither create content ancestry nor force editing divergence.
+  Retain expected-event checks where required for concurrency.
+- [ ] Rehearse any further migration on isolated current-data copies; preserve
+  original evidence, URLs, numbering, review/publication facts and effective
+  reader targets. Never reconstruct unknown ancestry by assumption.
+
+### C. One generation policy and a bounded source lookup
+
+- [ ] Make ordinary new book generation use current retained catalogue members
+  across all relevant entry points. Keep historical-capture reproduction as a
+  separately named, explicitly chosen policy, not an inconsistent default.
+- [ ] Bind membership, source structure/order, conversion policy and assets to
+  previews; refuse stale/missing evidence and preserve existing version content.
+  Preserve explicit original-source versus reviewed-input policy choices.
+- [ ] Replace whole-library snapshot scans with bounded relevant-evidence
+  lookup; validate query behavior on representative multi-work/branched fixtures.
+
+### D. Deliver the self-evident work-centred interface
+
+- [ ] Apply Work, Source capture, Working copy, Unsaved changes, Saved version,
+  Source-generated version, Branch and Published version consistently.
+- [ ] Provide a shared work context with Read and Edit/Continue, reader-target
+  identification, selected branch/latest saved state and pending working-copy
+  state. Versions and Sources separate ordinary work from provenance detail.
+- [ ] Present one work history with real branch points, review events and
+  publication attachments; preserve exact inspection/comparison, archival and
+  unknown ancestry without legacy histories as the primary user model.
+- [ ] Preserve the existing editor, themes, narrow screens, keyboard/focus,
+  same-page panels, pending edits and recovery. No second editor/publication flow.
+
+### E. Acceptance, preservation and authorized local deployment
+
+- [ ] Pass every scenario in the handoff acceptance matrix with isolated article
+  and multi-page book fixtures, including real service paths and browser flows.
+  Verify exact identities, contents and reader targets, not test totals alone.
+- [ ] Run relevant backend/frontend regressions, frontend build, scoped lint,
+  Django and migration checks; verify reader/PDF, annotations, source/assets,
+  catalogue ownership, archive overlap and archived open-editor preservation.
+- [ ] Complete and checkpoint A-D, rehearse migration and recovery, then verify
+  fresh database/blob backups before local deployment to 127.0.0.1:8765.
+- [ ] Verify persistent local service readiness, deployed workspace/static/PDF
+  routes and data-preservation assertions without changing real publications,
+  review decisions, membership or selected reader targets.
+- [ ] Update specification/operations and report implementation, isolated tests,
+  browser observations, mocks and human/accessibility limits separately.
+  Do not close this milestone while any preceding item remains incomplete.
 
 ## Completed delivery: catalogue membership / editor separation (2026-11-07)
 
@@ -31,7 +120,10 @@ status, not a second description of product behavior.
   jsdom, not native browser or representative accessibility acceptance.
   Additive migration 0029 is provided but has not been applied to live data.
 
-## Current delivery: work-centred versions and membership generation (2026-11-08)
+## Delivered foundations: work versions and membership generation (2026-11-08)
+
+Historical bounded delivery evidence follows. The complete work-centred workflow
+remains open in the milestone above; these checks do not certify its completion.
 
 - [x] Normalize immutable work-version identities and correction branches.
   Bind publications to their exact saved content version, preserve review-only
@@ -66,9 +158,9 @@ editions**. Reviewers correct the result directly; the system retains complete
 source/draft/result evidence and derives useful differences. Reviewers do not
 have to name block operations or manage excerpts for ordinary edits.
 
-The direct open/edit/save/history workflow exists. The immediate milestone is
-**complete an article and a multi-page book with the single semantic editor**,
-including precise note relocation, media repair and saved book structure.
+The direct open/edit/save/history foundations exist. The immediate milestone is
+**complete the work-centred article/book workflow** specified above, retaining
+the single semantic editor and its note/media repair and saved book structure.
 Do not expand evaluation infrastructure or training before that outcome works.
 The [project assessment, updated 2026-11-06](docs/PROJECT-ASSESSMENT.md) supersedes historical
 next-step instructions with completion, consolidation, curation and automation.
