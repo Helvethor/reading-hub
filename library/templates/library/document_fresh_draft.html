@@ -6,24 +6,39 @@
 {% endblock %}
 {% block content %}
 <div class="page-container document-comparison">
-  <h1>Regenerate a separate draft</h1>
+  <h1>{% if membership_seeded %}Generate a working copy from current membership{% else %}Regenerate a separate draft{% endif %}</h1>
   <p>Original edition {{ source.pk }} — {{ source.title }}</p>
+  {% if membership_seeded %}
+  <p class="notice">Offline preview from current retained book membership, using each member's retained source, current membership and applicable source corrections. Missing evidence refuses the preview; no source is fetched. This creates a separate working copy and does not change the selected reader output or existing versions.</p>
+  {% else %}
   <p class="notice">Offline preview from this edition's retained snapshot, using current extraction and formatting rules{% if original_source %}, without previous source corrections, saved organization or named excerpts{% else %} and applicable source corrections/organization{% endif %}. No source is fetched. Saved editor revisions are not replayed, copied or overwritten. Save pending work before switching the editor.</p>
+  {% endif %}
   {% if switch_url %}<p role="status">A separate draft was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new draft</a></p>{% endif %}
-  <p>{% if original_source %}<strong>Original retained source inputs</strong>{% else %}<a href="?inputs=original{% if embedded %}&amp;embedded=1{% endif %}">Start fresh from original retained source, without previous corrections or organization</a>{% endif %}</p>
+  <p>{% if original_source %}<strong>Historical retained-source reproduction</strong>{% else %}<a href="?inputs=original{% if embedded %}&amp;embedded=1{% endif %}">{% if source.structure.book %}Reproduce this historical capture without current membership{% else %}Start fresh from original retained source, without previous corrections or organization{% endif %}</a>{% endif %}</p>
   {% if generation_error %}<p class="error" role="alert">{{ generation_error }}</p>
     <p><a href="{% url 'document-fresh-draft' source.pk %}?inputs={{ input_mode }}{% if embedded %}&amp;embedded=1{% endif %}">Generate a new preview</a></p>
     {% if original_source %}<p>Original inputs exclude saved corrections, but current source-language, asset and semantic policies still apply.</p>
     {% else %}<p><a href="{% url 'rendition-corrections' source.pk %}" target="_blank" rel="noopener">Inspect retained source corrections (new tab)</a>. Revalidation requirements and source-language restrictions are not bypassed by regeneration.</p>{% endif %}
   {% endif %}
   {% if proposal %}
+  {% if membership_seeded %}<dl>
+    <dt>Generation mode</dt><dd>Current retained catalogue membership</dd>
+    <dt>Members</dt><dd>{{ proposal.evidence.book_membership_binding.membership|length }}</dd>
+    <dt>Exact membership/source revision</dt><dd>{{ proposal.evidence.membership_revision }}</dd>
+    <dt>Generation output digest</dt><dd>{{ proposal.evidence.generation_digest }}</dd>
+    <dt>Retained inputs</dt><dd>{{ proposal.evidence.book_membership_binding.sources|length }}</dd>
+  </dl>{% endif %}
   <dl>
-    <dt>Pinned snapshot</dt><dd>{{ proposal.evidence.snapshot }} / {{ proposal.evidence.snapshot_digest }}</dd>
+    {% if not membership_seeded %}<dt>Pinned snapshot</dt><dd>{{ proposal.evidence.snapshot }} / {{ proposal.evidence.snapshot_digest }}</dd>{% endif %}
     <dt>Generation versions (app / adapter / format)</dt><dd>{{ proposal.evidence.versions.app }} / {{ proposal.evidence.versions.adapter }} / {{ proposal.evidence.versions.format }}</dd>
     <dt>Profile / configuration digest</dt><dd>{{ proposal.evidence.profile }} / {{ proposal.evidence.profile_digest }}</dd>
     <dt>Exact preview digest</dt><dd>{{ proposal.digest }}</dd>
+    {% if membership_seeded %}
+    <dt>Bound retained sources</dt><dd>{% for url, source in proposal.evidence.book_membership_binding.sources.items %}{{ url }}{% if not forloop.last %}; {% endif %}{% endfor %}</dd>
+    {% else %}
     <dt>Applied source corrections</dt><dd>{% for row in proposal.evidence.generation.corrections %}#{{ row.id }} (revision {{ row.binding.revision }}){% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
     <dt>Organization</dt><dd>{% if proposal.evidence.generation.organization.id %}Saved organization #{{ proposal.evidence.generation.organization.id }}; exact specification pinned{% else %}Current adapter discovery; exact generated parts pinned{% endif %}</dd>
+    {% endif %}
     <dt>Retained image blobs checked</dt><dd>{{ proposal.evidence.assets|length }}</dd>
   </dl>
   {% if proposal.evidence.warnings %}<h2>Generation warnings</h2><ul>{% for item in proposal.evidence.warnings %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}

@@ -1,0 +1,37 @@
+<section class="notice work-context" aria-labelledby="work-context-heading">
+  <h2 id="work-context-heading">Work: {{ version.document.title|default:version.title }}</h2>
+  <dl>
+    <dt>Read</dt>
+    <dd>
+      {% if reader_target %}
+      <a href="{% url 'reader' reader_target.pk %}">Read {{ reader_target.title }} · version {{ reader_target.pk }}</a>
+      {% if reader_target.pk == version.pk %}<span>Selected reader output</span>
+      {% else %}<span>This page is not the selected reader output.</span>{% endif %}
+      {% else %}No reader output is available.{% endif %}
+    </dd>
+    <dt>Edit / Continue</dt>
+    <dd>
+      {% if can_edit_work %}
+        {% if draft %}
+          Working copy
+          {% if draft.branch.starting_revision %}
+            based on saved version {{ draft.branch.starting_revision.revision }}
+          {% elif draft.evidence.kind == "fresh-retained-source" %}
+            based on a source-generated version
+          {% else %}
+            based on {{ version.title }}
+          {% endif %}.
+          {% if initial.revision %}Latest saved state: version {{ initial.revision }}.
+          {% else %}No saved version yet.{% endif %}
+          The editor status distinguishes saved content from unsaved changes retained in this tab.
+        {% else %}
+          <a href="{% url 'document-editor' version.pk %}?start=source">Choose a working copy or start from this version</a>
+        {% endif %}
+      {% else %}Editing is available to reviewers.{% endif %}
+    </dd>
+  </dl>
+  <nav aria-label="Work evidence">
+    <a href="{% url 'document-lineage' version.document_id %}?selected=edition%3A{{ version.pk }}{% if embedded %}&amp;embedded=1{% endif %}"{% if can_edit_work %} data-workflow-panel="Versions"{% endif %}>Versions</a>
+    · <a href="{% url 'document-lineage' version.document_id %}?filter=sources&amp;selected=edition%3A{{ version.pk }}{% if embedded %}&amp;embedded=1{% endif %}"{% if can_edit_work %} data-workflow-panel="Sources"{% endif %}>Sources</a>
+  </nav>
+</section>

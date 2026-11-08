@@ -3,7 +3,9 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import Client, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from library.models import (
@@ -168,6 +170,9 @@ class DocumentLineageTests(TestCase):
             reverse("document-editor", args=[self.rendition.pk])
             + f"?draft={self.draft.pk}",
         )
+        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        self.assertContains(reader, "Work:")
+        self.assertContains(reader, "Selected reader output")
 
         version_count = DocumentVersion.objects.count()
         continuation = branch_draft(self.draft, self.reviewer, review_event.revision)
@@ -353,6 +358,60 @@ class DocumentLineageTests(TestCase):
             lineage["nodes"][f"history:{fresh.pk}"]["parent_id"],
             f"generation:{fresh.pk}",
         )
+
+    def test_lineage_queries_stay_bounded_across_work_volume_and_branches(self):
+        first = self.save(review="full")
+        with CaptureQueriesContext(connection) as baseline_queries:
+            baseline = build_lineage(self.work)
+
+        branch_ids = []
+        unrelated_rendition_ids = []
+        for index in range(12):
+            branch = branch_draft(self.draft, self.reviewer, first.revision)
+            self.save(
+                branch,
+                {**first.document, "title": f"Branch {index}"},
+                0,
+            )
+            branch_ids.append(str(branch.pk))
+
+            other = Document.objects.create(
+                url=f"https://www.marxists.org/test/unrelated-{index}",
+                title=f"Unrelated work {index}",
+            )
+            manifest = {
+                "pages": [{
+                    "url": other.url, "resolved_url": other.url,
+                    "digest": f"{index:064x}",
+                }],
+                "assets": {},
+            }
+            snapshot = Snapshot.objects.create(
+                document=other, digest=snapshot_digest(manifest), manifest=manifest,
+            )
+            rendition = self.create_rendition(
+                other, snapshot, f"Unrelated edition {index}",
+                '<section id="c1"><p>Unrelated source text.</p></section>',
+                book=False,
+            )
+            unrelated_rendition_ids.append(rendition.pk)
+            unrelated_draft = create_draft(rendition, self.reviewer)
+            self.save(
+                unrelated_draft,
+                {**unrelated_draft.document, "title": f"Unrelated edit {index}"},
+                0,
+            )
+
+        with CaptureQueriesContext(connection) as volume_queries:
+            lineage = build_lineage(self.work)
+
+        self.assertLessEqual(len(volume_queries), len(baseline_queries) + 1)
+        self.assertTrue(all(f"history:{draft_id}" in lineage["nodes"] for draft_id in branch_ids))
+        self.assertTrue(all(
+            f"edition:{rendition_id}" not in lineage["nodes"]
+            for rendition_id in unrelated_rendition_ids
+        ))
+        self.assertGreater(len(lineage["nodes"]), len(baseline["nodes"]))
 
     def test_archive_impact_preserves_publication_and_restore_respects_overlaps(self):
         first = self.save()
@@ -552,7 +611,7 @@ class DocumentLineageTests(TestCase):
         client = Client(enforce_csrf_checks=True)
         client.force_login(self.reviewer)
         response = client.get(url, {"filter": "corrections"})
-        self.assertContains(response, "Active corrections")
+        self.assertContains(response, "Working copies and saved versions")
         self.assertContains(response, str(self.draft.pk)[:8])
         blocked = client.post(url, {
             "action": "archive", "node_id": f"history:{self.draft.pk}",
@@ -588,7 +647,7 @@ class DocumentLineageTests(TestCase):
         self.assertIn("embedded=1", success.url)
         archived = client.get(url, {"filter": "archived"})
         self.assertContains(archived, "Archived elements")
-        self.assertContains(archived, "Correction history")
+        self.assertContains(archived, "Working copy / branch")
         self.assertEqual(DocumentLineageArchive.objects.count(), 1)
         active = client.get(url, {"filter": "corrections"})
         self.assertNotContains(active, str(self.draft.pk))
@@ -598,6 +657,8 @@ class DocumentLineageTests(TestCase):
             "restore": str(archive.pk), "embedded": "1",
         })
         self.assertContains(restore_preview, "Restore this operation")
+        sources = client.get(url, {"filter": "sources"})
+        self.assertContains(sources, "Source capture")
         restored = client.post(f"{url}?filter=archived&embedded=1", {
             "action": "restore", "archive_id": str(archive.pk),
             "node_id": f"history:{self.draft.pk}", "reason": "Required again",

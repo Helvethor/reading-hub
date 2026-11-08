@@ -275,7 +275,7 @@ def render_pdf(version, destination, reading_style=None, theme=""):
             raise
         return {"string": data, "mime_type": blob.media_type}
 
-    generated_book = bool(getattr(version, "document_publication", None))
+    generated_book = bool(version.structure.get("book"))
     projection = publication_view(version.html, version.structure["toc"]) if generated_book else {
         "content_html": version.html, "entries": version.structure.get("toc", []),
     }

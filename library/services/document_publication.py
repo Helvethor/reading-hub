@@ -17,6 +17,7 @@ from library.services.document_edits import (
 )
 from library.services.editor_sources import ticket_evidence
 from library.services.editor_structure import section_structure
+from library.services.pipeline import fingerprint as generation_fingerprint
 from library.services.semantic_documents import canonical_document, document_issues, fingerprint
 from library.services.storage import read_blob
 from library.sources.adapters import adapter_for
@@ -48,24 +49,47 @@ def prepare_publication(draft, expected_revision):
         raise ValueError("Document publication evidence failed its integrity check.")
     evidence = draft.evidence
     origin = evidence.get("correction_origin", {})
-    fresh = evidence["kind"] == "fresh-retained-source"
+    evidence_kind = evidence.get("kind")
+    fresh_source = evidence_kind == "fresh-retained-source"
+    membership_generation = evidence_kind == "membership-seeded-generation"
+    fresh = fresh_source or membership_generation
     if fresh:
         from library.services.fresh_document_drafts import anchor_binding
 
         if evidence["anchor"] != anchor_binding(source):
             raise DocumentEditConflict("The fresh draft's anchor changed. Start a new draft.")
-    if (
+    if fresh_source:
+        if (
+            source.snapshot.digest != evidence["snapshot_digest"]
+            or source.snapshot_id != evidence["snapshot"]
+            or source.snapshot.manifest != evidence["manifest"]
+        ):
+            raise DocumentEditConflict(
+                "The retained snapshot evidence changed. Start a new draft."
+            )
+    elif membership_generation:
+        binding = evidence.get("book_membership_binding")
+        generated_digest = generation_fingerprint([
+            evidence.get("generated_html"),
+            evidence.get("structure"),
+            evidence.get("generated_metadata"),
+            evidence.get("generated_title"),
+            evidence.get("stylesheet"),
+        ])
+        if (
+            not isinstance(binding, dict)
+            or binding.get("book_url") != source.document.url
+            or evidence.get("input_policy") != "current-retained-membership"
+            or evidence.get("membership_binding_digest") != fingerprint(binding)
+            or evidence.get("generation_digest") != generated_digest
+        ):
+            raise ValueError("Membership generation evidence failed its integrity check.")
+    elif (
         source.snapshot.digest != evidence["snapshot_digest"]
         or source.snapshot_id != evidence["snapshot"]
-        or source.snapshot.manifest != evidence["manifest"]
-    ):
-        raise DocumentEditConflict("The retained snapshot evidence changed. Start a new draft.")
-    if not fresh and (
-        source.html != evidence["generated_html"]
+        or source.html != evidence["generated_html"]
         or source.stylesheet != evidence["stylesheet"]
         or source.structure != evidence["structure"]
-        or source.snapshot.digest != evidence["snapshot_digest"]
-        or source.snapshot_id != evidence["snapshot"]
         or source.identity != evidence["identity"]
         or source.output_digest != evidence["output_digest"]
         or source.snapshot.manifest != evidence["manifest"]

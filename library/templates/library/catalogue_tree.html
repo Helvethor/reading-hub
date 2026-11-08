@@ -5,7 +5,8 @@
 {% endfor %}
 {% for entry in tree.entries %}
 <div class="catalogue-entry">
-  <form method="post" action="{% url 'catalogue-open' entry.pk %}">{% csrf_token %}<button class="catalogue-title" type="submit">{{ entry.title }}</button></form>
+  <form method="post" action="{% url 'catalogue-open' entry.pk %}">{% csrf_token %}<button class="catalogue-title" type="submit">Read or import: {{ entry.title }}</button></form>
+  {% if entry.work_id %}<p><a href="{% url 'document-lineage' entry.work_id %}">Work</a></p>{% endif %}
   <p class="muted">{% if entry.display_authors %}{{ entry.display_authors|join:", " }}{% else %}{{ entry.display_author }}{% endif %} &middot; {{ entry.published|default:"Unknown date" }}{% if entry.topics %} &middot; {{ entry.topics|join:", " }}{% elif entry.topic %} &middot; {{ entry.topic }}{% endif %}{% if entry.era %} &middot; {{ entry.era }}{% endif %}</p>
   <p class="source-url">{{ entry.url }}</p>
   <p class="muted">Language: {{ entry.language|default:"Unknown" }}</p>

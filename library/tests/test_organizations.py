@@ -35,7 +35,9 @@ from library.services.book_generation import (
     generate_from_membership,
     preview_membership_generation,
 )
+from library.services.book_membership import commit_membership, preview_membership
 from library.services.catalogue import configured_sites, register_book
+from library.services.document_edits import save_revision
 from library.services.document_lineage import build_lineage
 from library.services.errors import ImportFailure
 from library.services.fetch import Fetcher, Response
@@ -533,6 +535,106 @@ class OrganizationTests(TestCase):
         first.document.refresh_from_db()
         self.assertEqual(first.document.reader_target().pk, self.book.pk)
         self.assertTrue(first.document.reader_selection_explicit)
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_book_fresh_draft_uses_membership_and_preserves_reader_and_versions(self):
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        url = reverse("document-fresh-draft", args=[self.book.pk])
+        before = {
+            "renditions": Rendition.objects.count(),
+            "generations": BookMembershipGeneration.objects.count(),
+            "reader": self.book.document.reader_target().pk,
+            "fetches": self.fetch.call_count,
+        }
+        preview = self.client.get(url)
+        self.assertEqual(preview.status_code, 200)
+        self.assertContains(preview, "Generate a working copy from current membership")
+        self.assertContains(preview, "Current retained catalogue membership")
+        self.assertEqual(preview.context["proposal"]["evidence"]["kind"],
+                         "membership-seeded-generation")
+        membership_binding = preview.context["proposal"]["evidence"]["book_membership_binding"]
+        self.assertEqual(
+            {item["url"] for item in membership_binding["membership"]},
+            {item.url for item in book_entry.chapters.all()},
+        )
+        self.assertEqual(
+            set(membership_binding["sources"]),
+            {BOOK, *[item.url for item in book_entry.chapters.all()]},
+        )
+        self.assertEqual(self.fetch.call_count, before["fetches"])
+        proposal_digest = preview.context["proposal"]["digest"]
+
+        response = self.client.post(url, {
+            "confirm": "yes", "inputs": "reviewed", "preview_digest": proposal_digest,
+        })
+        self.assertEqual(response.status_code, 302)
+        draft = DocumentDraftBase.objects.get()
+        self.assertEqual(draft.evidence["kind"], "membership-seeded-generation")
+        self.assertEqual(
+            draft.evidence["book_membership_binding"], membership_binding,
+        )
+        self.assertEqual(Rendition.objects.count(), before["renditions"])
+        self.assertEqual(BookMembershipGeneration.objects.count(), before["generations"])
+        self.book.document.refresh_from_db()
+        self.assertEqual(self.book.document.reader_target().pk, before["reader"])
+        self.assertEqual(self.fetch.call_count, before["fetches"])
+
+        lineage = build_lineage(self.book.document)
+        generation_id = f"generation:{draft.pk}"
+        history_id = f"history:{draft.pk}"
+        self.assertEqual(lineage["nodes"][history_id]["parent_id"], generation_id)
+        self.assertEqual(lineage["nodes"][generation_id]["type"], "generation")
+        self.assertEqual(lineage["nodes"][generation_id]["integrity_errors"], [])
+
+        revision = save_revision(draft, self.reviewer, draft.document, 0, review="full")
+        publication_url = reverse("document-publication", args=[self.book.pk])
+        preview = self.client.get(publication_url, {
+            "draft": str(draft.pk), "revision": revision.revision,
+        })
+        self.assertEqual(preview.status_code, 200)
+        candidate = preview.context["candidate"]
+        response = self.client.post(
+            publication_url + f"?draft={draft.pk}&revision={revision.revision}",
+            {
+                "draft": str(draft.pk), "revision": revision.revision,
+                "confirm": "yes", "preview_digest": candidate["digest"],
+            },
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+            response.context.get("publication_error") if response.context else "",
+        )
+        publication = DocumentPublication.objects.get(revision=revision)
+        self.assertRedirects(
+            response, reverse("reader", args=[publication.rendition_id]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(publication.rendition.document_version_id, revision.document_version_id)
+        self.assertTrue(publication.rendition.structure["book"])
+        self.book.document.refresh_from_db()
+        self.assertEqual(self.book.document.reader_target().pk, before["reader"])
+
+    @override_settings(READING_HUB_EDITOR_PILOT=True)
+    def test_book_fresh_draft_refuses_membership_changed_after_preview(self):
+        book_entry = CatalogueEntry.objects.get(url=BOOK)
+        url = reverse("document-fresh-draft", args=[self.book.pk])
+        preview = self.client.get(url)
+        digest = preview.context["proposal"]["digest"]
+        member = book_entry.chapters.order_by("url").first()
+        decision = preview_membership(book_entry, member.url, "detach")
+        commit_membership(decision, self.reviewer, "Remove a detached source.")
+        before = (DocumentDraftBase.objects.count(), DocumentVersion.objects.count())
+
+        response = self.client.post(url, {
+            "confirm": "yes", "inputs": "reviewed", "preview_digest": digest,
+        })
+        self.assertEqual(response.status_code, 409)
+        self.assertContains(response, "Membership, retained sources or output changed",
+                            status_code=409)
+        self.assertEqual(
+            (DocumentDraftBase.objects.count(), DocumentVersion.objects.count()), before,
+        )
 
     def test_membership_generation_warns_for_unordered_member_and_refuses_missing_source(self):
         book_entry = CatalogueEntry.objects.get(url=BOOK)

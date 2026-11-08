@@ -76,7 +76,7 @@ class PipelineTests(TestCase):
         self.assertEqual(client.get(f"/jobs/{job.pk}/status/").json()["status"], "ready")
         self.assertContains(
             client.get(f"/documents/{job.document_id}/versions/", follow=True),
-            "Lineage &amp; versions",
+            "Work",
         )
         response = client.post(
             "/request/",

@@ -1,14 +1,19 @@
 {% extends panel_base %}
 {% load static %}
-{% block title %}Lineage &amp; versions | {{ site.name }}{% endblock %}
+{% block title %}Work | {{ site.name }}{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">{% endblock %}
 {% block content %}
 <main class="page-container document-lineage">
-  <h1>Lineage &amp; versions</h1>
-  <p>{{ document.title|default:document.url }} · entire catalogue work</p>
-  <p>Primary links show derivation and editing ancestry. Shared retained snapshots are linked as evidence, not copied into each correction branch. Archival hides workflow choices only; published editions, readers, PDFs, catalogue membership, annotations and shared source/assets remain unchanged.</p>
+  <h1>Work</h1>
+  <p>{{ document.title|default:document.url }}</p>
+  <nav aria-label="Work context">
+    {% if reader_target %}<a href="{% url 'reader' reader_target.pk %}">Read {{ reader_target.title }} · selected reader output</a>{% else %}No reader output is available.{% endif %}
+    · <a href="?filter=all&amp;selected=work">Versions</a>
+    · <a href="?filter=sources&amp;selected=work">Sources</a>
+  </nav>
+  <p>Saved content, review records, publication records and source captures are shown separately. Archival hides workflow choices only; published versions, reader/PDF output, catalogue membership, annotations and shared sources/assets remain unchanged.</p>
   <p>
-    Reader output:
+    Selected reader output:
     {% if reader_target %}
       <a href="{% url 'reader' reader_target.pk %}">{{ reader_target.title }} (version {{ reader_target.pk }})</a>
       {% if reader_selection_explicit %}· explicitly selected{% else %}· source-generated fallback{% endif %}
@@ -43,10 +48,11 @@
     {% if selected_id %}<input type="hidden" name="selected" value="{{ selected_id }}">{% endif %}
     <label for="lineage-filter">Show</label>
     <select id="lineage-filter" name="filter">
-      <option value="all"{% if lineage_filter == "all" %} selected{% endif %}>Active lineage</option>
-      <option value="publications"{% if lineage_filter == "publications" %} selected{% endif %}>Publications</option>
-      <option value="corrections"{% if lineage_filter == "corrections" %} selected{% endif %}>Active corrections</option>
-      <option value="generations"{% if lineage_filter == "generations" %} selected{% endif %}>All generations</option>
+      <option value="all"{% if lineage_filter == "all" %} selected{% endif %}>Versions and branches</option>
+      <option value="sources"{% if lineage_filter == "sources" %} selected{% endif %}>Source captures</option>
+      <option value="publications"{% if lineage_filter == "publications" %} selected{% endif %}>Published versions</option>
+      <option value="corrections"{% if lineage_filter == "corrections" %} selected{% endif %}>Working copies and saved versions</option>
+      <option value="generations"{% if lineage_filter == "generations" %} selected{% endif %}>Source-generated versions</option>
       <option value="archived"{% if lineage_filter == "archived" %} selected{% endif %}>Archived elements</option>
     </select>
     <button type="submit">Apply filter</button>
@@ -54,9 +60,9 @@
 
   {% if lineage %}
   <section aria-labelledby="lineage-tree-heading">
-    <h2 id="lineage-tree-heading">Work derivation</h2>
+    <h2 id="lineage-tree-heading">{% if lineage_filter == "sources" %}Sources{% else %}Versions{% endif %}</h2>
     {% if lineage.tree.children %}
-    <div class="lineage-tree" aria-label="Work derivation and correction history">
+    <div class="lineage-tree" aria-label="Work versions and source evidence">
       {% include "library/document_lineage_node.html" with node=lineage.tree %}
     </div>
     {% else %}
@@ -92,7 +98,7 @@
       {% endfor %}</ol>
       {% else %}<p class="warning-text">The retained page manifest is missing or malformed.</p>{% endif %}
       {% if lineage.selected.related_editions %}
-      <h3>Generations sharing this snapshot</h3>
+      <h3>Versions sharing this source capture</h3>
       <ul>{% for edition in lineage.selected.related_editions %}
         <li><a href="{{ edition.reader_url }}" target="_blank" rel="noopener noreferrer">{{ edition.label }} · read</a>
           {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source' edition.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}" data-workflow-panel="Inspect retained source">Inspect retained source</a>{% endif %}
@@ -133,11 +139,11 @@
           {% if lineage.selected.publication_history_archived %}
             <p>This publication's working history is archived. Restore it before continuing.</p>
           {% elif lineage.selected.publication_is_latest %}
-            <p><a href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}" data-workflow-switch>Continue editing published version {{ lineage.selected.publication_revision_number }}</a></p>
+            <p><a href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}" data-workflow-switch>Continue this working copy from the published version</a></p>
           {% elif lineage.selected.publication_latest_revision_number > lineage.selected.publication_revision_number %}
             <p>
-              <a href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}" data-workflow-switch>Continue latest saved version {{ lineage.selected.publication_latest_revision_number }}</a>
-              · <a href="{% url 'document-editor-history' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;revision={{ lineage.selected.publication_revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Start an alternative from the published version"{% endif %}>Start an alternative from published version {{ lineage.selected.publication_revision_number }}</a>
+              <a href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}" data-workflow-switch>Continue the latest saved content</a>
+              · <a href="{% url 'document-editor-history' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;revision={{ lineage.selected.publication_revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Start an alternative from the published version"{% endif %}>Start an alternative from this published version</a>
             </p>
           {% else %}
             <p>The exact saved editable version for this publication is unavailable; only its immutable reader output can be opened.</p>
@@ -155,20 +161,20 @@
     {% endif %}
     {% elif lineage.selected.type == "history" %}
     {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
-    <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}" data-workflow-switch>Continue this correction's latest saved revision</a></p>
+    <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}" data-workflow-switch>Continue this working copy's latest saved content</a></p>
     {% elif lineage.selected.archived %}
     <p>Restore this history before continuing or saving it.</p>
     {% endif %}
-    {% elif lineage.selected.type == "revision" %}
+    {% elif lineage.selected.type == "revision" or lineage.selected.type == "review" %}
     {% if can_review and not lineage.selected.context_only %}
     <p>
         <a href="{% url 'document-comparison' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;from=0&amp;to={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Compare saved revision"{% endif %}>Compare with this history's starting base</a>
-        · <a href="{% url 'document-editor-history' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Inspect saved revision"{% endif %}>{% if lineage.selected.archived %}Inspect archived revision{% else %}Inspect exact revision or branch from it{% endif %}</a>
+        · <a href="{% url 'document-editor-history' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Inspect saved version"{% endif %}>{% if lineage.selected.archived %}Inspect archived saved content{% elif lineage.selected.type == "review" %}Inspect review record and its exact content{% else %}Inspect saved version or start an alternative from it{% endif %}</a>
       </p>
       {% if lineage.selected.latest and not lineage.selected.archived %}
       <p>
-        <a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}#editor-mark-reviewed" data-workflow-switch>Continue latest saved revision and review</a>
-        · <a href="{% url 'document-publication' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Preview exact saved revision for publication"{% endif %}>Preview this exact latest saved revision for publication</a>
+        <a href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}#editor-mark-reviewed" data-workflow-switch>Continue this working copy and optionally review</a>
+        · <a href="{% url 'document-publication' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Preview saved content for publication"{% endif %}>Preview this exact saved content for publication</a>
       </p>
       {% endif %}
       {% endif %}

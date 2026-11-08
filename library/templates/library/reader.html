@@ -5,13 +5,14 @@
 {% block content %}
 <div class="reader-toolbar">
   <a href="{% url 'home' %}">&larr; Library</a>
-  <a href="{% url 'document-lineage' version.document_id %}?selected=edition%3A{{ version.pk }}">Lineage &amp; versions</a>
+  <a href="{% url 'document-lineage' version.document_id %}?selected=edition%3A{{ version.pk }}">Work</a>
   <form method="post" action="{% url 'refresh' version.document_id %}">{% csrf_token %}<button class="secondary" type="submit">Refresh source</button></form>
   <form method="post" action="{% url 'reformat' version.pk %}">{% csrf_token %}<button class="secondary" type="submit">Reformat stored source</button></form>
   <a href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}" data-reading-pdf>Download PDF</a>
   {% if user.is_authenticated %}<a href="{% url 'preserved-annotations' %}">Preserved annotations</a>{% endif %}
   {% if user.is_authenticated %}<button class="secondary" type="button" id="annotation-toggle" aria-controls="annotation-toolbox" aria-expanded="false" hidden>Private annotations</button>{% else %}<a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in to highlight or underline</a>{% endif %}
 </div>
+{% include 'library/work_context.html' %}
 {% include 'library/reading_style_controls.html' %}
 {% if user.is_staff or perms.library.review_metadata %}
 <div class="reader-review-entry"><a href="{% url 'work-review' %}?review_version={{ version.pk }}">Review this work</a><span aria-hidden="true"> · </span><a href="{% url 'document-editor-membership' version.pk %}">Catalogue book membership</a><span class="muted">Parsing, organization and metadata</span></div>

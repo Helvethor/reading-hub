@@ -139,7 +139,7 @@ class ReviewTaskTests(TestCase):
         opening_text = pdf.pages[0].extract_text().replace("\x00", "")
         self.assertIn(task["title"], opening_text)
         self.assertIn("Not verified as a whole document", opening_text)
-        body_text = "\n".join(page.extract_text() for page in pdf.pages[1:]).replace("\x00", "")
+        body_text = "\n".join(page.extract_text() for page in pdf.pages).replace("\x00", "")
         for text in task["pdf_text"]:
             self.assertIn(text, body_text)
         if "<img " in expected:

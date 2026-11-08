@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from library.account_views import administrator_required
 from library.forms import CrawlSettingsForm
-from library.models import CatalogueEntry, CatalogueWorker, Job, Rendition
+from library.models import CatalogueEntry, CatalogueWorker, Document, Job, Rendition, URLAlias
 from library.profile import get_profile
 from library.services.catalogue import change_site, configured_sites, enrich_from_rendition
 from library.services.errors import ImportFailure
@@ -353,6 +353,16 @@ def catalogue(request):
         query,
         path,
     )
+    if not remaining_levels and tree["entries"]:
+        entry_urls = [entry.url for entry in tree["entries"]]
+        work_ids = dict(
+            Document.objects.filter(url__in=entry_urls).values_list("url", "pk")
+        )
+        work_ids.update(
+            URLAlias.objects.filter(url__in=entry_urls).values_list("url", "document_id")
+        )
+        for entry in tree["entries"]:
+            entry.work_id = work_ids.get(entry.url)
     browse_query = urlencode({**query, "branch": json.dumps(path)})
     context = {
         "tree": tree,

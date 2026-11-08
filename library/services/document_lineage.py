@@ -22,7 +22,7 @@ from library.services.pipeline import snapshot_digest
 from library.services.semantic_documents import fingerprint
 
 MAX_LINEAGE_ELEMENTS = 5000
-ARCHIVABLE_TYPES = {"edition", "generation", "history", "revision"}
+ARCHIVABLE_TYPES = {"edition", "generation", "history", "revision", "review"}
 
 
 class LineageLimitExceeded(ValueError):
@@ -72,7 +72,9 @@ def _base_id(draft, drafts=None, seen=None):
         if type(number) is int and number == 0 and drafts and source_id in drafts:
             return _base_id(drafts[source_id], drafts, seen)
         return None
-    if evidence.get("kind") == "fresh-retained-source":
+    if evidence.get("kind") in {
+        "fresh-retained-source", "membership-seeded-generation",
+    }:
         return f"generation:{draft.pk}"
     return f"edition:{draft.rendition_id}"
 
@@ -179,6 +181,43 @@ def build_lineage(document, *, selected="", filter_name="all"):
     archived_ids, archive_history = _active_archives(document)
     reader_target = document.reader_target()
     reader_target_id = reader_target.pk if reader_target else None
+    version_node_ids = {}
+    previous_versions = {
+        str(draft.pk): draft.document_version_id for draft in drafts
+    }
+    for row in revisions:
+        draft_id = str(row.draft_id)
+        if (
+            row.document_version_id
+            and row.document_version_id != previous_versions.get(draft_id)
+        ):
+            version_node_ids.setdefault(
+                row.document_version_id, _revision_id(draft_id, row.revision),
+            )
+        if row.document_version_id:
+            previous_versions[draft_id] = row.document_version_id
+    for draft in drafts:
+        if draft.document_version_id:
+            evidence = draft.evidence if isinstance(draft.evidence, dict) else {}
+            node_id = (
+                f"generation:{draft.pk}"
+                if evidence.get("kind") in {
+                    "fresh-retained-source", "membership-seeded-generation",
+                }
+                and not isinstance(evidence.get("correction_origin"), dict)
+                else f"history:{draft.pk}"
+            )
+            version_node_ids.setdefault(draft.document_version_id, node_id)
+    for row in revisions:
+        if row.document_version_id:
+            version_node_ids.setdefault(
+                row.document_version_id, _revision_id(str(row.draft_id), row.revision),
+            )
+    for rendition in renditions:
+        if rendition.document_version_id:
+            version_node_ids.setdefault(
+                rendition.document_version_id, f"edition:{rendition.pk}",
+            )
 
     nodes = {
         f"work:{document.pk}": {
@@ -247,11 +286,12 @@ def build_lineage(document, *, selected="", filter_name="all"):
             publication_outputs[(str(publication.revision.draft_id),
                                  publication.revision.revision)] = rendition.pk
         parent_id = (
-            _revision_id(publication.revision.draft_id, publication.revision.revision)
+            version_node_ids.get(publication.revision.document_version_id)
+            or _revision_id(publication.revision.draft_id, publication.revision.revision)
             if publication else f"snapshot:{rendition.snapshot_id}"
         )
         details = [
-            ("Edition", rendition.pk),
+            ("Published version" if publication else "Source-generated version", rendition.pk),
             ("Snapshot", rendition.snapshot_id),
             ("Snapshot digest", rendition.snapshot.digest),
             ("Output digest", rendition.output_digest),
@@ -362,33 +402,16 @@ def build_lineage(document, *, selected="", filter_name="all"):
             nodes[f"edition:{rendition.pk}"]["secondary_ids"].append(
                 f"snapshot:{rendition.snapshot_id}"
             )
+            nodes[f"edition:{rendition.pk}"]["secondary_ids"].append(
+                _revision_id(
+                    str(publication.revision.draft_id), publication.revision.revision,
+                )
+            )
 
     draft_by_id = {str(draft.pk): draft for draft in drafts}
     revision_rows = {
         (str(row.draft_id), row.revision): row for row in revisions
     }
-    version_node_ids = {}
-    for draft in drafts:
-        if draft.document_version_id:
-            evidence = draft.evidence if isinstance(draft.evidence, dict) else {}
-            node_id = (
-                f"generation:{draft.pk}"
-                if evidence.get("kind") == "fresh-retained-source"
-                and not isinstance(evidence.get("correction_origin"), dict)
-                else f"history:{draft.pk}"
-            )
-            version_node_ids.setdefault(draft.document_version_id, node_id)
-    for row in revisions:
-        if row.document_version_id:
-            version_node_ids.setdefault(
-                row.document_version_id, _revision_id(str(row.draft_id), row.revision),
-            )
-    for rendition in renditions:
-        if rendition.document_version_id:
-            version_node_ids.setdefault(
-                rendition.document_version_id, f"edition:{rendition.pk}",
-            )
-
     def normalized_parent_id(version):
         if not version.parent_id:
             return None
@@ -420,6 +443,25 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 draft_integrity.append(
                     "Fresh-generation snapshot binding does not match its retained edition."
                 )
+        if evidence.get("kind") == "membership-seeded-generation":
+            expected_anchor = {
+                "rendition": draft.rendition_id, "identity": draft.rendition.identity,
+                "output_digest": draft.rendition.output_digest,
+                "snapshot": draft.rendition.snapshot_id,
+                "snapshot_digest": draft.rendition.snapshot.digest,
+            }
+            if evidence.get("anchor") != expected_anchor:
+                draft_integrity.append(
+                    "Membership-generation anchor does not match the retained edition evidence."
+                )
+            binding = evidence.get("book_membership_binding")
+            if _fingerprint_issue(
+                binding, evidence.get("membership_binding_digest"),
+                "Membership input binding",
+            ):
+                draft_integrity.append(
+                    "Membership-generation input binding failed its integrity check."
+                )
         legacy_application = evidence.get("legacy_application")
         if not isinstance(legacy_application, dict):
             legacy_application = {}
@@ -431,18 +473,34 @@ def build_lineage(document, *, selected="", filter_name="all"):
             draft_integrity.append(
                 "Correction starting edition binding conflicts with its retained evidence."
             )
-        if evidence.get("kind") == "fresh-retained-source" and not isinstance(
+        if evidence.get("kind") in {
+            "fresh-retained-source", "membership-seeded-generation",
+        } and not isinstance(
             evidence.get("correction_origin"), dict
         ):
-            snapshot_id = evidence.get("snapshot")
+            membership_seeded = evidence.get("kind") == "membership-seeded-generation"
+            snapshot_id = (
+                evidence.get("anchor", {}).get("snapshot")
+                if membership_seeded else evidence.get("snapshot")
+            )
             anchor_id = (
                 f"snapshot:{snapshot_id}"
-                if isinstance(snapshot_id, int) and f"snapshot:{snapshot_id}" in nodes else None
+                if not membership_seeded and isinstance(snapshot_id, int)
+                and f"snapshot:{snapshot_id}" in nodes else None
             )
             input_policy = evidence.get("input_policy", "Unknown")
+            membership_binding = evidence.get("book_membership_binding", {})
+            membership_sources = (
+                membership_binding.get("sources", {})
+                if isinstance(membership_binding, dict) else {}
+            )
             add({
                 "id": f"generation:{draft.pk}", "type": "generation",
-                "label": f"Fresh retained-source generation for history {draft.pk}",
+                "label": (
+                    f"Membership-seeded generation for history {draft.pk}"
+                    if membership_seeded else
+                    f"Fresh retained-source generation for history {draft.pk}"
+                ),
                 "created_at": draft.created_at, "reviewer": draft.reviewer.get_username(),
                 "parent_id": anchor_id or f"work:{document.pk}",
                 "rendition_id": draft.rendition_id,
@@ -453,13 +511,21 @@ def build_lineage(document, *, selected="", filter_name="all"):
                     if draft.document_version_id else None
                 ),
                 "input_policy": input_policy,
-                "unknown_ancestry": "" if anchor_id else
-                "Retained snapshot ancestry is missing or belongs to another work.",
+                "unknown_ancestry": (
+                    "Membership generation combines multiple retained inputs; no single "
+                    "content parent is asserted."
+                    if membership_seeded else
+                    "" if anchor_id else
+                    "Retained snapshot ancestry is missing or belongs to another work."
+                ),
                 "details": [
                     ("Generation kind", evidence.get("kind")),
                     ("Input policy", input_policy),
-                    ("Snapshot", snapshot_id),
-                    ("Snapshot digest", evidence.get("snapshot_digest", "Unavailable")),
+                    ("Snapshot", snapshot_id or "Multiple retained inputs"),
+                    ("Snapshot digest", evidence.get("snapshot_digest", "See source binding")),
+                    ("Bound sources", len(membership_sources) if membership_seeded else 1),
+                    ("Membership binding digest", evidence.get(
+                        "membership_binding_digest", "Not applicable")),
                     ("Content version identity", draft.document_version_id or "Unavailable"),
                     ("Saved edits replayed", legacy_application.get(
                         "saved_editor_revisions", "Not recorded")),
@@ -558,7 +624,7 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 )
         add({
             "id": f"history:{draft.pk}", "type": "history",
-            "label": f"Correction history {str(draft.pk)[:8]}",
+            "label": f"Working copy {str(draft.pk)[:8]}",
             "created_at": draft.created_at, "reviewer": draft.reviewer.get_username(),
             "parent_id": parent_id if not missing_parent else f"work:{document.pk}",
             "draft_id": str(draft.pk), "rendition_id": draft.rendition_id,
@@ -590,6 +656,10 @@ def build_lineage(document, *, selected="", filter_name="all"):
     for row in revisions:
         draft_key = str(row.draft_id)
         latest_revision[draft_key] = max(latest_revision.get(draft_key, 0), row.revision)
+    content_anchor_by_draft = {
+        str(draft.pk): (draft.document_version_id, f"history:{draft.pk}")
+        for draft in drafts
+    }
     for revision in revisions:
         draft_id = str(revision.draft_id)
         before_document = previous_document.get(draft_id, revision.draft.document)
@@ -608,7 +678,7 @@ def build_lineage(document, *, selected="", filter_name="all"):
             issue for issue in (
                 _fingerprint_issue(
                     revision.document, revision.document_digest,
-                    f"Saved revision {revision.revision} document",
+                    f"Saved version {revision.revision} document",
                 ),
                 "Saved document is not a structured object."
                 if not isinstance(revision.document, dict) else "",
@@ -628,7 +698,7 @@ def build_lineage(document, *, selected="", filter_name="all"):
             parent_id = f"work:{document.pk}"
         elif expected_parent is None:
             revision_integrity.append(
-                f"Saved revision {revision.revision} names an unavailable predecessor."
+                f"Saved version {revision.revision} names an unavailable predecessor."
             )
             ancestry_unknown = (
                 "Unknown historical ancestry: the expected preceding saved revision is absent."
@@ -644,7 +714,7 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 or lineage["evidence_digest"] != revision.draft.evidence_digest
             ):
                 revision_integrity.append(
-                    f"Saved revision {revision.revision} parent bindings conflict with "
+                    f"Saved version {revision.revision} parent bindings conflict with "
                     "the immutable sequence."
                 )
                 ancestry_unknown = (
@@ -675,6 +745,13 @@ def build_lineage(document, *, selected="", filter_name="all"):
         prior_version_id = (
             expected_parent.document_version_id if expected_parent else None
         )
+        review_event = bool(
+            version and version.pk == prior_version_id
+        )
+        if review_event:
+            anchor = content_anchor_by_draft.get(draft_id)
+            if anchor and anchor[0] == version.pk:
+                parent_id = anchor[1]
         if version and version.pk != prior_version_id:
             normalized_parent = normalized_parent_id(version)
             if version.ancestry == "known" and normalized_parent:
@@ -687,10 +764,16 @@ def build_lineage(document, *, selected="", filter_name="all"):
                 )
         previous_digest[draft_id] = revision.document_digest
         previous_document[draft_id] = current_document
+        if version and not review_event:
+            content_anchor_by_draft[draft_id] = (
+                version.pk, _revision_id(draft_id, revision.revision),
+            )
         add({
-            "id": _revision_id(draft_id, revision.revision), "type": "revision",
+            "id": _revision_id(draft_id, revision.revision),
+            "type": "review" if review_event else "revision",
             "label": (
-                f"Saved revision {revision.revision} — {change_kind}"
+                f"Review record {revision.revision} — {change_kind}" if review_event else
+                f"Saved version {revision.revision} — {change_kind}"
             ),
             "created_at": revision.created_at, "reviewer": revision.reviewer.get_username(),
             "parent_id": parent_id, "draft_id": draft_id,
@@ -699,6 +782,7 @@ def build_lineage(document, *, selected="", filter_name="all"):
             "review": revision.get_review_display(), "review_code": revision.review,
             "verified_sections": revision.verified_sections, "issues": revision.issues,
             "content_changed": before_html != current_html,
+            "review_event": review_event,
             "change_kind": change_kind, "editorial": revision.editorial,
             "integrity_errors": revision_integrity,
             "publication_id": publication_outputs.get((draft_id, revision.revision)),
@@ -810,10 +894,12 @@ def build_lineage(document, *, selected="", filter_name="all"):
         selected = root_id
 
     def matches(node):
+        if filter_name == "sources":
+            return node["type"] == "snapshot"
         if filter_name == "publications":
             return node["type"] == "publication"
         if filter_name == "corrections":
-            return node["type"] in {"history", "revision"} and not node["archived"]
+            return node["type"] in {"history", "revision", "review"} and not node["archived"]
         if filter_name == "generations":
             return node["type"] in {"edition", "generation"}
         if filter_name == "archived":

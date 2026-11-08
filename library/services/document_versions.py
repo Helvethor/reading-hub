@@ -77,6 +77,7 @@ def create_working_copy(
             for key in (
                 "kind", "rendition", "identity", "output_digest", "snapshot",
                 "snapshot_digest", "anchor", "correction_origin", "generation_digest",
+                "input_policy", "membership_revision", "book_membership_binding",
             )
             if key in evidence
         },

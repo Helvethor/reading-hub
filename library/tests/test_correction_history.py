@@ -41,7 +41,7 @@ class CorrectionHistoryTests(TestCase):
         self.assertEqual(response.context["initial"]["document"], row.document)
         self.assertEqual(response.context["initial"]["revision"], 1)
         self.assertContains(response, "Mark reviewed")
-        self.assertContains(response, "Lineage &amp; versions")
+        self.assertContains(response, "Versions")
         self.assertNotContains(response, "Define a review task")
         self.assertEqual(response["Cache-Control"], "no-store")
         self.assertEqual(before, (
@@ -131,7 +131,7 @@ class CorrectionHistoryTests(TestCase):
         query = f"?draft={self.draft.pk}&revision=1"
         response = self.client.get(self.history + query)
         self.assertEqual(response.context["selected"]["row"], row)
-        self.assertContains(response, "Start an alternative from this exact saved version")
+        self.assertContains(response, "Start an alternative from this exact saved content")
         self.assertEqual(DocumentDraftBase.objects.count(), before)
         secure = Client(enforce_csrf_checks=True)
         secure.force_login(self.reviewer)

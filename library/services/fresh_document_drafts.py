@@ -10,8 +10,11 @@ from django.db.models import F
 from library import versions
 from library.models import Blob, DocumentVersion, Rendition
 from library.profile import get_profile
+from library.services.book_generation import preview_membership_generation
+from library.services.book_membership import catalogue_book
 from library.services.document_edits import DocumentEditConflict
 from library.services.document_versions import create_working_copy
+from library.services.organizations import lock_organization
 from library.services.pipeline import format_rendition, snapshot_digest
 from library.services.semantic_documents import SCHEMA_VERSION, document_issues, fingerprint
 from library.services.semantic_import import preview_import
@@ -96,6 +99,69 @@ def preview_fresh_draft(rendition, *, original_source=False):
     }
 
 
+def preview_membership_draft(rendition):
+    """Preview a new book working copy from the current retained membership."""
+    book = catalogue_book(rendition)
+    if book is None or book.book_id:
+        raise ValueError("Choose a root catalogue work to generate.")
+    generation = preview_membership_generation(book)
+    asset_bindings = {
+        entry["digest"]: {
+            "size": entry["size"], "media_type": entry["media_type"],
+        }
+        for entry in generation["manifest"].get("assets", {}).values()
+        if entry.get("digest")
+    }
+    profile = get_profile()
+    configuration = json.loads(json.dumps(asdict(profile)))
+    evidence = {
+        "kind": "membership-seeded-generation",
+        "generation_version": 1,
+        "input_policy": "current-retained-membership",
+        "anchor": anchor_binding(rendition),
+        "book_membership_binding": generation["binding"],
+        "membership_binding_digest": fingerprint(generation["binding"]),
+        "membership_revision": generation["revision"],
+        "generation_digest": generation["digest"],
+        "specification": generation["specification"],
+        "manifest": generation["manifest"],
+        "generated_html": generation["html"],
+        "generated_title": generation["title"],
+        "generated_metadata": generation["metadata"],
+        "structure": generation["structure"],
+        "stylesheet": generation["stylesheet"],
+        "warnings": generation["warnings"],
+        "profile": profile.key,
+        "profile_configuration": configuration,
+        "profile_digest": fingerprint(configuration),
+        "versions": {
+            "app": versions.APP_VERSION, "adapter": profile.adapter_version,
+            "format": versions.FORMAT_VERSION, "document": SCHEMA_VERSION,
+        },
+        "assets": sorted(asset_bindings),
+        "asset_bindings": asset_bindings,
+    }
+    proposal = preview_import({
+        "version": SCHEMA_VERSION,
+        "title": generation["title"],
+        "metadata": generation["metadata"],
+        "html": generation["html"],
+    }, binding={
+        "membership_revision": generation["revision"],
+        "generation_digest": generation["digest"],
+    })
+    evidence["import"] = proposal["conversion"]
+    document = proposal["document"]
+    digest = fingerprint({"document": document, "evidence": evidence})
+    return {
+        "document": document,
+        "evidence": evidence,
+        "digest": digest,
+        "repairs": proposal["conversion"]["repairs"],
+        "issues": document_issues(document, set(asset_bindings)),
+    }
+
+
 @transaction.atomic
 def create_fresh_draft(rendition, reviewer, preview_digest, *, original_source=False):
     Rendition.objects.filter(pk=rendition.pk).update(id=F("id"))
@@ -110,6 +176,39 @@ def create_fresh_draft(rendition, reviewer, preview_digest, *, original_source=F
     if preview_digest != proposal["digest"]:
         raise DocumentEditConflict(
             "Fresh generation changed. Review a new preview before starting."
+        )
+    evidence = deepcopy(proposal["evidence"])
+    evidence["confirmation"] = {
+        "preview_digest": proposal["digest"], "explicitly_approved": True,
+    }
+    return create_working_copy(
+        rendition,
+        reviewer,
+        proposal["document"],
+        evidence,
+        profile=get_profile().key,
+        parent_version=None,
+        origin=DocumentVersion.Origin.SOURCE_GENERATED,
+        source_snapshot=rendition.snapshot,
+    )
+
+
+@transaction.atomic
+def create_membership_draft(rendition, reviewer, preview_digest):
+    Rendition.objects.filter(pk=rendition.pk).update(id=F("id"))
+    rendition = Rendition.objects.select_related("document", "snapshot").get(pk=rendition.pk)
+    lock_organization()
+    from library.services.document_lineage import node_is_archived
+
+    if node_is_archived(rendition.document, f"edition:{rendition.pk}"):
+        raise DocumentEditConflict(
+            "This generation is archived. Restore it before regenerating from this edition."
+        )
+    proposal = preview_membership_draft(rendition)
+    if preview_digest != proposal["digest"]:
+        raise DocumentEditConflict(
+            "Membership, retained sources or output changed. Review a new preview before "
+            "starting."
         )
     evidence = deepcopy(proposal["evidence"])
     evidence["confirmation"] = {

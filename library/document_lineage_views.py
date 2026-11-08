@@ -33,7 +33,9 @@ def workspace(request, pk):
         )
     )
     filter_name = request.GET.get("filter", "all")
-    if filter_name not in {"all", "publications", "corrections", "generations", "archived"}:
+    if filter_name not in {
+        "all", "sources", "publications", "corrections", "generations", "archived",
+    }:
         filter_name = "all"
     selected_id = request.GET.get("selected", "")
     try:

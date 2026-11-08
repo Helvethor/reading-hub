@@ -1,20 +1,20 @@
 {% extends panel_base %}
-{% block title %}Correction history | {{ site.name }}{% endblock %}
+{% block title %}Work versions | {{ site.name }}{% endblock %}
 {% block content %}
 <div class="page-container">
-  <h1>Correction history</h1>
-  <p>{{ version.title }} · Edition {{ version.pk }}</p>
-  <p>Continue a history's latest saved correction, or start an alternative from an exact earlier version. Nothing overwrites existing versions or transfers review approval. Switching editor histories leaves the current editor; save pending work first.</p>
-  {% if switch_url %}<p role="status">A separate correction was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new correction</a></p>{% endif %}
-  <p><a href="{% url 'document-editor' version.pk %}?start=source" data-workflow-switch>Start from the source-derived edition</a> · <a href="{% url 'document-fresh-draft' version.pk %}{% if embedded %}?embedded=1{% endif %}">Preview fresh regeneration from retained source</a></p>
+  <h1>Work versions</h1>
+  <p>{{ version.title }}</p>
+  <p>Continue a working copy's latest saved content, or explicitly start an alternative from an exact earlier version. Review approval is not inherited. Switching working copies leaves the current editor; save pending work first.</p>
+  {% if switch_url %}<p role="status">A separate working copy was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new working copy</a></p>{% endif %}
+  <p><a href="{% url 'document-editor' version.pk %}?start=source" data-workflow-switch>Start from this source-generated version</a> · <a href="{% url 'document-fresh-draft' version.pk %}{% if embedded %}?embedded=1{% endif %}">Preview fresh generation from retained source</a></p>
   {% if history_error %}<p class="error" role="alert">{{ history_error }}</p>{% endif %}
   {% if not draft %}
-  <h2>Choose a correction history</h2>
+  <h2>Choose a working copy</h2>
   <ul>{% for item in histories %}
-    <li><a href="{% url 'document-editor' version.pk %}?draft={{ item.pk }}" data-workflow-switch>Continue latest correction</a> · <a href="?draft={{ item.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Versions</a> · {{ item.created_at }} · {{ item.reviewer }} · <small>{{ item.pk }}</small></li>
-  {% empty %}<li>No saved corrections yet. Start from the source-derived edition above.</li>{% endfor %}</ul>
+    <li><a href="{% url 'document-editor' version.pk %}?draft={{ item.pk }}" data-workflow-switch>Continue working copy</a> · <a href="?draft={{ item.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Saved versions</a> · {{ item.created_at }} · {{ item.reviewer }}</li>
+  {% empty %}<li>No working copies yet. Start from the source-generated version above.</li>{% endfor %}</ul>
   {% else %}
-  {% if draft_archived %}<p class="notice warning" role="alert">This history is archived. Restore it from <a href="{% url 'document-lineage' version.document_id %}?filter=archived&amp;selected=history%3A{{ draft.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Lineage &amp; versions</a> before continuing or saving. Pending editor content is preserved.</p>
+  {% if draft_archived %}<p class="notice warning" role="alert">This working copy is archived. Restore it from <a href="{% url 'document-lineage' version.document_id %}?filter=archived&amp;selected=history%3A{{ draft.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Versions</a> before continuing or saving. Pending editor content is preserved.</p>
   {% else %}<p><a href="{% url 'document-editor' version.pk %}?draft={{ draft.pk }}" data-workflow-switch>Continue latest correction in this history</a> · <a href="{% url 'document-editor-history' version.pk %}{% if embedded %}?embedded=1{% endif %}">All correction histories</a></p>{% endif %}
   {% if draft.evidence.correction_origin %}
   <p>This history starts from <a href="?draft={{ draft.evidence.correction_origin.draft }}&amp;revision={{ draft.evidence.correction_origin.revision }}{% if embedded %}&amp;embedded=1{% endif %}">version {{ draft.evidence.correction_origin.revision }} of its parent history</a>. Review approval was not inherited.</p>
@@ -24,12 +24,12 @@
     <li><a href="?draft={{ draft.pk }}&amp;revision=0{% if embedded %}&amp;embedded=1{% endif %}">Starting version (0)</a> · Not reviewed</li>
   </ul>
   {% if selected %}
-  <h2>Saved version {{ selected.number }}: {{ selected.row.document.title }}</h2>
-  <p>Read-only saved content below. Starting an alternative copies this exact saved content into a new branch; later corrections remain intact.</p>
+  <h2>Saved content {{ selected.number }}: {{ selected.row.document.title }}</h2>
+  <p>Read-only saved content below. Starting an alternative uses this exact content; later changes remain intact.</p>
   {% if not draft_archived %}<form method="post">{% csrf_token %}
     <input type="hidden" name="draft" value="{{ draft.pk }}">
     <input type="hidden" name="revision" value="{{ selected.number }}">
-    <button type="submit">Start an alternative from this exact saved version</button>
+    <button type="submit">Start an alternative from this exact saved content</button>
   </form>
   {% else %}<p>Branching from an archived history is disabled until it is restored.</p>{% endif %}
   <details><summary>Exact saved markup (read-only)</summary><pre class="correction-history-markup">{{ selected.row.document.html }}</pre></details>

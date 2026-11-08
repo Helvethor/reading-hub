@@ -173,7 +173,13 @@ def reader(request, pk):
         {
             **reading_style,
             "version": rendition,
+            "reader_target": rendition.document.reader_target(),
             "editor_pilot": settings.READING_HUB_EDITOR_PILOT,
+            "can_edit_work": bool(
+                request.user.is_authenticated and (
+                    request.user.is_staff or request.user.has_perm("library.review_metadata")
+                )
+            ),
             "display_author": display_author,
             **metadata_context(rendition.metadata, rendition.title, display_author, book,
                                 rendition.document.url),

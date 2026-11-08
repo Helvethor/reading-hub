@@ -534,13 +534,28 @@ def member_destination(document, version=None):
         explicit = entries().filter(url=document.url, membership_reviewed=True).exists()
         if (
             not explicit
-            and
-            version is not None
-            and not version.structure.get("book")
             and retained
             and retained.specification["book"]
         ):
+            book_url = retained.specification.get("url", retained.entry.url)
+            parent = Document.objects.filter(url=book_url).first()
+            current = parent.reader_target() if parent else None
+            if current:
+                if version is not None and current.pk == version.pk:
+                    return None
+                if not current.structure.get("book"):
+                    return current, ""
+                section = next(
+                    (
+                        part["id"] for part in current.structure.get("parts", [])
+                        if part.get("url") == document.url
+                    ),
+                    "",
+                )
+                return current, section
             current = retained.rendition
+            if version is not None and current.pk == version.pk:
+                return None
             section = next(
                 (part["id"] for part in current.structure["parts"] if part["url"] == document.url),
                 "c1",

@@ -947,6 +947,17 @@ class CachedCatalogueTests(TestCase):
         self.assertRedirects(response, reverse("reader", args=[selected.pk]))
         self.mock.assert_not_called()
 
+    def test_catalogue_leaf_links_to_existing_work_context(self):
+        site = configured_sites().get(host="communistusa.org")
+        CatalogueEntry.objects.create(site=site, url=ARTICLE, title="Hint")
+        version = self.import_article()
+        response = self.client.get(reverse("catalogue"), {
+            "group": "source", "then": "", "branch": '["RCA · United States"]',
+        })
+        work_url = reverse("document-lineage", args=[version.document_id])
+        self.assertContains(response, f'href="{work_url}"')
+        self.assertContains(response, "Work")
+
     def test_missing_source_author_defaults_to_website_and_preserves_real_author(self):
         self.content = article_html().replace(b'<meta name="author" content="Test Author">', b"")
         site = configured_sites().get(host="communistusa.org")

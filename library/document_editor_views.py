@@ -41,7 +41,12 @@ from library.services.editor_sources import (
     source_ticket,
 )
 from library.services.errors import ImportFailure
-from library.services.fresh_document_drafts import create_fresh_draft, preview_fresh_draft
+from library.services.fresh_document_drafts import (
+    create_fresh_draft,
+    create_membership_draft,
+    preview_fresh_draft,
+    preview_membership_draft,
+)
 from library.services.semantic_documents import MAX_BYTES
 from library.sources.adapters import adapter_for
 
@@ -127,9 +132,9 @@ def workspace(request, pk):
                 return redirect(target + query)
         if not draft_id and request.GET.get("start") != "source":
             choices = list(histories[:2])
-            if len(choices) == 1:
+            if len(choices) == 1 and choices[0].reviewer_id == request.user.pk:
                 draft_id = str(choices[0].pk)
-            elif len(choices) > 1:
+            elif choices:
                 choose_history = True
         if draft_id:
             draft = get_draft(draft_id, version)
@@ -179,6 +184,8 @@ def workspace(request, pk):
     response = render(request, "library/document_editor.html", {
         **reading_style,
         "version": version, "initial": initial, "editor_error": error, "draft": draft,
+        "reader_target": version.document.reader_target(),
+        "can_edit_work": True,
         "draft_archived": bool(
             draft and node_is_archived(version.document, f"history:{draft.pk}")
         ),
@@ -305,20 +312,29 @@ def fresh_draft(request, pk):
     if mode not in {"original", "reviewed"}:
         return HttpResponse("Choose original or reviewed generation inputs.", status=422)
     original_source = mode == "original"
+    membership_seeded = bool(source.structure.get("book") and not original_source)
     proposal, error, status, switch_url = None, "", 200, None
     try:
         if request.method == "POST":
             if request.POST.get("confirm") != "yes":
                 raise ValueError("Explicitly confirm starting a separate regenerated draft.")
-            draft = create_fresh_draft(
-                source, request.user, request.POST.get("preview_digest"),
-                original_source=original_source,
-            )
+            if membership_seeded:
+                draft = create_membership_draft(
+                    source, request.user, request.POST.get("preview_digest"),
+                )
+            else:
+                draft = create_fresh_draft(
+                    source, request.user, request.POST.get("preview_digest"),
+                    original_source=original_source,
+                )
             switch_url = reverse("document-editor", args=[pk]) + f"?draft={draft.pk}"
             if not panel_context(request)["embedded"]:
                 return redirect(switch_url)
         else:
-            proposal = preview_fresh_draft(source, original_source=original_source)
+            proposal = (
+                preview_membership_draft(source) if membership_seeded else
+                preview_fresh_draft(source, original_source=original_source)
+            )
     except DocumentEditConflict as exc:
         error, status = str(exc), 409
     except (ValueError, ImportFailure, OSError) as exc:
@@ -330,6 +346,7 @@ def fresh_draft(request, pk):
     return panel_response(request, "library/document_fresh_draft.html", {
         "source": source, "proposal": proposal, "generation_error": error,
         "input_mode": mode, "original_source": original_source, "switch_url": switch_url,
+        "membership_seeded": membership_seeded,
     }, status=status)
 
 

@@ -374,8 +374,8 @@ if (form) {
         restore.hidden = true;
         if (dirty) remember();
         status.textContent = dirty
-          ? `Saved revision ${result.revision} as ${result.review}. Additional unsaved edits remain.`
-          : `Saved revision ${result.revision}. Review scope: ${result.review}.`;
+          ? `Saved version ${result.revision} as ${result.review}. Additional unsaved edits remain.`
+          : `Saved version ${result.revision}. Review scope: ${result.review}.`;
         if (result.issues.length) showError(result.issues.join("\n"));
       } catch (failure) {
         showError(failure.message);
@@ -391,7 +391,7 @@ if (form) {
     if (initial.choose_history) {
       editor.setEditable(false);
       form.inert = true;
-      status.textContent = "Choose a correction history, or explicitly start from the source-derived edition, before editing.";
+      status.textContent = "Choose a working copy, or explicitly start from this source-generated version, before editing.";
     }
   } catch (failure) {
     showError(failure.message);

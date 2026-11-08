@@ -6,7 +6,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from library.models import DocumentDraftBase, DocumentEditRevision
+from library.models import DocumentDraftBase, DocumentEditRevision, Rendition, Snapshot
+from library.services.document_edits import create_draft
 from library.services.semantic_documents import canonical_document
 from library.tests import test_document_edits as foundation
 from library.versions import APP_VERSION
@@ -41,12 +42,12 @@ class DocumentEditorViewTests(TestCase):
             "library/editor-pilot.css", "library/generated/editor-pilot.js",
         ):
             self.assertContains(response, f'/static/{asset}?v={APP_VERSION}')
-        self.assertContains(response, "Document editor pilot")
+        self.assertContains(response, "Work editor")
         self.assertContains(response, "immutable saved revisions")
         self.assertContains(response, 'data-comparison-url="'
                             + reverse("document-comparison", args=[self.rendition.pk]) + '"')
         self.assertContains(response, 'id="editor-comparison"')
-        for panel in ("Lineage &amp; versions", "Regenerate a separate draft",
+        for panel in ("Versions", "Regenerate a separate draft",
                       "Original retained source", "Saved comparison", "Publication preview"):
             self.assertContains(response, f'data-workflow-panel="{panel}"')
         self.assertContains(response, "excludes unsaved edits")
@@ -109,6 +110,29 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'aria-label="Matching document targets"')
         self.assertContains(response, 'id="editor-link"')
         self.assertEqual(DocumentDraftBase.objects.count(), before)
+
+    def test_unowned_working_copy_requires_explicit_choice(self):
+        source = self.rendition
+        snapshot = Snapshot.objects.create(
+            document=source.document,
+            digest="f" * 64,
+            manifest=source.snapshot.manifest,
+        )
+        version = Rendition.objects.create(
+            document=source.document, snapshot=snapshot, identity="9" * 64,
+            title=source.title, metadata=source.metadata, structure=source.structure,
+            html=source.html, stylesheet=source.stylesheet, warnings=source.warnings,
+            app_version=source.app_version, adapter_version=source.adapter_version,
+            format_version=source.format_version, output_digest="8" * 64,
+        )
+        owner = get_user_model().objects.create_user("other-reviewer")
+        create_draft(version, owner)
+
+        response = self.client.get(reverse("document-editor", args=[version.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["choose_history"])
+        self.assertIsNone(response.context["draft"])
+        self.assertContains(response, "Choose a working copy")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
 
     def test_style_defaults_are_in_a_separate_tab_without_editor_stylesheet(self):

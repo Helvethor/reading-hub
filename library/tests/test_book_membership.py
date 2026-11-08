@@ -137,6 +137,9 @@ class BookMembershipTests(TestCase):
         )
         url = self.spec["parts"][1]["url"]
         document = Document.objects.create(url=url)
+        Document.objects.filter(
+            pk=self.book.document_id, reader_selection_explicit=False,
+        ).update(reader_rendition=current)
         self.assertEqual(member_destination(document), (current, ""))
         proposal = self.preview(url, "detach")
         self.assertEqual(proposal["parent_rendition"], current.pk)
