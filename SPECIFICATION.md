@@ -806,17 +806,16 @@ evidence-based model-promotion gates.
 
 ### Work-centred version identity and reader selection (foundations 2026-11-08)
 
-Completion status reconciled 2026-11-08: the normalized identities, dedicated
-membership-generation service and reader-selection audit below are implemented
-foundations, not the complete approved workflow. Catalogue opening still bypasses
-reader selection in an import/cache path; unchanged-content review events can
-force publication branching; working-copy opening still creates extra content
-identities. Ordinary editor regeneration remains snapshot-based and the approved
-work-centred vocabulary/interface is not yet delivered. The current
+Completion status reconciled 2026-11-08: the complete work-centred workflow in
+the [implementation handoff](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) is
+implemented in commit `f568a81` and passed isolated backend/frontend suites,
+synthetic browser acceptance for W1-W13, bounded-query checks and a current-data
+rehearsal of migration 0033. Authorized deployment to `127.0.0.1:8765` and its
+post-deployment preservation checks remain pending. The current
 [task milestone](TASKS.md#current-milestone-complete-the-work-centred-workflow-2026-11-08)
-and [implementation contract](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) define the
-required completion behavior and take precedence over conflicting legacy
-workflow terminology. The following describes the bounded foundation.
+records the remaining delivery gate. Browser evidence is synthetic; it does not
+certify human usability or accessibility. No live publication, membership,
+archive or reader selection was changed for acceptance.
 
 Each immutable content version belongs to one catalogue work and records its
 semantic content digest, retained-source evidence, origin and verified ancestry.
@@ -842,11 +841,25 @@ explicitly. Identical output reuses the existing rendition; the immutable
 generation record preserves the exact membership/input binding even when output
 is reused.
 
-Migrations `0031_work_versions_reader_selection` and
-`0032_book_membership_generation` are additive. Their mapping was rehearsed on an
-isolated SQLite backup with protected source, edition, draft, revision and
-publication rows verified unchanged; deployment state is recorded in
-[Operations](docs/OPERATIONS.md).
+The ordinary new-book generation entry point now previews current retained
+membership and binds its sources, assets, order and policy to confirmation.
+Changed or missing evidence refuses explicitly; historical-capture reproduction
+is a separately named choice. Generating or continuing a working copy does not
+change the selected reader output or existing versions.
+
+The shared Work context distinguishes the selected reader output, saved content
+and working-copy state. Continuation uses exact content identity, so an unchanged
+review event does not create editing divergence. Work history separates source
+captures, generations, branches, saved/review events and publication records;
+archive/restore remains an audited, overlap-safe lifecycle that preserves
+published outputs.
+
+Migrations `0031_work_versions_reader_selection`,
+`0032_book_membership_generation` and
+`0033_alter_documentdraftbase_document_version` are applied locally. A fresh
+current-data copy was rehearsed through rollback and reapplication of 0033; all
+non-migration table rows, schema and effective reader targets remained unchanged.
+Backup and deployment evidence is recorded in [Operations](docs/OPERATIONS.md).
 
 ### Earlier semantic-editing direction (2026-10-23, retained constraints)
 

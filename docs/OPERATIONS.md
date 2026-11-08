@@ -66,6 +66,21 @@ existing profile and 6 x 1024 MiB configuration. The separate port-8000 service
 was not touched. No real document, publication or membership was changed, and
 this was not a public deployment.
 
+Work-centred workflow pre-deployment validation (2026-11-08): commit `f568a81`
+passed 789 backend tests, 271 frontend tests, the production build, scoped Ruff,
+Django checks, migration consistency and synthetic browser acceptance for W1-W13.
+The W14 volume regression covers 12 branches and 12 unrelated works. A fresh
+private backup at
+`data/backups/work-centred-deploy-20261108T194725Z/` contains the SQLite backup
+(65,208,320 bytes; `quick_check` passed; no foreign-key violations), 5,023
+retained blobs (321,139,102 bytes; every copied file hash matched) and the
+unchanged signing key. On a separate copy, migration 0033 was rolled back to
+0032 and reapplied: all 52 non-migration tables (50,030 rows), schema and 39
+reader targets were unchanged; final integrity checks passed. Migration 0033 was
+already applied live, so no live migration was run. This is pre-deployment
+evidence; the new release and post-deployment checks remain pending. Browser
+tests used synthetic data; human usability/accessibility are not certified.
+
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
 Normal robots, fetch limits, URL/asset validation and immutable cache rules

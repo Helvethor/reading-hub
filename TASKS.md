@@ -13,85 +13,95 @@ alternatives inside one work history. Automatically seed new book generations
 from current retained membership. Reader selection and archived evidence remain
 independent of editing.
 
+**Status (2026-11-08):** implementation and W1-W15 acceptance are complete in
+commit `f568a81`; the fresh backup and migration rehearsal are verified. The
+authorized deployment and post-deployment checks at `127.0.0.1:8765` are the
+remaining delivery gate.
+
 The [implementation handoff](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) defines the
 approved model, scope, acceptance matrix and local deployment gates. This
 milestone supersedes older next-step ordering below. Model normalization and a
 successful deployment are prerequisites, not completion of this outcome.
 
-Read-only reconciliation on 2026-11-08 found the approved vocabulary and
-work-centred interface absent, catalogue opening bypassing explicit reader
-selection, review-only records causing artificial publication divergence, and
-generation policies split across entry points. Existing normalized storage still
-creates content-version identities when opening unchanged working copies.
-75 focused backend and 271 frontend tests passed, but did not prevent these gaps.
-In-memory reproductions confirmed the routing and continuation defects; browser
-inspection confirmed the deployed old vocabulary. These are implementation gaps,
-not merely outstanding human acceptance.
+The initial read-only reconciliation on 2026-11-08 found the vocabulary,
+selection-aware routing, exact continuation and unified generation incomplete.
+Those gaps are resolved by the implementation below and the acceptance evidence
+summarized under section E. Synthetic browser checks are not a human usability or
+accessibility certification.
 
 ### A. Exact continuation and catalogue routing
 
-- [ ] Add regression cases reproducing catalogue selection bypass and
+- [x] Add regression cases reproducing catalogue selection bypass and
   publication continuation after an unchanged-content review event.
-- [ ] Centralize exact-content continuation in workflow services and wire all
+- [x] Centralize exact-content continuation in workflow services and wire all
   catalogue, reader, editor and contextual entry points. Continue the existing
   branch when appropriate; explicitly offer latest versus alternative when
   content has diverged. Do not select another reviewer's working copy silently.
-- [ ] Make catalogue root/member routing and ordinary reader links honor the
+- [x] Make catalogue root/member routing and ordinary reader links honor the
   selected output, including when newer generations or imports exist.
 
 ### B. Complete the bounded model
 
-- [ ] Separate working-copy context, immutable content versions, branch
+- [x] Separate working-copy context, immutable content versions, branch
   ancestry, review events and immutable publication output in operational
   services, not just labels or added identities. Opening unchanged editing
   context must not manufacture a saved content version.
-- [ ] Attach publication and review to exact content identities. Review-only
+- [x] Attach publication and review to exact content identities. Review-only
   events must neither create content ancestry nor force editing divergence.
   Retain expected-event checks where required for concurrency.
-- [ ] Rehearse any further migration on isolated current-data copies; preserve
+- [x] Rehearse any further migration on isolated current-data copies; preserve
   original evidence, URLs, numbering, review/publication facts and effective
   reader targets. Never reconstruct unknown ancestry by assumption.
 
 ### C. One generation policy and a bounded source lookup
 
-- [ ] Make ordinary new book generation use current retained catalogue members
+- [x] Make ordinary new book generation use current retained catalogue members
   across all relevant entry points. Keep historical-capture reproduction as a
   separately named, explicitly chosen policy, not an inconsistent default.
-- [ ] Bind membership, source structure/order, conversion policy and assets to
+- [x] Bind membership, source structure/order, conversion policy and assets to
   previews; refuse stale/missing evidence and preserve existing version content.
   Preserve explicit original-source versus reviewed-input policy choices.
-- [ ] Replace whole-library snapshot scans with bounded relevant-evidence
+- [x] Replace whole-library snapshot scans with bounded relevant-evidence
   lookup; validate query behavior on representative multi-work/branched fixtures.
 
 ### D. Deliver the self-evident work-centred interface
 
-- [ ] Apply Work, Source capture, Working copy, Unsaved changes, Saved version,
+- [x] Apply Work, Source capture, Working copy, Unsaved changes, Saved version,
   Source-generated version, Branch and Published version consistently.
-- [ ] Provide a shared work context with Read and Edit/Continue, reader-target
+- [x] Provide a shared work context with Read and Edit/Continue, reader-target
   identification, selected branch/latest saved state and pending working-copy
   state. Versions and Sources separate ordinary work from provenance detail.
-- [ ] Present one work history with real branch points, review events and
+- [x] Present one work history with real branch points, review events and
   publication attachments; preserve exact inspection/comparison, archival and
   unknown ancestry without legacy histories as the primary user model.
-- [ ] Preserve the existing editor, themes, narrow screens, keyboard/focus,
+- [x] Preserve the existing editor, themes, narrow screens, keyboard/focus,
   same-page panels, pending edits and recovery. No second editor/publication flow.
 
 ### E. Acceptance, preservation and authorized local deployment
 
-- [ ] Pass every scenario in the handoff acceptance matrix with isolated article
+- [x] Pass every scenario in the handoff acceptance matrix with isolated article
   and multi-page book fixtures, including real service paths and browser flows.
   Verify exact identities, contents and reader targets, not test totals alone.
-- [ ] Run relevant backend/frontend regressions, frontend build, scoped lint,
+- [x] Run relevant backend/frontend regressions, frontend build, scoped lint,
   Django and migration checks; verify reader/PDF, annotations, source/assets,
   catalogue ownership, archive overlap and archived open-editor preservation.
-- [ ] Complete and checkpoint A-D, rehearse migration and recovery, then verify
+- [x] Complete and checkpoint A-D, rehearse migration and recovery, then verify
   fresh database/blob backups before local deployment to 127.0.0.1:8765.
-- [ ] Verify persistent local service readiness, deployed workspace/static/PDF
-  routes and data-preservation assertions without changing real publications,
-  review decisions, membership or selected reader targets.
+- [ ] Verify persistent local service readiness and deployed workspace, static
+  and PDF routes, data integrity and preserved targets without changing real
+  publications, review decisions, membership or selected reader targets.
 - [ ] Update specification/operations and report implementation, isolated tests,
   browser observations, mocks and human/accessibility limits separately.
   Do not close this milestone while any preceding item remains incomplete.
+
+Pre-deployment evidence (2026-11-08): 789 backend tests and 271 frontend tests
+passed; the production build, scoped Ruff, Django checks and migration
+consistency check passed. W1-W13 were observed in an isolated synthetic browser;
+W14 used 12 branches plus 12 unrelated works; W15 rehearsed migration 0033 on a
+fresh copy. A verified fresh database/blob/signing-key backup is recorded in
+[Operations](docs/OPERATIONS.md). Missing-input refusal was asserted in backend
+tests; no real source fetching was used for browser acceptance. Native
+accessibility and human usability remain uncertified.
 
 ## Completed delivery: catalogue membership / editor separation (2026-11-07)
 
