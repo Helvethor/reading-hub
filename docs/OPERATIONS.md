@@ -81,6 +81,35 @@ already applied live, so no live migration was run. This is pre-deployment
 evidence; the new release and post-deployment checks remain pending. Browser
 tests used synthetic data; human usability/accessibility are not certified.
 
+Work-centred local deployment (2026-11-08): release `8defad0` is serving from
+`data/releases/8defad0` on `127.0.0.1:8765` with the existing data root and
+`READING_HUB_EDITOR_PILOT=1`. The web process was replaced; the six existing
+workers remained healthy at 1024 MiB each, no import job was active, and the
+separate port-8000 service was not touched. Migration 0033 was already applied;
+no migration was run.
+
+Before deployment, a fresh online SQLite backup and private blob/key copies were
+verified at
+`data/backups/work-centred-deploy-final-20261108T201328Z/`. The database is
+65,208,320 bytes and passed `PRAGMA quick_check`; `PRAGMA foreign_key_check`
+reported no violations. All 5,023 retained blobs (321,139,102 bytes) matched
+their source hashes, and the copied `secret-key` hash matched.
+
+After deployment, the catalogue, lineage, selected reader with Work/Read/Edit
+context, referenced static assets and selected reader PDF returned HTTP 200.
+The PDF response was `application/pdf` and began with a valid PDF signature.
+The live database again passed quick and foreign-key checks. Its schema and
+application-table contents matched the fresh backup, apart from expected
+`heartbeat`/`activity` changes in worker-status tables. All 39 reader targets
+matched the pre-deployment mapping; retained-blob and signing-key hashes still
+matched. An in-process authenticated route check temporarily advanced one
+account's `last_login`; that field was restored from the backup before the
+final comparison, which found no account-table differences. Synthetic servers
+on ports 8766 and 8767 and their isolated data were stopped and removed. The
+route checks were not a full post-deployment browser acceptance; human usability
+and accessibility remain uncertified. This is a local deployment, not a public
+release.
+
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
 Normal robots, fetch limits, URL/asset validation and immutable cache rules

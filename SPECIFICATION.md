@@ -810,12 +810,14 @@ Completion status reconciled 2026-11-08: the complete work-centred workflow in
 the [implementation handoff](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) is
 implemented in commit `f568a81` and passed isolated backend/frontend suites,
 synthetic browser acceptance for W1-W13, bounded-query checks and a current-data
-rehearsal of migration 0033. Authorized deployment to `127.0.0.1:8765` and its
-post-deployment preservation checks remain pending. The current
+rehearsal of migration 0033. Release `8defad0` is deployed to
+`127.0.0.1:8765`; post-deployment route and preservation checks passed (see
+[Operations](docs/OPERATIONS.md)). The current
 [task milestone](TASKS.md#current-milestone-complete-the-work-centred-workflow-2026-11-08)
-records the remaining delivery gate. Browser evidence is synthetic; it does not
-certify human usability or accessibility. No live publication, membership,
-archive or reader selection was changed for acceptance.
+records implementation and acceptance evidence. Browser evidence is synthetic;
+full post-deployment browser acceptance, human usability and accessibility are
+not certified. No live publication, membership, archive or reader selection was
+changed for acceptance or deployment.
 
 Each immutable content version belongs to one catalogue work and records its
 semantic content digest, retained-source evidence, origin and verified ancestry.

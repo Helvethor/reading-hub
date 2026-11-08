@@ -14,9 +14,9 @@ from current retained membership. Reader selection and archived evidence remain
 independent of editing.
 
 **Status (2026-11-08):** implementation and W1-W15 acceptance are complete in
-commit `f568a81`; the fresh backup and migration rehearsal are verified. The
-authorized deployment and post-deployment checks at `127.0.0.1:8765` are the
-remaining delivery gate.
+commit `f568a81`; the fresh backup and migration rehearsal are verified. Release
+`8defad0` is deployed at `127.0.0.1:8765` and its post-deployment preservation
+checks passed. Human usability and accessibility are not certified.
 
 The [implementation handoff](docs/WORKFLOW-IMPLEMENTATION-HANDOFF.md) defines the
 approved model, scope, acceptance matrix and local deployment gates. This
@@ -87,10 +87,10 @@ accessibility certification.
   catalogue ownership, archive overlap and archived open-editor preservation.
 - [x] Complete and checkpoint A-D, rehearse migration and recovery, then verify
   fresh database/blob backups before local deployment to 127.0.0.1:8765.
-- [ ] Verify persistent local service readiness and deployed workspace, static
+- [x] Verify persistent local service readiness and deployed workspace, static
   and PDF routes, data integrity and preserved targets without changing real
   publications, review decisions, membership or selected reader targets.
-- [ ] Update specification/operations and report implementation, isolated tests,
+- [x] Update specification/operations and report implementation, isolated tests,
   browser observations, mocks and human/accessibility limits separately.
   Do not close this milestone while any preceding item remains incomplete.
 
@@ -102,6 +102,19 @@ fresh copy. A verified fresh database/blob/signing-key backup is recorded in
 [Operations](docs/OPERATIONS.md). Missing-input refusal was asserted in backend
 tests; no real source fetching was used for browser acceptance. Native
 accessibility and human usability remain uncertified.
+
+Post-deployment evidence (2026-11-08): release `8defad0` is running from
+`data/releases/8defad0` on `127.0.0.1:8765`, with the existing data root and
+editor setting. Catalogue, lineage, selected-reader Work context, referenced
+static assets and the selected reader's PDF returned HTTP 200. Migration 0033
+was already applied; no migration or import job ran. All six existing workers
+remained healthy at 1024 MiB each, and port 8000 was untouched. The database
+passed `quick_check` and foreign-key validation; all table data matched the
+fresh backup apart from expected worker heartbeat/activity updates. All 39
+reader targets, retained-blob hashes and signing-key hash matched. A temporary
+test-session `last_login` update was restored from the backup before the final
+comparison. Full post-deployment browser acceptance and human/accessibility
+certification remain outstanding.
 
 ## Completed delivery: catalogue membership / editor separation (2026-11-07)
 
