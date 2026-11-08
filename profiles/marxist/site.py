@@ -99,6 +99,7 @@ PROFILE = SiteProfile(
         "www.rivoluzione.red": "rivoluzione.red",
     },
     asset_paths={
+        "media.marxist.com": ("/",),
         "admin.marxiste.qc.ca": ("/wp-content/uploads/",),
         **{
             host: ("/communistusa.org/wp-content/uploads/",)

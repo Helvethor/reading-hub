@@ -541,6 +541,15 @@ resets review to partial and does not publish or overwrite the historical editio
 
 ### Preview-first retained-image recovery
 
+The Marxist profile permits `media.marxist.com` as an asset-only host, including
+in the dark theme. WebP, JPEG, PNG and GIF still require matching response types
+and verified raster bytes; arbitrary subdomains are not allowed. This shared
+policy covers new imports, refreshes, image redirects and retained-image recovery.
+Restart the web application and import workers after a profile-policy change.
+Existing editions and snapshots are immutable: a policy fix does not replace
+their missing-image placeholders. Use recovery below and generate a separate
+edition from the recovered snapshot, or explicitly refresh the source.
+
 The 0.35.0 maintenance command retries only failed asset URLs already recorded in
 one snapshot. It does not refresh HTML, crawl for replacements, change successful
 assets, guess that two image occurrences are the same, or edit a historical

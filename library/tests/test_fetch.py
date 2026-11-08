@@ -129,6 +129,56 @@ class FetchTests(SimpleTestCase):
             ):
                 public_addresses("communistusa.org", 443)
 
+    def test_marxist_media_is_asset_only_in_both_themes(self):
+        url = "https://media.marxist.com/2026/09/Environment_Image_own_work-jpg.webp"
+        for profile in ("profiles.marxist.site", "profiles.marxist.dark"):
+            with self.subTest(profile=profile), override_settings(READING_HUB_PROFILE=profile):
+                self.assertEqual(validate_url(url, asset=True), url)
+                self.assertEqual(
+                    validate_url("https://media.marxist.com/robots.txt", asset=True, robots=True),
+                    "https://media.marxist.com/robots.txt",
+                )
+                with self.assertRaises(ImportFailure):
+                    validate_url(url)
+                for invalid in (
+                    url.replace("media.marxist.com", "media.marxist.com.evil.example"),
+                    url.replace("media.marxist.com", "other.marxist.com"),
+                    url.replace("media.marxist.com", "user@media.marxist.com"),
+                    url.replace("media.marxist.com", "media.marxist.com:8080"),
+                ):
+                    with self.subTest(url=invalid), self.assertRaises(ImportFailure):
+                        validate_url(invalid, asset=True)
+
+    def test_marxist_image_redirect_revalidates_asset_host(self):
+        origin = "https://marxist.com/images/example.webp"
+        destination = "https://media.marxist.com/2026/09/example.webp"
+        fetcher = Fetcher()
+        with (
+            patch.object(fetcher, "_check_robots") as robots,
+            patch.object(fetcher, "_wait"),
+            patch.object(
+                fetcher, "_exchange", side_effect=[
+                    Response(origin, b"", "", {"location": destination}, 301),
+                    Response(destination, b"webp", "image/webp", {}),
+                ],
+            ),
+        ):
+            self.assertEqual(fetcher.fetch(origin, asset=True).url, destination)
+            self.assertEqual(robots.call_count, 2)
+            robots.assert_called_with(destination, asset=True)
+        with (
+            patch.object(fetcher, "_check_robots"),
+            patch.object(fetcher, "_wait"),
+            patch.object(
+                fetcher, "_exchange", return_value=Response(
+                    origin, b"", "", {"location": "https://evil.example/example.webp"}, 302,
+                ),
+            ) as exchange,
+            self.assertRaises(ImportFailure),
+        ):
+            fetcher.fetch(origin, asset=True)
+        self.assertEqual(exchange.call_count, 1)
+
     def test_legacy_swiss_images_follow_only_approved_redirect_paths(self):
         legacy = "https://www.derfunke.ch/htm/wp-content/uploads/2022/10/photo.jpg"
         moved = "https://kommunismus.ch/htm/wp-content/uploads/2022/10/photo.jpg"

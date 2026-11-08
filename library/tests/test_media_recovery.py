@@ -21,6 +21,7 @@ from library.tests.test_sources import ARTICLE, article_html
 FAILED = "https://communistusa.org/wp-content/uploads/article photo.png"
 ENCODED = FAILED.replace(" ", "%20")
 MISSING = "https://communistusa.org/missing.png"
+MARXIST_MEDIA = "https://media.marxist.com/2026/09/Environment_Image_own_work-jpg.webp"
 
 
 class ImageRequestTests(SimpleTestCase):
@@ -59,6 +60,26 @@ class ImageRequestTests(SimpleTestCase):
             self.assertRaises(ImportFailure),
         ):
             fetch_image(Fetcher(), FAILED)
+
+    def test_marxist_media_webp_is_verified_not_accepted_by_extension(self):
+        buffer = io.BytesIO()
+        Image.new("RGB", (4, 4), "green").save(buffer, format="WEBP")
+        for body, media_type, valid in (
+            (buffer.getvalue(), "image/webp", True),
+            (buffer.getvalue(), "image/jpeg", False),
+            (b"broken", "image/webp", False),
+        ):
+            with (
+                self.subTest(media_type=media_type, valid=valid),
+                patch("library.services.fetch.Fetcher.fetch",
+                      return_value=Response(MARXIST_MEDIA, body, media_type, {})) as fetch,
+            ):
+                if valid:
+                    self.assertEqual(fetch_image(Fetcher(), MARXIST_MEDIA).body, body)
+                else:
+                    with self.assertRaises(ImportFailure):
+                        fetch_image(Fetcher(), MARXIST_MEDIA)
+                fetch.assert_called_once_with(MARXIST_MEDIA, asset=True)
 
 
 class MediaRecoveryTests(TestCase):
@@ -259,6 +280,34 @@ class MediaRecoveryTests(TestCase):
         self.assertNotIn("Image unavailable", result.html)
         self.assertEqual(result.warnings, [])
 
+    def test_new_import_retains_marxist_media_webp_for_local_reader(self):
+        markup = article_html(f'<p><img src="{MARXIST_MEDIA}" alt="Environment"></p>')
+        buffer = io.BytesIO()
+        Image.new("RGB", (4, 4), "green").save(buffer, format="WEBP")
+        image = buffer.getvalue()
+
+        def response(url, *, asset=False):
+            if asset:
+                self.assertEqual(url, MARXIST_MEDIA)
+                return Response(url, image, "image/webp", {})
+            return Response(url, markup, "text/html", {})
+
+        self.fetch.side_effect = response
+        enqueue(ARTICLE)
+        result = process_job(claim_job())
+        self.assertIsNotNone(result)
+        info = result.snapshot.manifest["assets"][MARXIST_MEDIA]
+        self.assertEqual(info["media_type"], "image/webp")
+        self.assertEqual(read_blob(info["digest"]), image)
+        self.assertEqual(result.warnings, [])
+        reader = self.client.get(f"/versions/{result.pk}/")
+        self.assertContains(reader, f'/assets/{info["digest"]}/')
+        self.assertNotContains(reader, "Image unavailable")
+        asset = self.client.get(f'/assets/{info["digest"]}/')
+        self.assertEqual(asset.status_code, 200)
+        self.assertEqual(asset.headers["Content-Type"], "image/webp")
+        self.assertEqual(b"".join(asset.streaming_content), image)
+
     def test_recovered_snapshot_can_be_reformatted_offline(self):
         report = self.run_command()
         applied = self.run_command(apply=report["preview_digest"])
@@ -272,6 +321,45 @@ class MediaRecoveryTests(TestCase):
         self.assertNotIn("Image unavailable", result.html)
         self.assertEqual(result.snapshot_id, recovered.pk)
         self.assertEqual(Snapshot.objects.count(), 2)
+
+    def test_marxist_media_recovery_preserves_old_edition_and_generates_local_images(self):
+        markup = article_html(f'<p><img src="{MARXIST_MEDIA}" alt="Environment"></p>')
+        self.snapshot.manifest["pages"][0]["digest"] = store_blob(markup)
+        self.snapshot.manifest["assets"] = {
+            MARXIST_MEDIA: {"error": "Unsupported source or asset host: media.marxist.com."},
+        }
+        self.snapshot.warnings = [
+            f"Missing image {MARXIST_MEDIA}: Unsupported source or asset host: media.marxist.com.",
+        ]
+        self.snapshot.digest = snapshot_digest(self.snapshot.manifest)
+        self.snapshot.save()
+        enqueue(ARTICLE, Job.Mode.REFORMAT, self.snapshot)
+        original = process_job(claim_job())
+        self.assertIn("Image unavailable", original.html)
+        old_html = original.html
+        buffer = io.BytesIO()
+        Image.new("RGB", (4, 4), "green").save(buffer, format="WEBP")
+        self.fetch.side_effect = None
+        self.fetch.return_value = Response(MARXIST_MEDIA, buffer.getvalue(), "image/webp", {})
+        preview = self.run_command()
+        self.assertEqual(preview["recovered_images"], 1)
+        self.assertEqual(preview["remaining_failed_images"], 0)
+        recovered = Snapshot.objects.get(
+            pk=self.run_command(apply=preview["preview_digest"])["recovered_snapshot"],
+        )
+        self.fetch.reset_mock()
+        enqueue(ARTICLE, Job.Mode.REFORMAT, recovered)
+        result = process_job(claim_job())
+        self.assertIsNotNone(result)
+        self.fetch.assert_not_called()
+        self.assertIn(f'/assets/{recovered.manifest["assets"][MARXIST_MEDIA]["digest"]}/',
+                      result.html)
+        self.assertNotIn("Image unavailable", result.html)
+        self.assertEqual(result.warnings, [])
+        original.refresh_from_db()
+        self.snapshot.refresh_from_db()
+        self.assertEqual(original.html, old_html)
+        self.assertIn("error", self.snapshot.manifest["assets"][MARXIST_MEDIA])
 
     def test_media_recovery_does_not_override_current_source_language_gate(self):
         legacy = "https://kommunismus.ch/fr/example/"
