@@ -16,6 +16,7 @@ from library.models import (
     DocumentDraftBase,
     DocumentLineageArchive,
     DocumentLineageRestore,
+    DocumentReaderSelection,
     Rendition,
     RenditionAsset,
     Snapshot,
@@ -36,6 +37,7 @@ from library.services.document_lineage import (
     restore_archive,
 )
 from library.services.document_publication import prepare_publication, publish_revision
+from library.services.document_versions import create_working_copy
 from library.services.pipeline import snapshot_digest
 from library.services.semantic_documents import fingerprint
 
@@ -159,10 +161,10 @@ class DocumentLineageTests(TestCase):
             "input_policy": {"mode": "reviewed"},
             "legacy_application": {"saved_editor_revisions": "not replayed"},
         })
-        fresh = DocumentDraftBase.objects.create(
-            rendition=other, profile=self.draft.profile, document=self.draft.document,
-            document_digest=self.draft.document_digest, evidence=evidence,
-            evidence_digest=fingerprint(evidence), reviewer=self.reviewer,
+        fresh = create_working_copy(
+            other, self.reviewer, self.draft.document, evidence,
+            profile=self.draft.profile, parent_version=None,
+            origin="source_generated", source_snapshot=other.snapshot,
         )
         fresh_revision = save_revision(
             fresh, self.reviewer, fresh.document, 0,
@@ -292,11 +294,10 @@ class DocumentLineageTests(TestCase):
             "input_policy": {"mode": "original"},
             "legacy_application": {"saved_editor_revisions": "not replayed"},
         })
-        fresh = DocumentDraftBase.objects.create(
-            rendition=renditions[1], profile=fresh_base.profile,
-            document=fresh_base.document, document_digest=fresh_base.document_digest,
-            evidence=fresh_evidence, evidence_digest=fingerprint(fresh_evidence),
-            reviewer=self.reviewer,
+        fresh = create_working_copy(
+            renditions[1], self.reviewer, fresh_base.document, fresh_evidence,
+            profile=fresh_base.profile, parent_version=None,
+            origin="source_generated", source_snapshot=renditions[1].snapshot,
         )
         lineage = build_lineage(book)
         first_pages = lineage["nodes"][f"snapshot:{snapshots[0].pk}"]["manifest"]["pages"]
@@ -313,7 +314,7 @@ class DocumentLineageTests(TestCase):
         )
         self.assertEqual(
             lineage["nodes"][f"history:{publication_draft.pk}"]["parent_id"],
-            f"edition:{publication.rendition_id}",
+            f"revision:{source_draft.pk}:{corrected.revision}",
         )
         self.assertEqual(
             lineage["nodes"][f"history:{fresh.pk}"]["parent_id"],
@@ -434,6 +435,75 @@ class DocumentLineageTests(TestCase):
         self.assertEqual(response.status_code, 409)
         self.assertIn("Restore it before saving", response.json()["error"])
         self.assertEqual(self.draft.revisions.count(), before)
+
+    def test_reader_target_selection_is_confirmed_audited_and_uses_fallback(self):
+        newer = self.create_rendition(
+            self.work, self.snapshot, "Newer source edition",
+            '<section id="c1"><p>Newer source.</p></section>', book=False,
+        )
+        self.assertEqual(self.work.reader_target().pk, newer.pk)
+        url = reverse("document-lineage", args=[self.work.pk])
+        client = Client()
+        client.force_login(self.reviewer)
+
+        unconfirmed = client.post(url, {
+            "action": "select-reader-target", "rendition_id": self.rendition.pk,
+            "expected_rendition": newer.pk, "reason": "Prefer reviewed text.",
+        })
+        self.assertEqual(unconfirmed.status_code, 422)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 0)
+
+        selected = client.post(url, {
+            "action": "select-reader-target", "rendition_id": self.rendition.pk,
+            "expected_rendition": newer.pk, "reason": "Prefer reviewed text.",
+            "confirm": "yes",
+        })
+        self.assertEqual(selected.status_code, 302)
+        self.work.refresh_from_db()
+        self.assertEqual(self.work.reader_target().pk, self.rendition.pk)
+        self.assertTrue(self.work.reader_selection_explicit)
+        audit = DocumentReaderSelection.objects.get()
+        self.assertEqual(audit.previous_rendition_id, newer.pk)
+        self.assertEqual(audit.rendition_id, self.rendition.pk)
+        self.assertEqual(audit.reviewer_id, self.reviewer.pk)
+        self.assertEqual(audit.reason, "Prefer reviewed text.")
+        self.assertTrue(audit.explicit)
+        latest = client.get(reverse("latest", args=[self.work.pk]))
+        self.assertEqual(latest.url, reverse("reader", args=[self.rendition.pk]))
+
+        stale = client.post(url, {
+            "action": "select-reader-target", "rendition_id": newer.pk,
+            "expected_rendition": newer.pk, "reason": "Stale expectation.",
+            "confirm": "yes",
+        })
+        self.assertEqual(stale.status_code, 409)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 1)
+
+        reset = client.post(url, {
+            "action": "restore-reader-fallback", "expected_rendition": self.rendition.pk,
+            "reason": "Return to generated fallback.", "confirm": "yes",
+        })
+        self.assertEqual(reset.status_code, 302)
+        self.work.refresh_from_db()
+        self.assertEqual(self.work.reader_target().pk, newer.pk)
+        self.assertFalse(self.work.reader_selection_explicit)
+        fallback_audit = DocumentReaderSelection.objects.order_by("-pk").first()
+        self.assertEqual(fallback_audit.previous_rendition_id, self.rendition.pk)
+        self.assertEqual(fallback_audit.rendition_id, newer.pk)
+        self.assertFalse(fallback_audit.explicit)
+        latest = client.get(reverse("latest", args=[self.work.pk]))
+        self.assertEqual(latest.url, reverse("reader", args=[newer.pk]))
+
+        outsider = get_user_model().objects.create_user("reader-target-outsider")
+        unauthorized = Client()
+        unauthorized.force_login(outsider)
+        forbidden = unauthorized.post(url, {
+            "action": "select-reader-target", "rendition_id": self.rendition.pk,
+            "expected_rendition": newer.pk, "reason": "No reviewer role.",
+            "confirm": "yes",
+        })
+        self.assertEqual(forbidden.status_code, 403)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 2)
 
     def test_permission_csrf_stale_preview_and_active_filter(self):
         self.save()

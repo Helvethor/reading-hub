@@ -503,13 +503,22 @@ def publish(job, manifest, asset_warnings, *, organization=None, register_member
                 "output_digest": output_digest,
             },
         )
+        from library.services.document_versions import version_for_rendition
+
+        version_for_rendition(rendition)
         for asset in manifest["assets"].values():
             if "digest" in asset:
                 RenditionAsset.objects.get_or_create(rendition=rendition, blob_id=asset["digest"])
         aliases = list(
             dict.fromkeys(job.document.aliases + [p["resolved_url"] for p in manifest["pages"][:1]])
         )
-        Document.objects.filter(pk=job.document_id).update(title=source.title, aliases=aliases)
+        Document.objects.filter(pk=job.document_id).update(
+            title=source.title,
+            aliases=aliases,
+        )
+        Document.objects.filter(
+            pk=job.document_id, reader_selection_explicit=False,
+        ).update(reader_rendition=rendition)
         enrich_from_rendition(rendition)
         if register_membership and source.book:
             site = CrawlSite.objects.filter(

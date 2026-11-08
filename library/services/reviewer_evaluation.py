@@ -9,6 +9,7 @@ from library import versions
 from library.models import (
     DocumentDraftBase,
     DocumentEditRevision,
+    DocumentVersion,
     Rendition,
     ReviewerResult,
     ReviewerRun,
@@ -16,6 +17,7 @@ from library.models import (
 )
 from library.profile import get_profile
 from library.services.document_edits import DocumentEditConflict
+from library.services.document_versions import create_working_copy, version_for_saved_state
 from library.services.semantic_documents import fingerprint
 from library.sources.adapters import adapter_for
 
@@ -70,10 +72,14 @@ def start_run(task, reviewer, *, practice):
         "starting_evidence_digest": source.evidence_digest,
         "starting_document_digest": source.document_digest,
     }
-    draft = DocumentDraftBase.objects.create(
-        rendition=source.rendition, profile=source.profile,
-        document=deepcopy(source.document), document_digest=source.document_digest,
-        evidence=evidence, evidence_digest=fingerprint(evidence), reviewer=reviewer,
+    draft = create_working_copy(
+        source.rendition,
+        reviewer,
+        deepcopy(source.document),
+        evidence,
+        profile=source.profile,
+        parent_version=version_for_saved_state(source, 0),
+        origin=DocumentVersion.Origin.WORKING_COPY,
     )
     return ReviewerRun.objects.create(
         task=task, draft=draft, reviewer=reviewer, practice=practice,

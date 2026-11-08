@@ -14,6 +14,11 @@ class Document(models.Model):
     url = models.URLField(max_length=2048, unique=True)
     aliases = models.JSONField(default=list)
     title = models.CharField(max_length=1000, blank=True)
+    reader_rendition = models.ForeignKey(
+        "Rendition", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="selected_for_documents",
+    )
+    reader_selection_explicit = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def latest(self):
@@ -29,6 +34,36 @@ class Document(models.Model):
         if organization:
             return organization.rendition
         return self.renditions.order_by("-created_at", "-pk").first()
+
+    def reader_target(self):
+        if self.reader_rendition_id:
+            target = self.reader_rendition
+            if target.document_id != self.pk:
+                raise ValueError("The selected reader version belongs to another work.")
+            return target
+        return self.latest()
+
+    def source_generated_reader_fallback(self):
+        from library.profile import get_profile
+
+        organization = (
+            ContentOrganization.objects.filter(
+                entry__url=self.url, entry__site__profile=get_profile().key,
+            ).select_related("rendition").first()
+        )
+        if (
+            organization
+            and organization.rendition.document_id == self.pk
+            and not DocumentPublication.objects.filter(
+                rendition_id=organization.rendition_id,
+            ).exists()
+        ):
+            return organization.rendition
+        return (
+            self.renditions.filter(document_publication__isnull=True)
+            .order_by("-created_at", "-pk")
+            .first()
+        )
 
 
 class URLAlias(models.Model):
@@ -58,6 +93,10 @@ class Blob(models.Model):
 class Rendition(models.Model):
     document = models.ForeignKey(Document, on_delete=models.PROTECT, related_name="renditions")
     snapshot = models.ForeignKey(Snapshot, on_delete=models.PROTECT, related_name="renditions")
+    document_version = models.ForeignKey(
+        "DocumentVersion", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="renditions",
+    )
     identity = models.CharField(max_length=64, unique=True)
     title = models.CharField(max_length=1000)
     metadata = models.JSONField(default=dict)
@@ -125,6 +164,10 @@ class DocumentDraftBase(ImmutableDocumentEvidence):
     rendition = models.ForeignKey(
         Rendition, on_delete=models.PROTECT, related_name="document_drafts"
     )
+    document_version = models.OneToOneField(
+        "DocumentVersion", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="draft_base",
+    )
     profile = models.CharField(max_length=100)
     document = models.JSONField()
     document_digest = models.CharField(max_length=64)
@@ -142,6 +185,10 @@ class DocumentEditRevision(ImmutableDocumentEvidence):
 
     draft = models.ForeignKey(
         DocumentDraftBase, on_delete=models.PROTECT, related_name="revisions"
+    )
+    document_version = models.ForeignKey(
+        "DocumentVersion", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="review_records",
     )
     revision = models.PositiveIntegerField()
     document = models.JSONField()
@@ -164,6 +211,59 @@ class DocumentEditRevision(ImmutableDocumentEvidence):
                 condition=Q(revision__gte=1), name="positive_document_edit_revision"
             ),
         ]
+
+
+class DocumentVersion(ImmutableDocumentEvidence):
+    class Origin(models.TextChoices):
+        SOURCE_GENERATED = "source_generated", "Source-generated"
+        WORKING_COPY = "working_copy", "Working copy"
+        MANUAL_SAVE = "manual_save", "Manual save"
+
+    class Ancestry(models.TextChoices):
+        KNOWN = "known", "Known"
+        UNKNOWN = "unknown", "Unknown"
+
+    document = models.ForeignKey(
+        Document, on_delete=models.PROTECT, related_name="document_versions"
+    )
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="children",
+    )
+    source_snapshot = models.ForeignKey(
+        Snapshot, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="generated_versions",
+    )
+    origin = models.CharField(max_length=20, choices=Origin.choices)
+    ancestry = models.CharField(
+        max_length=10, choices=Ancestry.choices, default=Ancestry.UNKNOWN,
+    )
+    content_digest = models.CharField(max_length=64)
+    evidence = models.JSONField(default=dict)
+    evidence_digest = models.CharField(max_length=64)
+    created_at = models.DateTimeField()
+
+
+class DocumentBranch(ImmutableDocumentEvidence):
+    document = models.ForeignKey(
+        Document, on_delete=models.PROTECT, related_name="document_branches"
+    )
+    draft = models.OneToOneField(
+        DocumentDraftBase, on_delete=models.PROTECT, related_name="branch"
+    )
+    base_version = models.ForeignKey(
+        DocumentVersion, on_delete=models.PROTECT, related_name="based_branches",
+    )
+    starting_version = models.ForeignKey(
+        DocumentVersion, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="branches",
+    )
+    starting_revision = models.ForeignKey(
+        DocumentEditRevision, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="starting_branches",
+    )
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField()
 
 
 class DocumentPublication(ImmutableDocumentEvidence):
@@ -196,6 +296,23 @@ class DocumentLineageRestore(ImmutableDocumentEvidence):
     )
     reason = models.TextField(blank=True, default="")
     reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class DocumentReaderSelection(ImmutableDocumentEvidence):
+    document = models.ForeignKey(
+        Document, on_delete=models.PROTECT, related_name="reader_selections"
+    )
+    previous_rendition = models.ForeignKey(
+        Rendition, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="previous_reader_selections",
+    )
+    rendition = models.ForeignKey(
+        Rendition, on_delete=models.PROTECT, related_name="reader_selections"
+    )
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.TextField()
+    explicit = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 

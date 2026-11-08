@@ -7,13 +7,25 @@ from bs4 import BeautifulSoup
 from django.conf.locale import LANG_INFO
 from django.db import transaction
 from django.db.models import F
+from django.utils import timezone
 
 from library import versions
-from library.models import DocumentDraftBase, DocumentEditRevision, Rendition
+from library.models import (
+    DocumentDraftBase,
+    DocumentEditRevision,
+    DocumentPublication,
+    DocumentVersion,
+    Rendition,
+)
 from library.profile import get_profile
 from library.services.document_metadata import TEXT_FIELDS as METADATA_TEXT_FIELDS
 from library.services.document_metadata import TITLE_LAYOUTS, TITLE_PAGE_FIELDS, WORK_TYPES
 from library.services.editor_sources import ticket_evidence
+from library.services.document_versions import (
+    create_working_copy,
+    version_for_rendition,
+    version_for_saved_state,
+)
 from library.services.semantic_documents import (
     SCHEMA_VERSION,
     canonical_document,
@@ -83,10 +95,15 @@ def branch_draft(draft, reviewer, number):
     }
     # Evaluation membership belongs to the old working copy, not this correction.
     evidence.pop("evaluation_origin", None)
-    return DocumentDraftBase.objects.create(
-        rendition=draft.rendition, profile=draft.profile,
-        document=deepcopy(row.document), document_digest=row.document_digest,
-        evidence=evidence, evidence_digest=fingerprint(evidence), reviewer=reviewer,
+    return create_working_copy(
+        draft.rendition,
+        reviewer,
+        deepcopy(row.document),
+        evidence,
+        profile=draft.profile,
+        parent_version=version_for_saved_state(draft, number),
+        origin=DocumentVersion.Origin.WORKING_COPY,
+        starting_revision=row if number else None,
     )
 
 
@@ -290,6 +307,15 @@ def preview_rendition_import(rendition):
 def create_draft(rendition, reviewer, *, conversion_approval=None):
     """Pin an existing edition exactly; do not claim it is a verified ML target."""
     rendition = Rendition.objects.select_related("snapshot", "document").get(pk=rendition.pk)
+    publication = (
+        DocumentPublication.objects.filter(rendition=rendition)
+        .select_related("revision__draft")
+        .first()
+    )
+    if publication:
+        return branch_draft(
+            publication.revision.draft, reviewer, publication.revision.revision,
+        )
     from library.services.document_lineage import node_is_archived
 
     if node_is_archived(rendition.document, f"edition:{rendition.pk}"):
@@ -332,10 +358,14 @@ def create_draft(rendition, reviewer, *, conversion_approval=None):
             "explicitly_approved": conversion_approval is not None,
         },
     }
-    return DocumentDraftBase.objects.create(
-        rendition=rendition, profile=get_profile().key, document=document,
-        document_digest=fingerprint(document), evidence=evidence,
-        evidence_digest=fingerprint(evidence), reviewer=reviewer,
+    return create_working_copy(
+        rendition,
+        reviewer,
+        document,
+        evidence,
+        profile=get_profile().key,
+        parent_version=version_for_rendition(rendition),
+        origin=DocumentVersion.Origin.WORKING_COPY,
     )
 
 
@@ -408,15 +438,38 @@ def save_revision(draft, reviewer, document, expected_revision, *,
         raise ValueError("Resolve document issues before verifying a document or section.")
     # Each save certifies only its explicitly submitted scope; old approvals
     # are never inherited, including after metadata or relationship changes.
-    return DocumentEditRevision.objects.create(
-        draft=draft, revision=expected_revision + 1, document=deepcopy(document),
-        document_digest=fingerprint(document), review=review,
-        verified_sections=sorted(sections), issues=issues, editorial=editorial,
-        reviewer=reviewer,
-        lineage={
+    parent_version = version_for_saved_state(
+        draft, current.revision if current else 0,
+    )
+    revision_evidence = {
+        "kind": "manual-save",
+        "draft": str(draft.pk),
+        "revision": expected_revision + 1,
+        "document_digest": fingerprint(document),
+        "lineage": {
             "version": 1, "draft": str(draft.pk), "revision": expected_revision,
             "document_digest": current.document_digest if current else draft.document_digest,
             "evidence_digest": draft.evidence_digest, "app": versions.APP_VERSION,
             "source_tickets": retained_tickets,
         },
+    }
+    if fingerprint(document) == parent_version.content_digest:
+        document_version = parent_version
+    else:
+        document_version = DocumentVersion.objects.create(
+            document_id=draft.rendition.document_id,
+            parent=parent_version,
+            origin=DocumentVersion.Origin.MANUAL_SAVE,
+            ancestry=parent_version.ancestry,
+            content_digest=fingerprint(document),
+            evidence=revision_evidence,
+            evidence_digest=fingerprint(revision_evidence),
+            created_at=timezone.now(),
+        )
+    return DocumentEditRevision.objects.create(
+        draft=draft, revision=expected_revision + 1, document=deepcopy(document),
+        document_digest=fingerprint(document), review=review,
+        verified_sections=sorted(sections), issues=issues, editorial=editorial,
+        reviewer=reviewer, document_version=document_version,
+        lineage=revision_evidence["lineage"],
     )

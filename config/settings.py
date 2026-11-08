@@ -56,7 +56,9 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": DATA_DIR / "library.sqlite3",
+        "NAME": os.environ.get(
+            "READING_HUB_DATABASE_PATH", DATA_DIR / "library.sqlite3",
+        ),
         "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
     }
 }

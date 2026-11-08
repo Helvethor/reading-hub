@@ -151,8 +151,11 @@ def publish_revision(draft, reviewer, expected_revision, preview_digest):
         return previous
     source = draft.rendition
     output = candidate["output"]
+    if revision.document_version_id is None:
+        raise ValueError("The saved revision has no normalized content-version identity.")
     rendition = Rendition.objects.create(
         document=source.document, snapshot=source.snapshot,
+        document_version=revision.document_version,
         identity=fingerprint(["document-publication", candidate["digest"]]),
         output_digest=fingerprint([
             output["html"], output["structure"], output["metadata"],

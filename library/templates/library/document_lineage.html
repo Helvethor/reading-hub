@@ -7,7 +7,37 @@
   <h1>Lineage &amp; versions</h1>
   <p>{{ document.title|default:document.url }} · entire catalogue work</p>
   <p>Primary links show derivation and editing ancestry. Shared retained snapshots are linked as evidence, not copied into each correction branch. Archival hides workflow choices only; published editions, readers, PDFs, catalogue membership, annotations and shared source/assets remain unchanged.</p>
+  <p>
+    Reader output:
+    {% if reader_target %}
+      <a href="{% url 'reader' reader_target.pk %}">{{ reader_target.title }} (version {{ reader_target.pk }})</a>
+      {% if reader_selection_explicit %}· explicitly selected{% else %}· source-generated fallback{% endif %}
+    {% else %}No reader version is available.{% endif %}
+  </p>
   {% if lineage_error %}<p class="error" role="alert">{{ lineage_error }}</p>{% endif %}
+  {% if reader_selection_history %}
+  <details>
+    <summary>Reader selection audit ({{ reader_selection_history|length }} recent)</summary>
+    <ol>{% for event in reader_selection_history %}
+      <li>{{ event.created_at|date:"Y-m-d H:i:s T" }} · {{ event.reviewer }} selected version {{ event.rendition_id }}{% if event.explicit %} explicitly{% else %} as source-generated fallback{% endif %}{% if event.previous_rendition_id %} from version {{ event.previous_rendition_id }}{% endif %} · {{ event.reason }}</li>
+    {% endfor %}</ol>
+  </details>
+  {% endif %}
+  {% if can_reset_reader_fallback %}
+  <details>
+    <summary>Change reader output</summary>
+    <p>Choosing a version changes catalogue reader routing only. It does not publish, edit, archive, or delete content. Archived versions cannot be newly selected.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="restore-reader-fallback">
+      <input type="hidden" name="expected_rendition" value="{{ reader_target.pk }}">
+      <label for="reader-fallback-reason">Reason for using the source-generated fallback (required)</label>
+      <textarea id="reader-fallback-reason" name="reason" maxlength="2000" required></textarea>
+      <label><input type="checkbox" name="confirm" value="yes" required> I reviewed the current target and confirm this reader choice.</label>
+      <button type="submit">Use source-generated fallback</button>
+    </form>
+  </details>
+  {% endif %}
   <form method="get" aria-label="Filter lineage">
     {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
     {% if selected_id %}<input type="hidden" name="selected" value="{{ selected_id }}">{% endif %}
@@ -86,10 +116,35 @@
     {% if lineage.selected.type == "edition" or lineage.selected.type == "publication" %}
       <p><a href="{{ lineage.selected.reader_url }}" target="_blank" rel="noopener noreferrer">Read this edition</a>
         · <a href="{{ lineage.selected.pdf_url }}" target="_blank" rel="noopener noreferrer">Open its PDF</a></p>
-    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only and lineage.selected.type == "publication" %}
-        <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source" data-workflow-switch>Start a new correction from this published edition</a></p>
-    {% elif can_review and not lineage.selected.archived and not lineage.selected.context_only %}
-        <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source" data-workflow-switch>Start a correction from this generated edition</a></p>
+      {% if lineage.selected.can_select_reader_target %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="select-reader-target">
+        <input type="hidden" name="rendition_id" value="{{ lineage.selected.rendition_id }}">
+        <input type="hidden" name="expected_rendition" value="{{ reader_target.pk|default:'' }}">
+        <label for="reader-selection-reason">Reason for selecting this reader version (required)</label>
+        <textarea id="reader-selection-reason" name="reason" maxlength="2000" required></textarea>
+        <label><input type="checkbox" name="confirm" value="yes" required> I confirm this exact reader-version selection.</label>
+        <button type="submit">Make this the reader version</button>
+      </form>
+      {% endif %}
+      {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+        {% if lineage.selected.type == "publication" %}
+          {% if lineage.selected.publication_history_archived %}
+            <p>This publication's working history is archived. Restore it before continuing.</p>
+          {% elif lineage.selected.publication_is_latest %}
+            <p><a href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}" data-workflow-switch>Continue editing published version {{ lineage.selected.publication_revision_number }}</a></p>
+          {% elif lineage.selected.publication_latest_revision_number > lineage.selected.publication_revision_number %}
+            <p>
+              <a href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}" data-workflow-switch>Continue latest saved version {{ lineage.selected.publication_latest_revision_number }}</a>
+              · <a href="{% url 'document-editor-history' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;revision={{ lineage.selected.publication_revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Start an alternative from the published version"{% endif %}>Start an alternative from published version {{ lineage.selected.publication_revision_number }}</a>
+            </p>
+          {% else %}
+            <p>The exact saved editable version for this publication is unavailable; only its immutable reader output can be opened.</p>
+          {% endif %}
+        {% else %}
+          <p><a href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source" data-workflow-switch>Start a correction from this source-generated version</a></p>
+        {% endif %}
       {% endif %}
     {% elif lineage.selected.type == "generation" %}
       <p>This fresh retained-source generation is represented in draft evidence; it did not create an intermediate reading edition or replay saved editor revisions.</p>

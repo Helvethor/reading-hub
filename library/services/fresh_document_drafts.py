@@ -8,9 +8,10 @@ from django.db import transaction
 from django.db.models import F
 
 from library import versions
-from library.models import Blob, DocumentDraftBase, Rendition
+from library.models import Blob, DocumentVersion, Rendition
 from library.profile import get_profile
 from library.services.document_edits import DocumentEditConflict
+from library.services.document_versions import create_working_copy
 from library.services.pipeline import format_rendition, snapshot_digest
 from library.services.semantic_documents import SCHEMA_VERSION, document_issues, fingerprint
 from library.services.semantic_import import preview_import
@@ -114,8 +115,13 @@ def create_fresh_draft(rendition, reviewer, preview_digest, *, original_source=F
     evidence["confirmation"] = {
         "preview_digest": proposal["digest"], "explicitly_approved": True,
     }
-    return DocumentDraftBase.objects.create(
-        rendition=rendition, profile=get_profile().key, reviewer=reviewer,
-        document=proposal["document"], document_digest=fingerprint(proposal["document"]),
-        evidence=evidence, evidence_digest=fingerprint(evidence),
+    return create_working_copy(
+        rendition,
+        reviewer,
+        proposal["document"],
+        evidence,
+        profile=get_profile().key,
+        parent_version=None,
+        origin=DocumentVersion.Origin.SOURCE_GENERATED,
+        source_snapshot=rendition.snapshot,
     )

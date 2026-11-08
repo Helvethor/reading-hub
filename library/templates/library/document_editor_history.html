@@ -4,7 +4,7 @@
 <div class="page-container">
   <h1>Correction history</h1>
   <p>{{ version.title }} · Edition {{ version.pk }}</p>
-  <p>Continue a history's latest saved correction, or choose an earlier version as a separate starting point. Nothing overwrites existing versions or transfers review approval. Switching editor histories leaves the current editor; save pending work first.</p>
+  <p>Continue a history's latest saved correction, or start an alternative from an exact earlier version. Nothing overwrites existing versions or transfers review approval. Switching editor histories leaves the current editor; save pending work first.</p>
   {% if switch_url %}<p role="status">A separate correction was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new correction</a></p>{% endif %}
   <p><a href="{% url 'document-editor' version.pk %}?start=source" data-workflow-switch>Start from the source-derived edition</a> · <a href="{% url 'document-fresh-draft' version.pk %}{% if embedded %}?embedded=1{% endif %}">Preview fresh regeneration from retained source</a></p>
   {% if history_error %}<p class="error" role="alert">{{ history_error }}</p>{% endif %}
@@ -25,11 +25,11 @@
   </ul>
   {% if selected %}
   <h2>Saved version {{ selected.number }}: {{ selected.row.document.title }}</h2>
-  <p>Read-only saved content below. To edit this exact version, start a separate correction. Later corrections remain intact.</p>
+  <p>Read-only saved content below. Starting an alternative copies this exact saved content into a new branch; later corrections remain intact.</p>
   {% if not draft_archived %}<form method="post">{% csrf_token %}
     <input type="hidden" name="draft" value="{{ draft.pk }}">
     <input type="hidden" name="revision" value="{{ selected.number }}">
-    <button type="submit">Start a separate correction from this version</button>
+    <button type="submit">Start an alternative from this exact saved version</button>
   </form>
   {% else %}<p>Branching from an archived history is disabled until it is restored.</p>{% endif %}
   <details><summary>Exact saved markup (read-only)</summary><pre class="correction-history-markup">{{ selected.row.document.html }}</pre></details>

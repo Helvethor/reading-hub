@@ -12,7 +12,13 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 
 from library.metadata_views import metadata_reviewer_required
-from library.models import CanonicalAuthor, DocumentDraftBase, Rendition, ReviewerRun
+from library.models import (
+    CanonicalAuthor,
+    DocumentDraftBase,
+    DocumentPublication,
+    Rendition,
+    ReviewerRun,
+)
 from library.profile import get_profile, source_name
 from library.services.book_views import publication_view
 from library.services.document_comparison import compare_documents
@@ -79,6 +85,45 @@ def workspace(request, pk):
     ).order_by("-created_at")
     try:
         draft_id = request.GET.get("draft")
+        publication = DocumentPublication.objects.filter(rendition=version).select_related(
+            "revision__draft__rendition",
+        ).first()
+        if publication:
+            candidate = (
+                DocumentDraftBase.objects.filter(
+                    pk=draft_id, profile=get_profile().key,
+                    rendition__document=version.document,
+                ).select_related("rendition").first()
+                if draft_id else None
+            )
+            if candidate and candidate.rendition_id != version.pk:
+                target = reverse("document-editor", args=[candidate.rendition_id])
+                query = f"?draft={candidate.pk}"
+                if request.GET.get("embedded") == "1":
+                    query += "&embedded=1"
+                return redirect(target + query)
+            if not candidate:
+                source_draft = publication.revision.draft
+                latest_revision = source_draft.revisions.first()
+                if (
+                    latest_revision
+                    and latest_revision.revision == publication.revision.revision
+                ):
+                    target = reverse(
+                        "document-editor", args=[source_draft.rendition_id],
+                    )
+                    query = f"?draft={source_draft.pk}"
+                else:
+                    target = reverse(
+                        "document-editor-history", args=[source_draft.rendition_id],
+                    )
+                    query = (
+                        f"?draft={source_draft.pk}"
+                        f"&revision={publication.revision.revision}"
+                    )
+                if request.GET.get("embedded") == "1":
+                    query += "&embedded=1"
+                return redirect(target + query)
         if not draft_id and request.GET.get("start") != "source":
             choices = list(histories[:2])
             if len(choices) == 1:

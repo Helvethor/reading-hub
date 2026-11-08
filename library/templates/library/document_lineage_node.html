@@ -8,6 +8,7 @@
     {% if node.issues %}<span>· {{ node.issues|length }} unresolved issue{{ node.issues|length|pluralize }}</span>{% endif %}
     {% if node.type == "generation" %}<span>· input policy: {{ node.input_policy }}</span>{% endif %}
     {% if node.reader_url %}<span>· reader/PDF available</span>{% endif %}
+    {% if node.reader_target %}<strong>· Current reader output</strong>{% endif %}
     {% if node.archived %}<strong>· Archived</strong>{% endif %}
     {% if node.context_only %}<span>· ancestry context</span>{% endif %}
     {% if node.integrity_errors %}<strong role="alert">· Evidence integrity issue</strong>{% endif %}

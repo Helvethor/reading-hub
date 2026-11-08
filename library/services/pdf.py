@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
+from django.db import connections
 
 from library.versions import APP_VERSION
 
@@ -360,7 +361,18 @@ def cached_pdf(version, reading_style=None, theme=""):
         if destination.exists():
             return destination
         name = None
+        database_copy = None
         try:
+            database = connections["default"]
+            database_path = database.settings_dict["NAME"]
+            if database.is_in_memory_db():
+                database.ensure_connection()
+                with tempfile.NamedTemporaryFile(
+                    dir=settings.DATA_DIR, suffix=".sqlite3", delete=False,
+                ) as file:
+                    database_copy = file.name
+                    file.write(database.connection.serialize())
+                database_path = database_copy
             with tempfile.NamedTemporaryFile(dir=directory, suffix=".pdf", delete=False) as file:
                 name = file.name
             result = subprocess.run(
@@ -376,6 +388,7 @@ def cached_pdf(version, reading_style=None, theme=""):
                 env={
                     **os.environ,
                     "READING_HUB_DATA": str(settings.DATA_DIR.resolve()),
+                    "READING_HUB_DATABASE_PATH": str(database_path),
                     "READING_HUB_PROFILE": settings.READING_HUB_PROFILE,
                     "READING_HUB_PDF_THEME": theme,
                     "DJANGO_SETTINGS_MODULE": "config.settings",
@@ -403,6 +416,8 @@ def cached_pdf(version, reading_style=None, theme=""):
         finally:
             if name and os.path.exists(name):
                 os.unlink(name)
+            if database_copy and os.path.exists(database_copy):
+                os.unlink(database_copy)
     return destination
 
 

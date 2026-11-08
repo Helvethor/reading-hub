@@ -121,7 +121,7 @@ def latest(request, pk):
     destination = redirect_member(document)
     if destination:
         return destination
-    version = document.latest()
+    version = document.reader_target()
     if version:
         return redirect("reader", pk=version.pk)
     job = document.jobs.order_by("-created_at").first()
