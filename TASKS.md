@@ -1,10 +1,56 @@
 # Reading Hub: ordered implementation priorities
 
-Direction reconciled 2026-11-08 for the complete work-centred workflow. Read
+Direction agreed 2026-11-08 for visual cleanup and structural UI/UX delivery. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
-## Current milestone: complete the work-centred workflow (2026-11-08)
+## Current goals: coherent visual and structural UI/UX (2026-11-08)
+
+Both former directions, cosmetic cleanup and workflow restructuring with shared
+components, are required milestones. Deliver both; visual cleanup alone is not
+the stopping point. The [UI/UX implementation handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md)
+owns execution scope and acceptance IDs. Framework replacement is deferred.
+
+The reviewer workspace is computer-first. Preserve basic phone access without
+letting phone layout constrain desktop clarity, fluidity or action discoverability.
+Keyboard/focus/screen-reader accessibility still applies; public reading and
+discovery remain first-class responsive workflows.
+
+### U1. Shared visual and interaction foundation (planned)
+
+- [ ] Inventory current destinations/actions and obsolete workflow promises;
+  map retained capabilities to their intended surface before moving/removing UI.
+- [ ] Apply shared layout/spacing/control/status/form/error patterns, consistent
+  alignment and concise labels across reader, editor, catalogue, version/evidence,
+  review, membership, account and administration surfaces.
+- [ ] Replace routine help walls with contextual keyboard/pointer/touch help;
+  keep material warnings and necessary field requirements visible.
+- [ ] Preserve theme/profile scopes, semantic controls and desktop accessibility;
+  validate U1-U5 and U14 in the handoff, then checkpoint this milestone.
+
+### U2. Workflow restructuring and complete journey (planned; follows U1)
+
+- [ ] Deliver stable application and work navigation; remove overlapping ordinary
+  navigation and obsolete entry promises without losing compatible routes/evidence.
+- [ ] Prioritize Saved / Discover, simple search/results and explicit imports;
+  quiet the reader and locate generation/refresh in Sources.
+- [ ] Deliver the computer-first editor header, grouped commands, local tabs and
+  visible common tools, preserving same-page inspection and pending-content safety.
+- [ ] Deliver a branch-aware version list with adjacent inspection, exact comparison,
+  review/publication attachments and optional full ancestry/provenance.
+- [ ] Apply the structure to collection review, membership, account and administration;
+  retain separate global catalogue versus draft-content operations.
+- [ ] Validate the complete article/book journey and all U1-U14 acceptance rows,
+  relevant regressions/build/checks and preservation invariants; checkpoint U2.
+- [ ] Record implemented, observed, mocked and outstanding human/accessibility
+  evidence separately. No deployment or live-data mutation is authorized here.
+
+Status: documentation and assignment only; neither UI/UX milestone is implemented
+or accepted. Historical work-centred delivery below remains valid bounded evidence,
+not certification of the newly agreed visual/navigation goals. These milestones
+take priority over older next-step ordering.
+
+## Completed delivery: work-centred workflow (2026-11-08)
 
 **Target:** catalogue -> work -> read or choose a working copy -> edit -> save
 version -> reopen -> optionally review -> preview and explicitly publish.

@@ -5,10 +5,16 @@ configured websites in a consistent format. Retain original sources, generate
 tables of contents, cache immutable editions, and review extraction mistakes
 without overwriting historical readers or private annotations.
 
-See the [project assessment, reconciled 2026-11-06](docs/PROJECT-ASSESSMENT.md)
-for the revised direction. The single-page semantic reviewer workspace is
-implemented; representative article/book acceptance and the remaining repair
-gaps are next, followed by evidence curation and measured automation. General
+See the [project assessment](docs/PROJECT-ASSESSMENT.md) and current
+[roadmap](TASKS.md) for direction and bounded acceptance evidence. The work-centred
+workflow is implemented; both visual cleanup and structural UI/UX consolidation
+are now required next milestones, defined in the
+[implementation handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md).
+The reviewer workspace is computer-first: basic phone access must not compromise
+a fluid, clean desktop experience. Public reading/discovery remain responsive,
+and desktop accessibility requirements remain in force. Representative human
+acceptance, remaining repair gaps, evidence curation and measured automation
+are not completed by this UI/UX assignment. General
 selection/structural relocation preserves targets in bounded tests; a complete,
 correct repair of a displaced inline footnote remains an acceptance case.
 A dedicated footnote shortcut is optional, not an ML requirement.

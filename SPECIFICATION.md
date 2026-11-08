@@ -1,6 +1,6 @@
 # Reading Hub: current product and architecture specification
 
-Consolidated 2026-10-18; workflow reconciled 2026-11-06. Runtime baseline: app **0.53.0**,
+Consolidated 2026-10-18; UI/UX direction agreed 2026-11-08. Runtime baseline: app **0.53.0**,
 format **20**, Marxist adapter **20**, correction schema **10**, dataset format **1**.
 
 This document is the current product contract. [TASKS](TASKS.md) orders the
@@ -8,6 +8,94 @@ work; [Operations](docs/OPERATIONS.md) explains running it. The
 [archived specification](docs/archive/SPECIFICATION-before-2026-10-18-consolidation.md)
 is historical evidence, not additional scope. "Planned" below does not mean
 implemented. A backlog idea is not authorization to implement it immediately.
+
+### Coherent UI/UX contract (agreed 2026-11-08; planned)
+
+The work-centred workflow is implemented, but its usability is not established
+by that delivery. Both visual cleanup and workflow restructuring are now required
+goals, not competing alternatives. [Tasks](TASKS.md) defines two implementation
+milestones; the [UI/UX handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md) defines their
+complete scope and acceptance. Neither is complete merely because tabs exist,
+labels change or old regression tests pass. A framework rewrite is deferred.
+
+**Device priority:** the reviewer workspace is intended for computers, using
+keyboard and pointer with room for an outline, document and contextual tools.
+It must provide a fluid, clean desktop experience. Phone access remains
+technically available but is not the reviewer design priority; phone-layout
+solutions must not force desktop users into cramped controls, excessive wrapping,
+hidden common actions or mobile-style navigation. Preserve basic narrow-screen
+access and pending-content safety through responsive fallbacks. This priority
+does not waive keyboard, focus, screen-reader or other accessibility requirements
+on computers. Public reading and discovery remain responsive first-class workflows.
+
+**Information architecture:** use stable application navigation: Library
+(Saved / Discover), Review queue for reviewers, Administration for administrators,
+and an Account/appearance menu. Within a selected work, use Read, Edit, Versions
+and Sources as sibling destinations with a consistent active indication and
+compact work context. Catalogue membership remains a separate reviewer page with
+an explicit global catalogue scope, not an editor content tab.
+Page-level destinations retain real URLs, browser history and link semantics;
+same-page editor tabs use tab semantics and keyboard navigation. Save, Publish,
+Refresh and Attach are operations, never navigation tabs.
+
+**Reading and discovery:** prioritize returning to saved works over promotional
+introductions and import guidance. Saved works must be reachable without scrolling
+past that material on a narrow screen. Offer a clear route to Discover and explicit
+import controls. Catalogue search and useful filters precede advanced grouping
+and sorting; a flat results view must be available without expanding a source/
+author hierarchy. Distinguish available-local reading links from import operations
+that may fetch. Retain the existing reader-selection and root/member routing rules.
+The reader prioritizes the document, contents, PDF, appearance and annotations.
+Move source refresh/generation into Sources and print settings into export/print
+context; technical evidence belongs in inspectable details.
+
+**Reviewer workspace:** replace competing navigation bars, preamble link lists
+and routine notice walls with one work/status header, predictable command groups
+and local Content, Metadata, Review and Appearance tabs. Keep Undo, Redo,
+Save version and Preview publication discoverable; expose common formatting
+without requiring right-click or shortcut knowledge. Put section controls beside
+the outline and selection tools beside relevant content. Versions/Sources
+inspection and other draft-specific panels preserve pending edits, focus and
+canvas context; actual working-copy navigation remains explicit and guarded.
+Appearance changes remain presentation-only with existing theme/profile scopes.
+
+**Versions and evidence:** default to a readable version list/timeline grouped
+by real branches, with the reader target and intended working copy identified.
+Review/publication events attach to exact saved content, rather than appearing
+as new content ancestry. Selection exposes adjacent details on computers and a
+usable narrow-screen fallback, not an inspector after the complete ancestry tree.
+Full provenance, historical corrections, archive impact/audit and unknown ancestry
+remain inspectable; no relationships may be invented for a simpler display.
+
+**Shared structural guideline:** use consistent gutters, spacing, control sizes,
+headings, status presentation and form/error/action placement. Reading, form and
+workspace widths may differ intentionally, but major regions align to a shared
+grid. Group related form fields under named sections with labels above controls;
+use a deliberately compact desktop metadata layout where it improves editing.
+Buttons perform operations or open in-place interactions; links navigate/download
+and may receive prominent styling without losing their semantics. Labels are
+short and specific; scope and consequences belong in context and impact previews.
+Reserve warning styling for actionable warnings, not routine work context.
+Unsaved, saved, reviewed and published states stay visibly distinct.
+
+**Help and retirement:** remove obsolete workflow promises and ordinary links to
+retired mutation surfaces, retaining compatible old routes and read-only evidence.
+Do not imply that direct document edits update source corrections and then require
+reformatting. Replace always-visible instructional essays with self-explanatory
+controls, short necessary field hints and local help. A named, focusable/clickable
+help control works with keyboard, pointer and touch; hover alone is insufficient.
+Use tooltips for brief definitions, popovers/disclosures for longer or interactive
+help, and optional reference/shortcut help for advanced techniques. Hover/focus
+content must be dismissible, hoverable and persistent while being read.
+Unsaved-content, stale-evidence, missing-asset, publication-scope and global-routing
+warnings remain visible at the relevant decision point, never tooltip-only.
+
+Reuse Django, the existing semantic Tiptap editor and shared rendering helpers.
+Third-party design patterns or self-hosted UI dependencies are allowed when they
+solve a demonstrated interaction problem; no dependency or framework migration is
+required by this contract. Preserve error visibility, permissions, CSRF, concurrency
+guards, recovery, immutable content/evidence, private annotations and reader/PDF
+output. Implementation does not authorize deployment or live record changes.
 
 The optional `profiles.marxist.dark` presentation variant reuses the Lenin
 backdrop with black/charcoal surfaces, red actions and selections, off-white text,

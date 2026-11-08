@@ -2,6 +2,13 @@
 
 Approved discussion consolidated and implementation gaps reconciled 2026-11-08.
 
+**Historical delivery contract:** this work-centred milestone was completed in
+`f568a81`, with bounded acceptance and deployment evidence recorded in
+[Tasks](../TASKS.md). The incomplete-implementation list and deployment permission
+below belong to that assignment, not to a new UI/UX task. For current work use the
+[UI/UX implementation handoff](UI-UX-IMPLEMENTATION-HANDOFF.md), which requires both
+visual and structural milestones and does not authorize deployment or live mutation.
+
 ## Mission, authority and stopping rule
 
 Implement ALL of the current work-centred milestone in [TASKS](../TASKS.md).

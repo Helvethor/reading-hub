@@ -49,6 +49,29 @@ the frontend build, scoped Ruff and Django checks also passed.
 
 ## 2. Current situation
 
+### UI/UX reassessment (2026-11-08)
+
+The work-centred services and W1-W15 synthetic acceptance recorded in
+[Tasks](../TASKS.md) are delivered. This does not establish a self-evident
+interface: legacy source-correction/reformat guidance, overlapping navigation,
+verbose controls, inconsistent form/layout patterns and help walls remain.
+Read-only browser inspection of the deployed home, catalogue, reader and Versions
+pages found the library beginning about 1,051px down at 390x844, a roughly 249px
+reader Work context at 1440x900, and the inspected work's details after a 62-node
+ancestry tree (about 4,196px down). These are representative observations, not
+performance/usability thresholds or universal measurements. Reviewer surfaces
+were inspected in code, not through authenticated live editing; no mutation
+actions were submitted. No human usability or accessibility certification follows.
+
+Both visual cleanup and workflow restructuring are now approved goals, with a
+computer-first reviewer workspace and basic phone fallbacks that do not compromise
+desktop usability. Public reading/discovery remain responsive. The current
+[UI/UX contract](../SPECIFICATION.md#coherent-uiux-contract-agreed-2026-11-08-planned)
+and [implementation handoff](UI-UX-IMPLEMENTATION-HANDOFF.md) supersede older
+next-step ordering, not preservation rules. A framework rewrite is deferred.
+The following inventory and dated validation paragraphs retain their historical
+bounds; they are not acceptance of these new goals.
+
 The foundation is substantial: retained sources/assets, versioned editions,
 source adapters, reader/PDF rendering, direct semantic editing, immutable
 save/branch lineage, recovery, comparison and explicit publication.
