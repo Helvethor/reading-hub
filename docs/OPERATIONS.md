@@ -116,6 +116,23 @@ UI/UX local deployment (2026-11-09): committed source `94ae916` is serving from
 existing workers were left running, and the separate port-8000 service was not
 touched. No migration was pending or applied.
 
+The pilot JS/CSS under `library/static/library/generated/` are build outputs
+excluded from Git. Therefore build them inside every newly prepared release,
+not only in the source checkout, before restarting the web process:
+
+```sh
+cd ~/reading-hub/data/releases/RELEASE_COMMIT
+npm ci
+npm run build
+```
+
+Verify both `library/generated/editor-pilot.js` and
+`library/generated/editor-pilot.css` with Django's `findstatic` from that
+release before restart. The 94ae916 release initially lacked these ignored
+outputs; the commands above were run in that release and both assets now resolve
+and return HTTP 200. All 28 `test_document_editor_views` tests passed against
+the release after the build.
+
 Before deployment, a fresh online SQLite backup and private copies of retained
 blobs and the signing key were verified at
 `data/backups/ui-ux-deploy-20261109T161500Z/`. The database backup passed
