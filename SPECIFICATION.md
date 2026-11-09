@@ -116,6 +116,34 @@ administration use the same preference; **Follow theme** PDF caches bind the
 selected palette. Personal reading styles and source-profile identity remain
 independent. Migration 0028 adds account preferences without changing documents.
 
+### Article identity and heading hierarchy (agreed 2026-11-09; planned)
+
+The [article hierarchy handoff](docs/ARTICLE-HIERARCHY-IMPLEMENTATION-HANDOFF.md)
+defines the accepted, not-yet-implemented milestone and A1-A10 acceptance.
+A standalone article's outer content container uses the editable document title
+and an Article editorial role, not the first internal H2. Root title edits must
+not rename an internal heading or insert a duplicate title into the prose.
+Article reuses the existing section container; role, heading level, bibliographic
+work type and catalogue membership remain separate responsibilities.
+
+H2-H6 remain navigable/foldable heading ranges within the owning container, not
+automatically wrapped movable sections. Opening content stays before the first
+heading without an inferred Introduction section. Structural conversion remains
+explicit through Section boundary. Preserve Book -> Chapter -> subordinate
+headings, existing heading-bound chapter titles and generated book title material;
+do not introduce a redundant book-root section. Embedded Articles retain their
+own document-local titles independently of the enclosing book and later source
+edits.
+
+Legacy article compatibility must resolve title/role without writes on open or
+rewriting immutable source, saved-version or publication evidence. New editable
+semantics must round-trip through recovery, save/reopen, comparison and new
+reader/contents/PDF output. Existing title/contents settings remain independent;
+the standalone root must not create a duplicate title entry in the contents.
+Automatic H2 wrapping, bulk live conversion and source-title cleanup are excluded.
+The current approval covers design and documentation, not implementation,
+deployment or live-data changes.
+
 ### Catalogue membership and editorial sections (agreed 2026-11-07)
 
 Catalogue membership is an unordered source-URL-to-book relationship, global to

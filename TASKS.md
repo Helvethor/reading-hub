@@ -1,6 +1,7 @@
 # Reading Hub: ordered implementation priorities
 
-Direction agreed 2026-11-08 for visual cleanup and structural UI/UX delivery. Read
+Direction agreed 2026-11-08 for visual cleanup and structural UI/UX delivery;
+article hierarchy design accepted 2026-11-09. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
@@ -58,6 +59,37 @@ fixes in `0e14b01` are deployed to the documented local service at
 `127.0.0.1:8765`; no live content decisions or migrations changed.
 Historical work-centred delivery below remains bounded evidence, not certification
 of the new UI/UX goals. These milestones take priority over older next-step ordering.
+
+## Next content milestone: article identity and heading hierarchy (2026-11-09)
+
+**Status:** design accepted; handoff prepared; implementation and validation not
+started. This is the next bounded content-hierarchy milestone, not completion or
+replacement of the outstanding U1/U2 acceptance above. Current authorization is
+documentation only; implementation, deployment and live-data changes are separate.
+
+**Outcome:** a standalone article's content root uses its document title and
+Article role; H2-H6 remain navigable heading ranges. Title edits cannot rename
+the first subsection. Preserve book/chapter behavior and immutable evidence.
+
+The [article hierarchy handoff](docs/ARTICLE-HIERARCHY-IMPLEMENTATION-HANDOFF.md)
+owns implementation scope, exclusions and A1-A10 acceptance.
+
+- [ ] Reproduce version 98's title fallback on isolated representative data and
+  define tested legacy compatibility/title ownership rules without writes on open.
+- [ ] Carry Article role and independent article identity through input,
+  semantic validation/serialization, editor controls, save/reopen, recovery,
+  comparison and continuation. Preserve heading-bound Chapter titles.
+- [ ] Distinguish Article containers from H2-H6 ranges in outline/navigation and
+  structural actions; retain explicit Section boundary conversion.
+- [ ] Align new corrected structure, reader, optional contents and PDF output;
+  preserve embedded Article titles and existing title/contents settings.
+- [ ] Validate A1-A10 on article, book and anthology fixtures, with exact
+  preservation assertions and separate automated/observed/untested evidence;
+  checkpoint validated implementation before declaring the milestone complete.
+
+Defer automatic H2 wrapping, bulk article conversion and source-title cleanup.
+No application implementation, authenticated browser acceptance, deployment or
+live content mutation was performed while preparing this handoff.
 
 ## Completed delivery: work-centred workflow (2026-11-08)
 
