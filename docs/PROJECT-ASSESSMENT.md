@@ -151,7 +151,24 @@ refresh or generation, archival/role workflows, both themes, or complete
 keyboard-only and screen-reader flows. U1-U5 and U7-U14 therefore remain partially
 or not validated; U6 is validated only for the populated Library fixture and stated
 viewport. No deployment, release or live publication is authorized by this
-implementation.
+implementation scope; the separate local deployment authorization is recorded
+below.
+
+### UI/UX local deployment update (2026-11-09)
+
+The committed UI/UX implementation (`94ae916`) is deployed from
+`data/releases/94ae916` to the documented local service at `127.0.0.1:8765`.
+A fresh SQLite backup, all 5,023 retained-blob hashes and the private signing-key
+copy were verified before replacing only the web process. No migration was
+required; database integrity and the saved-work/revision/publication/reader
+selection records matched the backup afterward. The six existing workers and
+the unrelated port-8000 service were left untouched. Library, reader, app CSS
+and admin CSS returned HTTP 200, and browser inspection observed the updated
+navigation. `npm run build`, Django system checks and migration consistency
+passed during deployment validation; the frontend build emitted an npm/Node
+version compatibility warning but exited successfully. Full tests had passed
+for this same committed source before deployment. This deployment does not
+change the incomplete U1-U14 acceptance status above.
 
 ## 3. Broad editor versus general-purpose word processor
 

@@ -110,6 +110,29 @@ route checks were not a full post-deployment browser acceptance; human usability
 and accessibility remain uncertified. This is a local deployment, not a public
 release.
 
+UI/UX local deployment (2026-11-09): committed source `94ae916` is serving from
+`data/releases/94ae916` on `127.0.0.1:8765`, using the existing data root and
+`READING_HUB_EDITOR_PILOT=1`. The web process alone was replaced; all six
+existing workers were left running, and the separate port-8000 service was not
+touched. No migration was pending or applied.
+
+Before deployment, a fresh online SQLite backup and private copies of retained
+blobs and the signing key were verified at
+`data/backups/ui-ux-deploy-20261109T161500Z/`. The database backup passed
+`PRAGMA quick_check` and had no foreign-key violations. All 5,023 retained blobs
+matched by SHA-256; the signing-key copy has mode 0600. The optional
+`archive-corpus.sqlite3` was copied too.
+
+After deployment, the Library, selected reader (version 92), application CSS
+and administration CSS returned HTTP 200. Browser inspection showed the shared
+Library/Discover navigation and reader work destinations. The live database
+passed quick and foreign-key checks, all migrations were already applied, and
+the draft bases, saved revisions, publications and reader-selection rows
+matched the pre-deployment backup. No content, review, publication, membership
+or reader selection was changed. This is a local deployment, not a public
+release; UI/UX acceptance remains incomplete as recorded in the handoff and
+assessment.
+
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
 Normal robots, fetch limits, URL/asset validation and immutable cache rules

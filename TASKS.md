@@ -46,14 +46,17 @@ discovery remain first-class responsive workflows.
   preservation with retained media and notes, all relevant regressions/build/checks,
   and then checkpoint U2.
 - [x] Record implemented, observed, mocked and outstanding human/accessibility
-  evidence separately in session state. No deployment or live-data mutation is authorized here.
+  evidence separately in session state. Keep deployment distinct from acceptance
+  and do not mutate live reader/content decisions for validation.
 
 Status: implementation is present across both milestones, but acceptance is partial.
-The synthetic article and book journeys reached explicit publication and continuation;
-the book fixture lacked retained media/notes, and several form, import, archive,
-theme and accessibility scenarios remain unverified. Historical work-centred delivery
-below remains bounded evidence, not certification of the new UI/UX goals. These
-milestones take priority over older next-step ordering.
+The synthetic article and media-rich book journeys reached explicit publication
+and continuation; a section reorder was saved and reopened with its retained image
+and reciprocal note. Several form, import, archive, theme and accessibility
+scenarios remain unverified. UI/UX commit `94ae916` is deployed to the documented
+local service at `127.0.0.1:8765`; no live content decisions or migrations changed.
+Historical work-centred delivery below remains bounded evidence, not certification
+of the new UI/UX goals. These milestones take priority over older next-step ordering.
 
 ## Completed delivery: work-centred workflow (2026-11-08)
 
