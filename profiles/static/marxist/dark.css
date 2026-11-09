@@ -12,6 +12,13 @@
   --editor-hover: #343434;
   --editor-border: #454545;
   --editor-selected: #642b30;
+  --surface: #1f1f1f;
+  --surface-raised: #262626;
+  --focus: #ff8585;
+  --warning-ink: #f0cc8b;
+  --warning-surface: #332b20;
+  --warning-line: #756044;
+  --error-ink: #ff9999;
   --dark-button: #a32430;
   --dark-button-hover: #bd2d3b;
   --dark-warning: #f0cc8b;
@@ -80,6 +87,8 @@ dialog::backdrop, .editor-page dialog::backdrop { background: #0009; }
 /* Native light/dark I-beams remain visible on personal reading-style palettes. */
 #editor-surface .tiptap, #editor-surface .tiptap * { cursor: text; caret-color: currentColor; }
 .editor-page :is(input, select, textarea), .editor-page dialog :is(input, select, textarea) { accent-color: var(--dark-button); }
+.editor-workspace { border-color: var(--editor-border); }
+.editor-diff-controls { color: var(--ink); background: var(--editor-panel); }
 .editor-metadata-sheet tr:focus-within > th { color: var(--accent); }
 #editor-surface .tiptap .editor-figure-handle { color: var(--ink); }
 .reader-content blockquote { color: inherit; border-color: var(--editor-border); }

@@ -141,9 +141,11 @@ reader at 1440x900 and 390x844. The measured Library placed a saved work in the
 initial phone viewport without horizontal overflow. The desktop reader's work
 context was 111px high and its title began near y=535; on the phone the title began
 near y=827, so reading remained available but was not in the initial viewport.
-The editor Versions panel opened in place, Close returned focus to its initiating
-link, and Forward reopened the deep link. These are bounded synthetic observations,
-not independent human usability or accessibility acceptance.
+The initial editor Versions panel opened in place, Close returned focus to its
+initiating link, and Forward reopened the deep link. In response to later feedback,
+Versions and Sources now use normal page navigation rather than an inner framed
+window; focus-return evidence applies only to remaining panels. These are bounded
+synthetic observations, not independent human usability or accessibility acceptance.
 
 Acceptance remains incomplete. The browser did not exercise live import outcomes,
 missing-work requests, all account/review/membership/admin error paths, source

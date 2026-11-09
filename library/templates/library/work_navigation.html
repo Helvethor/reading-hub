@@ -8,7 +8,7 @@
   <a href="{% url 'document-editor' version.pk %}{% if draft %}?draft={{ draft.pk }}{% else %}?start=source{% endif %}"{% if active_work_tab == "edit" %} aria-current="page"{% endif %}>Edit</a>
   {% endif %}
   {% if version %}
-  <a href="{% url 'document-lineage' version.document_id %}?filter=all&amp;selected=edition%3A{{ version.pk }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "versions" %} aria-current="page"{% endif %}{% if active_work_tab == "edit" %} data-workflow-panel="Versions"{% endif %}>Versions</a>
-  <a href="{% url 'document-lineage' version.document_id %}?filter=sources&amp;selected=snapshot%3A{{ version.snapshot_id }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "sources" %} aria-current="page"{% endif %}{% if active_work_tab == "edit" %} data-workflow-panel="Sources"{% endif %}>Sources</a>
+  <a href="{% url 'document-lineage' version.document_id %}?filter=all&amp;selected=edition%3A{{ version.pk }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "versions" %} aria-current="page"{% endif %}>Versions</a>
+  <a href="{% url 'document-lineage' version.document_id %}?filter=sources&amp;selected=snapshot%3A{{ version.snapshot_id }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "sources" %} aria-current="page"{% endif %}>Sources</a>
   {% endif %}
 </nav>

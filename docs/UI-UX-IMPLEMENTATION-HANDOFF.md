@@ -152,13 +152,13 @@ formatting is visible without requiring a context-menu discovery. Keep shortcuts
 and right-click as accelerators, with keyboard/pointer alternatives.
 Section actions belong beside the outline; selection repair tools remain local.
 
-Open version/source/comparison/generation/publication inspection without losing
-unsaved edits, current selection, canvas/outline context, undo/recovery or focus.
-Close/cancel returns to the initiating context. Actual working-copy/version
-switches are explicit with the existing dirty-state guard. Do not swap/rebuild
-the stateful editor merely to implement tab navigation. Existing iframe panels
-may be retained or replaced only when the new interaction demonstrably preserves
-these invariants; avoid nested modal navigation.
+Versions and Sources are ordinary page-level work destinations, not iframe tabs.
+Navigating away from an edited workspace invokes its unsaved-change guard; browser
+history and tab recovery allow return to the editor. Small comparison,
+generation and publication inspections may use same-page panels without creating
+a second document window. Actual working-copy/version switches remain explicit
+with the existing dirty-state guard. Do not rebuild the editor merely to implement
+tab navigation; avoid nested modal navigation.
 
 ### Versions, Sources and remaining surfaces
 

@@ -32,7 +32,7 @@
 }
 
 :is(input, select, textarea, button, a):focus-visible {
-  outline: 3px solid #ad702f;
+  outline: 3px solid var(--accent, #ad702f);
   outline-offset: 2px;
 }
 

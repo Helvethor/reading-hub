@@ -46,10 +46,22 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "immutable saved versions")
         self.assertContains(response, 'aria-label="Work destinations"')
         self.assertNotContains(response, 'aria-label="Work reviewer tools"')
+        self.assertContains(
+            response,
+            f'href="{reverse("document-lineage", args=[self.rendition.document_id])}'
+            f'?filter=all&amp;selected=edition%3A{self.rendition.pk}">Versions</a>',
+        )
+        self.assertContains(
+            response,
+            f'href="{reverse("document-lineage", args=[self.rendition.document_id])}'
+            f'?filter=sources&amp;selected=snapshot%3A{self.rendition.snapshot_id}">Sources</a>',
+        )
+        self.assertNotContains(response, 'data-workflow-panel="Versions"')
+        self.assertNotContains(response, 'data-workflow-panel="Sources"')
         self.assertContains(response, 'data-comparison-url="'
                             + reverse("document-comparison", args=[self.rendition.pk]) + '"')
         self.assertContains(response, 'id="editor-comparison"')
-        for panel in ("Versions", "Sources", "Saved comparison", "Publication preview"):
+        for panel in ("Saved comparison", "Publication preview"):
             self.assertContains(response, f'data-workflow-panel="{panel}"')
         self.assertNotContains(response, 'data-workflow-panel="Regenerate a separate draft"')
         self.assertContains(response, "Unsaved editor changes are not included.")

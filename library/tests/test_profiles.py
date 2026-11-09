@@ -1,4 +1,5 @@
 from dataclasses import replace
+from pathlib import Path
 from types import ModuleType
 from unittest.mock import patch
 
@@ -134,6 +135,20 @@ class ProfileLibraryTests(TestCase):
     setUp = test_pipeline.PipelineTests.setUp
     fetch = test_pipeline.PipelineTests.fetch
     import_article = test_pipeline.PipelineTests.import_article
+
+    def test_dark_theme_has_tokens_for_new_shared_ui(self):
+        stylesheet = Path(__file__).resolve().parents[2] / "profiles/static/marxist/dark.css"
+        css = stylesheet.read_text()
+        for token in (
+            "--surface: #1f1f1f",
+            "--surface-raised: #262626",
+            "--focus: #ff8585",
+            "--warning-surface: #332b20",
+            "--error-ink: #ff9999",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, css)
+        self.assertIn(".editor-diff-controls", css)
 
     def test_profile_stylesheet_loads_after_page_styles_for_editor_overrides(self):
         from django.contrib.auth import get_user_model

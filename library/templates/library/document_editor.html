@@ -174,7 +174,7 @@
         <button type="button" id="editor-mark-reviewed" disabled>Mark saved version reviewed</button>
       </details>
       <p>Preview and publish are separate. Publication previews bind the exact saved version and still require explicit confirmation.</p>
-      <p><a id="editor-history" href="{% url 'document-lineage' version.document_id %}?selected={% if draft and initial.revision %}revision%3A{{ draft.pk }}%3A{{ initial.revision }}{% elif draft %}history%3A{{ draft.pk }}{% else %}edition%3A{{ version.pk }}{% endif %}" data-workflow-panel="Versions">Browse versions and review history</a></p>
+      <p><a id="editor-history" href="{% url 'document-lineage' version.document_id %}?selected={% if draft and initial.revision %}revision%3A{{ draft.pk }}%3A{{ initial.revision }}{% elif draft %}history%3A{{ draft.pk }}{% else %}edition%3A{{ version.pk }}{% endif %}">Browse versions and review history</a></p>
       <p><a id="editor-comparison" data-workflow-panel="Saved comparison" hidden>Compare saved versions</a> <span class="muted">Unsaved editor changes are not included.</span></p>
       <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
       </div>
