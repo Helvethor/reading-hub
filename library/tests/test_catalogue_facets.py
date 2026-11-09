@@ -288,7 +288,7 @@ class FacetViewTests(TestCase):
             self.site,
             CatalogueLink(ARTICLE + "site-b", "Second", True, author="DerFunke.de"),
         )
-        response = self.client.get("/catalogue/?group=author&then=")
+        response = self.client.get("/catalogue/?view=hierarchy&group=author&then=")
         website_groups = [
             node for node in response.context["tree"]["children"] if "funke.de" in node["label"]
         ]
@@ -308,7 +308,10 @@ class FacetViewTests(TestCase):
         entry = CatalogueEntry.objects.get()
         entry.language = "zh-cn"
         entry.save()
-        self.assertContains(self.client.get("/catalogue/?group=language"), language_label("zh-cn"))
+        self.assertContains(
+            self.client.get("/catalogue/?view=hierarchy&group=language"),
+            language_label("zh-cn"),
+        )
 
     def test_coherence_command_reports_dates_without_modifying_metadata(self):
         call_command("check_catalogue_metadata", stdout=io.StringIO())
@@ -337,7 +340,7 @@ class FacetViewTests(TestCase):
         )
 
     def test_article_occurs_under_each_author_and_topic_without_duplicate_records(self):
-        response = self.client.get("/catalogue/?group=author&then=topic")
+        response = self.client.get("/catalogue/?view=hierarchy&group=author&then=topic")
         self.assertNotContains(response, "Joint article")
         self.assertEqual(response.context["page"].paginator.count, 1)
         self.assertEqual(CatalogueEntry.objects.count(), 1)
@@ -379,13 +382,15 @@ class FacetViewTests(TestCase):
             self.site, CatalogueLink(ARTICLE + "second", "Earlier", True, published="2025-09-01")
         )
         save_entry(self.site, CatalogueLink(ARTICLE + "unknown", "Unknown", True))
-        response = self.client.get("/catalogue/?group=year&then=month")
+        response = self.client.get("/catalogue/?view=hierarchy&group=year&then=month")
         children = response.context["tree"]["children"]
         self.assertEqual([node["label"] for node in children], ["2025", "2026", "Unknown year"])
         branch = self.client.get(children[1]["url"])
         self.assertEqual(branch.context["tree"]["children"][0]["label"], "2026-10")
         self.assertContains(self.client.get(children[2]["url"]), "Unknown month")
-        response = self.client.get("/catalogue/?group=month&then=&direction=desc")
+        response = self.client.get(
+            "/catalogue/?view=hierarchy&group=month&then=&direction=desc"
+        )
         self.assertEqual(response.context["tree"]["children"][1]["label"], "2026-10")
 
     def test_date_filters_survive_pagination_and_invalid_input_is_explicit(self):
@@ -395,7 +400,9 @@ class FacetViewTests(TestCase):
         with patch(
             "library.catalogue_views.get_profile", return_value=replace(PROFILE, page_size=1)
         ):
-            response = self.client.get("/catalogue/?year=2026&month=10&group=author&then=topic")
+            response = self.client.get(
+                "/catalogue/?view=hierarchy&year=2026&month=10&group=author&then=topic"
+            )
             self.assertContains(response, "year=2026&amp;month=10")
             self.assertEqual(response.context["page"].paginator.count, 2)
         for query in ("year=bad", "month=13", "month=1", "year=2026%27"):
@@ -414,7 +421,7 @@ class FacetViewTests(TestCase):
                     published="2026-10-01",
                 ),
             )
-        response = self.client.get("/catalogue/?group=source&then=")
+        response = self.client.get("/catalogue/?view=hierarchy&group=source&then=")
         node = response.context["tree"]["children"][0]
         self.assertEqual(node["count"], 26)
         self.assertNotContains(response, "Joint article")
@@ -432,7 +439,7 @@ class FacetViewTests(TestCase):
         for path in ('"author"', '{"bad":1}', "[1]", '["a","b","c"]'):
             response = self.client.get("/catalogue/", {"branch": path, "partial": "1"})
             self.assertContains(response, "Invalid catalogue branch")
-        response = self.client.get("/catalogue/?year=2025&group=author")
+        response = self.client.get("/catalogue/?view=hierarchy&year=2025&group=author")
         self.assertEqual(response.context["total_count"], 0)
         self.assertEqual(response.context["tree"]["children"], [])
 
@@ -442,13 +449,17 @@ class FacetViewTests(TestCase):
         entry.save()
         save_entry(self.site, CatalogueLink(ARTICLE + "en", "English text", True, language="en"))
         save_entry(self.site, CatalogueLink(ARTICLE + "unknown", "Unknown text", True))
-        response = self.client.get("/catalogue/?group=language&then=&order=language")
+        response = self.client.get(
+            "/catalogue/?view=hierarchy&group=language&then=&order=language"
+        )
         self.assertEqual(
             [node["label"] for node in response.context["tree"]["children"]],
             ["English (en)", "French (fr)", "Unknown language"],
         )
         self.assertEqual([e.language for e in response.context["page"]], ["", "en", "fr"])
-        response = self.client.get("/catalogue/?language=fr&group=language&then=&order=language")
+        response = self.client.get(
+            "/catalogue/?view=hierarchy&language=fr&group=language&then=&order=language"
+        )
         self.assertEqual(response.context["total_count"], 1)
         leaf = self.client.get(response.context["tree"]["children"][0]["url"])
         self.assertContains(leaf, "Joint article")
@@ -472,11 +483,15 @@ class FacetViewTests(TestCase):
             CatalogueLink(ARTICLE + "french", "French text", True, language="fr-ca"),
         )
 
-        response = self.client.get("/catalogue/?group=language&then=&order=language")
+        response = self.client.get(
+            "/catalogue/?view=hierarchy&group=language&then=&order=language"
+        )
         labels = [node["label"] for node in response.context["tree"]["children"]]
         self.assertEqual(labels, ["English (en)", "French (fr)"])
 
-        response = self.client.get("/catalogue/?language=en-US&group=language&then=")
+        response = self.client.get(
+            "/catalogue/?view=hierarchy&language=en-US&group=language&then="
+        )
         self.assertEqual(response.context["total_count"], 2)
         self.assertEqual({entry.language for entry in response.context["page"]}, {"en"})
 
@@ -489,7 +504,9 @@ class FacetViewTests(TestCase):
         entry = CatalogueEntry.objects.get()
         self.assertEqual(entry.author, "")
         self.assertEqual(entry.authors, [])
-        self.assertContains(self.client.get("/catalogue/?group=author&then="), "RCA")
+        self.assertContains(
+            self.client.get("/catalogue/?view=hierarchy&group=author&then="), "RCA"
+        )
 
     def test_sparse_listing_cannot_erase_multiple_topics(self):
         save_entry(self.site, CatalogueLink(ARTICLE, "Joint article", True))
@@ -500,7 +517,7 @@ class FacetViewTests(TestCase):
         entry.author = "Dario Dietsch, Berne"
         entry.authors = ["Dario Dietsch", "Berne"]
         entry.save()
-        response = self.client.get("/catalogue/?group=author&then=")
+        response = self.client.get("/catalogue/?view=hierarchy&group=author&then=")
         self.assertEqual(
             [node["label"] for node in response.context["tree"]["children"]], ["Dario Dietsch"]
         )
@@ -514,7 +531,7 @@ class FacetViewTests(TestCase):
         entry = CatalogueEntry.objects.get()
         self.assertEqual(entry.topics, [])
         self.assertEqual(entry.topic, "")
-        response = self.client.get("/catalogue/?group=topic&then=")
+        response = self.client.get("/catalogue/?view=hierarchy&group=topic&then=")
         self.assertEqual(response.context["tree"]["children"][0]["label"], "Unknown topic")
 
 

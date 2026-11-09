@@ -16,39 +16,44 @@ letting phone layout constrain desktop clarity, fluidity or action discoverabili
 Keyboard/focus/screen-reader accessibility still applies; public reading and
 discovery remain first-class responsive workflows.
 
-### U1. Shared visual and interaction foundation (planned)
+### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
-- [ ] Inventory current destinations/actions and obsolete workflow promises;
+- [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;
   map retained capabilities to their intended surface before moving/removing UI.
-- [ ] Apply shared layout/spacing/control/status/form/error patterns, consistent
+- [x] Apply shared layout/spacing/control/status/form/error patterns, consistent
   alignment and concise labels across reader, editor, catalogue, version/evidence,
   review, membership, account and administration surfaces.
-- [ ] Replace routine help walls with contextual keyboard/pointer/touch help;
+- [x] Replace routine editor help walls with a named disclosure and concise
+  local instructions; keep material warnings and necessary field requirements visible.
+- [ ] Complete contextual keyboard/pointer/touch help validation on all surfaces;
   keep material warnings and necessary field requirements visible.
-- [ ] Preserve theme/profile scopes, semantic controls and desktop accessibility;
-  validate U1-U5 and U14 in the handoff, then checkpoint this milestone.
+- [x] Preserve theme/profile scopes and semantic controls in the changed surfaces.
+- [ ] Validate U1-U5 and U14 in the handoff, then checkpoint this milestone.
 
-### U2. Workflow restructuring and complete journey (planned; follows U1)
+### U2. Workflow restructuring and complete journey (implementation present; acceptance partial)
 
-- [ ] Deliver stable application and work navigation; remove overlapping ordinary
+- [x] Deliver stable application and work navigation; remove overlapping ordinary
   navigation and obsolete entry promises without losing compatible routes/evidence.
-- [ ] Prioritize Saved / Discover, simple search/results and explicit imports;
+- [x] Prioritize Saved / Discover, simple search/results and explicit imports;
   quiet the reader and locate generation/refresh in Sources.
-- [ ] Deliver the computer-first editor header, grouped commands, local tabs and
+- [x] Deliver the computer-first editor header, grouped commands, local tabs and
   visible common tools, preserving same-page inspection and pending-content safety.
-- [ ] Deliver a branch-aware version list with adjacent inspection, exact comparison,
+- [x] Deliver a branch-aware version list with adjacent inspection, exact comparison,
   review/publication attachments and optional full ancestry/provenance.
-- [ ] Apply the structure to collection review, membership, account and administration;
+- [x] Apply shared structure to collection review, membership, account and administration;
   retain separate global catalogue versus draft-content operations.
-- [ ] Validate the complete article/book journey and all U1-U14 acceptance rows,
-  relevant regressions/build/checks and preservation invariants; checkpoint U2.
-- [ ] Record implemented, observed, mocked and outstanding human/accessibility
-  evidence separately. No deployment or live-data mutation is authorized here.
+- [ ] Validate all U1-U14 acceptance rows, including representative article/book
+  preservation with retained media and notes, all relevant regressions/build/checks,
+  and then checkpoint U2.
+- [x] Record implemented, observed, mocked and outstanding human/accessibility
+  evidence separately in session state. No deployment or live-data mutation is authorized here.
 
-Status: documentation and assignment only; neither UI/UX milestone is implemented
-or accepted. Historical work-centred delivery below remains valid bounded evidence,
-not certification of the newly agreed visual/navigation goals. These milestones
-take priority over older next-step ordering.
+Status: implementation is present across both milestones, but acceptance is partial.
+The synthetic article and book journeys reached explicit publication and continuation;
+the book fixture lacked retained media/notes, and several form, import, archive,
+theme and accessibility scenarios remain unverified. Historical work-centred delivery
+below remains bounded evidence, not certification of the new UI/UX goals. These
+milestones take priority over older next-step ordering.
 
 ## Completed delivery: work-centred workflow (2026-11-08)
 

@@ -8,7 +8,7 @@
 #editor-note-repair select { max-width: 100%; }
 .editor-diff-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .5rem .75rem; background: #f8f9f5; }
 .editor-diff-controls label { margin: 0; }
-.editor-diff-controls input { width: 6rem; }
+.editor-diff-controls select { min-width: 13rem; }
 #editor-diff-status { margin: .3rem .75rem; font-size: .85rem; }
 #editor-surface .editor-diff-added { background: #c9efce; color: #152c19; }
 #editor-surface .editor-diff-removed { background: #f9d0d0; color: #491515; }
@@ -27,11 +27,23 @@
 .editor-book-structure summary { cursor: pointer; font-weight: 700; }
 .editor-book-structure li { overflow-wrap: anywhere; }
 .editor-structure-link { font-weight: 700; }
-.editor-pilot-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: .35rem; border-bottom: 1px solid #cbd1c4; background: #f8f9f5; }
+.editor-pilot-toolbar { position: sticky; top: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .5rem; border-bottom: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
 .editor-pilot-toolbar label { margin: 0; }
-.editor-pilot-toolbar button, .editor-pilot-toolbar label { font-size: .75rem; }
-.editor-pilot-toolbar button { padding: .3rem .4rem; }
+.editor-pilot-toolbar button, .editor-pilot-toolbar label { font-size: .85rem; }
+.editor-pilot-toolbar button { min-height: 2.45rem; padding: .4rem .6rem; }
 .editor-pilot-toolbar select { font: inherit; padding: .25rem; max-width: 13rem; }
+.editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding-inline-end: .45rem; border-inline-end: 1px solid var(--line); }
+.editor-format-toolbar button {
+  min-width: 2.45rem;
+  padding: .35rem .5rem;
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.editor-format-toolbar button:hover,
+.editor-format-toolbar button[aria-pressed="true"] { background: var(--paper); color: var(--accent); }
+.editor-pilot-toolbar .editor-save { background: var(--accent); color: var(--paper); }
+.editor-pilot-toolbar #editor-publication { font-size: .85rem; }
 #document-editor button:disabled { cursor: not-allowed; }
 .editor-workspace { border: 1px solid #98a48e; border-radius: .4rem; overflow: hidden; }
 #editor-status, #editor-error { margin: 0; padding: .4rem .75rem; font-size: .85rem; }
@@ -39,8 +51,8 @@
 .editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: clamp(22rem, 65vh, 52rem); min-height: 22rem; resize: vertical; overflow: hidden; }
 .editor-outline { min-height: 0; overflow: auto; overflow-anchor: none; padding: .75rem; background: #f8f9f5; border-right: 1px solid #cbd1c4; }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
-.editor-section-controls { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: #f8f9f5; }
-.editor-outline-help { font-size: .8rem; }
+.editor-section-controls { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: #f8f9f5; }
+.editor-outline-help { font-size: .85rem; }
 .editor-section-controls button { font-size: .8rem; padding: .4rem; }
 #editor-surface .editor-section-boundary { border: 1px solid #718b63; border-inline-start: 3px solid #486b38; padding: .5rem .75rem; margin-block: 1rem; }
 #editor-surface .editor-selected-block { outline: 3px solid #315d9b; outline-offset: 2px; background: #e6effc; }
@@ -68,6 +80,10 @@
 .editor-outline-options label { display: flex; align-items: center; gap: .3rem; }
 .editor-outline-options button { padding: .25rem .4rem; font: inherit; }
 #editor-outline-toggle { display: none; }
+.editor-scope { margin-block: .35rem 1rem; }
+.editor-history-link { font-weight: 600; }
+.editor-help { max-width: 76rem; margin-block: 1rem; }
+.editor-review-panel { min-height: 16rem; padding: 1rem; }
 .editor-outline-root { position: relative; padding-inline-start: .85rem; }
 .editor-outline-root::after { content: ""; position: absolute; inset-inline-start: .425rem; bottom: 0; height: 50%; border-inline-start: 1px solid var(--editor-tree-line, #98a48e); }
 .editor-outline-row { position: relative; display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; min-height: 3.6rem; }
@@ -168,6 +184,8 @@
 .editor-metadata-sheet tbody + tbody { border-top: 1px solid var(--editor-border, #cbd1c4); }
 .editor-metadata-sheet tr[hidden] { display: none; }
 .editor-metadata-sheet :is(th, td) { padding: .12rem .3rem; vertical-align: middle; }
+.editor-metadata-sheet .editor-metadata-group-heading th { width: auto; padding-block: .5rem .25rem; text-align: start; color: var(--muted, #4c554b); font-size: .82rem; }
+.editor-metadata-sheet tbody:is(#editor-contributors, #editor-dates) .editor-metadata-group-heading th { font-weight: 700; }
 .editor-metadata-sheet th { width: 11rem; text-align: end; font-weight: 600; white-space: nowrap; }
 .editor-metadata-sheet tbody:is(#editor-contributors, #editor-dates) th { font-weight: normal; }
 .editor-metadata-sheet :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; padding: .15rem .3rem; font: inherit; }

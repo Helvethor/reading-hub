@@ -163,7 +163,7 @@ def workspace(request, pk):
         )
 
     return panel_response(request, "library/document_lineage.html", {
-        "document": document, "lineage": lineage, "lineage_error": error,
+        "document": document, "version": reader_target, "lineage": lineage, "lineage_error": error,
         "lineage_filter": filter_name, "archive_preview": preview,
         "restore_selected": restore_selected, "selected_id": selected_id,
         "reader_target": reader_target,
@@ -178,6 +178,8 @@ def workspace(request, pk):
             )
         ),
         "reader_selection_explicit": document.reader_selection_explicit,
+        "can_edit_work": can_review,
+        "can_review": can_review,
         "reader_selection_history": DocumentReaderSelection.objects.filter(
             document=document,
         ).select_related("previous_rendition", "rendition", "reviewer").order_by(

@@ -75,7 +75,12 @@ export function mountDifferenceControls(form, editor, initial, showError) {
   });
   editor.on("update", report);
   function refresh() {
-    revision.max = String(initial.revision);
+    const selected = Number(revision.value);
+    revision.replaceChildren(new owner.defaultView.Option("Pinned starting version", "0"));
+    for (let number = 1; number <= initial.revision; number++) {
+      revision.add(new owner.defaultView.Option(`Saved version ${number}`, String(number)));
+    }
+    revision.value = String(Number.isInteger(selected) && selected <= initial.revision ? selected : 0);
     report();
   }
   refresh();

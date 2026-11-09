@@ -9,20 +9,14 @@
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
-  <h1>Work editor</h1>
-  {% include "library/work_context.html" %}
-  <p class="notice">The corrected document is authoritative for its sections, order, containment, properties and excerpt origins. Editing version {{ version.pk }} creates immutable saved revisions; publication is separate. Retained source evidence, catalogue membership, old editions and annotations are unchanged.</p>
-  <p><a href="{% url 'reader' version.pk %}">Back to the original edition</a></p>
-  <p><a href="{% url 'document-fresh-draft' version.pk %}" data-workflow-panel="Regenerate a separate draft">Preview regeneration from retained source as a separate draft</a></p>
-  <p><a href="{% url 'document-fresh-draft' version.pk %}?inputs=original" data-workflow-panel="Original retained source">Start fresh from original retained source, without previous corrections</a></p>
+  <h1>Editor</h1>
+  {% include "library/work_context.html" with active_work_tab="edit" %}
+  <p class="muted editor-scope">Editing version {{ version.pk }} creates immutable saved versions. Publication is separate; source evidence, catalogue membership, older editions and annotations are unchanged.</p>
   {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
   {% if evaluation_run %}<p class="notice">Isolated evaluation working draft. <a href="{% url 'reviewer-run' evaluation_run.pk %}" target="_blank" rel="noopener">Task instructions and result form (new tab)</a>. Save here before recording a result; evaluation does not publish or verify.</p>
   {% endif %}
-  <p><a id="editor-history" href="{% url 'document-lineage' version.document_id %}?selected={% if draft and initial.revision %}revision%3A{{ draft.pk }}%3A{{ initial.revision }}{% elif draft %}history%3A{{ draft.pk }}{% else %}edition%3A{{ version.pk }}{% endif %}" data-workflow-panel="Versions">Versions for this work</a></p>
   {% if draft_archived %}<p class="notice warning" role="alert">This correction history is archived. Your pending editor content is still here. Saving or publishing is blocked until an authorized reviewer restores the history; nothing will be discarded.</p>{% endif %}
-  <p><a href="{% url 'document-editor-source-policy' version.pk %}" data-workflow-panel="Retained-source classification">Retained-source classification and decision history</a></p>
   {% if draft.evidence.correction_origin %}<p class="notice">Starting from saved version {{ draft.evidence.correction_origin.revision }} of another correction history. Its content is retained exactly; review approval is not inherited.</p>{% endif %}
-  <p><small>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a></small></p>
   {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
   {% if initial %}
   <details class="editor-book-structure">
@@ -37,13 +31,12 @@
     </ol>
     <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" target="_blank" rel="noopener noreferrer">Catalogue book membership (separate page)</a> controls URL ownership only, not this draft's sections. Regenerated editions never replace pending or saved editor corrections.</p>
   </details>
-  <p class="editor-book-title">{{ initial.document.title }}</p>
   <div class="editor-workspace" data-editor-tab="editor">
     <div class="editor-tabs" role="tablist" aria-label="Editor workspace">
-      <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Editor</button>
+      <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
-      <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review &amp; publish</button>
-      {% if reading_style_url %}<button type="button" role="tab" id="editor-tab-style" aria-controls="editor-panel-style" aria-selected="false" tabindex="-1" data-editor-tab="style">Publication &amp; PDF style</button>{% endif %}
+      <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
+      {% if reading_style_url %}<button type="button" role="tab" id="editor-tab-style" aria-controls="editor-panel-style" aria-selected="false" tabindex="-1" data-editor-tab="style">Appearance</button>{% endif %}
     </div>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
     {% csrf_token %}
@@ -55,19 +48,23 @@
     </details>
     {% endif %}
       <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands">
+        <div class="editor-format-toolbar" role="group" aria-label="Common formatting">
+          <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
+          <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
+          <button type="button" aria-label="Paragraph" title="Paragraph" aria-pressed="false" data-block="p" disabled>¶</button>
+          <button type="button" aria-label="Heading 2" title="Heading 2" aria-pressed="false" data-block="h2" disabled>H2</button>
+          <button type="button" aria-label="Heading 3" title="Heading 3" aria-pressed="false" data-block="h3" disabled>H3</button>
+          <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled>Link</button>
+        </div>
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
         <button type="button" data-history="undo" disabled>Undo</button>
         <button type="button" data-history="redo" disabled>Redo</button>
+        <button type="submit" class="editor-save" disabled>Save version</button>
+        <a id="editor-publication" class="button secondary" data-workflow-panel="Publication preview" hidden>Preview publication</a>
         <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
         <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" aria-describedby="editor-view-notice" disabled><option value="">All sections</option></select></label>
         <label><input id="editor-block-labels" type="checkbox" checked disabled> Block labels</label>
-        <button type="submit" disabled>Save corrected version</button>
-        <button type="button" id="editor-mark-reviewed" disabled>Mark reviewed</button>
         <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert retained source content</button>
-        <button type="button" id="editor-section-move-open" disabled>Move section…</button>
-        <button type="button" id="editor-new-section-open">New section…</button>
-        <button type="button" id="editor-section-boundary-open">Section boundary…</button>
-        <button type="button" id="editor-target-open">Target ID…</button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
       </div>
       <p id="editor-status" role="status">Loading the local editor and checking document fidelity…</p>
@@ -75,9 +72,8 @@
       <div class="editor-tab-panel" id="editor-panel-editor" role="tabpanel" aria-labelledby="editor-tab-editor">
       <div class="editor-diff-controls" role="group" aria-label="Result and differences">
         <label>Content view <select id="editor-result-filter" disabled><option value="result">Result</option><option value="diffs">Diffs</option></select></label>
-        <label>Baseline saved revision <input type="number" id="editor-diff-revision" min="0" step="1" value="0" disabled></label>
-        <button type="button" id="editor-diff-baseline" disabled>Use baseline</button>
-        <span>0 = immutable pinned start</span>
+        <label>Compare with <select id="editor-diff-revision" disabled><option value="0">Pinned starting version</option></select></label>
+        <button type="button" id="editor-diff-baseline" disabled>Update comparison</button>
       </div>
       <p id="editor-diff-status" role="status"></p>
       <div class="editor-workspace-body">
@@ -86,8 +82,12 @@
           <div class="editor-section-controls">
             <button type="button" id="editor-add-section-open" disabled>Add / restore section…</button>
             <button type="button" id="editor-section-empty" disabled>New empty section…</button>
+            <button type="button" id="editor-section-move-open" disabled>Move section…</button>
+            <button type="button" id="editor-new-section-open">New section…</button>
+            <button type="button" id="editor-section-boundary-open">Section boundary…</button>
+            <button type="button" id="editor-target-open">Target ID…</button>
           </div>
-          <details class="editor-outline-help"><summary>Section workflow help</summary><p>Branch lines trace the book, sections and headings. Right-click a section or heading (Shift+F10 by keyboard) for title/URL/role, move, add or boundary repair. Drag a section title onto another section's row: upper third = before, middle third = inside, lower third = after. A line marks before/after; an inset outline marks inside. Move section offers the same placements without dragging. The left control column stacks +/− for outline branches, the triangle for editor content, and … for actions. Click a title to scroll; Show focuses one part.</p></details>
+          <details class="editor-outline-help context-help"><summary>Outline help</summary><p>Branch lines trace the book, sections and headings. Right-click a section or heading (Shift+F10 by keyboard) for title/URL/role, move, add or boundary repair. Drag a section title onto another section's row: upper third = before, middle third = inside, lower third = after. Move section offers the same placements without dragging. Click a title to scroll; Show focuses one part.</p></details>
           <div id="editor-outline-items"></div>
         </nav>
         <div class="editor-canvas">
@@ -100,23 +100,26 @@
       <div class="editor-tab-panel" id="editor-panel-metadata" role="tabpanel" aria-labelledby="editor-tab-metadata" hidden>
       <section class="editor-metadata" aria-labelledby="editor-metadata-heading" data-people-url="{% url 'document-editor-people' %}" data-register-url="{% url 'document-editor-register-person' %}">
         <h2 id="editor-metadata-heading">Complete metadata</h2>
-        <p class="editor-metadata-hint">Right-click a row, or press Shift+F10 in a field, to add or remove fields, link registered authors, or show/hide a field in the title-page preview (Shift+right-click keeps the browser menu). Italic labels are not shown on the Title page. Empty rows are ignored.</p>
+        <details class="context-help editor-metadata-help"><summary>Metadata editing help</summary><p>Use a row menu or Shift+F10 in a field to add or remove rows, link registered authors, or show/hide a field on the title page. Shift+right-click keeps the browser menu. Italic labels are hidden from the title page; empty rows are ignored.</p></details>
         <p class="editor-metadata-actions"><button type="button" id="editor-metadata-import" disabled>Fill empty fields from editorial note</button> <span id="editor-metadata-import-status" role="status"></span></p>
         <input type="hidden" name="author" value="{{ initial.document.metadata.author|default:'' }}" disabled>
         <table class="editor-metadata-sheet">
           <tbody data-metadata-group="titles">
+          <tr class="editor-metadata-group-heading"><th scope="rowgroup" colspan="3">Title and work details</th></tr>
           <tr data-metadata-field="title"><th scope="row"><label for="editor-meta-title">Title</label></th><td colspan="2"><input id="editor-meta-title" name="title" value="{{ initial.document.title }}" maxlength="1000" required disabled></td></tr>
           <tr data-metadata-field="subtitle"><th scope="row"><label for="editor-meta-subtitle">Subtitle</label></th><td colspan="2"><input id="editor-meta-subtitle" name="subtitle" maxlength="1000" value="{{ initial.document.metadata.subtitle|default:'' }}" disabled></td></tr>
           <tr data-metadata-field="work_type"><th scope="row"><label for="editor-meta-work_type">Type</label></th><td colspan="2"><select id="editor-meta-work_type" name="work_type" disabled><option value="">Not set (preset from book classification)</option>{% for key, label in work_types %}<option value="{{ key }}"{% if initial.document.metadata.work_type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td></tr>
           <tr data-metadata-field="original_title"><th scope="row"><label for="editor-meta-original_title">Original title</label></th><td colspan="2"><input id="editor-meta-original_title" name="original_title" maxlength="2000" value="{{ initial.document.metadata.original_title|default:'' }}" disabled></td></tr>
           </tbody>
-          <tbody id="editor-contributors" data-metadata-group="people"></tbody>
+          <tbody id="editor-contributors" data-metadata-group="people"><tr class="editor-metadata-group-heading"><th scope="rowgroup" colspan="3">People and contributors</th></tr></tbody>
           <tbody data-metadata-group="publication">
+          <tr class="editor-metadata-group-heading"><th scope="rowgroup" colspan="3">Publication details</th></tr>
           <tr data-metadata-field="publisher"><th scope="row"><label for="editor-meta-publisher">Publisher</label></th><td colspan="2"><input id="editor-meta-publisher" name="publisher" maxlength="2000" value="{{ initial.document.metadata.publisher|default:'' }}" disabled></td></tr>
           <tr data-metadata-field="series"><th scope="row"><label for="editor-meta-series">Series</label></th><td colspan="2"><input id="editor-meta-series" name="series" maxlength="2000" value="{{ initial.document.metadata.series|default:'' }}" disabled></td></tr>
           </tbody>
-          <tbody id="editor-dates" data-metadata-group="dates"></tbody>
+          <tbody id="editor-dates" data-metadata-group="dates"><tr class="editor-metadata-group-heading"><th scope="rowgroup" colspan="3">Dates</th></tr></tbody>
           <tbody data-metadata-group="editorial">
+          <tr class="editor-metadata-group-heading"><th scope="rowgroup" colspan="3">Editorial and source notes</th></tr>
           <tr data-metadata-field="publication_note"><th scope="row"><label for="editor-meta-publication_note">Publication history</label></th><td colspan="2"><textarea id="editor-meta-publication_note" name="publication_note" rows="1" maxlength="2000" data-single-line disabled>{{ initial.document.metadata.publication_note|default:'' }}</textarea></td></tr>
           <tr data-metadata-field="source_edition"><th scope="row"><label for="editor-meta-source_edition">Source edition</label></th><td colspan="2"><textarea id="editor-meta-source_edition" name="source_edition" rows="1" maxlength="2000" data-single-line disabled>{{ initial.document.metadata.source_edition|default:'' }}</textarea></td></tr>
           <tr data-metadata-field="translation_note"><th scope="row"><label for="editor-meta-translation_note">Translation</label></th><td colspan="2"><textarea id="editor-meta-translation_note" name="translation_note" rows="1" maxlength="2000" data-single-line disabled>{{ initial.document.metadata.translation_note|default:'' }}</textarea></td></tr>
@@ -127,6 +130,7 @@
           <tr data-metadata-field="notes"><th scope="row"><label for="editor-meta-notes">Other notes</label></th><td colspan="2"><textarea id="editor-meta-notes" name="notes" rows="3" maxlength="4000" disabled>{{ initial.document.metadata.notes|default:'' }}</textarea></td></tr>
           </tbody>
           <tbody data-metadata-group="classification">
+          <tr class="editor-metadata-group-heading"><th scope="rowgroup" colspan="3">Language and classification</th></tr>
           <tr data-metadata-field="language"><th scope="row"><label for="editor-meta-language">Language</label></th><td colspan="2"><input id="editor-meta-language" name="language" maxlength="35" value="{{ initial.document.metadata.language|default:'' }}" placeholder="en, en-us, fr, und" disabled></td></tr>
           <tr data-metadata-field="original_language"><th scope="row"><label for="editor-meta-original_language">Original language</label></th><td colspan="2"><input id="editor-meta-original_language" name="original_language" maxlength="35" value="{{ initial.document.metadata.original_language|default:'' }}" placeholder="de, ru, und" disabled></td></tr>
           <tr data-metadata-field="subjects"><th scope="row"><label for="editor-meta-subjects">Subjects</label></th><td colspan="2"><textarea id="editor-meta-subjects" name="subjects" rows="2" placeholder="One per line" disabled></textarea></td></tr>
@@ -161,20 +165,26 @@
       <details class="editor-review-controls" open>
         <summary>Optional review scope and editorial status</summary>
         <p id="editor-saved-review" role="status"></p>
-        <p>Ordinary saves need no review declaration. Mark reviewed certifies the whole saved document without publishing it; save your edits first. For partial coverage, choose sections here and save. Any content, title or metadata edit resets the next save to partial.</p>
+        <p>Review is optional and applies to saved content only. Save first; a later content or metadata edit resets the next save to partial. Review does not publish.</p>
         <label><input type="radio" name="review" value="partial" checked disabled> Partial review — no verified scope</label>
         <label><input type="radio" name="review" value="sections" disabled> Verify selected sections</label>
         <div id="editor-sections" hidden></div>
         <label><input type="radio" name="review" value="full" disabled> Verify the whole document</label>
         <label><input type="checkbox" name="editorial" disabled> Includes editorial changes beyond transcription/formatting</label>
+        <button type="button" id="editor-mark-reviewed" disabled>Mark saved version reviewed</button>
       </details>
-      <p>Save all changes before previewing publication. Saving a review scope does not publish; publication does not itself verify.</p>
-      <a id="editor-publication" data-workflow-panel="Publication preview" hidden>Review saved result for publication</a>
-      <p><a id="editor-comparison" data-workflow-panel="Saved comparison" hidden>Compare saved revisions and pinned starting document (excludes unsaved edits)</a></p>
+      <p>Preview and publish are separate. Publication previews bind the exact saved version and still require explicit confirmation.</p>
+      <p><a id="editor-history" href="{% url 'document-lineage' version.document_id %}?selected={% if draft and initial.revision %}revision%3A{{ draft.pk }}%3A{{ initial.revision }}{% elif draft %}history%3A{{ draft.pk }}{% else %}edition%3A{{ version.pk }}{% endif %}" data-workflow-panel="Versions">Browse versions and review history</a></p>
+      <p><a id="editor-comparison" data-workflow-panel="Saved comparison" hidden>Compare saved versions</a> <span class="muted">Unsaved editor changes are not included.</span></p>
       <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
       </div>
-    <p class="editor-help">Drag the editor's bottom-right resize handle to adjust its height. The outline and canvas resize together; this does not change saved content.</p>
-    <p id="editor-help" class="editor-help">Ctrl/Cmd-click blocks to toggle whole-block selection within one section: paragraphs, headings, lists, tables, figures, quotations and other blocks can be combined. Selected blocks are outlined; click normally or press Escape to clear. Right-click → Separate as excerpt section requires contiguous blocks (no gaps); it never includes unselected intervening blocks. Click within a list/table/figure to select that whole section-level block. Ctrl/Cmd-click on a link still follows it; use another part of its block to select the block. Select text and right-click for formatting, or press Shift+F10. Selection tools provides the same menu by keyboard or touch. Ctrl+X cuts semantic content; Ctrl+V pastes it at the cursor in this editor, preserving formatting, links and retained images without a dialog. Cut removes immediately; Ctrl+Z restores it. Paste before closing or reloading the editor. Use the outline to reach another chapter, or Whole document for cross-chapter selections. External clipboard paste still opens a preview. Shift+right-click opens the native browser menu.</p>
+    <details class="editor-help context-help">
+      <summary id="editor-help">Editing help and keyboard shortcuts</summary>
+      <p>Ctrl/Cmd-click toggles whole-block selection within a section. Right-click or Shift+F10 opens selection and section tools; selected blocks must be contiguous to become an excerpt section. Click within a list, table or figure to select that whole block.</p>
+      <p>Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy semantic content, preserving formatting, links and retained images; external paste opens a preview. Ctrl/Cmd+Z and outline Undo restore edits.</p>
+      <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The outline and canvas resize together from the lower-right handle.</p>
+      <p>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a>.</p>
+    </details>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
       <p id="editor-menu-target"></p>
       <div role="group" aria-label="Text styling" class="editor-menu-group">
@@ -216,8 +226,6 @@
       <button type="button" role="menuitem" data-history="redo" disabled>Redo</button>
       <button type="button" role="menuitem" id="editor-menu-close">Close menu</button>
     </div>
-    <p>Type directly; Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy formatted content inside this editor; copied targets get fresh IDs and matching internal links. External paste opens a preview with plain-text and supported inline-formatting choices for approval, including common browser emphasis CSS. Ctrl/Cmd+Z also works from the outline. Drag section titles within the outline to reorder; dragging arbitrary canvas content remains unavailable.</p>
-    <p>Move paragraph up/down moves the whole paragraph, heading or preformatted block containing the cursor or selected text, past one adjacent text block in the same container. It preserves links and targets and can be undone. It does not cross sections, lists, tables or media.</p>
     <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
   </form>
   {% if reading_style_url %}

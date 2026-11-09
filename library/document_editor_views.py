@@ -481,7 +481,8 @@ def comparison(request, pk):
     source = get_version(pk)
     try:
         draft = get_draft(request.GET.get("draft"), source)
-        latest = draft.revisions.first()
+        revisions = list(draft.revisions.order_by("revision"))
+        latest = revisions[-1] if revisions else None
         later = int(request.GET.get("to", latest.revision if latest else 0))
         earlier = int(request.GET.get("from", 0))
         if not 0 <= earlier <= later:
@@ -527,6 +528,7 @@ def comparison(request, pk):
     else:
         response = panel_response(request, "library/document_comparison.html", {
             "source": source, "draft": draft, "earlier": earlier, "later": later,
+            "revisions": revisions,
             "before": before, "after": after, "before_row": before_row, "after_row": after_row,
             "comparison": result,
         })

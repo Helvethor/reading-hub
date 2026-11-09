@@ -23,7 +23,7 @@ REVIEW_PAGES = {
 def navigation(request, context):
     route = request.resolver_match.url_name if request.resolver_match else ""
     user = request.user
-    if route not in REVIEW_PAGES or not (
+    if route == "document-editor" or route not in REVIEW_PAGES or not (
         user.is_authenticated and (user.is_staff or user.has_perm("library.review_metadata"))
     ):
         return {}

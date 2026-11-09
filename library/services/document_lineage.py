@@ -946,8 +946,20 @@ def build_lineage(document, *, selected="", filter_name="all"):
         selected_path.append(path_node["id"])
         parent_id = path_node["parent_id"]
         path_node = nodes.get(parent_id) if parent_id else None
+    timeline = []
+
+    def collect_timeline(node):
+        if node["type"] != "work":
+            timeline.append({
+                **node,
+                "parent_label": nodes.get(node["parent_id"], {}).get("label", ""),
+            })
+        for child in node["children"]:
+            collect_timeline(child)
+
+    collect_timeline(tree)
     return {
-        "document": document, "tree": tree, "nodes": nodes,
+        "document": document, "tree": tree, "nodes": nodes, "timeline": timeline,
         "selected": selected_node, "filter_name": filter_name,
         "selected_path": selected_path,
         "selection_error": selection_error,

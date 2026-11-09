@@ -31,6 +31,7 @@ def home_context(request, form=None):
     profile = get_profile()
     sort = request.GET.get("sort", profile.default_sort)
     source = request.GET.get("source", "") if profile.source_filter else ""
+    search = request.GET.get("q", "").strip()[:200]
     errors = []
     if sort not in profile.sort_choices:
         errors.append("Unknown sort option. Showing the configured default order.")
@@ -61,6 +62,8 @@ def home_context(request, form=None):
             query |= Q(url__startswith=f"https://{host}/")
             query |= Q(url__startswith=f"http://{host}/")
         documents = documents.filter(query)
+    if search:
+        documents = documents.filter(Q(title__icontains=search) | Q(url__icontains=search))
     order = Lower("title") if sort == "title" else SORTS[sort]
     page = Paginator(documents.order_by(order, "pk"), profile.page_size).get_page(
         request.GET.get("page", 1)
@@ -71,8 +74,9 @@ def home_context(request, form=None):
         "page": page,
         "selected_sort": sort,
         "selected_source": source,
+        "search": search,
         "browse_errors": errors,
-        "browse_query": urlencode({"sort": sort, "source": source}),
+        "browse_query": urlencode({"sort": sort, "source": source, "q": search}),
         "jobs": Job.objects.exclude(status=Job.Status.READY)
         .select_related("document")
         .order_by("-created_at")[:10],

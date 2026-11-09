@@ -21,7 +21,7 @@ function setup(query = "") {
   return document.querySelector("form");
 }
 
-test("same-page panel preserves pending content scroll focus and forwards the displayed style", () => {
+test("same-page panel preserves pending content, focus, style and browser history", async () => {
   const form = setup("?style=chosen-style&style_profile=3");
   const error = [];
   mountWorkflowPanels({form, showError: value => error.push(value), isDirty: () => true});
@@ -37,12 +37,16 @@ test("same-page panel preserves pending content scroll focus and forwards the di
   assert.equal(url.searchParams.get("embedded"), "1");
   assert.equal(url.searchParams.get("style"), "chosen-style");
   assert.equal(url.searchParams.get("style_profile"), "3");
+  assert.equal(new URL(location.href).searchParams.get("panel"), "/versions/1/editor/history/");
   assert.equal(form.querySelector("input").value, "Pending title");
   surface.scrollTop = 0;
+  const closed = new Promise(resolve => window.addEventListener("popstate", resolve, {once: true}));
   dialog.querySelector("button").click();
+  await closed;
   assert.equal(surface.scrollTop, 42);
   assert.equal(document.activeElement, link);
   assert.equal(dialog.querySelector("iframe").hasAttribute("src"), false);
+  assert.equal(new URL(location.href).searchParams.has("panel"), false);
   assert.deepEqual(error, []);
 });
 
@@ -54,4 +58,26 @@ test("history chooser opens on the same document without selecting or mutating a
   assert.equal(location.pathname, "/versions/1/editor/");
   assert.equal(form.querySelector("input").value, "Pending title");
   assert.equal(new URL(document.querySelector("iframe").src).searchParams.get("embedded"), "1");
+});
+
+test("a workflow panel deep link opens and direct close removes its query state", () => {
+  const form = setup("?panel=%2Fversions%2F1%2Feditor%2Fhistory%2F");
+  mountWorkflowPanels({form, showError: assert.fail, isDirty: () => false});
+  const dialog = document.querySelector("dialog");
+  assert.equal(dialog.open, true);
+  assert.equal(new URL(dialog.querySelector("iframe").src).pathname, "/versions/1/editor/history/");
+  dialog.querySelector("button").click();
+  assert.equal(dialog.open, false);
+  assert.equal(new URL(location.href).searchParams.has("panel"), false);
+});
+
+test("Escape closes a workflow panel and removes its deep-link query state", () => {
+  const form = setup("?panel=%2Fversions%2F1%2Feditor%2Fhistory%2F");
+  mountWorkflowPanels({form, showError: assert.fail, isDirty: () => false});
+  const dialog = document.querySelector("dialog");
+  const cancel = new dom.window.Event("cancel", {cancelable: true});
+  dialog.dispatchEvent(cancel);
+  assert.equal(cancel.defaultPrevented, true);
+  assert.equal(dialog.open, false);
+  assert.equal(new URL(location.href).searchParams.has("panel"), false);
 });

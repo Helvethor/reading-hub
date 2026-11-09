@@ -70,12 +70,11 @@ class ReaderCorrectionTests(TestCase):
         self.assertFalse(CrawlCapture.objects.exists())
         self.fetch.reset_mock()
         response = self.client.get(reverse("reader", args=[version.pk]))
-        self.assertContains(response, "Review this work")
+        self.assertContains(response, "Review queue")
+        self.assertNotContains(response, "Review this work")
         self.assertNotContains(response, "Correct this retained source")
         response = self.client.get(reverse("rendition-corrections", args=[version.pk]))
-        self.assertContains(
-            response, "this historical rendition and its annotations remain unchanged"
-        )
+        self.assertContains(response, "This existing edition and its annotations remain unchanged")
         self.assertFalse(CrawlCapture.objects.exists())
         endpoint = reverse("rendition-correction-source", args=[version.pk])
         self.assertEqual(self.client.get(endpoint).status_code, 405)
@@ -94,7 +93,7 @@ class ReaderCorrectionTests(TestCase):
         self.assertEqual(CrawlCapture.objects.count(), 1)
         self.assertContains(
             self.client.get(reverse("rendition-corrections", args=[version.pk])),
-            "Source editor — selected content",
+            "Open retained source in editor",
         )
         self.fetch.assert_not_called()
         version.refresh_from_db()
@@ -194,7 +193,7 @@ class ReaderCorrectionTests(TestCase):
         self.client.force_login(staff)
         self.assertContains(
             self.client.get(reverse("reader", args=[version.pk])),
-            "Review this work",
+            "Review queue",
         )
         self.client.post(endpoint, {"page": "0"})
         self.assertEqual(CrawlCapture.objects.count(), 1)
@@ -228,9 +227,8 @@ class ReaderCorrectionTests(TestCase):
                          "Navigation adds the generated metadata page.")
         self.assertEqual(page.select(".toc-panel a")[-1]["href"], "#document-metadata")
         links = [
-            link
-            for link in page.select(".reader-review-entry a")
-            if link.get_text(strip=True) == "Review this work"
+            link for link in page.select(".primary-navigation a")
+            if link.get_text(strip=True) == "Review queue"
         ]
         self.assertEqual(len(links), 1)
         self.assertEqual(links[0]["href"], reverse("work-review") + f"?review_version={version.pk}")
@@ -244,7 +242,7 @@ class ReaderCorrectionTests(TestCase):
         landing_url = overview.find("a", string="Document editor")["href"]
         with patch("library.document_editor_views.finders.find", return_value="built-asset"):
             landing = self.client.get(landing_url)
-        self.assertContains(landing, "Book metadata / contents")
+        self.assertContains(landing, "Metadata page")
         self.assertContains(landing, "First chapter")
         self.assertContains(landing, "Second chapter")
         self.assertFalse(CrawlCapture.objects.exists())

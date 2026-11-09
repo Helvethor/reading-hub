@@ -112,6 +112,10 @@ class ComparisonViewTests(TestCase):
         self.assertContains(response, self.revision.document_digest)
         self.assertContains(response, "not a newly regenerated source draft")
         self.assertContains(response, "Partial edits")
+        self.assertContains(response, "Pinned starting version")
+        self.assertContains(response, "Saved version 1")
+        self.assertContains(response, 'name="from"')
+        self.assertContains(response, 'name="to"')
         self.assertEqual(response["Cache-Control"], "no-store")
         self.assertEqual(self.counts(), before)
 

@@ -43,14 +43,16 @@ class DocumentEditorViewTests(TestCase):
         ):
             self.assertContains(response, f'/static/{asset}?v={APP_VERSION}')
         self.assertContains(response, "Work editor")
-        self.assertContains(response, "immutable saved revisions")
+        self.assertContains(response, "immutable saved versions")
+        self.assertContains(response, 'aria-label="Work destinations"')
+        self.assertNotContains(response, 'aria-label="Work reviewer tools"')
         self.assertContains(response, 'data-comparison-url="'
                             + reverse("document-comparison", args=[self.rendition.pk]) + '"')
         self.assertContains(response, 'id="editor-comparison"')
-        for panel in ("Versions", "Regenerate a separate draft",
-                      "Original retained source", "Saved comparison", "Publication preview"):
+        for panel in ("Versions", "Sources", "Saved comparison", "Publication preview"):
             self.assertContains(response, f'data-workflow-panel="{panel}"')
-        self.assertContains(response, "excludes unsaved edits")
+        self.assertNotContains(response, 'data-workflow-panel="Regenerate a separate draft"')
+        self.assertContains(response, "Unsaved editor changes are not included.")
         self.assertContains(response, "document-editor-initial")
         self.assertContains(response, "Review clipboard paste")
         self.assertContains(response, "Insert formatted text")
@@ -65,7 +67,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Shift+F10")
         self.assertContains(response, 'aria-label="Book parts"')
         self.assertContains(response, "Whole book")
-        self.assertContains(response, "bottom-right resize handle")
+        self.assertContains(response, "lower-right handle")
         for value, label in (("book", "Whole book"), ("title", "Title"),
                              ("toc", "ToC"), ("sections", "Sections")):
             self.assertContains(response, f'<option value="{value}">{label}</option>')

@@ -12,31 +12,40 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+  {% reviewer_navigation as review_nav %}
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">{{ site.name|first }}</span> {{ site.name }}</a>
-    <span class="local-badge">{{ site.tagline }}</span>
-    <nav class="account-nav" aria-label="Account">
-      <form action="{% url 'change-theme' %}" method="post" data-theme-form>
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <label>Theme <select name="theme">{% for value, label in theme_choices %}<option value="{{ value }}"{% if value == selected_theme %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-        <button type="submit" class="secondary">Apply</button>
-        <span role="alert" data-theme-error hidden></span>
-      </form>
-      {% if user.is_authenticated %}
-        <span class="account-name">{{ user.username }}</span>
-        {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a>{% endif %}
-        {% if user.is_staff or perms.library.review_metadata %}<a href="{% url 'work-review' %}">Reviewer tools</a>{% endif %}
-        <a href="{% url 'user-settings' %}">Settings</a>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary" type="submit">Sign out</button></form>
-      {% else %}
-        <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in</a>
-        <a href="{% url 'signup' %}">Create account</a>
-      {% endif %}
+    <nav class="primary-navigation" aria-label="Primary">
+      <a href="{% url 'home' %}"{% if request.resolver_match.url_name == "home" or request.resolver_match.url_name == "reader" or request.resolver_match.url_name == "document-editor" or request.resolver_match.url_name == "document-lineage" or request.resolver_match.url_name == "document-comparison" or request.resolver_match.url_name == "document-publication" %} aria-current="page"{% endif %}>Library</a>
+      {% if site.catalogue_enabled %}<a href="{% url 'catalogue' %}"{% if request.resolver_match.url_name == "catalogue" %} aria-current="page"{% endif %}>Discover</a>{% endif %}
+      {% if user.is_authenticated %}{% if user.is_staff or perms.library.review_metadata %}<a href="{% url 'work-review' %}{% if version %}?review_version={{ version.pk }}{% endif %}"{% if review_nav.items %} aria-current="page"{% endif %}>Review queue</a>{% endif %}{% endif %}
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}"{% if request.resolver_match.namespace == "admin" or request.resolver_match.url_name == "worker-controls" or request.resolver_match.url_name == "worker-control" or request.resolver_match.url_name == "worker-status" or request.resolver_match.url_name == "worker-instance-control" or request.resolver_match.url_name == "worker-log" or request.resolver_match.url_name == "crawl-controls" or request.resolver_match.url_name == "crawl-control" %} aria-current="page"{% endif %}>Administration</a>{% endif %}
     </nav>
+    <details class="account-menu">
+      <summary>Account{% if user.is_authenticated %}<span class="account-name">{{ user.username }}</span>{% else %}<span class="account-name">Sign in</span>{% endif %}</summary>
+      <div class="account-menu-panel">
+        <form action="{% url 'change-theme' %}" method="post" data-theme-form>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <label for="site-theme">Appearance</label>
+          <div class="account-theme-row">
+            <select id="site-theme" name="theme">{% for value, label in theme_choices %}<option value="{{ value }}"{% if value == selected_theme %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            <button type="submit" class="secondary">Apply</button>
+          </div>
+          <span role="alert" data-theme-error hidden></span>
+        </form>
+        {% if user.is_authenticated %}
+          <a href="{% url 'user-settings' %}">Account settings</a>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary" type="submit">Sign out</button></form>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in</a>
+          <a href="{% url 'signup' %}">Create account</a>
+        {% endif %}
+      </div>
+    </details>
   </header>
   {% if messages %}<div class="site-messages" role="status">{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}</div>{% endif %}
-  <main id="main">{% reviewer_navigation as review_nav %}{% include "library/review_navigation.html" %}{% block content %}{% endblock %}</main>
+  <main id="main">{% include "library/review_navigation.html" %}{% block content %}{% endblock %}</main>
   <footer class="site-footer">{{ site.footer }}</footer>
   {% block scripts %}{% endblock %}
 </body>

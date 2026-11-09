@@ -5,7 +5,15 @@
 {% endfor %}
 {% for entry in tree.entries %}
 <div class="catalogue-entry">
-  <form method="post" action="{% url 'catalogue-open' entry.pk %}">{% csrf_token %}<button class="catalogue-title" type="submit">Read or import: {{ entry.title }}</button></form>
+  <h2 class="catalogue-entry-title">
+    {% if entry.reader_available %}<a href="{% url 'latest' entry.work_id %}">{{ entry.title }}</a>
+    {% else %}{{ entry.title }}{% endif %}
+  </h2>
+  {% if entry.reader_available %}
+  <a class="catalogue-read-link" href="{% url 'latest' entry.work_id %}">Read saved work</a>
+  {% else %}
+  <form method="post" action="{% url 'catalogue-open' entry.pk %}">{% csrf_token %}<button type="submit">Import this work</button><span class="muted"> May fetch the source and report progress or failure.</span></form>
+  {% endif %}
   {% if entry.work_id %}<p><a href="{% url 'document-lineage' entry.work_id %}">Work</a></p>{% endif %}
   <p class="muted">{% if entry.display_authors %}{{ entry.display_authors|join:", " }}{% else %}{{ entry.display_author }}{% endif %} &middot; {{ entry.published|default:"Unknown date" }}{% if entry.topics %} &middot; {{ entry.topics|join:", " }}{% elif entry.topic %} &middot; {{ entry.topic }}{% endif %}{% if entry.era %} &middot; {{ entry.era }}{% endif %}</p>
   <p class="source-url">{{ entry.url }}</p>

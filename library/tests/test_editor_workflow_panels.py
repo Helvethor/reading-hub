@@ -81,7 +81,8 @@ class EditorWorkflowPanelTests(TestCase):
             "draft": self.draft.pk, "from": 0, "to": 1, "embedded": 1,
         })
         self.assertContains(response, 'name="embedded" value="1"')
-        self.assertContains(response, 'name="to" min="0" value="1"')
+        self.assertContains(response, '<select name="to" required>')
+        self.assertContains(response, '<option value="1" selected>Saved version 1')
         self.assertContains(response, "Unsaved editor changes are not included")
         self.assertNotContains(response, 'class="site-header"')
 

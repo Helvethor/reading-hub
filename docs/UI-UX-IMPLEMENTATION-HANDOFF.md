@@ -1,6 +1,8 @@
 # Implementation handoff: coherent visual and structural UI/UX
 
-Approved goals consolidated 2026-11-08. Status: planned, not implemented.
+Approved goals consolidated 2026-11-08. Status: implementation present; acceptance
+incomplete. See [Tasks](../TASKS.md) and [Assessment](PROJECT-ASSESSMENT.md) for
+the evidence and remaining gaps.
 
 ## Mission, authority and stopping point
 

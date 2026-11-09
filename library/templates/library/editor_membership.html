@@ -14,10 +14,13 @@
         <a href="{{ member.url }}" target="_blank" rel="noopener noreferrer">{{ member.url }}</a>
         <form method="post">
           {% csrf_token %}
+          <fieldset>
+          <legend>Detach member source</legend>
           <input type="hidden" name="action" value="detach">
           <input type="hidden" name="url" value="{{ member.url }}">
           <label>Reason <input name="reason" maxlength="2000" required></label>
           <button type="submit">Preview detach into a separate work</button>
+          </fieldset>
         </form>
       </li>
     {% empty %}<li>No member URLs.</li>{% endfor %}
@@ -41,9 +44,12 @@
     {% endif %}
     <form method="post">
       {% csrf_token %}
+      <fieldset>
+      <legend>Preview generation</legend>
       <input type="hidden" name="action" value="generation-preview">
       <label>Reason <input name="reason" maxlength="2000" required></label>
       <button type="submit">Preview source-generated book</button>
+      </fieldset>
     </form>
     {% if generation_preview %}
       <section id="book-generation-preview" aria-label="Book generation preview">
@@ -62,11 +68,14 @@
         {% endfor %}
         <form method="post">
           {% csrf_token %}
+          <fieldset>
+          <legend>Confirm source edition</legend>
           <input type="hidden" name="action" value="generation-apply">
           <input type="hidden" name="generation_token" value="{{ generation_token }}">
           <label><input type="checkbox" name="confirm" value="yes" required> Confirm generating this source edition from the reviewed membership and retained evidence.</label>
           <p>Reason: {{ generation_reason }}. Confirmation expires in 30 minutes; changed membership or retained evidence requires another preview.</p>
           <button type="submit">Generate source edition</button>
+          </fieldset>
         </form>
       </section>
     {% endif %}
@@ -86,11 +95,14 @@
       {% endif %}
       <form method="post">
         {% csrf_token %}
+        <fieldset>
+        <legend>Confirm catalogue routing change</legend>
         <input type="hidden" name="action" value="apply">
         <input type="hidden" name="token" value="{{ token }}">
         <label><input type="checkbox" name="confirm" value="yes" required> Confirm catalogue-wide routing only; preserve all existing draft content, editions and private annotations.</label>
         <p>Reason: {{ reason }}. Confirmation expires in 30 minutes; changed routing or retained evidence requires another preview.</p>
         <button type="submit">Save catalogue membership</button>
+        </fieldset>
       </form>
     </section>
   {% endif %}
@@ -101,10 +113,13 @@
       <p>{{ decision.reason }} — {{ decision.reviewer }}</p>
       <form method="post">
         {% csrf_token %}
+        <fieldset>
+        <legend>Preview audited undo</legend>
         <input type="hidden" name="action" value="undo-preview">
         <input type="hidden" name="decision" value="{{ decision.pk }}">
         <label>Undo reason <input name="reason" maxlength="2000" required></label>
         <button type="submit">Preview audited undo</button>
+        </fieldset>
       </form>
     </details>
   {% empty %}<p>No catalogue-only membership decisions. Historical ordered organization evidence remains retained.</p>{% endfor %}

@@ -579,7 +579,9 @@ class CatalogueTests(TestCase):
     def test_catalogue_hierarchy_search_sort_and_unknown_metadata(self):
         self.step()
         save_entry(self.site, CatalogueLink(ROOT + "z/", "Zebra", True))
-        response = self.client.get(reverse("catalogue"), {"group": "era", "then": "topic"})
+        response = self.client.get(
+            reverse("catalogue"), {"view": "hierarchy", "group": "era", "then": "topic"}
+        )
         self.assertContains(response, "Unknown era")
         branch = self.client.get(response.context["tree"]["children"][0]["url"])
         self.assertContains(branch, "Unknown topic")
@@ -591,8 +593,57 @@ class CatalogueTests(TestCase):
         with patch(
             "library.catalogue_views.get_profile", return_value=replace(PROFILE, page_size=1)
         ):
-            response = self.client.get("/catalogue/?group=era&then=topic")
+            response = self.client.get("/catalogue/?view=hierarchy&group=era&then=topic")
             self.assertContains(response, "group=era&amp;then=topic")
+
+    def test_discover_defaults_to_flat_results_and_separates_read_from_import(self):
+        self.step()
+        entry = CatalogueEntry.objects.get(url=ROOT + "sample/")
+        before = Job.objects.count()
+        response = self.client.get(reverse("catalogue"), {"q": "sample"})
+        self.assertEqual(response.context["view_mode"], "flat")
+        self.assertEqual(response.context["tree"]["entries"], [entry])
+        self.assertContains(response, "Import this work")
+        self.assertNotContains(response, 'data-branch-url=')
+        self.assertEqual(Job.objects.count(), before)
+
+        document = Document.objects.create(url=entry.url, title="Saved sample")
+        snapshot = Snapshot.objects.create(document=document, digest="c" * 64, manifest={})
+        Rendition.objects.create(
+            document=document,
+            snapshot=snapshot,
+            identity="d" * 64,
+            title=document.title,
+            structure={"toc": []},
+            html="<p>Saved sample</p>",
+        )
+        response = self.client.get(reverse("catalogue"), {"q": "sample"})
+        self.assertContains(response, "Read saved work")
+        self.assertNotContains(response, "Import this work")
+        self.assertEqual(Job.objects.count(), before)
+
+    def test_saved_library_search_is_above_import_guidance(self):
+        document = Document.objects.create(
+            url="https://communistusa.org/saved-example/", title="Saved example"
+        )
+        snapshot = Snapshot.objects.create(document=document, digest="e" * 64, manifest={})
+        Rendition.objects.create(
+            document=document,
+            snapshot=snapshot,
+            identity="f" * 64,
+            title=document.title,
+            structure={"toc": []},
+            html="<p>Saved example</p>",
+        )
+        response = self.client.get(reverse("home"), {"q": "saved"})
+        self.assertEqual(response.context["page"].paginator.count, 1)
+        self.assertLess(
+            response.content.index(b"Search saved works"),
+            response.content.index(b"Import or open a URL"),
+        )
+        self.assertContains(response, "Saved example")
+        self.assertContains(response, 'role="search"')
+        self.assertContains(response, "Discover")
 
     def test_open_is_post_only_csrf_protected_and_enqueues_once(self):
         self.step()

@@ -3,15 +3,24 @@
 {% block title %}Work | {{ site.name }}{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">{% endblock %}
 {% block content %}
-<main class="page-container document-lineage">
-  <h1>Work</h1>
-  <p>{{ document.title|default:document.url }}</p>
-  <nav aria-label="Work context">
-    {% if reader_target %}<a href="{% url 'reader' reader_target.pk %}">Read {{ reader_target.title }} · selected reader output</a>{% else %}No reader output is available.{% endif %}
-    · <a href="?filter=all&amp;selected=work">Versions</a>
-    · <a href="?filter=sources&amp;selected=work">Sources</a>
-  </nav>
-  <p>Saved content, review records, publication records and source captures are shown separately. Archival hides workflow choices only; published versions, reader/PDF output, catalogue membership, annotations and shared sources/assets remain unchanged.</p>
+<div class="page-container document-lineage">
+  <h1>{% if lineage_filter == "sources" %}Sources{% else %}Versions{% endif %}</h1>
+  {% if reader_target %}
+    {% if lineage_filter == "sources" %}
+      {% include "library/work_navigation.html" with version=reader_target reader_target=reader_target can_edit_work=can_review active_work_tab="sources" %}
+    {% else %}
+      {% include "library/work_navigation.html" with version=reader_target reader_target=reader_target can_edit_work=can_review active_work_tab="versions" %}
+    {% endif %}
+  {% endif %}
+  <p class="work-title">{{ document.title|default:document.url }}</p>
+  {% if can_review and reader_target %}
+  <p class="work-scope-links">
+    <a href="{% url 'document-editor-membership' reader_target.pk %}">Catalogue membership</a>
+    <span class="muted">Global work ownership, separate from edited sections.</span>
+    · <a href="{% url 'document-editor-source-policy' reader_target.pk %}"{% if embedded %} data-workflow-panel="Source classification"{% endif %}>Source classification and decisions</a>
+  </p>
+  {% endif %}
+  <p class="muted">Saved content, review records, publication records and source captures remain distinct. Archival hides workflow choices only; published output, catalogue membership, annotations and shared source/assets remain unchanged.</p>
   <p>
     Selected reader output:
     {% if reader_target %}
@@ -59,19 +68,47 @@
   </form>
 
   {% if lineage %}
-  <section aria-labelledby="lineage-tree-heading">
-    <h2 id="lineage-tree-heading">{% if lineage_filter == "sources" %}Sources{% else %}Versions{% endif %}</h2>
-    {% if lineage.tree.children %}
-    <div class="lineage-tree" aria-label="Work versions and source evidence">
-      {% include "library/document_lineage_node.html" with node=lineage.tree %}
-    </div>
-    {% else %}
-    <p>No elements match this filter. Ancestors are retained whenever a matching descendant exists.</p>
-    {% endif %}
-  </section>
+  <div class="lineage-workspace">
+    <section class="lineage-list" aria-labelledby="lineage-list-heading">
+      <h2 id="lineage-list-heading">{% if lineage_filter == "sources" %}Source captures{% else %}Versions and events{% endif %}</h2>
+      {% if lineage.timeline %}
+      <ol class="lineage-timeline">
+        {% for node in lineage.timeline %}
+        <li class="lineage-timeline-item{% if node.archived %} is-archived{% endif %}{% if node.id == selected_id %} is-selected{% endif %}">
+          <a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;selected={{ node.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection" aria-label="Inspect {{ node.type }}: {{ node.label }}"{% if node.id == selected_id %} aria-current="true"{% endif %}>{{ node.label }}</a>
+          <p>
+            <span class="lineage-node-type">{% if node.type == "snapshot" %}Source capture{% elif node.type == "generation" %}Source-generated version{% elif node.type == "edition" %}Saved reader version{% elif node.type == "history" %}Working copy / branch{% elif node.type == "revision" %}Saved version{% elif node.type == "review" %}Review record{% elif node.type == "publication" %}Publication record{% else %}{{ node.type|title }}{% endif %}</span>
+            {% if node.created_at %}<time datetime="{{ node.created_at|date:'c' }}">{{ node.created_at|date:"Y-m-d H:i" }}</time>{% endif %}
+            {% if node.parent_label and not node.unknown_ancestry %}<span>· Based on {{ node.parent_label }}</span>{% endif %}
+            {% if node.reviewer %}<span>· {{ node.reviewer }}</span>{% endif %}
+            {% if node.review %}<span>· {{ node.review }}</span>{% endif %}
+          </p>
+          <p class="lineage-status">
+            {% if node.reader_target %}<strong>Selected reader output</strong>{% endif %}
+            {% if node.latest %}<strong>Latest saved content</strong>{% endif %}
+            {% if node.archived %}<strong>Archived</strong>{% endif %}
+            {% if node.context_only %}<span>Ancestry context</span>{% endif %}
+            {% if node.unknown_ancestry %}<span>Unknown ancestry</span>{% endif %}
+            {% if node.integrity_errors %}<span>Evidence integrity issue</span>{% endif %}
+          </p>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p>No elements match this filter. Ancestors are retained whenever a matching descendant exists.</p>
+      {% endif %}
+      {% if lineage.tree.children %}
+      <details class="full-ancestry">
+        <summary>Full ancestry tree and provenance</summary>
+        <div class="lineage-tree" aria-label="Full work ancestry">
+          {% include "library/document_lineage_node.html" with node=lineage.tree %}
+        </div>
+      </details>
+      {% endif %}
+    </section>
 
   <section id="lineage-inspection" aria-labelledby="lineage-inspection-heading">
-    <h2 id="lineage-inspection-heading" tabindex="-1" autofocus>Inspect: {{ lineage.selected.label }}</h2>
+    <h2 id="lineage-inspection-heading" tabindex="-1">Inspect: {{ lineage.selected.label }}</h2>
     {% if lineage.selection_error %}<p class="error" role="alert">{{ lineage.selection_error }}</p>{% endif %}
     {% if lineage.selected.context_only %}<p>This element is shown only to preserve the ancestry of a filtered result.</p>{% endif %}
     {% if lineage.selected.archived %}<p class="notice warning">Archived workflow element. Evidence and published output are retained.</p>{% endif %}
@@ -102,8 +139,27 @@
       <ul>{% for edition in lineage.selected.related_editions %}
         <li><a href="{{ edition.reader_url }}" target="_blank" rel="noopener noreferrer">{{ edition.label }} · read</a>
           {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source' edition.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}" data-workflow-panel="Inspect retained source">Inspect retained source</a>{% endif %}
-          {% if can_review and not lineage.selected.context_only and not edition.archived %}· <a href="{% url 'document-fresh-draft' edition.rendition_id %}{% if embedded %}?embedded=1{% endif %}" data-workflow-panel="Preview retained-source regeneration">Preview fresh-source regeneration</a>{% endif %}</li>
+          {% if can_review and not lineage.selected.context_only and not edition.archived %}· <a href="{% url 'document-fresh-draft' edition.rendition_id %}{% if embedded %}?embedded=1{% endif %}" data-workflow-panel="Preview retained-source regeneration">Preview fresh-source regeneration</a>{% endif %}
+          {% if can_review and lineage_filter == "sources" and not embedded and not edition.archived %}
+          <form method="post" action="{% url 'reformat' edition.rendition_id %}" class="source-operation">
+            {% csrf_token %}
+            <button type="submit">Regenerate from this saved capture</button>
+            <span class="muted">Offline; uses this exact retained capture and does not replace existing work.</span>
+          </form>
+          {% endif %}
+        </li>
       {% endfor %}</ul>
+      {% endif %}
+      {% if can_review and lineage_filter == "sources" %}
+        {% if embedded %}
+        <p><a href="{% url 'document-lineage' document.pk %}?filter=sources&amp;selected={{ lineage.selected.id|urlencode }}#lineage-inspection" target="_blank" rel="noopener">Open Sources separately for network refresh and regeneration.</a></p>
+        {% elif not lineage.selected.context_only %}
+        <form method="post" action="{% url 'refresh' document.pk %}" class="source-operation">
+          {% csrf_token %}
+          <button type="submit">Fetch latest source</button>
+          <span class="muted">Network request. Creates new retained evidence; it never replaces edits or saved versions.</span>
+        </form>
+        {% endif %}
       {% endif %}
       {% if lineage.selected.related_generations %}<ul>{% for generation in lineage.selected.related_generations %}
         <li>{{ generation.label }} · no intermediate edition; inspect its correction history in the tree.
@@ -239,6 +295,7 @@
     </section>
     {% endif %}
   </section>
+  </div>
   {% endif %}
-</main>
+</div>
 {% endblock %}

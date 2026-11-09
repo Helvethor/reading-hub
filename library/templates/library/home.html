@@ -1,23 +1,22 @@
 {% extends 'library/base.html' %}
 {% block content %}
 <div class="home-container">
-  <section class="welcome">
-    <p class="eyebrow">READ &middot; PRESERVE &middot; RETURN</p>
-    <h1>{{ site.headline }}</h1>
-    <p class="intro">{{ site.introduction }}</p>
-    <form class="url-form" method="post" action="{% url 'request' %}">
-      {% csrf_token %}
-      <label for="{{ form.url.id_for_label }}">{{ form.url.label }}</label>
-      <div class="url-row">{{ form.url }}<button type="submit">Open in reader <span aria-hidden="true">&rarr;</span></button></div>
-      {{ form.url.errors }}
-      <p class="help">Supported sources: {% for source in site.sources %}{{ source.host }}{% if not forloop.last %}, {% endif %}{% endfor %}. HTML articles and books; PDFs are not supported yet.</p>
-    </form>
-    <p class="cache-note">Already in your library? It opens instantly from the cache. Nothing is fetched unless needed or explicitly refreshed.</p>
-  </section>
-  <section class="library-section" aria-labelledby="library-heading">
-    <p>{% if site.catalogue_enabled %}<a href="{% url 'catalogue' %}">Browse source catalogue</a>{% endif %}{% if user.is_staff %} &middot; {% if site.catalogue_enabled %}<a href="{% url 'crawl-controls' %}">Manage crawlers</a> &middot; {% endif %}<a href="{% url 'worker-controls' %}">Manage workers</a>{% endif %}</p>
-    <div class="section-header"><h2 id="library-heading">Your library</h2><span class="muted">{{ page.paginator.count }} document{{ page.paginator.count|pluralize }}</span></div>
-    <form class="browse-controls" action="{% url 'home' %}" method="get">
+  <section class="library-section saved-library" aria-labelledby="library-heading">
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">YOUR SAVED WORKS</p>
+        <h1 id="library-heading">Library</h1>
+      </div>
+      <span class="muted">{{ page.paginator.count }} work{{ page.paginator.count|pluralize }}</span>
+    </div>
+    <p class="library-routes">
+      {% if site.catalogue_enabled %}<a href="{% url 'catalogue' %}">Discover</a> · <a href="{% url 'catalogue' %}">Browse source catalogue</a>{% endif %}
+      {% if user.is_staff %}{% if site.catalogue_enabled %} · {% endif %}{% if site.catalogue_enabled %}<a href="{% url 'crawl-controls' %}">Manage crawlers</a> · {% endif %}<a href="{% url 'worker-controls' %}">Manage workers</a>{% endif %}
+    </p>
+    <form class="browse-controls library-search" action="{% url 'home' %}" method="get" role="search" aria-label="Search saved works">
+      <label for="library-query">Search saved works
+        <input id="library-query" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Title or source URL">
+      </label>
       <label for="sort">Sort by
         <select id="sort" name="sort">{% for value, label in sort_labels %}<option value="{{ value }}"{% if selected_sort == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
       </label>
@@ -26,22 +25,38 @@
         <select id="source" name="source"><option value="">All sources</option>{% for source in site.sources %}<option value="{{ source.host }}"{% if selected_source == source.host %} selected{% endif %}>{{ source.label }}</option>{% endfor %}</select>
       </label>
       {% endif %}
-      <button type="submit" class="secondary">Apply</button>
+      <button type="submit" class="secondary">Search</button>
+      {% if search %}<a class="clear-search" href="{% url 'home' %}">Clear search</a>{% endif %}
     </form>
     {% for error in browse_errors %}<p class="notice warning" role="alert">{{ error }}</p>{% endfor %}
     {% for document in documents %}
     <a class="document-card" href="{% url 'latest' document.pk %}">
-      <div><h3>{{ document.title }}</h3><p class="source-url">{{ document.url }}</p></div>
+      <div><h2>{{ document.title }}</h2><p class="source-url">{{ document.url }}</p></div>
       <span class="card-arrow" aria-hidden="true">&rarr;</span>
     </a>
     {% empty %}
-    <div class="empty-state">{% if selected_source %}<h3>No cached documents from this source yet.</h3><p>Choose all sources or import a document above.</p>{% else %}<h3>A library starts with a single page.</h3><p>Paste an article or a book's contents-page URL above. Once imported, it stays here for your next visit.</p>{% endif %}</div>
+    <div class="empty-state">
+      {% if search %}<h2>No saved works match “{{ search }}”.</h2><p>Clear the search or discover another work.</p>
+      {% elif selected_source %}<h2>No saved works from this source yet.</h2><p>Choose all sources or import a work below.</p>
+      {% else %}<h2>Your library is empty.</h2><p>Import an article or a book contents page to keep it here for your next visit.</p>{% endif %}
+    </div>
     {% endfor %}
     {% if page.has_other_pages %}<nav class="pagination" aria-label="Library pages">
       {% if page.has_previous %}<a href="?{{ browse_query }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
       <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
       {% if page.has_next %}<a href="?{{ browse_query }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
     </nav>{% endif %}
+    <details class="import-panel"{% if not page.paginator.count or form.errors %} open{% endif %}>
+      <summary>Import or open a URL</summary>
+      <p>Cached works open without fetching. A missing work may be fetched and added to your library; check the request status for progress or failure.</p>
+      <form class="url-form standard-form" method="post" action="{% url 'request' %}">
+        {% csrf_token %}
+        <label for="{{ form.url.id_for_label }}">{{ form.url.label }}</label>
+        <div class="url-row">{{ form.url }}<button type="submit">Import or open</button></div>
+        {{ form.url.errors }}
+        <p class="help">Supported sources: {% for source in site.sources %}{{ source.host }}{% if not forloop.last %}, {% endif %}{% endfor %}. HTML articles and books; PDFs are not supported.</p>
+      </form>
+    </details>
   </section>
   {% if jobs %}
   <section class="library-section" aria-labelledby="requests-heading">
@@ -51,5 +66,12 @@
     {% endfor %}</ul>
   </section>
   {% endif %}
+  <details class="home-about">
+    <summary>About {{ site.name }}</summary>
+    <p class="eyebrow">READ · PRESERVE · RETURN</p>
+    <h2>{{ site.headline }}</h2>
+    <p class="intro">{{ site.introduction }}</p>
+    <p class="cache-note">Nothing is fetched unless needed or explicitly requested. Refreshing a saved source remains a separate action.</p>
+  </details>
 </div>
 {% endblock %}

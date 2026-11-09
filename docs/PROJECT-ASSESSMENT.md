@@ -66,7 +66,7 @@ actions were submitted. No human usability or accessibility certification follow
 Both visual cleanup and workflow restructuring are now approved goals, with a
 computer-first reviewer workspace and basic phone fallbacks that do not compromise
 desktop usability. Public reading/discovery remain responsive. The current
-[UI/UX contract](../SPECIFICATION.md#coherent-uiux-contract-agreed-2026-11-08-planned)
+[UI/UX contract](../SPECIFICATION.md#coherent-uiux-contract-agreed-2026-11-08-implementation-in-progress)
 and [implementation handoff](UI-UX-IMPLEMENTATION-HANDOFF.md) supersede older
 next-step ordering, not preservation rules. A framework rewrite is deferred.
 The following inventory and dated validation paragraphs retain their historical
@@ -108,6 +108,50 @@ Task/Run/Result counts were zero. These counts are a dated observation, not a
 reset inventory. Django checks, 68 relevant backend tests and 115 frontend tests
 passed during reassessment. These do not establish representative whole-book
 fidelity, accessibility acceptance, reviewer savings or ML readiness.
+
+### UI/UX implementation evidence update (2026-11-08)
+
+Implementation now covers shared application/work navigation, saved-work-first
+Library, flat Discover results with separate retained Read and POST Import actions,
+compact reader context, editor tabs and common tools, in-place workflow panels,
+adjacent version inspection, named comparison baselines, grouped forms and
+administration styling. Editor help is disclosed rather than repeated as a visible
+instruction wall; panel cancellation returns to the editor and its initiating
+control. The handoff and session acceptance matrix record the scope and row-level
+evidence.
+
+Current validation: 793 Django tests and 274 frontend tests passed; the frontend
+build, Django system check, migration consistency check and CRLF-aware whitespace
+check passed. Browser checks used only the isolated synthetic database. The article
+saved/reopened content and metadata, retained its note/backlink and footnote target,
+was reviewed and published as edition 3 from the exact saved revision, and continued
+from its working copy while the reader target remained edition 1. A separate
+synthetic multi-page book branch included a retained 2x2 PNG and reciprocal note.
+Its metadata and three-page structure reopened intact; revision 3 received full
+review and was published as edition 5, while the reader target remained edition 2.
+Continue reopened the working copy. A subsequent section move placed `c3` before
+`c1`; saved revision 4 reloaded with that order, the retained image digest, note
+anchors/backlink and subtitle intact. Revision 4 has partial review scope and was
+not reviewed or published; the publication evidence applies to revision 3. Fetching
+was mocked during fixture setup; no fetch/import, deployment or live-data mutation
+occurred.
+
+Browser geometry included Library/editor at 1440x900, 1280x800 and 390x844 and the
+reader at 1440x900 and 390x844. The measured Library placed a saved work in the
+initial phone viewport without horizontal overflow. The desktop reader's work
+context was 111px high and its title began near y=535; on the phone the title began
+near y=827, so reading remained available but was not in the initial viewport.
+The editor Versions panel opened in place, Close returned focus to its initiating
+link, and Forward reopened the deep link. These are bounded synthetic observations,
+not independent human usability or accessibility acceptance.
+
+Acceptance remains incomplete. The browser did not exercise live import outcomes,
+missing-work requests, all account/review/membership/admin error paths, source
+refresh or generation, archival/role workflows, both themes, or complete
+keyboard-only and screen-reader flows. U1-U5 and U7-U14 therefore remain partially
+or not validated; U6 is validated only for the populated Library fixture and stated
+viewport. No deployment, release or live publication is authorized by this
+implementation.
 
 ## 3. Broad editor versus general-purpose word processor
 

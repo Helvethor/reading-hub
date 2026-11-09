@@ -9,13 +9,16 @@ work; [Operations](docs/OPERATIONS.md) explains running it. The
 is historical evidence, not additional scope. "Planned" below does not mean
 implemented. A backlog idea is not authorization to implement it immediately.
 
-### Coherent UI/UX contract (agreed 2026-11-08; planned)
+### Coherent UI/UX contract (agreed 2026-11-08; implementation in progress)
 
 The work-centred workflow is implemented, but its usability is not established
-by that delivery. Both visual cleanup and workflow restructuring are now required
-goals, not competing alternatives. [Tasks](TASKS.md) defines two implementation
-milestones; the [UI/UX handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md) defines their
-complete scope and acceptance. Neither is complete merely because tabs exist,
+by that delivery. Both visual cleanup and workflow restructuring are required
+goals, not competing alternatives. UI changes now cover shared navigation,
+responsive layout, saved-work discovery, editor panels, version inspection and
+grouped forms. Their acceptance remains incomplete: see [Tasks](TASKS.md) and the
+[Assessment](docs/PROJECT-ASSESSMENT.md) for observed evidence and gaps. The
+[UI/UX handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md) remains the complete scope
+and acceptance contract. Neither milestone is complete merely because tabs exist,
 labels change or old regression tests pass. A framework rewrite is deferred.
 
 **Device priority:** the reviewer workspace is intended for computers, using

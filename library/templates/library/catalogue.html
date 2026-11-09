@@ -3,25 +3,44 @@
 {% block title %}Source catalogue | {{ site.name }}{% endblock %}
 {% block content %}
 <div class="page-container" data-catalogue-page data-url="{% url 'catalogue' %}">
-  <p><a href="{% url 'home' %}">Home</a>{% if user.is_staff %} &middot; <a href="{% url 'crawl-controls' %}">Manage crawlers</a>{% endif %}</p>
-  <h1>Source catalogue</h1>
-  <p>Discover articles without importing them. Select a title to open its cached version or request an import. Enable article metadata fetching to obtain missing details and infer topics locally from article text. Topics combine source categories with profile-defined keyword rules; missing dates and historical eras are not guessed.</p>
+  <p><a href="{% url 'home' %}">Library</a>{% if user.is_staff %} &middot; <a href="{% url 'crawl-controls' %}">Manage crawlers</a>{% endif %}</p>
+  <h1>Discover</h1>
+  <p>Search catalogue listings without importing them. Read opens a retained work; Import is a separate POST request and may fetch its source.</p>
   <p data-catalogue-status role="status" aria-live="polite"></p>
   <div data-catalogue-view>
-  <form method="get" class="catalogue-controls">
-    <label>Group by <select name="group">{% for value,label in groups %}<option value="{{ value }}"{% if selected_group == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Then by <select name="then"><option value="">No second level</option>{% for value,label in groups %}<option value="{{ value }}"{% if selected_then == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Sort titles by <select name="order">{% for value,label in orders %}<option value="{{ value }}"{% if selected_order == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Order <select name="direction"><option value="asc"{% if selected_direction == "asc" %} selected{% endif %}>Ascending</option><option value="desc"{% if selected_direction == "desc" %} selected{% endif %}>Descending</option></select></label>
-    <label>Source <select name="source"><option value="">All sources</option>{% for source in site.sources %}<option value="{{ source.host }}"{% if selected_source == source.host %} selected{% endif %}>{{ source.label }}</option>{% endfor %}</select></label>
-    <label>Year <select name="year"><option value="">All years</option>{% for value in years %}<option value="{{ value }}"{% if selected_year == value %} selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
-    <label>Month <select name="month"><option value="">All months</option>{% for value,label in months %}<option value="{{ value }}"{% if selected_month == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Language <select name="language"><option value="">All languages</option>{% for value,label in languages %}<option value="{{ value }}"{% if selected_language == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Search titles, authors, topics <input name="q" value="{{ search }}" maxlength="200"></label>
-    <button type="submit">Apply</button>
+  <form method="get" class="catalogue-controls catalogue-search" role="search" aria-label="Search Discover">
+    <input type="hidden" name="view" value="flat">
+    <label for="catalogue-query">Search titles, authors, topics
+      <input id="catalogue-query" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Search catalogue">
+    </label>
+    <label for="catalogue-source">Source
+      <select id="catalogue-source" name="source"><option value="">All sources</option>{% for source in site.sources %}<option value="{{ source.host }}"{% if selected_source == source.host %} selected{% endif %}>{{ source.label }}</option>{% endfor %}</select>
+    </label>
+    <button type="submit">Search</button>
+    {% if search or selected_source or selected_year or selected_month or selected_language %}<a href="{% url 'catalogue' %}">Clear filters</a>{% endif %}
   </form>
+  <details class="catalogue-advanced">
+    <summary>Advanced filters and grouping</summary>
+    <form method="get" class="catalogue-controls">
+      <input type="hidden" name="view" value="hierarchy">
+      <label>Group by <select name="group">{% for value,label in groups %}<option value="{{ value }}"{% if selected_group == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Then by <select name="then"><option value="">No second level</option>{% for value,label in groups %}<option value="{{ value }}"{% if selected_then == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Sort titles by <select name="order">{% for value,label in orders %}<option value="{{ value }}"{% if selected_order == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Order <select name="direction"><option value="asc"{% if selected_direction == "asc" %} selected{% endif %}>Ascending</option><option value="desc"{% if selected_direction == "desc" %} selected{% endif %}>Descending</option></select></label>
+      <label>Year <select name="year"><option value="">All years</option>{% for value in years %}<option value="{{ value }}"{% if selected_year == value %} selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
+      <label>Month <select name="month"><option value="">All months</option>{% for value,label in months %}<option value="{{ value }}"{% if selected_month == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Language <select name="language"><option value="">All languages</option>{% for value,label in languages %}<option value="{{ value }}"{% if selected_language == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Search titles, authors, topics <input name="q" value="{{ search }}" maxlength="200"></label>
+      <label>Source <select name="source"><option value="">All sources</option>{% for source in site.sources %}<option value="{{ source.host }}"{% if selected_source == source.host %} selected{% endif %}>{{ source.label }}</option>{% endfor %}</select></label>
+      <button type="submit">Apply advanced filters</button>
+    </form>
+  </details>
+  <p class="catalogue-view-switch">
+    {% if view_mode == "flat" %}Flat results · <a href="?view=hierarchy">Browse by source, author or topic</a>
+    {% else %}<a href="?view=flat">Show flat results</a> · Hierarchical browse{% endif %}
+  </p>
   {% for error in browse_errors %}<p class="notice warning" role="alert">{{ error }}</p>{% endfor %}
-  <p data-catalogue-summary tabindex="-1">{{ total_count }} distinct catalogue entries. Branch counts cover all matching articles, not just a page. Co-authored and multi-topic articles appear in each matching branch. Expand a branch to load its subgroups or paginated titles from the local catalogue.</p>
+  <p data-catalogue-summary tabindex="-1">{% if view_mode == "hierarchy" %}{{ total_count }} distinct catalogue entries. Branch counts cover all matching articles, not just a page. Co-authored and multi-topic articles appear in each matching branch. Expand a branch to load its subgroups or paginated titles from the local catalogue.{% else %}{{ total_count }} matching catalogue entries. Results are listed without requiring source or author expansion.{% endif %}</p>
   {% if branch_path %}<p><a href="{{ parent_url }}">Up one level</a> &middot; {{ branch_path|join:" / " }}</p>{% endif %}
   <div class="catalogue-tree" data-catalogue-tree>{% include 'library/catalogue_branch.html' %}</div>
   {% if not total_count %}<p class="empty-state">No catalogue entries yet. Enable a source on the crawler management page, or change your search.</p>{% endif %}

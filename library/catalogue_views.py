@@ -204,6 +204,9 @@ def catalogue(request):
     require_catalogue()
     profile = get_profile()
     labels = {s.host: s.label for s in profile.sources}
+    view_mode = request.GET.get("view", "flat")
+    if view_mode not in {"flat", "hierarchy"}:
+        view_mode = "flat"
     primary = request.GET.get("group", "source")
     secondary = request.GET.get("then", "author")
     order = request.GET.get("order", "title")
@@ -320,6 +323,7 @@ def catalogue(request):
     total_count = len(entries)
     levels = list(dict.fromkeys([primary] + ([secondary] if secondary else [])))
     query = {
+        "view": view_mode,
         "group": primary,
         "then": secondary,
         "order": order,
@@ -344,14 +348,18 @@ def catalogue(request):
     for level, key in zip(levels, path, strict=False):
         entries = [entry for entry in entries if key in group_keys(entry, level, labels)]
     page = Paginator(entries, profile.page_size).get_page(request.GET.get("page"))
-    remaining_levels = levels[len(path) :]
-    tree = make_tree(
-        entries if remaining_levels else list(page),
-        remaining_levels,
-        labels,
-        direction == "desc",
-        query,
-        path,
+    remaining_levels = levels[len(path) :] if view_mode == "hierarchy" else []
+    tree = (
+        make_tree(
+            entries if remaining_levels else list(page),
+            remaining_levels,
+            labels,
+            direction == "desc",
+            query,
+            path,
+        )
+        if view_mode == "hierarchy"
+        else {"entries": list(page), "nodes": []}
     )
     if not remaining_levels and tree["entries"]:
         entry_urls = [entry.url for entry in tree["entries"]]
@@ -361,11 +369,18 @@ def catalogue(request):
         work_ids.update(
             URLAlias.objects.filter(url__in=entry_urls).values_list("url", "document_id")
         )
+        readable_work_ids = set(
+            Document.objects.filter(
+                pk__in=work_ids.values(), renditions__isnull=False,
+            ).values_list("pk", flat=True)
+        )
         for entry in tree["entries"]:
             entry.work_id = work_ids.get(entry.url)
+            entry.reader_available = entry.work_id in readable_work_ids
     browse_query = urlencode({**query, "branch": json.dumps(path)})
     context = {
         "tree": tree,
+        "view_mode": view_mode,
         "leaf": not remaining_levels,
         "total_count": total_count,
         "branch_path": path,

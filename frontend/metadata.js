@@ -116,11 +116,11 @@ export function mountMetadata(form, initial, changed) {
     row.editorFields = {value: start, end_value: end, type};
     return insertRow(dates, row, after);
   }
-  const currentPeople = () => [...people.children].map(row => ({
+  const currentPeople = () => [...people.querySelectorAll('[data-metadata-row="person"]')].map(row => ({
     name: row.editorFields.name.value, role: row.editorFields.role.value, original: row.originalValue,
     canonical: row.canonical, sourceName: row.sourceName,
   }));
-  const currentDates = () => [...dates.children].map(row => ({
+  const currentDates = () => [...dates.querySelectorAll('[data-metadata-row="date"]')].map(row => ({
     value: row.editorFields.value.value, end_value: row.editorFields.end_value.value,
     type: row.editorFields.type.value,
   }));
@@ -153,8 +153,8 @@ export function mountMetadata(form, initial, changed) {
   function populate(value) {
     if (book) book.checked = value.content_organization?.book ?? originalBook;
     organizationRestored = false;
-    people.replaceChildren();
-    dates.replaceChildren();
+    people.querySelectorAll("[data-metadata-row]").forEach(row => row.remove());
+    dates.querySelectorAll("[data-metadata-row]").forEach(row => row.remove());
     for (const person of personRows(value)) addPerson(person);
     for (const date of dateRows(value)) addDate(date);
     topics.value = (value.topics || []).join("\n");
@@ -492,7 +492,8 @@ export function mountMetadata(form, initial, changed) {
     const suggestion = parseEditorialNote(lines);
     const filled = [];
     for (const [type, date] of Object.entries(suggestion.dates)) {
-      let row = [...dates.children].find(other => other.editorFields.type.value === type);
+      let row = [...dates.querySelectorAll('[data-metadata-row="date"]')]
+        .find(other => other.editorFields.type.value === type);
       if (row?.editorFields.value.value.trim()) continue;
       row ||= addDate({type});
       row.editorFields.end_value.value = date.end_value || "";

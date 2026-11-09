@@ -6,8 +6,11 @@
   <p>Your theme preference follows your account across browsers. Site default follows the installation's configured theme.</p>
   <form method="post" data-user-settings>
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save settings</button>
+    <fieldset>
+      <legend>Appearance preference</legend>
+      {{ form.as_p }}
+      <div class="form-actions"><button type="submit">Save settings</button></div>
+    </fieldset>
   </form>
   <p><a href="{% url 'password_change' %}">Change password</a></p>
 </section>

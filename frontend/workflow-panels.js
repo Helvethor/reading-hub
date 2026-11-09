@@ -17,7 +17,28 @@ export function mountWorkflowPanels({
   document.body.append(dialog);
   let returnFocus = null;
   let returnScroll = 0;
-  close.addEventListener("click", () => dialog.close());
+  function closePanel() {
+    if (window.history.state?.workflowPanel && new URL(location.href).searchParams.has("panel")) {
+      window.history.back();
+      return;
+    }
+    const url = new URL(location.href);
+    if (url.searchParams.has("panel")) {
+      url.searchParams.delete("panel");
+      window.history.replaceState(window.history.state, "", url);
+    }
+    if (dialog.open) dialog.close();
+  }
+  close.addEventListener("click", closePanel);
+  dialog.addEventListener("cancel", event => {
+    event.preventDefault();
+    closePanel();
+  });
+  window.addEventListener("popstate", () => {
+    const panel = new URL(location.href).searchParams.get("panel");
+    if (panel && !dialog.open) open(panel, "Editor workflow", {updateHistory: false});
+    else if (!panel && dialog.open) dialog.close();
+  });
   dialog.addEventListener("close", () => {
     frame.removeAttribute("src");
     form.querySelector("#editor-surface").scrollTop = returnScroll;
@@ -56,12 +77,13 @@ export function mountWorkflowPanels({
     }
   });
 
-  function open(url, label) {
+  function open(url, label, {updateHistory = true} = {}) {
     const destination = new URL(url, location.href);
     if (destination.origin !== location.origin) {
       showError("Workflow panels must use a local URL.");
       return;
     }
+    const panelRoute = `${destination.pathname}${destination.search}`;
     destination.searchParams.set("embedded", "1");
     notice.textContent = "";
     notice.hidden = true;
@@ -72,6 +94,15 @@ export function mountWorkflowPanels({
     if (!dialog.open) {
       returnFocus = document.activeElement;
       returnScroll = form.querySelector("#editor-surface").scrollTop;
+    }
+    if (updateHistory) {
+      const currentUrl = new URL(location.href);
+      currentUrl.searchParams.set("panel", panelRoute);
+      if (dialog.open || window.history.state?.workflowPanel) {
+        window.history.replaceState({workflowPanel: true}, "", currentUrl);
+      } else {
+        window.history.pushState({workflowPanel: true}, "", currentUrl);
+      }
     }
     frame.title = label || "Editor workflow";
     frame.src = destination.href;
@@ -85,6 +116,8 @@ export function mountWorkflowPanels({
     event.preventDefault();
     open(link.href, link.dataset.workflowPanel || link.textContent.trim());
   });
-  if (chooseHistory && historyUrl) open(historyUrl, "Choose a correction history");
-  return {open, close: () => dialog.close()};
+  const deepLink = new URL(location.href).searchParams.get("panel");
+  if (deepLink) open(deepLink, "Editor workflow", {updateHistory: false});
+  else if (chooseHistory && historyUrl) open(historyUrl, "Choose a correction history");
+  return {open, close: closePanel};
 }

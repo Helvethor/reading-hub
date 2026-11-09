@@ -49,12 +49,23 @@ class AccountTests(TestCase):
         admin = self.client.get("/admin/")
         self.assertEqual(admin.status_code, 200)
         self.assertContains(admin, "marxist/admin.css")
+        self.assertContains(admin, "library/admin.css")
         self.assertContains(admin, "Reading Hub administration")
         self.client.post(reverse("logout"))
         self.assertRedirects(self.signup("second-reader"), "/")
         second = User.objects.get(username="second-reader")
         self.assertFalse(second.is_staff)
         self.assertFalse(second.is_superuser)
+
+    def test_account_settings_groups_theme_preference_and_rejects_invalid_choice(self):
+        user = User.objects.create_user("settings-reader", password=PASSWORD)
+        self.client.force_login(user)
+        response = self.client.get(reverse("user-settings"))
+        self.assertContains(response, "<legend>Appearance preference</legend>", html=True)
+        self.assertContains(response, 'name="theme"')
+        response = self.client.post(reverse("user-settings"), {"theme": "not-a-theme"})
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Select a valid choice", status_code=400)
 
     def test_password_validation_and_signup_csrf(self):
         response = self.client.post(

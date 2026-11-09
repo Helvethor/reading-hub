@@ -318,7 +318,9 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     }
     for (const button of form.querySelectorAll("[data-mark]")) {
       available(button, textSelection);
-      button.setAttribute("aria-checked", String(isInlineStyleActive(editor, button.dataset.mark)));
+      const active = isInlineStyleActive(editor, button.dataset.mark);
+      button.setAttribute("aria-checked", String(active));
+      if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(active));
     }
     for (const button of form.querySelectorAll("[data-image]")) {
       available(button, !!selectedImage(editor));
@@ -333,7 +335,9 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     for (const button of form.querySelectorAll("[data-block]")) {
       available(button, oneBlock && ["p", "h2", "h3", "h4", "h5", "h6", "pre", "inlineRun"]
         .includes(selection.$from.parent.type.name));
-      button.setAttribute("aria-checked", String(editor.isActive(button.dataset.block)));
+      const active = editor.isActive(button.dataset.block);
+      button.setAttribute("aria-checked", String(active));
+      if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(active));
     }
     for (const button of form.querySelectorAll("[data-move]")) {
       available(button, canAlignTextBlock(editor), canMoveTextBlock(editor, Number(button.dataset.move)));
@@ -527,6 +531,9 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation]")) {
     button.addEventListener("click", () => perform(button));
+  }
+  for (const button of form.querySelectorAll(".editor-format-toolbar button")) {
+    button.addEventListener("mousedown", event => event.preventDefault());
   }
   function workspaceHistory(event) {
     if (event.defaultPrevented || event.altKey || !(event.ctrlKey || event.metaKey) ||

@@ -40,7 +40,7 @@ class CorrectionHistoryTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.context["initial"]["document"], row.document)
         self.assertEqual(response.context["initial"]["revision"], 1)
-        self.assertContains(response, "Mark reviewed")
+        self.assertContains(response, "Mark saved version reviewed")
         self.assertContains(response, "Versions")
         self.assertNotContains(response, "Define a review task")
         self.assertEqual(response["Cache-Control"], "no-store")

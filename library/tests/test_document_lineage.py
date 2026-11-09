@@ -123,6 +123,16 @@ class DocumentLineageTests(TestCase):
             lineage["nodes"][f"revision:{branch.pk}:{branch_revision.revision}"]["change_kind"],
             "Metadata-only change",
         )
+        timeline = {node["id"]: node for node in lineage["timeline"]}
+        self.assertEqual(
+            timeline[publication_node["id"]]["parent_label"],
+            lineage["nodes"][publication_node["parent_id"]]["label"],
+        )
+        branch_node = lineage["nodes"][f"history:{branch.pk}"]
+        self.assertEqual(
+            timeline[branch_node["id"]]["parent_label"],
+            lineage["nodes"][branch_node["parent_id"]]["label"],
+        )
         ancestry = []
         cursor = publication_node
         while cursor:
@@ -145,6 +155,15 @@ class DocumentLineageTests(TestCase):
 
         self.assertTrue(contains(filtered["tree"], publication_node["id"]))
         self.assertTrue(filtered["selected"]["context_only"])
+
+    def test_versions_page_keeps_timeline_and_selected_inspection_adjacent(self):
+        self.client.force_login(self.reviewer)
+        response = self.client.get(reverse("document-lineage", args=[self.work.pk]))
+        self.assertContains(response, "Versions and events")
+        self.assertContains(response, "Full ancestry tree and provenance")
+        self.assertContains(response, 'class="lineage-workspace"')
+        self.assertContains(response, 'id="lineage-inspection"')
+        self.assertNotContains(response, "autofocus")
 
     def test_review_only_event_keeps_publication_continuation_on_same_content(self):
         reviewed = self.save(review="partial")
@@ -171,7 +190,7 @@ class DocumentLineageTests(TestCase):
             + f"?draft={self.draft.pk}",
         )
         reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
-        self.assertContains(reader, "Work:")
+        self.assertContains(reader, "A work")
         self.assertContains(reader, "Selected reader output")
 
         version_count = DocumentVersion.objects.count()

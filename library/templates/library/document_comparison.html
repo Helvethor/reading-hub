@@ -9,8 +9,18 @@
   <form method="get">
     <input type="hidden" name="draft" value="{{ draft.pk }}">
     {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
-    <label>Earlier revision (0 = pinned draft base) <input type="number" name="from" min="0" value="{{ earlier }}" required></label>
-    <label>Later revision (0 = pinned draft base) <input type="number" name="to" min="0" value="{{ later }}" required></label>
+    <label>Earlier saved version
+      <select name="from" required>
+        <option value="0"{% if earlier == 0 %} selected{% endif %}>Pinned starting version</option>
+        {% for revision in revisions %}<option value="{{ revision.revision }}"{% if earlier == revision.revision %} selected{% endif %}>Saved version {{ revision.revision }} — {{ revision.created_at|date:"Y-m-d H:i" }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Later saved version
+      <select name="to" required>
+        <option value="0"{% if later == 0 %} selected{% endif %}>Pinned starting version</option>
+        {% for revision in revisions %}<option value="{{ revision.revision }}"{% if later == revision.revision %} selected{% endif %}>Saved version {{ revision.revision }} — {{ revision.created_at|date:"Y-m-d H:i" }}</option>{% endfor %}
+      </select>
+    </label>
     <label>HTML scope
       <select name="section">
         <option value="">Whole document</option>

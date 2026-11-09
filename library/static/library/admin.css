@@ -1,0 +1,61 @@
+#content {
+  box-sizing: border-box;
+  width: min(100%, 78rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2rem);
+}
+
+.module,
+.submit-row {
+  border-radius: .35rem;
+}
+
+.aligned label,
+.form-row label {
+  color: var(--body-fg, #30342f);
+  font-weight: 600;
+}
+
+.form-row input:not([type="checkbox"]):not([type="radio"]),
+.form-row select,
+.form-row textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 2.5rem;
+  padding: .45rem .6rem;
+  border-radius: .3rem;
+  font: inherit;
+}
+
+.form-row textarea {
+  min-height: 6rem;
+}
+
+:is(input, select, textarea, button, a):focus-visible {
+  outline: 3px solid #ad702f;
+  outline-offset: 2px;
+}
+
+.errorlist,
+.errornote {
+  font-weight: 600;
+}
+
+.submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+}
+
+@media (max-width: 48rem) {
+  #content {
+    padding-inline: 1rem;
+  }
+
+  .form-row input:not([type="checkbox"]):not([type="radio"]),
+  .form-row select,
+  .form-row textarea {
+    width: 100%;
+  }
+}

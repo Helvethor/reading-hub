@@ -1,7 +1,74 @@
 .document-lineage {
-  max-width: 76rem;
+  max-width: 90rem;
 }
 
+.document-lineage .work-navigation { margin-block: .75rem; }
+.document-lineage .work-title { margin-block: .25rem; font-size: 1.15rem; font-weight: 650; }
+.lineage-workspace {
+  display: grid;
+  grid-template-columns: minmax(20rem, .9fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: clamp(1rem, 2.5vw, 2.25rem);
+  margin-block-start: 1.25rem;
+}
+.lineage-list,
+#lineage-inspection {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: var(--surface-raised);
+}
+.lineage-list > h2,
+#lineage-inspection > h2 { margin-block-start: 0; font-size: 1.25rem; }
+.lineage-timeline {
+  max-height: min(68vh, 52rem);
+  overflow: auto;
+  margin: 0;
+  padding-inline-start: 1.5rem;
+}
+.lineage-timeline-item {
+  padding: .65rem .65rem .65rem .25rem;
+  border-block-end: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.lineage-timeline-item > a { font-weight: 650; }
+.lineage-timeline-item > p { margin: .2rem 0 0; font-size: .85rem; }
+.lineage-timeline-item[aria-current="true"],
+.lineage-timeline-item.is-selected { border-inline-start: 3px solid var(--accent); }
+.lineage-timeline-item.is-archived > a { text-decoration: line-through; }
+.lineage-status { display: flex; flex-wrap: wrap; gap: .35rem .7rem; }
+.lineage-status strong { color: var(--ink); }
+.full-ancestry { margin-block-start: 1rem; }
+#lineage-inspection {
+  position: sticky;
+  top: .75rem;
+  max-height: calc(100dvh - 1.5rem);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+#lineage-inspection > h2 { font-size: 1.2rem; }
+.document-lineage form { margin-block: .75rem; }
+.source-operation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem;
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+}
+.source-operation .muted { flex: 1 1 16rem; }
+.document-lineage form > label { display: block; margin-block: .6rem; }
+.document-lineage form input:not([type="checkbox"]),
+.document-lineage form select,
+.document-lineage form textarea { display: block; width: min(100%, 42rem); }
+.document-lineage form label:has(> input[type="checkbox"]),
+.document-lineage form label:has(> input[type="radio"]) {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+}
 .lineage-tree {
   overflow-wrap: anywhere;
 }
@@ -62,6 +129,10 @@
 }
 
 @media (max-width: 40rem) {
+  .lineage-workspace { display: block; }
+  .lineage-list { margin-block-end: 1rem; }
+  .lineage-timeline { max-height: 45vh; }
+  #lineage-inspection { position: static; max-height: none; }
   .lineage-node {
     margin-inline-start: .25rem;
     padding-inline-start: .3rem;

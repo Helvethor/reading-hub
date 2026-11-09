@@ -757,6 +757,19 @@ test("book views have five choices, four navigation groups and a separate sectio
   assert.equal(editor.getHTML(), original);
 });
 
+test("common formatting controls are visible, keyboard-operable and preserve the text selection", () => {
+  const form = mountSectionWorkspace("<p>Formatting text</p>");
+  const bold = form.querySelector('.editor-format-toolbar [data-mark="strong"]');
+  selectText("Formatting", "Formatting".length);
+  assert.equal(bold.disabled, false);
+  const pointer = new dom.window.MouseEvent("mousedown", {bubbles: true, cancelable: true});
+  bold.dispatchEvent(pointer);
+  assert.equal(pointer.defaultPrevented, true);
+  bold.click();
+  assert.match(editor.getHTML(), /<strong>Formatting<\/strong>/);
+  assert.equal(bold.getAttribute("aria-pressed"), "true");
+});
+
 test("generated title reflects live metadata and explicit clears without inserting title-page prose", () => {
   let value = {title: "A <Book>", metadata: {
     author: "Writer", subtitle: "An edition", contributors: [
@@ -2533,7 +2546,8 @@ function metadataForm(value) {
   document.body.innerHTML = '<form><input type="hidden" name="author"><table>' +
     '<tbody><tr data-metadata-field="title"><th>Title</th><td><input name="title"></td></tr>' +
     '<tr data-metadata-field="series"><th>Series</th><td><input name="series"></td></tr></tbody>' +
-    '<tbody id="editor-contributors"></tbody><tbody id="editor-dates"></tbody>' +
+    '<tbody id="editor-contributors"><tr class="editor-metadata-group-heading"><th>People and contributors</th></tr></tbody>' +
+    '<tbody id="editor-dates"><tr class="editor-metadata-group-heading"><th>Dates</th></tr></tbody>' +
     '<tbody><tr data-metadata-field="subjects"><th>Subjects</th><td><textarea name="subjects"></textarea></td></tr>' +
     '<tr data-metadata-field="book"><th>Book</th><td><input type="checkbox" id="editor-organization-book"></td></tr>' +
     '</tbody></table></form>';
@@ -2559,12 +2573,14 @@ test("metadata sheet shows default rows without inventing changes and edits fiel
     evidence: "Written 1917"}], published: "1920 / 1921", topics: ["History"], topic: "History"};
   const {form, control, changes} = metadataForm(initial);
   const people = form.querySelector("#editor-contributors"), dates = form.querySelector("#editor-dates");
-  assert.deepEqual([...people.children].map(row => [row.editorFields.role.value, row.editorFields.name.value]),
+  const personRows = () => [...people.querySelectorAll('[data-metadata-row="person"]')];
+  const dateRows = () => [...dates.querySelectorAll('[data-metadata-row="date"]')];
+  assert.deepEqual(personRows().map(row => [row.editorFields.role.value, row.editorFields.name.value]),
     [["author", "Writer"], ["translator", ""]]);
-  assert.deepEqual([...dates.children].map(row => [row.editorFields.type.value, row.editorFields.value.value,
+  assert.deepEqual(dateRows().map(row => [row.editorFields.type.value, row.editorFields.value.value,
     row.editorFields.end_value.value]), [["written", "1917", ""], ["publication", "1920", "1921"]]);
   assert.deepEqual(control.read(structuredClone(initial)), initial, "Default and prefilled rows are not edits.");
-  const menu = metadataMenu(people.firstElementChild.editorFields.name);
+  const menu = metadataMenu(personRows()[0].editorFields.name);
   assert(!menu.hidden);
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent), [
     "Author", "Editor", "Translator", "Contributor (role unconfirmed)", "Publication date", "Written date",
@@ -2572,7 +2588,7 @@ test("metadata sheet shows default rows without inventing changes and edits fiel
     "Link registered author…", "Remove Author “Writer”"]);
   menu.querySelector('[data-metadata-add="person:editor"]').click();
   assert(menu.hidden);
-  const added = people.children[1];
+  const added = personRows()[1];
   assert.equal(added.editorFields.role.value, "editor", "Added rows follow the right-clicked row.");
   assert.equal(document.activeElement, added.editorFields.name);
   assert.deepEqual(control.read(structuredClone(initial)), initial, "An empty added row is ignored.");
@@ -2596,7 +2612,7 @@ test("metadata sheet shows default rows without inventing changes and edits fiel
   const native = metadataMenu(form.elements.series, {shiftKey: true});
   assert(native.hidden, "Shift+right-click keeps the browser menu.");
   const before = changes();
-  dates.firstElementChild.editorFields.value.dispatchEvent(new dom.window.KeyboardEvent("keydown",
+  dateRows()[0].editorFields.value.dispatchEvent(new dom.window.KeyboardEvent("keydown",
     {key: "F10", shiftKey: true, bubbles: true, cancelable: true}));
   assert(!menu.hidden);
   menu.querySelector("[data-metadata-remove]").click();
@@ -2725,7 +2741,7 @@ test("title-page preview fields are chosen from filled fields and saved only whe
   const initial = {author: "Vladimir Lenin", rights: "Public Domain", language: "en",
     date_facts: [{value: "1902", type: "written"}]};
   const {form, control, changes} = completeMetadataForm(initial);
-  const author = form.querySelector("#editor-contributors tr");
+  const author = form.querySelector('#editor-contributors [data-metadata-row="person"]');
   assert.equal(author.dataset.titlePage, "shown");
   assert.equal(form.elements.rights.closest("tr").dataset.titlePage, "shown", "Rights are part of the synthetic title.");
   assert.equal(form.elements.language.closest("tr").dataset.titlePage, "hidden", "Language is hidden by default.");
@@ -2793,7 +2809,7 @@ test("people link to registered authors by search or registration and saves cano
   const settle = () => new Promise(resolve => setTimeout(resolve, 0));
   const initial = {author: "V. I. Lenin", contributors: [{name: "V. I. Lenin", source_name: "V. I. Lenin", role: "author"}]};
   const {form, control} = completeMetadataForm(initial);
-  const row = form.querySelector("#editor-contributors tr");
+  const row = form.querySelector('#editor-contributors [data-metadata-row="person"]');
   assert.equal(row.querySelector(".editor-person-link").textContent, "Link registered author…");
   metadataMenu(row.editorFields.name).querySelector("[data-metadata-link]").click();
   const dialog = form.querySelector("#editor-person-link");
@@ -2810,7 +2826,7 @@ test("people link to registered authors by search or registration and saves cano
   assert.match(row.querySelector(".editor-person-link").textContent, /^Registered: Vladimir Lenin/);
   typeInto(row.editorFields.name, "Lenin");
   assert(!control.read(structuredClone(initial)).contributors[0].canonical, "Renaming drops a stale link.");
-  const translator = form.querySelector('#editor-contributors tr:nth-child(2)');
+  const translator = form.querySelectorAll('#editor-contributors [data-metadata-row="person"]')[1];
   typeInto(translator.editorFields.name, "Joe Fineberg");
   translator.querySelector(".editor-person-link").click();
   await settle();
@@ -3107,11 +3123,11 @@ test("bibliographic controls preserve untouched evidence and derive typed metada
   };
   const {form, control, changes} = metadataForm(initial);
   assert.deepEqual(control.read(structuredClone(initial)), initial);
-  const rows = form.querySelector("#editor-contributors").children;
+  const rows = form.querySelectorAll('#editor-contributors [data-metadata-row="person"]');
   assert.equal(rows.length, 2);
   assert.equal(rows[1].editorFields.role.value, "translator");
   typeInto(rows[1].editorFields.name, "A Translator");
-  const date = form.querySelector("#editor-dates").lastElementChild.editorFields;
+  const date = form.querySelector('#editor-dates [data-metadata-row="date"]:last-child').editorFields;
   assert.equal(date.type.value, "written");
   date.end_value.value = "1892";
   typeInto(date.value, "1891");
@@ -3137,12 +3153,12 @@ test("metadata recovery preserves explicit clears and drops canonical binding af
     topics: ["History"], topic: "History",
   };
   const {form, control} = metadataForm(initial);
-  const row = form.querySelector("#editor-contributors").firstElementChild;
+  const row = form.querySelector('#editor-contributors [data-metadata-row="person"]');
   typeInto(row.editorFields.name, "Corrected Writer");
   assert.equal(control.read(structuredClone(initial)).contributors[0].canonical, undefined);
   assert.equal(form.elements.author.value, "Corrected Writer");
   metadataMenu(row.editorFields.name).querySelector("[data-metadata-remove]").click();
-  metadataMenu(form.querySelector("#editor-dates").firstElementChild).querySelector("[data-metadata-remove]").click();
+  metadataMenu(form.querySelector('#editor-dates [data-metadata-row="date"]')).querySelector("[data-metadata-remove]").click();
   form.elements.subjects.value = "";
   form.elements.subjects.dispatchEvent(new dom.window.Event("input"));
   const cleared = control.read(structuredClone(initial));
@@ -3165,8 +3181,9 @@ test("adding contributors retains distinct existing authors and untouched histor
   };
   const {form, control} = metadataForm(initial);
   const people = form.querySelector("#editor-contributors");
-  metadataMenu(people.children[1].editorFields.name).querySelector('[data-metadata-add="person:translator"]').click();
-  const row = people.children[2];
+  const personRows = () => [...people.querySelectorAll('[data-metadata-row="person"]')];
+  metadataMenu(personRows()[1].editorFields.name).querySelector('[data-metadata-add="person:translator"]').click();
+  const row = personRows()[2];
   assert.equal(row.editorFields.role.value, "translator");
   typeInto(row.editorFields.name, "Translator");
   const result = control.read(structuredClone(initial));
@@ -5235,7 +5252,8 @@ test("editor widget tabs switch panels by click, arrow keys and events while sha
   assert.equal(tabs.current, "editor");
   assert(!panel("editor").hidden && panel("metadata").hidden && panel("review").hidden);
   assert(panel("metadata").querySelector(".editor-metadata"));
-  assert(panel("review").querySelector("#editor-publication"));
+  assert(form.querySelector("#editor-publication"));
+  assert(!panel("review").querySelector("#editor-publication"));
   assert(!panel("editor").contains(form.querySelector(".editor-pilot-toolbar")), "The toolbar is shared by all tabs.");
   workspace.querySelector("#editor-tab-metadata").click();
   assert.equal(workspace.dataset.editorTab, "metadata");

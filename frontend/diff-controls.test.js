@@ -53,8 +53,8 @@ test("incomplete diff markup is explicitly disabled rather than crashing startup
 test("current template mounts differences and preserves the immutable baseline after save", () => {
   const form = setup(`<select id="editor-result-filter">
     <option value="result">Result</option><option value="diffs">Diffs</option></select>
-    <input id="editor-diff-revision" value="0">
-    <button id="editor-diff-baseline" type="button">Use baseline</button>
+    <select id="editor-diff-revision"><option value="0">Pinned starting version</option></select>
+    <button id="editor-diff-baseline" type="button">Update comparison</button>
     <p id="editor-diff-status"></p>`);
   const initial = {revision: 0, document: {html: "<p>Current prose.</p>"},
     baseline_document: {html: "<p>Original prose.</p>"}};
@@ -65,7 +65,8 @@ test("current template mounts differences and preserves the immutable baseline a
   assert.match(form.querySelector("[data-diff=removed]").textContent, /Original/);
   initial.revision = 1;
   controls.refresh();
-  assert.equal(form.querySelector("#editor-diff-revision").max, "1");
+  assert.deepEqual([...form.querySelector("#editor-diff-revision").options].map(option =>
+    [option.value, option.textContent]), [["0", "Pinned starting version"], ["1", "Saved version 1"]]);
   assert.match(form.querySelector("#editor-diff-status").textContent, /pinned starting document/);
   assert.equal(editor.getHTML(), "<p>Current prose.</p>");
 });

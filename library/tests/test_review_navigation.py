@@ -2,7 +2,6 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
-from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -23,14 +22,21 @@ class ReviewNavigationTests(TestCase):
             "nav", attrs={"aria-label": "Work reviewer tools"}
         )
 
-    def test_reader_has_one_separate_entry_and_does_not_push_content_behind_menu(self):
+    def test_reader_uses_compact_work_navigation_and_keeps_review_queue_in_site_nav(self):
         version = self.import_version(ARTICLE)
         response = self.client.get(reverse("reader", args=[version.pk]))
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertIsNone(self.menu(response))
-        expected_links = 2 if settings.READING_HUB_EDITOR_PILOT else 1
-        self.assertEqual(len(soup.select(".reader-review-entry a")), expected_links)
-        self.assertNotIn("Review this work", soup.select_one(".reader-toolbar").get_text())
+        self.assertEqual(
+            [link.get_text(strip=True) for link in soup.select(".work-navigation a")],
+            ["Read", "Edit", "Versions", "Sources"],
+        )
+        self.assertIsNone(soup.select_one(".reader-review-entry"))
+        review_link = soup.select_one('.primary-navigation a[href*="review_version"]')
+        self.assertEqual(
+            review_link["href"], reverse("work-review") + f"?review_version={version.pk}"
+        )
+        self.assertEqual(soup.select_one('.work-navigation a[aria-current="page"]').get_text(), "Read")
         self.assertContains(response, PARAGRAPH)
         self.client.force_login(self.reader)
         response = self.client.get(reverse("reader", args=[version.pk]))
@@ -58,8 +64,15 @@ class ReviewNavigationTests(TestCase):
         )
         self.assertIn(f"review_version={version.pk}", response.url)
         response = self.client.get(response.url, follow=True)
-        menu = self.menu(response)
+        self.assertIsNone(self.menu(response))
+        self.assertContains(response, 'aria-label="Work destinations"')
+        self.assertContains(response, 'id="editor-source-open"')
         capture = CrawlCapture.objects.get()
+        response = self.client.get(
+            reverse("work-review"),
+            {"review_version": version.pk, "review_capture": capture.pk},
+        )
+        menu = self.menu(response)
         self.assertIn(f"capture {capture.pk}", menu.get_text())
         self.assertEqual(
             menu.find("a", string="Document editor")["href"].split("?")[0],

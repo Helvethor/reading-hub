@@ -2,17 +2,10 @@
 {% block title %}Work review | {{ site.name }}{% endblock %}
 {% block content %}
 <div class="page-container">
-  <h1>Review this article or book</h1>
-  <p>Reviewer operations are separate from reading, PDF downloads and reformatting. Choose a tool above; use Back to reading to return to the selected version.</p>
-  <dl class="review-tool-guide">
-    {% if editor_pilot and review.version %}<dt><a href="{% url 'document-editor' review.version.pk %}">Continue correcting this document</a></dt><dd>Open the latest correction or choose a starting version. Edit and save; no task or run is required. Publication stays separate.</dd>{% endif %}
-    <dt>Parsing &amp; source metadata</dt><dd>Choose a retained source or book part. Correct text blocks, headings, image captions/credits, footnote links, people, dates and language. Saving affects future formatting, not old readers.</dd>
-    {% if review.version %}<dt><a href="{% url 'document-editor-membership' review.version.pk %}">Catalogue book membership</a></dt><dd>Attach or detach retained source URLs. Preview catalogue-wide routing and explicitly confirm; drafts and publications are unchanged.</dd>{% endif %}
-    <dt>Catalogue metadata</dt><dd>Explicitly apply a saved correction to catalogue listings, or preview undo. For books, select the contents source first.</dd>
-    <dt>Metadata review</dt><dd>Review pending or previous proposals whose primary source or catalogue entry matches the selected source. Aggregated evidence from other pages may still appear.</dd>
-    <dt>Source revision history</dt><dd>Inspect saved parsing corrections without changing them.</dd>
-  </dl>
-  {% if not review.url %}<p class="notice">No work selected. Open a reader's Review this work link, or choose a source from <a href="{% url 'correction-history' %}">correction history</a> or <a href="{% url 'metadata-review' %}">metadata review</a>.</p>{% endif %}
-  <details><summary>Collection-wide reviewer tools</summary><p><a href="{% url 'metadata-review' %}">All metadata review</a> · <a href="{% url 'correction-history' %}">All correction history</a> · <a href="{% url 'correction-dataset-import' %}">Import correction dataset</a></p></details>
+  <h1>Review queue</h1>
+  <p>Choose a review tool from the work navigation above. Editing creates a new saved document version; it does not change retained source evidence or existing reader output.</p>
+  {% if review.version %}<p class="notice">Selected work: <strong>{{ review.version.title }}</strong> · reader version {{ review.version.pk }}. Use <a href="{% url 'document-editor' review.version.pk %}">Edit</a> for document content, metadata and sections; <a href="{% url 'document-editor-membership' review.version.pk %}">Catalogue membership</a> is a separate global routing decision.</p>{% endif %}
+  {% if not review.url %}<p class="notice">No work selected. Open Review queue from a saved work, or start with <a href="{% url 'correction-history' %}">correction history</a> or <a href="{% url 'metadata-review' %}">metadata review</a>.</p>{% endif %}
+  <details class="context-help"><summary>Collection-wide reviewer tools</summary><p><a href="{% url 'metadata-review' %}">Metadata review</a> · <a href="{% url 'correction-history' %}">Correction history</a> · <a href="{% url 'correction-dataset-import' %}">Import correction dataset</a></p></details>
 </div>
 {% endblock %}
