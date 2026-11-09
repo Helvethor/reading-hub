@@ -150,6 +150,32 @@ or reader selection was changed. This is a local deployment, not a public
 release; UI/UX acceptance remains incomplete as recorded in the handoff and
 assessment.
 
+Navigation/dark-theme local deployment (2026-11-09): release `0e14b01` now
+serves `127.0.0.1:8765` from `data/releases/0e14b01`, retaining the existing
+data root and editor-pilot setting. Locked frontend dependencies and the editor
+assets were built inside that release before replacing only the web process.
+Django checks, migration readiness and 30 focused editor/profile tests passed;
+both generated editor assets resolve through Django and return HTTP 200.
+No migration was required. The existing npm/Node compatibility warning remained,
+but installation and build succeeded.
+
+The verified private backup is
+`data/backups/navigation-dark-deploy-20261109T165000Z/`: online backups of
+the application and optional archive databases, all 5,023 retained blobs,
+and the unchanged signing key. Post-deployment quick/foreign-key checks passed;
+the schema and all non-operational data in 53 tables matched the backup.
+Only worker heartbeat/activity tables differed. All blob hashes and the
+signing key still matched. Six workers and the separate port-8000 service
+were left untouched.
+
+Library, reader version 92, editor JS/CSS and dark CSS returned HTTP 200.
+A read-only authenticated render followed version 92's publication-continuation
+redirect to a working editor and confirmed Versions/Sources are ordinary page
+links, not iframe triggers. This check prohibited database writes and did not
+create a login/session. Browser checks of the deployed dark stylesheet confirmed
+dark account-panel/field surfaces and light field text without saving an account
+preference. This is bounded deployment verification, not complete UI/UX acceptance.
+
 Application 0.47.0 adds `marxiste.org` (**PCR · France**) and its `www` alias.
 Article discovery uses the public homepage, not the Joomla component sitemap.
 Normal robots, fetch limits, URL/asset validation and immutable cache rules

@@ -53,8 +53,9 @@ Status: implementation is present across both milestones, but acceptance is part
 The synthetic article and media-rich book journeys reached explicit publication
 and continuation; a section reorder was saved and reopened with its retained image
 and reciprocal note. Several form, import, archive, theme and accessibility
-scenarios remain unverified. UI/UX commit `94ae916` is deployed to the documented
-local service at `127.0.0.1:8765`; no live content decisions or migrations changed.
+scenarios remain unverified. UI/UX commit `94ae916` and the navigation/dark-theme
+fixes in `0e14b01` are deployed to the documented local service at
+`127.0.0.1:8765`; no live content decisions or migrations changed.
 Historical work-centred delivery below remains bounded evidence, not certification
 of the new UI/UX goals. These milestones take priority over older next-step ordering.
 
