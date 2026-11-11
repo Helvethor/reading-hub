@@ -12,7 +12,7 @@
   </form>
   <p>{{ page.paginator.count }} corrected captures</p>
   <p><a href="{% url 'correction-dataset-export' %}?language={{ language }}&amp;source={{ source|urlencode }}">Export latest revisions matching these filters</a> &middot; <a href="{% url 'correction-dataset-import' %}">Import correction dataset</a></p>
-  <p>Exports contain only explicitly verified overrides, not verified labels for every baseline field. Account identifiers and private annotations are excluded. Maximum 50 revisions / 1 MiB per file; narrow filters when needed.</p>
+  <p>Exports contain only explicitly verified overrides, not verified labels for every baseline field. Account identifiers are excluded. Maximum 50 revisions / 1 MiB per file; narrow filters when needed.</p>
   {% for correction in page %}
   <article class="metadata-suggestion">
     <h2>{{ correction.expected.metadata.title|default:correction.original.title }}</h2>

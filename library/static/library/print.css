@@ -26,7 +26,7 @@
   [data-pdf-section] { string-set: section-title attr(data-pdf-section); }
   html, body { background: white !important; color: black; }
   .site-header, .site-footer, .reader-toolbar, .reader-review-entry, .review-navigation, .toc-panel, .version-details, .reading-style-controls,
-  .annotation-toolbox, .site-messages, .skip-link, .print-options, .reading-column > noscript { display: none !important; }
+  .site-messages, .skip-link, .print-options, .reading-column > noscript { display: none !important; }
   .reader-layout, .reading-column { display: block; max-width: none; margin: 0; padding: 0; }
   .document-header { padding: 0 0 6mm; margin: 0 0 6mm; break-inside: avoid; break-after: page; page-break-after: always; }
   .document-header h1 { font: 24pt/1.2 Georgia, serif; margin: 0 0 4mm; }

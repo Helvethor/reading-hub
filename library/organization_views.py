@@ -1,13 +1,12 @@
-from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.db import OperationalError
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_http_methods
 
 from library.metadata_views import metadata_reviewer_required
-from library.models import Annotation, BookMembershipDecision, Document, Rendition
+from library.models import BookMembershipDecision, Document, Rendition
 from library.profile import get_profile
 from library.services.book_generation import (
     generate_from_membership,
@@ -183,15 +182,6 @@ def workspace(request):
     if rendition is None:
         return redirect("work-review")
     return redirect("document-editor-membership", pk=membership_root(rendition).pk)
-
-
-@require_GET
-@login_required
-def preserved_annotations(request):
-    annotations = Annotation.objects.filter(owner=request.user).select_related(
-        "rendition__document",
-    )
-    return render(request, "library/preserved_annotations.html", {"annotations": annotations})
 
 
 def redirect_member(document, *, version=None, stylesheet=False, pdf=False):

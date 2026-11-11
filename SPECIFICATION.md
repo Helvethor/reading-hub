@@ -120,27 +120,28 @@ administration use the same preference; **Follow theme** PDF caches bind the
 selected palette. Personal reading styles and source-profile identity remain
 independent. Migration 0028 adds account preferences without changing documents.
 
-### Private annotations retired (decision 2026-11-11; implementation pending)
+### Private annotations retired (implemented 2026-11-11)
 
-Private annotations are abandoned, not a feature to preserve in the UI.
-Remove annotation controls, highlights/underlines created by that feature,
-preserved-annotation links/pages, annotation-specific sign-in prompts and help
-from ordinary and historical application surfaces. Stop loading annotation
-scripts or fetching annotation data from the reader/workspace.
+Private annotations are abandoned, not a feature to preserve in the UI. The
+reader/workspace has no annotation controls, overlays, links, sign-in prompts or
+help. The annotation script is not shipped or loaded, and the reader does not
+fetch annotation data.
 
-Direct annotation pages and read/write APIs must be unavailable to all users,
-including owners and staff, through the repository's retired-route convention
-(404 or 410), without returning private content or mutating records. Hiding
-links alone is insufficient. Dormant code/models may remain; retain existing
-annotation data and ownership privately without remapping, deletion, migration
-or exposure in reader/PDF/dataset output. This does not retire accounts, document
-notes/footnotes, editorial formatting or source-review/training annotations.
+Direct annotation pages and read/write APIs return 410 for all methods and roles,
+including owners and staff, without returning private content or mutating
+records. The stored model and records remain unchanged; no migration, remapping
+or deletion occurred. Reader HTML, PDF output and correction-dataset exports
+contain no retained private payload. This does not retire accounts,
+document notes/footnotes, editorial formatting or source-review/training annotations.
 
 The [UX retirement acceptance](docs/UI-UX-IMPLEMENTATION-HANDOFF.md#private-annotation-retirement-r1-r4)
 supersedes earlier requirements to keep private-annotation workflows reachable.
 Historical implementation claims remain evidence of old behavior, not current
-product intent. This records the decision only; application retirement is not
-implemented or validated by this documentation change.
+product intent. Isolated automated validation covered guest, owner, reviewer and
+staff article/book views, retired route/method responses, record equality, PDF
+output and dataset export. The change is deployed to the documented localhost
+service. No authenticated browser/network trace or human accessibility review
+was performed.
 
 ### Unified version workspace (handoff 2026-11-11; planned)
 

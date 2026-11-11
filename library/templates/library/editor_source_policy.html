@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-container">
   <h1>Retained-source classification</h1>
-  <p>This changes source policy, not the corrected document's book/article checkbox. Mark a navigation-only index as discovery-only to exclude it from readable catalogue results and future imports. Undo restores prior flags. Source evidence, immutable editions, saved corrections and private annotations are retained.</p>
+  <p>This changes source policy, not the corrected document's book/article checkbox. Mark a navigation-only index as discovery-only to exclude it from readable catalogue results and future imports. Undo restores prior flags. Source evidence, immutable editions and saved corrections are retained.</p>
   {% if policy_error %}<p role="alert" class="error">{{ policy_error }}</p>{% endif %}
   {% if notice %}<p role="status">{{ notice }}</p>{% endif %}
   <form method="get">

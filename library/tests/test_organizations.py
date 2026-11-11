@@ -363,12 +363,12 @@ class OrganizationTests(TestCase):
             kind="highlight",
             color="yellow",
         )
+        annotation_before = Annotation.objects.values().get(pk=annotation.pk)
         changed = deepcopy(self.spec)
         changed["title"] = "Reviewed exact BOOK title"
         changed["parts"].reverse()
         changed["parts"][0].update(title="Afterword", role="postscript")
         preview = self.prepare(changed)
-        self.assertEqual(preview["annotations"], 1)
         self.assertEqual(self.book.document.latest(), self.book)
         self.assertFalse(ContentOrganizationDecision.objects.exists())
         decision = commit_change(preview, self.reviewer, "Reviewed order")
@@ -399,12 +399,17 @@ class OrganizationTests(TestCase):
         annotation.refresh_from_db()
         self.assertEqual(old.html, "<p>Private quote</p>")
         self.assertEqual(annotation.rendition_id, old.pk)
-        self.assertContains(self.client.get(reverse("preserved-annotations")), "Private quote")
+        self.assertEqual(Annotation.objects.values().get(pk=annotation.pk), annotation_before)
+        self.assertEqual(
+            self.client.get(reverse("preserved-annotations")).status_code, 410
+        )
         other = get_user_model().objects.create_user("another")
         self.client.force_login(other)
-        self.assertNotContains(self.client.get(reverse("preserved-annotations")), "Private quote")
         self.assertEqual(
-            self.client.get(reverse("annotations", args=[old.pk])).json()["annotations"], []
+            self.client.get(reverse("preserved-annotations")).status_code, 410
+        )
+        self.assertEqual(
+            self.client.get(reverse("annotations", args=[old.pk])).status_code, 410
         )
 
     def test_detach_rebuilds_both_works_and_audited_undo(self):

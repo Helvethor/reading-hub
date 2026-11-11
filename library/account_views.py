@@ -106,7 +106,7 @@ def signup(request):
                 request,
                 "Account created. You are the administrator of this local installation."
                 if first
-                else "Account created. Your annotations are private to your account.",
+                else "Account created.",
             )
             return redirect("worker-controls" if first else "home")
     return render(

@@ -3,7 +3,7 @@
 A local-first library for reading articles and complete HTML books from
 configured websites in a consistent format. Retain original sources, generate
 tables of contents, cache immutable editions, and review extraction mistakes
-without overwriting historical readers or private annotations.
+without overwriting historical readers.
 
 See the [project assessment](docs/PROJECT-ASSESSMENT.md) and current
 [roadmap](TASKS.md) for direction and bounded acceptance evidence. The work-centred
@@ -388,8 +388,6 @@ This localhost development deployment is not a public hosting configuration.
 - **Version history** preserves source dates, pipeline versions and output
   identity. Failed imports never replace a successful edition with partial work.
 - **Download PDF** exports locally with heading bookmarks and internal links.
-  Private highlights/underlines belong to their owner and exact reader version;
-  they are not automatically migrated to new editions.
 
 The active profile registers communistusa.org, marxist.com, www.marxists.org,
 communisme.ch, marxiste.org, www.marxiste.qc.ca, kommunismus.ch, communist.red, comunismo.ch
@@ -406,7 +404,7 @@ profiles.
 On a reader, use the compact **Review this work** link. The separate reviewer
 workspace keeps the selected work, source capture and reader version while
 moving among tools. **Back to reading** returns to that version. Reviewer
-operations stay separate from PDF, refresh/reformat and private annotations.
+operations stay separate from PDF and refresh/reformat.
 
 1. **Parsing & source metadata:** choose the exact retained source or book
    chapter, then open its editor. Correct metadata, exclude blocks, change

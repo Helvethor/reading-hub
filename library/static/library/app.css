@@ -19,24 +19,7 @@ button.secondary { background: transparent; color: var(--accent); padding: .4rem
 .account-form label { display: block; font-weight: 600; }
 .account-form input { width: 100%; max-width: 100%; padding: .65rem; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
 .account-form .helptext { display: block; color: var(--muted); font-size: .85rem; }
-.annotation-toolbox { border: 1px solid var(--line); border-radius: 8px; padding: 1rem; margin-bottom: 2rem; font-size: .85rem; }
-.annotation-toolbox h2 { margin-top: 0; }
-.annotation-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
-.annotation-controls label { display: flex; flex-direction: column; }
-.annotation-controls select { font: inherit; padding: .4rem; border: 1px solid var(--line); border-radius: 4px; }
-.annotation-toolbox ol { padding-left: 1.4rem; max-height: 24rem; overflow-y: auto; }
-.annotation-toolbox li { border-top: 1px solid var(--line); padding: 1rem 0; }
-.annotation-toolbox blockquote { margin: 0 0 .7rem; overflow-wrap: anywhere; }
-.annotation-toolbox p { overflow-wrap: anywhere; }
 button:disabled { opacity: .55; cursor: wait; }
-.private-annotation.highlight-yellow { background: #fff09d; color: #202720; }
-.private-annotation.highlight-green { background: #c4efca; color: #202720; }
-.private-annotation.highlight-blue { background: #cce5ff; color: #202720; }
-.private-annotation.highlight-pink { background: #ffd4e2; color: #202720; }
-.private-annotation.underline-yellow { text-decoration: underline #896600 .16em; text-underline-offset: .15em; }
-.private-annotation.underline-green { text-decoration: underline #267c36 .16em; text-underline-offset: .15em; }
-.private-annotation.underline-blue { text-decoration: underline #2676c2 .16em; text-underline-offset: .15em; }
-.private-annotation.underline-pink { text-decoration: underline #b82f63 .16em; text-underline-offset: .15em; }
 :focus-visible { outline: 3px solid #ad702f; outline-offset: 4px; }
 [hidden] { display: none !important; }
 .skip-link { position: absolute; top: -5rem; left: 1rem; background: white; padding: .5rem; z-index: 10; }

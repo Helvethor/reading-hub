@@ -36,7 +36,7 @@ def source_policy(request, pk):
                 )
             notice = (
                 "Source policy saved. Existing editions, editor drafts "
-                "and annotations are unchanged."
+                "and existing editions are unchanged."
             )
         else:
             capture = CrawlCapture.objects.filter(

@@ -7,7 +7,15 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from library.models import CanonicalAuthor, CorrectionFeedback, SourceCorrection
+from library.models import (
+    Annotation,
+    CanonicalAuthor,
+    CorrectionFeedback,
+    Document,
+    Rendition,
+    Snapshot,
+    SourceCorrection,
+)
 from library.services.correction_datasets import (
     MAX_BYTES,
     commit_import,
@@ -269,12 +277,32 @@ class DatasetTests(TestCase):
     def test_filtered_export_uses_latest_revision_and_no_accounts(self):
         self.bundle()
         save_correction(self.capture, self.reviewer, {"metadata": {"language": "da"}}, 1, "Danish")
+        document = Document.objects.create(url=self.capture.url)
+        snapshot = Snapshot.objects.create(document=document, digest="a" * 64, manifest={})
+        rendition = Rendition.objects.create(
+            document=document,
+            snapshot=snapshot,
+            identity="b" * 64,
+            title="Retained article",
+            structure={"toc": []},
+            html="<p>Retained article.</p>",
+        )
+        Annotation.objects.create(
+            owner=self.reviewer,
+            rendition=rendition,
+            start=0,
+            end=len("PRIVATE_MARK_78F31"),
+            quote="PRIVATE_MARK_78F31",
+            kind=Annotation.Kind.HIGHLIGHT,
+            color=Annotation.Color.YELLOW,
+        )
         target = reverse("correction-dataset-export")
         self.assertEqual(self.client.get(target).json()["corrections"], [])
         response = self.client.get(target, {"language": "all"})
         self.assertEqual(len(response.json()["corrections"]), 1)
         self.assertEqual(response.json()["corrections"][0]["revision"], 2)
         self.assertNotIn("reviewer_id", response.content.decode())
+        self.assertNotIn("PRIVATE_MARK_78F31", response.content.decode())
         self.assertEqual(response.json()["semantics"], "explicit_verified_overrides")
         self.assertEqual(
             self.client.get(target, {"source": "another.org", "language": "all"}).json()[

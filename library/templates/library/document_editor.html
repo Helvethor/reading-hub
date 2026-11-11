@@ -11,7 +11,7 @@
 <div class="page-container editor-page">
   <h1>Editor</h1>
   {% include "library/work_context.html" with active_work_tab="edit" %}
-  <p class="muted editor-scope">Editing version {{ version.pk }} creates immutable saved versions. Publication is separate; source evidence, catalogue membership, older editions and annotations are unchanged.</p>
+  <p class="muted editor-scope">Editing version {{ version.pk }} creates immutable saved versions. Publication is separate; source evidence, catalogue membership and older editions are unchanged.</p>
   {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
   {% if evaluation_run %}<p class="notice">Isolated evaluation working draft. <a href="{% url 'reviewer-run' evaluation_run.pk %}" target="_blank" rel="noopener">Task instructions and result form (new tab)</a>. Save here before recording a result; evaluation does not publish or verify.</p>
   {% endif %}

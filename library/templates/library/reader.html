@@ -5,8 +5,6 @@
 {% block content %}
 <div class="reader-toolbar">
   <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}" data-reading-pdf>Download PDF</a>
-  {% if user.is_authenticated %}<a href="{% url 'preserved-annotations' %}">Preserved annotations</a>{% endif %}
-  {% if user.is_authenticated %}<button class="secondary" type="button" id="annotation-toggle" aria-controls="annotation-toolbox" aria-expanded="false" hidden>Private annotations</button>{% else %}<a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in to highlight or underline</a>{% endif %}
 </div>
 {% include 'library/work_context.html' with active_work_tab="read" %}
 {% include 'library/reading_style_controls.html' %}
@@ -14,7 +12,7 @@
   <details class="print-options">
     <summary>Print options</summary>
     <label><input type="checkbox" id="print-wrap-images"> Wrap text around smaller figures when printing (reduces image width).</label>
-    <p>Browser print: Ctrl+P. Downloaded PDFs exclude private annotations.</p>
+    <p>Browser print: Ctrl+P.</p>
   </details>
   <aside class="toc-panel" aria-label="Document navigation">
     <details open>
@@ -25,27 +23,6 @@
     </details>
   </aside>
   <div class="reading-column">
-    {% if user.is_authenticated %}
-    <section id="annotation-toolbox" class="annotation-toolbox" aria-label="Private annotation toolbox" data-url="{% url 'annotations' version.pk %}" hidden>
-      <h2>Your private annotations</h2>
-      <p>Only you can see these marks, and only on this exact cached version. Select text, then choose a style. Closing the toolbox keeps your marks visible.</p>
-      <details class="context-help">
-        <summary>Selection help</summary>
-        <p>Use the mouse, touch selection handles, or keyboard caret browsing (F7 in supported browsers, then Shift + arrows) to select article text before applying a mark.</p>
-      </details>
-      <form id="annotation-form" class="annotation-controls">
-        {% csrf_token %}
-        <label>Style <select name="kind"><option value="highlight">Highlight</option><option value="underline">Underline</option></select></label>
-        <label>Color <select name="color"><option value="yellow">Yellow</option><option value="green">Green</option><option value="blue">Blue</option><option value="pink">Pink</option></select></label>
-        <button type="submit" disabled>Apply to selection</button>
-      </form>
-      <p id="annotation-selection" class="muted">Select text in the article to begin.</p>
-      <p id="annotation-status" role="status" aria-live="polite"></p>
-      <p id="annotation-error" class="warning-text" role="alert"></p>
-      <ol id="annotation-list"></ol>
-    </section>
-    <noscript><p class="notice">Private highlighting requires JavaScript. Reading the saved article does not.</p></noscript>
-    {% endif %}
     <div class="publication-content">
     <header class="document-header document-header-{{ book_pages.title_layout }}">
       <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
@@ -78,5 +55,4 @@
     </details>
   </div>
 </div>
-{% if user.is_authenticated %}<script src="{% static 'library/annotations.js' %}?v={{ app_version }}" defer></script>{% endif %}
 {% endblock %}

@@ -30,11 +30,6 @@ from library.sources.adapters import discover
 from library.sources.base import Part, parse_html
 
 ROLES = ("preface", "chapter", "appendix", "postscript")
-ANNOTATION_POLICY = (
-    "Preserve all private annotations on their original immutable versions; do not move or "
-    "delete them. Owners can inspect their original quotes in Preserved annotations."
-)
-
 
 def lock_organization():
     # A real write acquires SQLite's writer lock before checking the preview revision.
@@ -425,9 +420,6 @@ def preview_change(before, after, *, undo_of=None):
                 "digest": fingerprint([html, structure, source.metadata, source.title, stylesheet]),
             }
         )
-    annotations = Annotation.objects.filter(
-        rendition__document__url__in={spec["url"] for spec in before} | set(membership)
-    ).count()
     if revision(before + after) != initial_revision:
         raise ValueError("Content changed while building the preview. Preview again.")
     return {
@@ -435,8 +427,6 @@ def preview_change(before, after, *, undo_of=None):
         "after": after,
         "works": result,
         "revision": initial_revision,
-        "annotations": annotations,
-        "annotation_policy": ANNOTATION_POLICY,
     }
 
 
@@ -515,8 +505,6 @@ def commit_change(preview, reviewer, reason, *, undo_of=None):
         evidence={
             "revision": preview["revision"],
             "membership_before": membership_before,
-            "annotation_policy": ANNOTATION_POLICY,
-            "annotations_preserved": fresh["annotations"],
             "renditions": {url: rendition.pk for url, rendition in built.items()},
         },
     )

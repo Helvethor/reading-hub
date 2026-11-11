@@ -74,7 +74,7 @@ class ReaderCorrectionTests(TestCase):
         self.assertNotContains(response, "Review this work")
         self.assertNotContains(response, "Correct this retained source")
         response = self.client.get(reverse("rendition-corrections", args=[version.pk]))
-        self.assertContains(response, "This existing edition and its annotations remain unchanged")
+        self.assertContains(response, "This existing edition remains unchanged")
         self.assertFalse(CrawlCapture.objects.exists())
         endpoint = reverse("rendition-correction-source", args=[version.pk])
         self.assertEqual(self.client.get(endpoint).status_code, 405)

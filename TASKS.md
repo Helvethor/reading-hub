@@ -58,83 +58,37 @@ scenarios remain unverified. UI/UX commit `94ae916` and the navigation/dark-them
 fixes in `0e14b01` are deployed to the documented local service at
 `127.0.0.1:8765`; no live content decisions or migrations changed.
 Historical work-centred delivery below remains bounded evidence, not certification
-of the new UI/UX goals. These milestones take priority over older next-step ordering.
+of the new UI/UX goals. Execute retirement R, article hierarchy A, version
+workspace V and publication P in that order.
 
 ## UX retirement R: private annotations (2026-11-11)
 
-**Status:** abandoned as a product feature; retirement implementation and
-validation pending. Dormant code may remain; no live data deletion is authorized.
+**Status:** implemented, validated with isolated tests and deployed locally.
+Private annotation data and ownership remain unchanged; no schema migration or
+live content mutation was performed.
 The [UX handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md#private-annotation-retirement-r1-r4)
 owns R1-R4 acceptance and supersedes earlier annotation-reachability goals.
 
-- [ ] Remove annotation UI/overlays, links, prompts, help and annotation-only form
+- [x] Remove annotation UI/overlays, links, prompts, help and annotation-only form
   requirements across reader/workspace, preserved and historical surfaces.
-- [ ] Retire direct annotation pages and all read/write API methods for every
+- [x] Retire direct annotation pages and all read/write API methods for every
   role; stop annotation script loading and data fetching.
-- [ ] Validate R1-R4 with retained-data, multi-user, UI/network and route checks;
+- [x] Validate R1-R4 with retained-data, multi-user, rendered-view and route checks;
   preserve accounts, notes, formatting and private records without exposure.
 
-This update records the decision only; no application retirement was performed.
-
-## UX milestone V: unified version workspace (2026-11-11)
-
-**Status:** direction specified; implementation and acceptance not started.
-Documentation only is authorized. The
-[unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V16
-acceptance and supersedes earlier separate-page requirements for the four work
-views. U1/U2 delivery/evidence above is historical, not proof of this new outcome.
-
-- [ ] Deliver stable version/draft identity above persistent Read/Edit/Versions/
-  Sources tabs and consistently placed shared actions.
-- [ ] Preserve editor instance/state, history and recovery across tabs; distinguish
-  immutable version, unchanged draft, unsaved changes and saved baseline.
-- [ ] Render current unsaved content in Read and export validated request-time
-  draft PDFs without implicit save/publication or shared-cache leakage.
-- [ ] Separate history/source inspection from guarded version switching; preserve
-  exact public links, retained private data, permissions and other working copies.
-- [ ] Keep navigation/context/command bars reachable through a coordinated compact
-  scroll stack, with dynamic anchor/focus offsets and state-safe transitions.
-- [ ] Add active-content Back to top with keyboard/focus/reduced-motion safety;
-  validate nested scrolling, constrained screens and print/PDF exclusion.
-- [ ] Validate V1-V16 through isolated article/book journeys, focused regressions,
-  actual browser/PDF evidence and preservation assertions; checkpoint validated work.
-
-Coordinate shared shell/entry points with publication milestone P and title
-projection with article milestone A; do not claim those acceptance rows complete
-from workspace delivery. Neither runtime changes nor deployment are authorized
-by this handoff.
-
-## UX follow-up milestone P: publication completion and defaults (2026-11-11)
-
-**Status:** handoff prepared; implementation and milestone validation not started.
-Documentation only is authorized. This bounded follow-up does not replace
-outstanding U1/U2 acceptance or depend on the article-hierarchy milestone.
-
-The [publication UX handoff](docs/PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
-owns the workflow contract and P1-P10 acceptance.
-
-- [ ] Integrate optional, initially unchecked default selection into exact
-  publication confirmation; show current default and require an audited reason.
-- [ ] Make combined publish/select atomic, stale-state guarded and retry-safe;
-  publishing without selection must preserve the existing reader fallback/mode.
-- [ ] Provide embedded and standalone completion status, exact Read publication/
-  PDF links, safe return and a subsequent Make default action without republishing.
-- [ ] Make ordinary new work-level editing starts honor the selected publication,
-  preserving explicit version/working-copy links, pending edits and branch choices.
-- [ ] Validate P1-P10 on isolated article/book journeys, including concurrency,
-  rollback, replay and exact preservation; checkpoint validated implementation.
-
-Historical review evidence: four focused isolated tests passed on 2026-11-09
-for embedded publication, standalone redirect, audited selection and unchanged-
-content continuation. This does not validate the proposed milestone. No live
-publication/default change or authenticated browser journey was performed.
+Evidence: 70 focused Django tests passed across annotation, organization,
+reader-correction, printing and correction-dataset modules. Tests covered guest,
+owner, reviewer and staff article/book reader views; every legacy route/method;
+PDF/dataset output; and exact record equality before and after refused requests
+and organization changes. Django system checks, migration consistency, Ruff lint
+and whitespace-aware diff checks passed. Browser-level network observation and
+human usability/accessibility review were not performed.
 
 ## Next content milestone: article identity and heading hierarchy (2026-11-09)
 
 **Status:** design accepted; handoff prepared; implementation and validation not
-started. This is the next bounded content-hierarchy milestone, not completion or
-replacement of the outstanding U1/U2 acceptance above. Current authorization is
-documentation only; implementation, deployment and live-data changes are separate.
+started. This follows R and precedes V and P. Current code must be reproduced on
+isolated fixtures before changes; no live-content mutation is required.
 
 **Outcome:** a standalone article's content root uses its document title and
 Article role; H2-H6 remain navigable heading ranges. Title edits cannot rename
@@ -157,8 +111,55 @@ owns implementation scope, exclusions and A1-A10 acceptance.
   checkpoint validated implementation before declaring the milestone complete.
 
 Defer automatic H2 wrapping, bulk article conversion and source-title cleanup.
-No application implementation, authenticated browser acceptance, deployment or
-live content mutation was performed while preparing this handoff.
+
+## UX milestone V: unified version workspace (2026-11-11)
+
+**Status:** direction specified; implementation and acceptance not started.
+The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns
+V1-V16 acceptance and supersedes earlier separate-page requirements for the four
+work views. U1/U2 delivery/evidence above is historical, not proof of this outcome.
+
+- [ ] Deliver stable version/draft identity above persistent Read/Edit/Versions/
+  Sources tabs and consistently placed shared actions.
+- [ ] Preserve editor instance/state, history and recovery across tabs; distinguish
+  immutable version, unchanged draft, unsaved changes and saved baseline.
+- [ ] Render current unsaved content in Read and export validated request-time
+  draft PDFs without implicit save/publication or shared-cache leakage.
+- [ ] Separate history/source inspection from guarded version switching; preserve
+  exact public links, retained private data, permissions and other working copies.
+- [ ] Keep navigation/context/command bars reachable through a coordinated compact
+  scroll stack, with dynamic anchor/focus offsets and state-safe transitions.
+- [ ] Add active-content Back to top with keyboard/focus/reduced-motion safety;
+  validate nested scrolling, constrained screens and print/PDF exclusion.
+- [ ] Validate V1-V16 through isolated article/book journeys, focused regressions,
+  actual browser/PDF evidence and preservation assertions; checkpoint validated work.
+
+Coordinate shared shell/entry points with publication milestone P and title
+projection with article milestone A; do not claim those acceptance rows complete
+from workspace delivery.
+
+## UX follow-up milestone P: publication completion and defaults (2026-11-11)
+
+**Status:** handoff prepared; implementation and milestone validation not started.
+This bounded follow-up does not replace outstanding U1/U2 acceptance.
+
+The [publication UX handoff](docs/PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
+owns the workflow contract and P1-P10 acceptance.
+
+- [ ] Integrate optional, initially unchecked default selection into exact
+  publication confirmation; show current default and require an audited reason.
+- [ ] Make combined publish/select atomic, stale-state guarded and retry-safe;
+  publishing without selection must preserve the existing reader fallback/mode.
+- [ ] Provide embedded and standalone completion status, exact Read publication/
+  PDF links, safe return and a subsequent Make default action without republishing.
+- [ ] Make ordinary new work-level editing starts honor the selected publication,
+  preserving explicit version/working-copy links, pending edits and branch choices.
+- [ ] Validate P1-P10 on isolated article/book journeys, including concurrency,
+  rollback, replay and exact preservation; checkpoint validated implementation.
+
+Historical review evidence: four focused isolated tests passed on 2026-11-09
+for embedded publication, standalone redirect, audited selection and unchanged-
+content continuation. This does not validate the proposed milestone.
 
 ## Completed delivery: work-centred workflow (2026-11-08)
 

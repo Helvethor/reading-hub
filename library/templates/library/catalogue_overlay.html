@@ -4,7 +4,7 @@
 <div class="page-container catalogue-overlay">
   <h1>{% if undo %}Undo latest catalogue overlay change{% else %}Apply saved metadata to catalogue{% endif %}</h1>
   <p class="source-url"><a href="{{ capture.url }}" target="_blank" rel="noopener noreferrer">{{ capture.url }}</a></p>
-  <p>This changes only this exact source URL's catalogue entry, not other pages, global aliases, reader versions or private annotations. Only explicitly corrected metadata fields are applied. Unknown/editor/translator components are not authors. Selecting this correction replaces the previous overlay; omitted fields return to their latest underlying values. Later crawls/imports update those underlying values without replacing the active overlay.</p>
+  <p>This changes only this exact source URL's catalogue entry, not other pages, global aliases or reader versions. Only explicitly corrected metadata fields are applied. Unknown/editor/translator components are not authors. Selecting this correction replaces the previous overlay; omitted fields return to their latest underlying values. Later crawls/imports update those underlying values without replacing the active overlay.</p>
   <p>People remain scoped names (using any explicitly selected canonical name); no global identity links are created. Only publication dates fill the catalogue date; other date roles remain in correction evidence.</p>
   {% if error %}<p role="alert" class="notice warning-text">{{ error }}</p>{% endif %}
   {% if plan %}

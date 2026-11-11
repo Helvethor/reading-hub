@@ -6,7 +6,7 @@
   <p>Membership belongs to the catalogue work <strong>{{ book.title|default:version.title }}</strong>, not this edition or an editor draft. It controls whether source URLs are separate works or resolve to this book.</p>
   <p>Titles, roles, reading order and included content are managed in the <a href="{% url 'document-editor' version.pk %}">document editor's section navigation</a>. Attaching does not insert content; detaching does not remove any section from drafts or publications. No parent or donor book is rebuilt.</p>
   {% if error %}<p class="notice warning" role="alert">{{ error }}</p>{% endif %}
-  {% if saved_decision %}<p class="notice" role="status">Catalogue membership saved as decision #{{ saved_decision.pk }}. Drafts, existing editions and annotations remain unchanged.</p>{% endif %}
+  {% if saved_decision %}<p class="notice" role="status">Catalogue membership saved as decision #{{ saved_decision.pk }}. Drafts and existing editions remain unchanged.</p>{% endif %}
   <h2>Member source URLs</h2>
   <ul>
     {% for member in members %}
@@ -99,7 +99,7 @@
         <legend>Confirm catalogue routing change</legend>
         <input type="hidden" name="action" value="apply">
         <input type="hidden" name="token" value="{{ token }}">
-        <label><input type="checkbox" name="confirm" value="yes" required> Confirm catalogue-wide routing only; preserve all existing draft content, editions and private annotations.</label>
+        <label><input type="checkbox" name="confirm" value="yes" required> Confirm catalogue-wide routing only; preserve all existing draft content and editions.</label>
         <p>Reason: {{ reason }}. Confirmation expires in 30 minutes; changed routing or retained evidence requires another preview.</p>
         <button type="submit">Save catalogue membership</button>
         </fieldset>

@@ -4,7 +4,7 @@
 <div class="page-container correction-workspace">
   <h1>Open a retained source in the editor</h1>
   <p>Choose a retained page from {{ version.title }}, version {{ version.pk }}. Opening it uses the exact cached evidence and does not download or change the source.</p>
-  <p>Make corrections in the document editor and save a new version. This existing edition and its annotations remain unchanged. Source-generated editions are a separate operation and never replace pending editor content.</p>
+  <p>Make corrections in the document editor and save a new version. This existing edition remains unchanged. Source-generated editions are a separate operation and never replace pending editor content.</p>
   {% if correction_source_error %}<p class="notice warning" role="alert">{{ correction_source_error }}</p>{% endif %}
 </div>
 {% endblock %}

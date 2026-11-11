@@ -9,7 +9,7 @@
   {% if publication_error %}<p class="error" role="alert">{{ publication_error }}</p><p>Return to the editor and preview the latest saved revision again. Nothing was published by this request.</p>{% endif %}
   {% if candidate %}
   <p><a href="{% url 'document-comparison' source.pk %}?draft={{ request.GET.draft|urlencode }}&amp;to={{ candidate.revision.revision }}{% if embedded %}&amp;embedded=1{% endif %}">Compare this saved revision with its pinned starting document</a></p>
-  <p class="notice">Preview of saved revision {{ candidate.revision.revision }} only. Unsaved editor changes are not included. Publication creates a separate immutable edition; it does not verify content or modify the original edition, annotations, source corrections or catalogue ownership.</p>
+  <p class="notice">Preview of saved revision {{ candidate.revision.revision }} only. Unsaved editor changes are not included. Publication creates a separate immutable edition; it does not verify content or modify the original edition, source corrections or catalogue ownership.</p>
   {% include 'library/document_review_status.html' with revision=candidate.revision %}
   <form method="post">
     {% csrf_token %}

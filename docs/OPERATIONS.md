@@ -150,6 +150,17 @@ or reader selection was changed. This is a local deployment, not a public
 release; UI/UX acceptance remains incomplete as recorded in the handoff and
 assessment.
 
+Annotation retirement deployment (2026-11-11): the source checkout is serving
+on `127.0.0.1:8765`; the web process was restarted with no migration or worker
+change. The home and an existing article reader returned HTTP 200; article and
+book fixture tests confirmed the reader HTML contains no retired UI/data URL.
+Legacy collection GET/POST, detail PATCH/DELETE and preserved-page GET returned
+HTTP 410 without CSRF tokens. The separate port-8000 service was not touched.
+No live content, account, annotation or reader-selection records were changed.
+The isolated R1-R4 suite and migration consistency check passed; no authenticated
+browser/network trace or human accessibility review was performed. This is a
+local deployment, not a public release.
+
 Navigation/dark-theme local deployment (2026-11-09): release `0e14b01` now
 serves `127.0.0.1:8765` from `data/releases/0e14b01`, retaining the existing
 data root and editor-pilot setting. Locked frontend dependencies and the editor

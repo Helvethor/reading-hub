@@ -1,170 +1,119 @@
-from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
+from django.urls import reverse
 
-from library.annotation_views import matching_selection, reader_text
 from library.models import Annotation, Document, Rendition, Snapshot
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
-class AnnotationTests(TestCase):
-    def test_canonical_text_preserves_browser_whitespace_and_preformatted_text(self):
-        html = "\n\n<p>One &amp; two</p>\n\n  <p>Three</p><!-- comment -->\r\n<pre>\n A\r\n B</pre>"
-        expected = "\n\nOne & two\n\n  Three\n A\n B"
-        self.assertEqual(reader_text(html), expected)
-        start = expected.index("Three")
-        self.assertTrue(matching_selection(html, start, start + 5, "Three"))
-
+class RetiredAnnotationTests(TestCase):
     def setUp(self):
-        self.owner = get_user_model().objects.create_user("owner")
-        self.other = get_user_model().objects.create_user("other", is_staff=True, is_superuser=True)
-        doc = Document.objects.create(url="https://communistusa.org/example/")
-        snapshot = Snapshot.objects.create(document=doc, digest="a" * 64, manifest={})
-        self.html = (
-            "<p>Hello \U0001f412 <em>brave</em> world &amp; friends.</p>\n<p>Second paragraph.</p>"
+        users = get_user_model()
+        self.owner = users.objects.create_user("owner")
+        self.reviewer = users.objects.create_user("reviewer", is_staff=True)
+        self.staff = users.objects.create_superuser("staff", "staff@example.test", "password")
+        document = Document.objects.create(url="https://communistusa.org/example/")
+        snapshot = Snapshot.objects.create(document=document, digest="a" * 64, manifest={})
+        self.version = Rendition.objects.create(
+            document=document,
+            snapshot=snapshot,
+            identity="b" * 64,
+            title="Example",
+            structure={"toc": []},
+            html="<p>Retained article text.</p>",
+            stylesheet="",
+            app_version="test",
+            adapter_version="1",
+            format_version="1",
+            output_digest="c" * 64,
         )
-        fields = {
-            "document": doc,
-            "snapshot": snapshot,
-            "title": "Example",
-            "structure": {"toc": []},
-            "html": self.html,
-            "stylesheet": "",
-            "app_version": "test",
-            "adapter_version": "1",
-            "format_version": "1",
-            "output_digest": "b" * 64,
-        }
-        self.version = Rendition.objects.create(identity="a" * 64, **fields)
-        self.next_version = Rendition.objects.create(identity="b" * 64, **fields)
-        self.url = f"/versions/{self.version.pk}/annotations/"
-        self.data = {
-            "start": 6,
-            "end": 20,
-            "quote": "\U0001f412 brave world",
-            "kind": "highlight",
-            "color": "yellow",
-        }
-        self.client.force_login(self.owner)
+        self.book = Rendition.objects.create(
+            document=document,
+            snapshot=snapshot,
+            identity="d" * 64,
+            title="Example book",
+            structure={"book": True, "toc": []},
+            html="<p>Retained book text.</p>",
+            stylesheet="",
+            app_version="test",
+            adapter_version="1",
+            format_version="1",
+            output_digest="e" * 64,
+        )
+        self.annotation = Annotation.objects.create(
+            owner=self.owner,
+            rendition=self.version,
+            start=0,
+            end=8,
+            quote="PRIVATE_MARK_78F31",
+            kind=Annotation.Kind.HIGHLIGHT,
+            color=Annotation.Color.YELLOW,
+        )
+        self.collection_url = reverse("annotations", args=[self.version.pk])
+        self.detail_url = reverse("annotation", args=[self.version.pk, self.annotation.pk])
+        self.preserved_url = reverse("preserved-annotations")
+        self.record_before = Annotation.objects.values().get(pk=self.annotation.pk)
 
-    def create(self):
-        response = self.client.post(self.url, self.data, content_type="application/json")
-        self.assertEqual(response.status_code, 201, response.content)
-        return response.json()["annotation"]
+    def test_api_routes_are_gone_for_every_role_and_method_without_mutation(self):
+        clients = [Client(enforce_csrf_checks=True) for _ in range(4)]
+        clients[1].force_login(self.owner)
+        clients[2].force_login(self.reviewer)
+        clients[3].force_login(self.staff)
+        methods = ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+        routes = (self.collection_url, self.detail_url)
 
-    def test_utf16_selection_matches_inline_markup_entities_and_unicode(self):
-        self.create()
-        self.assertTrue(matching_selection(self.html, 6, 8, "\U0001f412"))
-        self.assertFalse(matching_selection(self.html, 6, 7, "\U0001f412"))
-        self.assertFalse(matching_selection(self.html, 7, 8, "\U0001f412"))
-        self.assertFalse(matching_selection(self.html, 0, 2**31, "Hello"))
-        self.assertFalse(matching_selection(self.html, 10, 1, "Hello"))
-        self.assertFalse(matching_selection(self.html, 0, 5, "Wrong"))
+        for client in clients:
+            for url in routes:
+                for method in methods:
+                    with self.subTest(user=client, url=url, method=method):
+                        response = client.generic(
+                            method,
+                            url,
+                            data='{"kind":"underline","color":"blue"}',
+                            content_type="application/json",
+                        )
+                        self.assertEqual(response.status_code, 410)
+                        self.assertNotContains(response, self.annotation.quote, status_code=410)
 
-    def test_owner_only_even_for_staff_and_bound_to_exact_version(self):
-        item = self.create()
-        detail = f"{self.url}{item['id']}/"
-        newer = f"/versions/{self.next_version.pk}/annotations/"
-        self.assertEqual(self.client.get(newer).json(), {"annotations": []})
-        self.assertEqual(self.client.delete(f"{newer}{item['id']}/").status_code, 404)
-        self.client.force_login(self.other)
-        self.assertEqual(self.client.get(self.url).json(), {"annotations": []})
-        self.assertEqual(
-            self.client.patch(
-                detail, {"kind": "underline", "color": "blue"}, content_type="application/json"
-            ).status_code,
-            404,
-        )
-        self.assertEqual(self.client.delete(detail).status_code, 404)
-        self.assertTrue(Annotation.objects.filter(pk=item["id"]).exists())
+        self.assertEqual(Annotation.objects.values().get(pk=self.annotation.pk), self.record_before)
 
-    def test_edit_delete_and_overlaps_do_not_modify_cached_html(self):
-        one = self.create()
-        self.data.update(start=9, end=14, quote="brave", kind="underline", color="blue")
-        self.create()
-        url = f"{self.url}{one['id']}/"
-        response = self.client.patch(
-            url, {"kind": "underline", "color": "pink"}, content_type="application/json"
-        )
-        self.assertEqual(response.json()["annotation"]["color"], "pink")
-        self.assertEqual(len(self.client.get(self.url).json()["annotations"]), 2)
-        self.assertEqual(self.client.delete(url).status_code, 200)
-        self.assertEqual(Annotation.objects.count(), 1)
-        self.version.refresh_from_db()
-        self.assertEqual(self.version.html, self.html)
-        self.assertEqual(self.client.delete(url).status_code, 404)
+    def test_pdf_output_does_not_expose_retained_private_quote(self):
+        response = Client().get(reverse("reader-pdf", args=[self.version.pk]))
+        self.assertEqual(response.status_code, 200)
+        pdf = b"".join(response.streaming_content)
+        self.assertNotIn(self.annotation.quote.encode(), pdf)
+        self.assertEqual(Annotation.objects.values().get(pk=self.annotation.pk), self.record_before)
 
-    def test_invalid_fields_anchors_types_styles_and_json_are_rejected(self):
-        for change in [
-            {"owner": self.other.pk},
-            {"rendition": self.next_version.pk},
-            {"quote": "not the selected text"},
-            {"end": 1},
-            {"start": -1},
-            {"end": 99999},
-            {"color": "url(javascript:bad)"},
-            {"kind": "script"},
-            {"quote": "x" * 20001},
-        ]:
-            with self.subTest(change=change):
-                response = self.client.post(
-                    self.url, {**self.data, **change}, content_type="application/json"
-                )
-                self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            self.client.post(self.url, "[]", content_type="application/json").status_code, 400
-        )
-        self.assertEqual(
-            self.client.post(self.url, "{", content_type="application/json").status_code, 400
-        )
-        self.assertEqual(self.client.post(self.url, self.data).status_code, 415)
-        self.assertEqual(Annotation.objects.count(), 0)
+    def test_preserved_page_is_retired_for_all_roles(self):
+        clients = [Client(enforce_csrf_checks=True) for _ in range(4)]
+        clients[1].force_login(self.owner)
+        clients[2].force_login(self.reviewer)
+        clients[3].force_login(self.staff)
 
-    def test_anonymous_session_expiration_csrf_and_method_restrictions(self):
-        anonymous = Client()
-        self.assertEqual(anonymous.get(self.url).status_code, 401)
-        self.assertEqual(
-            anonymous.post(self.url, self.data, content_type="application/json").status_code, 401
-        )
-        self.assertEqual(self.client.put(self.url).status_code, 405)
-        strict = Client(enforce_csrf_checks=True)
-        strict.force_login(self.owner)
-        page = strict.get(f"/versions/{self.version.pk}/")
-        self.assertTrue(strict.cookies["csrftoken"]["httponly"])
-        self.assertEqual(
-            strict.post(self.url, self.data, content_type="application/json").status_code, 403
-        )
-        token = BeautifulSoup(page.content, "html.parser").select_one("[name=csrfmiddlewaretoken]")[
-            "value"
-        ]
-        response = strict.post(
-            self.url, self.data, content_type="application/json", HTTP_X_CSRFTOKEN=token
-        )
-        self.assertEqual(response.status_code, 201)
-        detail = f"{self.url}{response.json()['annotation']['id']}/"
-        self.assertEqual(strict.delete(detail).status_code, 403)
-        self.assertEqual(
-            strict.patch(
-                detail, {"kind": "underline", "color": "pink"}, content_type="application/json"
-            ).status_code,
-            403,
-        )
-        self.assertEqual(strict.delete(detail, HTTP_X_CSRFTOKEN=token).status_code, 200)
+        for client in clients:
+            for method in ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"):
+                with self.subTest(user=client, method=method):
+                    response = client.generic(method, self.preserved_url)
+                    self.assertEqual(response.status_code, 410)
+                    self.assertNotContains(response, self.annotation.quote, status_code=410)
 
-    def test_per_version_limit_is_explicit_and_does_not_limit_other_versions(self):
-        from unittest.mock import patch
+        self.assertEqual(Annotation.objects.values().get(pk=self.annotation.pk), self.record_before)
 
-        self.create()
-        with patch("library.annotation_views.MAX_ANNOTATIONS", 1):
-            self.assertEqual(
-                self.client.post(self.url, self.data, content_type="application/json").status_code,
-                409,
-            )
-            self.assertEqual(
-                self.client.post(
-                    f"/versions/{self.next_version.pk}/annotations/",
-                    self.data,
-                    content_type="application/json",
-                ).status_code,
-                201,
-            )
+    def test_reader_has_no_annotation_ui_or_data_request_for_any_role(self):
+        clients = [Client(), Client(), Client(), Client()]
+        clients[1].force_login(self.owner)
+        clients[2].force_login(self.reviewer)
+        clients[3].force_login(self.staff)
+        for rendition in (self.version, self.book):
+            reader_url = reverse("reader", args=[rendition.pk])
+            for client in clients:
+                with self.subTest(user=client, rendition=rendition.pk):
+                    response = client.get(reader_url)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertNotContains(response, self.annotation.quote)
+                    self.assertNotContains(response, "annotation")
+                    self.assertNotContains(response, "highlight or underline")
+                    self.assertNotContains(response, "annotations.js")
+                    self.assertNotContains(response, self.collection_url)
+
+        self.assertEqual(Annotation.objects.values().get(pk=self.annotation.pk), self.record_before)

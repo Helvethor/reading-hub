@@ -39,10 +39,10 @@ urlpatterns = [
         auth_views.PasswordChangeDoneView.as_view(),
         name="password_change_done",
     ),
-    path("versions/<int:pk>/annotations/", annotation_views.collection, name="annotations"),
+    path("versions/<int:pk>/annotations/", annotation_views.retired, name="annotations"),
     path(
         "versions/<int:pk>/annotations/<int:annotation_id>/",
-        annotation_views.detail,
+        annotation_views.retired,
         name="annotation",
     ),
     path("workers/", worker_views.controls, name="worker-controls"),
@@ -57,7 +57,7 @@ urlpatterns = [
     path("organization/", organization_views.workspace, name="content-organization"),
     path(
         "annotations/preserved/",
-        organization_views.preserved_annotations,
+        annotation_views.retired,
         name="preserved-annotations",
     ),
     path("corrections/people/", correction_views.person_matches, name="correction-person-matches"),
