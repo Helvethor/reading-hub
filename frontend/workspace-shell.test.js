@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
 import {mountWorkspaceShell} from "./workspace-shell.js";
+import {mountWorkflowPanels} from "./workflow-panels.js";
 
 let dom;
 let originalFetch;
@@ -16,7 +17,9 @@ function setup(query = "") {
   dom = new JSDOM(`<!doctype html><body>
     <header class="site-header">Library</header>
     <nav class="review-navigation">Review</nav>
-    <form id="document-editor"><input name="csrfmiddlewaretoken" value="csrf"></form>
+    <form id="document-editor"><input name="csrfmiddlewaretoken" value="csrf">
+      <div id="editor-surface"></div>
+    </form>
     <section id="unified-workspace" data-initial-tab="${initialTab}"
       data-read-url="/versions/12/editor/read-preview/"
       data-pdf-url="/versions/12/editor/draft.pdf"
@@ -35,7 +38,7 @@ function setup(query = "") {
         <p id="workspace-action-status"></p>
       </div>
       <section id="workspace-panel-read"><div id="workspace-read-content"></div></section>
-      <section id="workspace-panel-edit"><h2>Edit content</h2><div id="editor-surface"></div></section>
+      <section id="workspace-panel-edit"><h2>Edit content</h2></section>
       <section id="workspace-panel-versions"><div id="workspace-versions-content"></div></section>
       <section id="workspace-panel-sources"><div id="workspace-sources-content"></div></section>
       <button id="workspace-back-to-top" hidden>Back to top</button>
@@ -160,8 +163,14 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   const form = setup("?tab=versions");
   const responses = [
     `<div class="document-lineage"><h1>Versions</h1><nav class="work-navigation">Old tabs</nav>
-      <div class="lineage-workspace"><a href="/documents/5/lineage/?filter=all&amp;selected=history%3Aone#lineage-inspection">Inspect history</a></div></div>`,
-    `<div class="document-lineage"><h1>Inspect history</h1><div class="lineage-workspace">Selected only</div></div>`,
+      <div class="lineage-workspace">
+        <a href="/documents/5/lineage/?filter=all&amp;selected=history%3Aone#lineage-inspection">Inspect history</a>
+        <a href="/versions/12/editor/publication/" data-workflow-panel="Publication preview">Publish</a>
+      </div></div>`,
+    `<div class="document-lineage"><h1>Inspect history</h1><div class="lineage-workspace">
+      Selected only
+      <a href="/versions/12/editor/publication/" data-workflow-panel="Publication preview">Publish</a>
+    </div></div>`,
   ];
   const requests = [];
   globalThis.fetch = async url => {
@@ -177,6 +186,9 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   const panel = document.querySelector("#workspace-panel-versions");
   assert.match(panel.textContent, /Versions/);
   assert.doesNotMatch(panel.textContent, /Old tabs/);
+  const publicationLink = panel.querySelector('[data-workflow-panel="Publication preview"]');
+  assert.ok(publicationLink);
+  assert.equal(publicationLink.target, "");
   assert.equal(document.querySelector("iframe"), null);
   panel.querySelector("a").click();
   await new Promise(resolve => setTimeout(resolve, 10));
@@ -186,6 +198,14 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   assert.equal(new URL(location.href).searchParams.get("versions_selected"), "history:one");
   assert.equal(requests.length, 2);
   assert.equal(document.querySelector("#editor-surface").innerHTML, "");
+  dom.window.HTMLDialogElement.prototype.showModal = function() { this.open = true; };
+  mountWorkflowPanels({form, showError: assert.fail, isDirty: () => false});
+  panel.querySelector('[data-workflow-panel="Publication preview"]').click();
+  const workflowPanel = document.querySelector("dialog");
+  assert.equal(workflowPanel.open, true);
+  const workflowUrl = new URL(workflowPanel.querySelector("iframe").src);
+  assert.equal(workflowUrl.pathname, "/versions/12/editor/publication/");
+  assert.equal(workflowUrl.searchParams.get("embedded"), "1");
 });
 
 test("PDF request body is captured before later editor changes", async () => {

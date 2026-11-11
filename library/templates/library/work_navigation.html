@@ -1,16 +1,10 @@
+{% if can_edit_work and version %}
 <nav class="work-navigation" aria-label="Work destinations">
-  {% if reader_target %}
-  <a href="{% url 'reader' reader_target.pk %}"{% if active_work_tab == "read" %} aria-current="page"{% endif %}>Read</a>
-  {% elif version %}
-  <a href="{% url 'reader' version.pk %}"{% if active_work_tab == "read" %} aria-current="page"{% endif %}>Read</a>
-  {% else %}<span aria-disabled="true">Read unavailable</span>{% endif %}
-  {% if can_edit_work and version %}
-  {% with edit_version=reader_target|default:version %}
-  <a href="{% url 'document-editor' edit_version.pk %}{% if draft %}?draft={{ draft.pk }}{% else %}?start=source{% endif %}"{% if active_work_tab == "edit" %} aria-current="page"{% endif %}>Edit</a>
+  {% with workspace_version=reader_target|default:version %}
+  <a href="{% url 'document-editor' workspace_version.pk %}?tab=read"{% if active_work_tab == "read" %} aria-current="page"{% endif %}>Read</a>
+  <a href="{% url 'document-editor' workspace_version.pk %}?tab=edit"{% if active_work_tab == "edit" %} aria-current="page"{% endif %}>Edit</a>
+  <a href="{% url 'document-editor' workspace_version.pk %}?tab=versions"{% if active_work_tab == "versions" %} aria-current="page"{% endif %}>Versions</a>
+  <a href="{% url 'document-editor' workspace_version.pk %}?tab=sources"{% if active_work_tab == "sources" %} aria-current="page"{% endif %}>Sources</a>
   {% endwith %}
-  {% endif %}
-  {% if version %}
-  <a href="{% url 'document-lineage' version.document_id %}?filter=all&amp;selected=edition%3A{{ version.pk }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "versions" %} aria-current="page"{% endif %}>Versions</a>
-  <a href="{% url 'document-lineage' version.document_id %}?filter=sources&amp;selected=snapshot%3A{{ version.snapshot_id }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "sources" %} aria-current="page"{% endif %}>Sources</a>
-  {% endif %}
 </nav>
+{% endif %}

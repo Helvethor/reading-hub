@@ -120,6 +120,8 @@ def workspace(request, pk):
                 query = f"?draft={candidate.pk}"
                 if request.GET.get("embedded") == "1":
                     query += "&embedded=1"
+                if request.GET.get("tab") in {"read", "edit", "versions", "sources"}:
+                    query += f"&tab={request.GET['tab']}"
                 return redirect(target + query)
             if not candidate:
                 source_draft = publication.revision.draft
@@ -143,6 +145,8 @@ def workspace(request, pk):
                     )
                 if request.GET.get("embedded") == "1":
                     query += "&embedded=1"
+                if request.GET.get("tab") in {"read", "edit", "versions", "sources"}:
+                    query += f"&tab={request.GET['tab']}"
                 return redirect(target + query)
         if not draft_id and request.GET.get("start") != "source":
             choices = list(histories[:2])

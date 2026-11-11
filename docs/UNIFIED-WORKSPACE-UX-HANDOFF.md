@@ -73,6 +73,16 @@ became hidden, and keyboard activation focused the article. The same outcome
 was observed with reduced motion enabled. This does not validate the
 authenticated workspace sticky stack or the broader V1-V16 matrix.
 
+Follow-up review found that the reader's reviewer navigation still linked
+Versions and Sources to their former standalone routes, and workflow actions
+inside those workspace tabs were being converted into new-tab links. Reviewer
+work navigation now enters the corresponding tab in the unified editor shell;
+read-only visitors see only Read in that work navigation. Contextual workflow
+actions retain their in-shell dialog behavior. Direct lineage URLs remain
+available, but are no longer presented as tabs to read-only visitors. This
+fix is covered by route and frontend tests; authenticated browser acceptance
+remains open.
+
 ## Workspace and state contract
 
 ### Stable shell and explicit identity

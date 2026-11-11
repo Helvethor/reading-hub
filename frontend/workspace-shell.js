@@ -316,11 +316,6 @@ export function mountWorkspaceShell({
     }
     content.querySelector(".work-navigation")?.remove();
     content.querySelector(".work-scope-links")?.remove();
-    for (const link of content.querySelectorAll("a[data-workflow-panel]")) {
-      link.removeAttribute("data-workflow-panel");
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-    }
     const target = lineagePanels[tab];
     const scrollTop = panels.get(tab).scrollTop;
     target.replaceChildren(content);

@@ -31,6 +31,17 @@ class ReviewNavigationTests(TestCase):
             [link.get_text(strip=True) for link in soup.select(".work-navigation a")],
             ["Read", "Edit", "Versions", "Sources"],
         )
+        workspace_url = reverse("document-editor", args=[version.pk])
+        self.assertEqual(
+            {
+                link.get_text(strip=True): link["href"]
+                for link in soup.select(".work-navigation a")
+            },
+            {
+                tab.title(): f"{workspace_url}?tab={tab}"
+                for tab in ("read", "edit", "versions", "sources")
+            },
+        )
         self.assertIsNone(soup.select_one(".reader-review-entry"))
         review_link = soup.select_one('.primary-navigation a[href*="review_version"]')
         self.assertEqual(
@@ -41,6 +52,8 @@ class ReviewNavigationTests(TestCase):
         self.client.force_login(self.reader)
         response = self.client.get(reverse("reader", args=[version.pk]))
         self.assertNotContains(response, "Review this work")
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertIsNone(soup.select_one(".work-navigation"))
         self.assertEqual(self.client.get(reverse("work-review")).status_code, 403)
         self.client.logout()
         self.assertEqual(self.client.get(reverse("work-review")).status_code, 302)
@@ -65,7 +78,8 @@ class ReviewNavigationTests(TestCase):
         self.assertIn(f"review_version={version.pk}", response.url)
         response = self.client.get(response.url, follow=True)
         self.assertIsNone(self.menu(response))
-        self.assertContains(response, 'aria-label="Work destinations"')
+        self.assertContains(response, 'aria-label="Work workspace"')
+        self.assertNotContains(response, 'aria-label="Work destinations"', html=False)
         self.assertContains(response, 'id="editor-source-open"')
         capture = CrawlCapture.objects.get()
         response = self.client.get(

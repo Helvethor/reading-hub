@@ -133,6 +133,10 @@ work views. U1/U2 delivery/evidence above is historical, not proof of this outco
   revision, semantic-content, retained-asset and no-persistence checks.
 - [x] Move Versions/Sources inspection in place and add compact reader/workspace
   navigation plus active-content Back to top and print/PDF exclusions.
+- [x] Route reviewer work navigation into the corresponding unified tab; keep
+  contextual workflow actions inside the editor's same-page workflow dialog.
+  Read-only visitors now see no links to the old standalone Versions/Sources
+  pages in the work navigation; direct lineage URLs remain available.
 - [x] Pass 284 frontend tests, 89 focused Django tests from the workspace
   baseline, and 72 current publication/workflow tests; production build, Ruff,
   Django checks, migration consistency, and read-only compatibility for retained

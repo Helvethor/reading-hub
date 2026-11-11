@@ -198,7 +198,7 @@ M15-M18 supersede older single-default/profile-panel direction once implemented,
 with an explicit compatibility plan rather than silent preference migration.
 This handoff authorizes documentation only, not implementation or deployment.
 
-### Unified version workspace (handoff 2026-11-11; planned)
+### Unified version workspace (handoff 2026-11-11; implementation present; acceptance partial)
 
 The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V16
 acceptance. A stable header distinguishes current exact content, working draft,
@@ -216,7 +216,12 @@ private export artifacts. Publication still requires exact saved content; its
 specific reader/PDF links must not resolve a newer unsaved draft. Shared controls
 retain consistent placement across views. This direction supersedes conflicting
 separate-page requirements, not preservation rules or historical evidence.
-Current authorization covers documentation only.
+Reviewer work navigation opens the corresponding tab in the unified editor;
+read-only visitors do not see navigation links to standalone Versions/Sources
+pages. Contextual workflow actions remain in the editor's same-page dialog.
+Direct lineage URLs remain available. Full V1-V16 acceptance remains partial;
+local implementation/deployment is authorized, but remote deployment and live
+publication/default changes are not.
 
 Scroll-reachability extension (2026-11-11): relevant application header,
 work/version context and tabs, and current-view command bars compact and stack

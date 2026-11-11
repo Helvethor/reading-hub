@@ -182,12 +182,12 @@ class DocumentLineageTests(TestCase):
 
         self.client.force_login(self.reviewer)
         response = self.client.get(
-            reverse("document-editor", args=[publication.rendition_id]),
+            reverse("document-editor", args=[publication.rendition_id]) + "?tab=versions",
         )
         self.assertRedirects(
             response,
             reverse("document-editor", args=[self.rendition.pk])
-            + f"?draft={self.draft.pk}",
+            + f"?draft={self.draft.pk}&tab=versions",
         )
         reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
         self.assertContains(reader, "A work")
