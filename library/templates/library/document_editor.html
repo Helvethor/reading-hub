@@ -4,13 +4,13 @@
 {% block head %}
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}">
+<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-title-facts">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
   <h1>Editor</h1>
-  {% include "library/work_context.html" with active_work_tab="edit" %}
   <p class="muted editor-scope">Editing version {{ version.pk }} creates immutable saved versions. Publication is separate; source evidence, catalogue membership and older editions are unchanged.</p>
   {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
   {% if evaluation_run %}<p class="notice">Isolated evaluation working draft. <a href="{% url 'reviewer-run' evaluation_run.pk %}" target="_blank" rel="noopener">Task instructions and result form (new tab)</a>. Save here before recording a result; evaluation does not publish or verify.</p>
@@ -19,6 +19,60 @@
   {% if draft.evidence.correction_origin %}<p class="notice">Starting from saved version {{ draft.evidence.correction_origin.revision }} of another correction history. Its content is retained exactly; review approval is not inherited.</p>{% endif %}
   {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
   {% if initial %}
+  <section class="unified-workspace" id="unified-workspace"
+    data-initial-tab="{{ request.GET.tab|default:'edit' }}"
+    data-read-url="{% url 'document-editor-read-preview' version.pk %}"
+    data-pdf-url="{% url 'document-editor-draft-pdf' version.pk %}"
+    data-versions-url="{% url 'document-lineage' version.document_id %}?filter=all&amp;selected=edition%3A{{ version.pk }}&amp;embedded=1"
+    data-sources-url="{% url 'document-lineage' version.document_id %}?filter=sources&amp;selected=snapshot%3A{{ version.snapshot_id }}&amp;embedded=1"
+    data-lineage-path="{% url 'document-lineage' version.document_id %}"
+    data-reading-style-url="{{ reading_style_url }}"
+    data-version-id="{{ version.pk }}"
+    data-reader-id="{{ reader_target.pk|default:'' }}">
+    <div class="workspace-chrome">
+      <header class="workspace-context" aria-label="Current work and draft">
+        <div class="workspace-identity">
+          <p class="eyebrow">WORKSPACE</p>
+          <h2>{{ initial.document.title }}</h2>
+          <p id="workspace-baseline-state">
+            {% if choose_history %}
+              Choose a working copy in Versions, or explicitly start from saved edition {{ version.pk }}.
+            {% elif draft %}
+              Working copy based on saved edition {{ version.pk }}.
+              {% if initial.revision %}Latest saved draft revision {{ initial.revision }}.{% else %}No saved draft version yet.{% endif %}
+            {% else %}
+              Starting from saved edition {{ version.pk }}. No working copy has been created.
+            {% endif %}
+          </p>
+          <p id="workspace-save-state" role="status">
+            {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
+          </p>
+          <p class="workspace-reader-default">
+            Reader default:
+            {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
+          </p>
+        </div>
+        <div class="workspace-actions" role="group" aria-label="Workspace actions">
+          <button type="button" id="workspace-download-pdf">Download current draft PDF</button>
+          {% if reader_target %}
+          <a class="button secondary" href="{% url 'reader' reader_target.pk %}" target="_blank" rel="noopener noreferrer">Open saved reader default</a>
+          {% endif %}
+        </div>
+      </header>
+      <div class="workspace-tabs" role="tablist" aria-label="Work workspace">
+        <button type="button" role="tab" id="workspace-tab-read" aria-controls="workspace-panel-read" data-workspace-tab="read" aria-selected="false" tabindex="-1">Read</button>
+        <button type="button" role="tab" id="workspace-tab-edit" aria-controls="workspace-panel-edit" data-workspace-tab="edit" aria-selected="true">Edit</button>
+        <button type="button" role="tab" id="workspace-tab-versions" aria-controls="workspace-panel-versions" data-workspace-tab="versions" aria-selected="false" tabindex="-1">Versions</button>
+        <button type="button" role="tab" id="workspace-tab-sources" aria-controls="workspace-panel-sources" data-workspace-tab="sources" aria-selected="false" tabindex="-1">Sources</button>
+      </div>
+      <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
+    </div>
+    <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1" hidden>
+      <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
+        <p>Select Read to render the current editor content. This does not save or publish it.</p>
+      </div>
+    </section>
+    <section class="workspace-view-panel" id="workspace-panel-edit" role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1">
   <details class="editor-book-structure">
     <summary>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
     <p>This is the unchanged source structure, not the current edited order. Manage corrected sections directly in the left Book outline: move, add or restore sections, repair headings into sections, and edit title/URL/role. These changes save with the document and publish only after separate confirmation.</p>
@@ -32,7 +86,7 @@
     <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" target="_blank" rel="noopener noreferrer">Catalogue book membership (separate page)</a> controls URL ownership only, not this draft's sections. Regenerated editions never replace pending or saved editor corrections.</p>
   </details>
   <div class="editor-workspace" data-editor-tab="editor">
-    <div class="editor-tabs" role="tablist" aria-label="Editor workspace">
+    <div class="editor-tabs" role="tablist" aria-label="Edit tools">
       <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
       <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
@@ -468,6 +522,19 @@
   </dialog>
   {{ initial|json_script:"document-editor-initial" }}
   <noscript><p class="error">The semantic editor requires JavaScript. Saved history and retained evidence remain available; obsolete source-editing pages do not accept changes.</p></noscript>
+    </div>
+    <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-versions" role="tabpanel" aria-labelledby="workspace-tab-versions" tabindex="-1" hidden>
+      <div id="workspace-versions-content" aria-live="polite">
+        <p>Select Versions to inspect saved editions, working copies and review evidence.</p>
+      </div>
+    </section>
+    <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-sources" role="tabpanel" aria-labelledby="workspace-tab-sources" tabindex="-1" hidden>
+      <div id="workspace-sources-content" aria-live="polite">
+        <p>Select Sources to inspect retained captures and their relationship to this edition.</p>
+      </div>
+    </section>
+    <button type="button" class="workspace-back-to-top" id="workspace-back-to-top" hidden>Back to top</button>
+  </section>
   {% endif %}
 </div>
 {% endblock %}

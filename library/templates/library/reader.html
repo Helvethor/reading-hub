@@ -3,10 +3,10 @@
 {% block title %}{{ version.title }} | {{ site.name }}{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-toc"><link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endblock %}
 {% block content %}
+{% include 'library/work_context.html' with active_work_tab="read" %}
 <div class="reader-toolbar">
   <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}" data-reading-pdf>Download PDF</a>
 </div>
-{% include 'library/work_context.html' with active_work_tab="read" %}
 {% include 'library/reading_style_controls.html' %}
 <div class="reader-layout">
   <details class="print-options">
@@ -36,7 +36,7 @@
     </section>
     {% endif %}
     {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
-    <article class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+    <article id="reader-article" class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
     {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
     </div>
     <details class="version-details">
@@ -55,4 +55,6 @@
     </details>
   </div>
 </div>
+<button type="button" class="reader-back-to-top" id="reader-back-to-top" aria-controls="reader-article" hidden>Back to top</button>
 {% endblock %}
+{% block scripts %}<script type="module" src="{% static 'library/reader-workspace.js' %}?v={{ app_version }}"></script>{% endblock %}

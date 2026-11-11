@@ -10,6 +10,7 @@ import {textFields} from "./metadata-fields.js";
 import {mountDifferenceControls} from "./diff-controls.js";
 import {mountWorkflowPanels} from "./workflow-panels.js";
 import {mountEditorTabs} from "./editor-tabs.js";
+import {mountWorkspaceShell} from "./workspace-shell.js";
 
 const form = document.querySelector("#document-editor");
 if (form) {
@@ -36,7 +37,7 @@ if (form) {
   const pasteFormatInsert = document.querySelector("#editor-paste-insert-formatted");
   let pendingPaste = null;
   let storageKey = `${form.dataset.recoveryKey}:${initial.draft || initial.approval_digest}`;
-  let editor, dirty = false, saving = false;
+  let editor, dirty = false, saving = false, workspaceShell = null;
   let recoverable = null;
   let structuredMetadata = null;
   let sourceTickets = [];
@@ -134,6 +135,9 @@ if (form) {
   function remember() {
     dirty = true;
     updatePublication();
+    workspaceShell?.updateState({
+      draft: initial.draft, revision: initial.revision, dirty,
+    });
     status.textContent = "Unsaved edits. The original edition is unchanged.";
     try {
       sessionStorage.setItem(storageKey, JSON.stringify({
@@ -179,9 +183,21 @@ if (form) {
     differences = mountDifferenceControls(form, editor, initial, showError);
     mountWorkflowPanels({
       form, showError, isDirty: () => dirty,
-      chooseHistory: initial.choose_history === true, historyUrl: historyLink.href,
+      chooseHistory: false, historyUrl: historyLink.href,
     });
     mountSourcePanel(form, editor, showError, () => initial.draft);
+    workspaceShell = mountWorkspaceShell({
+      form,
+      getSnapshot: () => ({
+        draft: initial.draft,
+        revision: initial.revision,
+        document: documentValue(),
+        source_tickets: sourceTickets,
+      }),
+      initialDraft: initial.draft,
+      initialRevision: initial.revision,
+      initialChooseHistory: initial.choose_history === true,
+    });
     status.textContent = `Fidelity check passed. Saved draft revision: ${initial.revision}.`;
     function updateSavedReview() {
       document.querySelector("#editor-saved-review").textContent = initial.saved_review
@@ -362,6 +378,9 @@ if (form) {
           selectReview("partial");
           refreshSections([]);
         }
+        workspaceShell?.updateState({
+          draft: initial.draft, revision: initial.revision, dirty,
+        });
         const url = new URL(location.href);
         url.searchParams.set("draft", result.draft);
         history.replaceState(null, "", url);

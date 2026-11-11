@@ -1,0 +1,39 @@
+<section class="workspace-read-preview" aria-labelledby="workspace-preview-heading">
+  <header class="workspace-preview-heading">
+    <p class="eyebrow">PRIVATE WORKSPACE PREVIEW</p>
+    <h2 id="workspace-preview-heading">Draft preview: {{ version.title }}</h2>
+    <p role="status">
+      {% if preview_is_unsaved %}Unsaved editor changes are shown; nothing has been saved or published.
+      {% elif preview_has_draft %}Showing saved draft revision {{ preview_saved_revision }}; nothing has been published.
+      {% else %}Showing the current source proposal; no working draft or saved version was created.{% endif %}
+    </p>
+  </header>
+  <div class="reader-layout">
+    <aside class="toc-panel" aria-label="Draft navigation">
+      <details open>
+        <summary>On this draft</summary>
+        <nav aria-label="Draft table of contents">
+          {% if toc %}{% include 'library/toc.html' with nodes=toc %}{% else %}<p class="muted">No section headings in this draft.</p>{% endif %}
+        </nav>
+      </details>
+    </aside>
+    <div class="reading-column">
+      <div class="publication-content">
+        <header class="document-header document-header-{{ book_pages.title_layout }}">
+          <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} · DRAFT PREVIEW</p>
+          <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
+          {% include 'library/document_metadata.html' %}
+        </header>
+        {% if version.warnings %}
+        <section class="notice warning" aria-label="Import warnings">
+          <h2>Some images could not be saved</h2>
+          <ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+        </section>
+        {% endif %}
+        {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
+        <article class="reader-content" tabindex="0" aria-label="Draft text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+        {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
+      </div>
+    </div>
+  </div>
+</section>

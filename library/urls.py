@@ -103,6 +103,16 @@ urlpatterns = [
     path("versions/<int:pk>/", views.reader, name="reader"),
     path("versions/<int:pk>/editor/", document_editor_views.workspace, name="document-editor"),
     path(
+        "versions/<int:pk>/editor/read-preview/",
+        document_editor_views.workspace_preview,
+        name="document-editor-read-preview",
+    ),
+    path(
+        "versions/<int:pk>/editor/draft.pdf",
+        document_editor_views.workspace_pdf,
+        name="document-editor-draft-pdf",
+    ),
+    path(
         "versions/<int:pk>/editor/membership/",
         organization_views.editor_membership,
         name="document-editor-membership",

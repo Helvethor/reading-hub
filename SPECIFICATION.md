@@ -43,8 +43,11 @@ Keep directly addressable state URLs and browser history without remounting the
 editor on tab changes; tabs use keyboard-operable tab semantics. Existing public
 immutable reader/PDF URLs remain compatible. Catalogue membership remains a
 separate reviewer page with explicit global scope. Save, Publish, Refresh and
-Attach are operations, never navigation tabs. This workspace is specified, not
-implemented; existing page-level behavior is historical implementation evidence.
+Attach are operations, never navigation tabs. The unified workspace shell and
+request-time draft Read/PDF projections are implemented; V1-V16 acceptance is
+still partial. See [Tasks](TASKS.md) and the [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md)
+for verified behavior and remaining browser/accessibility evidence. Earlier
+page-level behavior is historical implementation evidence, not proof of acceptance.
 
 **Reading and discovery:** prioritize returning to saved works over promotional
 introductions and import guidance. Saved works must be reachable without scrolling

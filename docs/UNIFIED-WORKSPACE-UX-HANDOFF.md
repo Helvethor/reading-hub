@@ -1,7 +1,10 @@
 # UX milestone V: unified version workspace
 
 Direction and documentation requested 2026-11-11.
-Status: specified; implementation and acceptance not started.
+Status: core implementation is present; V1-V16 acceptance remains partial.
+The later user instruction to implement R, A, V, then P supersedes this
+handoff's original documentation-only authorization. Local deployment is
+authorized; remote publication, migrations and live content mutation are not.
 
 ## Outcome, authority and supersession
 
@@ -10,8 +13,8 @@ draft, switches between Read, Edit, Versions and Sources without losing state,
 reads the current unsaved content, and exports a PDF of that same content.
 The current version/draft and its relationship to the reader default are explicit.
 
-This request authorizes documentation only, not implementation, deployment,
-release, migration, publication, live-data mutation or Git push. Future mutation
+The original request authorized documentation only. The later implementation
+instruction supersedes that scope for local code and deployment. Future mutation
 acceptance uses isolated fixtures. Follow repository preservation and validated
 local checkpoint agreements.
 
@@ -30,7 +33,7 @@ historical; outstanding acceptance remains open.
 
 ## Starting evidence
 
-Code inspection on 2026-11-11 found separate work-navigation links, a Read link
+Historical code inspection on 2026-11-11 found separate work-navigation links, a Read link
 that can select the reader default rather than current editing content, a
 reader-only toolbar positioned outside shared context, and local editor tabs
 that do not encompass the four work views. The PDF endpoint exports a retained
@@ -39,8 +42,29 @@ rendition; it is not an unsaved-draft export path.
 Existing foundations include semantic editor serialization, local recovery,
 live generated title/contents views, same-page inspection panels and exact
 saved-content continuation. Reuse these, but do not describe them as the complete
-unified workspace. Evidence is code inspection, not authenticated browser
-acceptance; the shared browser was at sign-in. No application changes were made.
+unified workspace. That baseline evidence was code inspection, not authenticated
+browser acceptance; the shared browser was at sign-in. It preceded the
+implementation summarized below.
+
+## Implementation and validation status
+
+The editor now has one persistent Read/Edit/Versions/Sources shell with explicit
+saved, draft, unsaved and reader-default identities. Read and PDF capture the
+current semantic document at request time; authenticated backend handlers reject
+stale revisions, invalid content, unbound assets and another reviewer's draft.
+They do not save, publish, select a reader default or use the shared immutable
+PDF cache. Versions/Sources inspection loads into the shell without replacing the
+editor. The retained public reader now has a compact navigation stack and
+Back-to-top control. This records implementation, not full V acceptance.
+
+Automated validation includes the focused editor/lineage/selection/print Django
+suite, frontend regressions, production asset build, Ruff, Django and migration
+checks, read-only editor compatibility on retained edition 101, and a real PDF
+generated from an isolated synthetic article fixture with mutation-count and
+content assertions. Additional workspace/reader UI tests use jsdom and mocked
+requests; they do not prove browser layout, authenticated article/book journeys,
+retained-media PDF output, branch/reviewer preservation or human accessibility.
+Those V1-V16 checks remain open and must be recorded only after observation.
 
 ## Workspace and state contract
 
@@ -271,4 +295,5 @@ U1/U2, article hierarchy or publication-default acceptance from this milestone a
 
 No automatic saves/publication, live content conversion, collaboration/autosync
 service, framework rewrite, new version ancestry model, draft annotation remapping,
-automatic branch merge, catalogue mutation, public exposure or deployment.
+automatic branch merge, catalogue mutation, public exposure or remote deployment.
+Local deployment is authorized by the later implementation instruction.

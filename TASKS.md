@@ -119,25 +119,28 @@ Defer automatic H2 wrapping, bulk article conversion and source-title cleanup.
 
 ## UX milestone V: unified version workspace (2026-11-11)
 
-**Status:** direction specified; implementation and acceptance not started.
+**Status:** core implementation and focused validation are present; V1-V16
+acceptance remains partial. No publication-default work from P is included.
 The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns
 V1-V16 acceptance and supersedes earlier separate-page requirements for the four
 work views. U1/U2 delivery/evidence above is historical, not proof of this outcome.
 
-- [ ] Deliver stable version/draft identity above persistent Read/Edit/Versions/
-  Sources tabs and consistently placed shared actions.
-- [ ] Preserve editor instance/state, history and recovery across tabs; distinguish
-  immutable version, unchanged draft, unsaved changes and saved baseline.
-- [ ] Render current unsaved content in Read and export validated request-time
-  draft PDFs without implicit save/publication or shared-cache leakage.
-- [ ] Separate history/source inspection from guarded version switching; preserve
-  exact public links, retained private data, permissions and other working copies.
-- [ ] Keep navigation/context/command bars reachable through a coordinated compact
-  scroll stack, with dynamic anchor/focus offsets and state-safe transitions.
-- [ ] Add active-content Back to top with keyboard/focus/reduced-motion safety;
-  validate nested scrolling, constrained screens and print/PDF exclusion.
-- [ ] Validate V1-V16 through isolated article/book journeys, focused regressions,
-  actual browser/PDF evidence and preservation assertions; checkpoint validated work.
+- [x] Deliver persistent Read/Edit/Versions/Sources tabs with explicit saved,
+  draft, unsaved and reader-default identities and common actions.
+- [x] Keep the editor mounted while switching tabs; preserve local state, history,
+  recovery and guarded context changes.
+- [x] Add validated request-time Read and draft-PDF projections with reviewer,
+  revision, semantic-content, retained-asset and no-persistence checks.
+- [x] Move Versions/Sources inspection in place and add compact reader/workspace
+  navigation plus active-content Back to top and print/PDF exclusions.
+- [x] Pass 283 frontend tests, 89 focused Django tests (including a real PDF from
+  an isolated synthetic article fixture), production build, Ruff, Django checks,
+  migration consistency, and read-only compatibility for retained edition 101.
+- [ ] Observe an authenticated end-to-end article and media-rich multi-chapter
+  book journey through edit, Read, PDF, Versions/Sources, save and recovery.
+- [ ] Validate V1-V16 across branch/reviewer preservation, browser history,
+  responsive/zoom/anchor/focus/reduced-motion/print behavior and human accessibility;
+  record only outcomes actually observed before claiming V complete.
 
 Coordinate shared shell/entry points with publication milestone P and title
 projection with article milestone A; do not claim those acceptance rows complete

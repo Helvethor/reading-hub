@@ -1,3 +1,4 @@
+import io
 import json
 from unittest.mock import patch
 
@@ -5,9 +6,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from pypdf import PdfReader
 
 from library.models import DocumentDraftBase, DocumentEditRevision, Rendition, Snapshot
 from library.services.document_edits import create_draft
+from library.services.pdf import STYLES, PDFExportError
 from library.services.semantic_documents import canonical_document
 from library.tests import test_document_edits as foundation
 from library.versions import APP_VERSION
@@ -33,6 +36,208 @@ class DocumentEditorViewTests(TestCase):
         }
         return self.client.post(self.url, json.dumps(payload), content_type="application/json")
 
+    def workspace_payload(self, document, *, draft=None, revision=0, source_tickets=None):
+        return {
+            "draft": str(draft.pk) if draft else None,
+            "revision": revision,
+            "document": document,
+            "source_tickets": source_tickets or [],
+        }
+
+    def test_workspace_read_preview_projects_unsaved_semantic_content_without_mutation(self):
+        initial = self.client.get(self.url).context["initial"]
+        document = canonical_document({
+            **initial["document"],
+            "title": "Unsaved preview title",
+            "html": '<section id="c1"><h2 id="heading">Preview heading</h2>'
+            '<p id="prose">Unsaved reader text.</p>'
+            '<p><a href="#prose">Internal link</a></p></section>',
+        })
+        before = (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        )
+        response = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(document)),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        markup = response.json()["html"]
+        self.assertIn("Unsaved preview title", markup)
+        self.assertIn("Unsaved reader text.", markup)
+        self.assertIn("Unsaved editor changes are shown", markup)
+        self.assertRegex(
+            markup,
+            r'href="#workspace-preview-[0-9a-f]{32}-prose"',
+        )
+        self.assertNotIn('id="prose"', markup)
+        self.assertEqual(before, (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        ))
+
+    def test_workspace_preview_rejects_stale_revision_and_other_reviewers_draft(self):
+        document = canonical_document({
+            **self.draft.document, "html": '<section id="c1"><p>Saved revision.</p></section>',
+        })
+        saved = foundation.DocumentEditTests.save(self, value=document)
+        stale = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(document, draft=self.draft, revision=0)),
+            content_type="application/json",
+        )
+        stale_pdf = self.client.post(
+            reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(document, draft=self.draft, revision=0)),
+            content_type="application/json",
+        )
+        self.assertEqual(stale.status_code, 409)
+        self.assertEqual(stale_pdf.status_code, 409)
+
+        other = get_user_model().objects.create_user("other-editor")
+        other_draft = create_draft(self.rendition, other)
+        private_document = canonical_document({
+            **other_draft.document, "html": "<p>Other reviewer private text.</p>",
+        })
+        denied = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(private_document, draft=other_draft)),
+            content_type="application/json",
+        )
+        denied_pdf = self.client.post(
+            reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(private_document, draft=other_draft)),
+            content_type="application/json",
+        )
+        self.assertEqual(denied.status_code, 403)
+        self.assertEqual(denied_pdf.status_code, 403)
+        self.assertNotIn("Other reviewer private text", denied.content.decode())
+        self.assertNotIn("Other reviewer private text", denied_pdf.content.decode())
+        self.assertEqual(saved.revision, 1)
+
+    def test_workspace_preview_rejects_invalid_semantics_and_forged_asset_evidence(self):
+        baseline = self.client.get(self.url).context["initial"]["document"]
+        invalid = {
+            **baseline,
+            "html": '<section id="c1"><p id="reused">First.</p>'
+            '<p id="reused">Second.</p></section>',
+        }
+        forged_ticket = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(baseline, source_tickets=["forged-ticket"])),
+            content_type="application/json",
+        )
+        unsafe_document = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(invalid)),
+            content_type="application/json",
+        )
+        digest = "a" * 64
+        unbound_asset = canonical_document({
+            **baseline, "html": f'<p><img src="/assets/{digest}/" alt="Unbound"></p>',
+        })
+        unbound = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(unbound_asset)),
+            content_type="application/json",
+        )
+        self.assertEqual(forged_ticket.status_code, 422)
+        self.assertEqual(unsafe_document.status_code, 422)
+        self.assertEqual(unbound.status_code, 422)
+        self.assertEqual(DocumentDraftBase.objects.count(), 1)
+        self.assertEqual(DocumentEditRevision.objects.count(), 0)
+
+    def test_workspace_pdf_exports_captured_unsaved_document_without_mutation(self):
+        initial = self.client.get(self.url).context["initial"]
+        document = canonical_document({
+            **initial["document"],
+            "title": "Unsaved PDF title",
+            "html": '<section id="c1"><p>Captured PDF text.</p></section>',
+        })
+        before = (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        )
+
+        def render(version, destination, reading_style, *, theme, approved_assets):
+            self.assertEqual(version.title, "Unsaved PDF title")
+            self.assertIn("Captured PDF text.", version.html)
+            self.assertEqual(approved_assets, {})
+            destination.write(b"%PDF-1.7\\nworkspace")
+
+        with patch("library.services.pdf.render_pdf", side_effect=render) as renderer:
+            response = self.client.post(
+                reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+                json.dumps(self.workspace_payload(document)),
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertIn("Draft preview - Unsaved PDF title.pdf", response["Content-Disposition"])
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.7\\nworkspace")
+        renderer.assert_called_once()
+        self.rendition.refresh_from_db()
+        self.assertEqual(before, (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        ))
+
+    def test_workspace_pdf_returns_a_real_private_pdf_without_persisting_the_draft(self):
+        initial = self.client.get(self.url).context["initial"]
+        document = canonical_document({
+            **initial["document"],
+            "title": "Captured workspace edition",
+            "html": '<section id="c1"><p>Real workspace PDF content.</p></section>',
+        })
+        self.rendition.stylesheet = (STYLES / "reader.css").read_text()
+        self.rendition.save(update_fields=["stylesheet"])
+        before = (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        )
+
+        response = self.client.post(
+            reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(document)),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertIn("Draft preview - Captured workspace edition.pdf",
+                      response["Content-Disposition"])
+        content = b"".join(response.streaming_content)
+        self.assertTrue(content.startswith(b"%PDF-"))
+        extracted = "\n".join(
+            page.extract_text() for page in PdfReader(io.BytesIO(content)).pages
+        )
+        self.assertIn("Captured workspace edition", extracted)
+        self.assertIn("Real workspace PDF content", extracted)
+        self.assertNotIn("Back to top", extracted)
+        self.assertNotIn("Download current draft PDF", extracted)
+        self.rendition.refresh_from_db()
+        self.assertEqual(before, (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        ))
+
+    def test_workspace_pdf_render_failure_is_explicit_and_does_not_fall_back(self):
+        with patch(
+            "library.services.pdf.render_pdf",
+            side_effect=PDFExportError("synthetic renderer failure"),
+        ):
+            response = self.client.post(
+                reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+                json.dumps(self.workspace_payload(self.draft.document)),
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertIn("Draft PDF generation failed", response.json()["error"])
+
     def test_get_does_not_create_evidence_or_publish(self):
         before = DocumentDraftBase.objects.count()
         response = self.client.get(self.url)
@@ -44,17 +249,24 @@ class DocumentEditorViewTests(TestCase):
             self.assertContains(response, f'/static/{asset}?v={APP_VERSION}')
         self.assertContains(response, "Work editor")
         self.assertContains(response, "immutable saved versions")
-        self.assertContains(response, 'aria-label="Work destinations"')
+        self.assertContains(response, 'aria-label="Work workspace"')
+        self.assertContains(response, 'id="workspace-tab-read"')
+        self.assertContains(response, 'id="workspace-tab-edit"')
+        self.assertContains(response, 'id="workspace-tab-versions"')
+        self.assertContains(response, 'id="workspace-tab-sources"')
+        self.assertContains(response, "Reader default:")
+        self.assertContains(response, "Download current draft PDF")
+        self.assertNotContains(response, 'aria-label="Work destinations"', html=False)
         self.assertNotContains(response, 'aria-label="Work reviewer tools"')
         self.assertContains(
             response,
-            f'href="{reverse("document-lineage", args=[self.rendition.document_id])}'
-            f'?filter=all&amp;selected=edition%3A{self.rendition.pk}">Versions</a>',
+            f'data-versions-url="{reverse("document-lineage", args=[self.rendition.document_id])}'
+            f'?filter=all&amp;selected=edition%3A{self.rendition.pk}&amp;embedded=1"',
         )
         self.assertContains(
             response,
-            f'href="{reverse("document-lineage", args=[self.rendition.document_id])}'
-            f'?filter=sources&amp;selected=snapshot%3A{self.rendition.snapshot_id}">Sources</a>',
+            f'data-sources-url="{reverse("document-lineage", args=[self.rendition.document_id])}'
+            f'?filter=sources&amp;selected=snapshot%3A{self.rendition.snapshot_id}&amp;embedded=1"',
         )
         self.assertNotContains(response, 'data-workflow-panel="Versions"')
         self.assertNotContains(response, 'data-workflow-panel="Sources"')
@@ -124,6 +336,14 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'aria-label="Matching document targets"')
         self.assertContains(response, 'id="editor-link"')
         self.assertEqual(DocumentDraftBase.objects.count(), before)
+
+    def test_guest_reader_keeps_the_immutable_route_and_adds_scroll_controls(self):
+        response = Client().get(reverse("reader", args=[self.rendition.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "reader-back-to-top")
+        self.assertContains(response, "reader-workspace.js")
+        self.assertContains(response, "Download PDF")
+        self.assertContains(response, 'aria-label="Work status and destinations"')
 
     def test_unowned_working_copy_requires_explicit_choice(self):
         source = self.rendition

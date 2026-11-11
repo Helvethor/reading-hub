@@ -232,7 +232,7 @@ def running_sections(markup):
     return str(soup)
 
 
-def render_pdf(version, destination, reading_style=None, theme=""):
+def render_pdf(version, destination, reading_style=None, theme="", *, approved_assets=None):
     from django.template.loader import render_to_string
     from weasyprint import CSS, HTML
     from weasyprint.text.fonts import FontConfiguration
@@ -246,10 +246,17 @@ def render_pdf(version, destination, reading_style=None, theme=""):
     from library.views import contents_tree, toc_tree
 
     reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
-    assets = {
-        f"https://reading-hub.invalid/assets/{asset.blob_id}/": asset.blob
-        for asset in version.assets.select_related("blob")
-    }
+    assets = (
+        {
+            f"https://reading-hub.invalid/assets/{asset.blob_id}/": asset.blob
+            for asset in version.assets.select_related("blob")
+        }
+        if approved_assets is None
+        else {
+            f"https://reading-hub.invalid/assets/{digest}/": blob
+            for digest, blob in approved_assets.items()
+        }
+    )
     failures = []
 
     def fetch(url, *args, **kwargs):

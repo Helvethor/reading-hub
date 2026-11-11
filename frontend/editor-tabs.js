@@ -15,6 +15,9 @@ export function mountEditorTabs(form) {
     workspace.dataset.editorTab = name;
     form.hidden = name === "style";
     if (focus) chosen.focus();
+    workspace.dispatchEvent(new CustomEvent("editor-local-tab-change", {
+      detail: {tab: name},
+    }));
   }
   for (const tab of tabs) tab.addEventListener("click", () => select(tab.dataset.editorTab));
   workspace.querySelector('[role="tablist"]').addEventListener("keydown", event => {

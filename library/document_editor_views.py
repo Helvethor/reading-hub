@@ -1,12 +1,15 @@
 import json
+import logging
 import uuid
+from io import BytesIO
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import URLValidator
 from django.db import OperationalError, transaction
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
@@ -28,6 +31,7 @@ from library.services.document_edits import (
     create_draft,
     preview_rendition_import,
     save_revision,
+    saved_source_tickets,
     saved_state,
 )
 from library.services.document_lineage import archived_draft_ids, node_is_archived
@@ -39,6 +43,7 @@ from library.services.editor_sources import (
     retained_url_source,
     source_page,
     source_ticket,
+    ticket_evidence,
 )
 from library.services.errors import ImportFailure
 from library.services.fresh_document_drafts import (
@@ -47,8 +52,11 @@ from library.services.fresh_document_drafts import (
     preview_fresh_draft,
     preview_membership_draft,
 )
-from library.services.semantic_documents import MAX_BYTES
+from library.services.semantic_documents import MAX_BYTES, fingerprint
+from library.services.workspace_preview import prepare_workspace_document
 from library.sources.adapters import adapter_for
+
+logger = logging.getLogger("library")
 
 
 def panel_context(request):
@@ -195,6 +203,238 @@ def workspace(request, pk):
     }, status=422 if error else 200)
     response["Cache-Control"] = "no-store"
     return response
+
+
+def _workspace_snapshot(request, source):
+    if request.content_type != "application/json":
+        raise ValueError("Send an application/json workspace document.")
+    if len(request.body) > MAX_BYTES + 65536:
+        raise ValueError("The workspace request exceeds its size limit.")
+    try:
+        payload = json.loads(request.body)
+    except (TypeError, ValueError, UnicodeDecodeError) as exc:
+        raise ValueError("Send a valid workspace document.") from exc
+    required = {"draft", "revision", "document", "source_tickets"}
+    if (
+        not isinstance(payload, dict) or set(payload) != required
+        or (payload["draft"] is not None and not isinstance(payload["draft"], str))
+        or type(payload["revision"]) is not int or payload["revision"] < 0
+        or not isinstance(payload["source_tickets"], list)
+    ):
+        raise ValueError(
+            "Provide the exact draft, saved revision, semantic document and "
+            "retained source tickets."
+        )
+
+    draft = None
+    if payload["draft"] is None:
+        if payload["revision"] != 0:
+            raise ValueError("An unsaved source proposal starts at revision zero.")
+        baseline = preview_rendition_import(source)["document"]
+        original_metadata = baseline["metadata"]
+        original_structure = source.structure
+        base_assets = list(source.assets.order_by("blob_id").values_list("blob_id", flat=True))
+        inherited_tickets = []
+    else:
+        draft = get_draft(payload["draft"], source)
+        if draft.reviewer_id != request.user.pk:
+            raise PermissionDenied("This working draft belongs to another reviewer.")
+        current = draft.revisions.first()
+        current_revision = current.revision if current else 0
+        if payload["revision"] != current_revision:
+            raise DocumentEditConflict(
+                "The draft changed. Reload before previewing or exporting its content."
+            )
+        baseline = saved_state(draft, current_revision).document
+        original_metadata = draft.document["metadata"]
+        original_structure = draft.evidence.get("structure", source.structure)
+        base_assets = draft.evidence.get("assets")
+        if (
+            not isinstance(base_assets, list)
+            or any(not isinstance(digest, str) for digest in base_assets)
+        ):
+            raise ValueError("The draft's retained asset evidence is unavailable.")
+        inherited_tickets = saved_source_tickets(
+            draft, current if current else draft,
+        )
+
+    ticket_evidence(
+        payload["source_tickets"], rendition=source, draft_id=payload["draft"],
+        revision=payload["revision"], reviewer=request.user, check_scope=True,
+    )
+    extra_assets = ticket_evidence(
+        [*inherited_tickets, *payload["source_tickets"]], rendition=source,
+    )
+    allowed_assets = set(base_assets) | set(extra_assets)
+    prepared = prepare_workspace_document(
+        payload["document"], original_metadata, original_structure, allowed_assets,
+    )
+    return {
+        **prepared,
+        "draft": draft,
+        "baseline": baseline,
+        "is_unsaved": fingerprint(prepared["document"]) != fingerprint(baseline),
+        "saved_revision": payload["revision"],
+        "stylesheet": (
+            draft.evidence.get("stylesheet", source.stylesheet)
+            if draft else source.stylesheet
+        ),
+        "warnings": draft.evidence.get("warnings", source.warnings) if draft else source.warnings,
+    }
+
+
+def _workspace_preview_context(request, source, snapshot):
+    from bs4 import BeautifulSoup
+
+    from library.services.document_metadata import metadata_context, with_metadata_page
+    from library.services.reading_styles import style_context
+    from library.views import contents_tree, toc_tree
+
+    document = snapshot["output_document"]
+    structure = snapshot["structure"]
+    metadata = document["metadata"]
+    book = structure["book"]
+    display_author = metadata.get("author", "").strip() or source_name(source.document.url)
+    soup = BeautifulSoup(snapshot["projection"]["content_html"], "html.parser")
+    identifier_prefix = f"workspace-preview-{uuid.uuid4().hex}-"
+    identifiers = {
+        node["id"]: f"{identifier_prefix}{node['id']}"
+        for node in soup.select("[id]")
+    }
+    for node in soup.select("[id]"):
+        node["id"] = identifiers[node["id"]]
+    for node in soup.select("[href^='#']"):
+        target = node["href"][1:]
+        if target in identifiers:
+            node["href"] = f"#{identifiers[target]}"
+    for node in soup.select(
+        "[aria-labelledby], [aria-describedby], [aria-controls], [aria-owns], [for], [headers]"
+    ):
+        for attribute in (
+            "aria-labelledby", "aria-describedby", "aria-controls", "aria-owns", "for", "headers",
+        ):
+            if attribute in node.attrs:
+                node[attribute] = " ".join(
+                    identifiers.get(value, value)
+                    for value in node[attribute].split()
+                )
+    entries = [
+        {**entry, "id": identifiers.get(entry["id"], f"workspace-preview-{entry['id']}")}
+        for entry in snapshot["projection"]["entries"]
+    ]
+    navigation = with_metadata_page(entries, metadata, book)
+    metadata_page_id = f"{identifier_prefix}metadata-page"
+    while metadata_page_id in identifiers.values():
+        metadata_page_id += "-workspace"
+    for entry in navigation:
+        entry["id"] = (
+            metadata_page_id if entry["id"] == "document-metadata"
+            else identifiers.get(entry["id"], f"{identifier_prefix}{entry['id']}")
+        )
+    metadata_values = metadata_context(
+        metadata, document["title"], display_author, book, source.document.url,
+    )
+    metadata_values["metadata_page_id"] = metadata_page_id
+    version = SimpleNamespace(
+        document=source.document, title=document["title"], metadata=metadata,
+        structure=structure, warnings=snapshot["warnings"], document_publication=None,
+        created_at=source.created_at, app_version=source.app_version,
+        adapter_version=source.adapter_version, format_version=source.format_version,
+    )
+    return {
+        **style_context(request),
+        "version": version,
+        "display_author": display_author,
+        **metadata_values,
+        "content_html": str(soup),
+        "toc": toc_tree(navigation),
+        "contents_toc": contents_tree(entries),
+        "generated_book": bool(book),
+        "preview_is_unsaved": snapshot["is_unsaved"],
+        "preview_has_draft": snapshot["draft"] is not None,
+        "preview_saved_revision": snapshot["saved_revision"],
+    }
+
+
+def _workspace_error(exc, status):
+    response = JsonResponse({"error": str(exc)}, status=status)
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@require_http_methods(["POST"])
+@metadata_reviewer_required
+def workspace_preview(request, pk):
+    source = get_version(pk)
+    try:
+        snapshot = _workspace_snapshot(request, source)
+        from django.template.loader import render_to_string
+
+        markup = render_to_string(
+            "library/workspace_read_preview.html",
+            _workspace_preview_context(request, source, snapshot),
+            request=request,
+        )
+    except DocumentEditConflict as exc:
+        return _workspace_error(exc, 409)
+    except PermissionDenied as exc:
+        return _workspace_error(exc, 403)
+    except (ValueError, ImportFailure, RecursionError, OSError) as exc:
+        return _workspace_error(exc, 422)
+    response = JsonResponse({"html": markup})
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@require_http_methods(["POST"])
+@metadata_reviewer_required
+def workspace_pdf(request, pk):
+    source = get_version(pk)
+    from library.services.pdf import PDFExportError, pdf_filename, render_pdf
+
+    try:
+        snapshot = _workspace_snapshot(request, source)
+        from library.services.reading_styles import selected_style
+        from library.themes import selected_theme
+
+        document = snapshot["output_document"]
+        version = SimpleNamespace(
+            document=source.document, title=document["title"], metadata=document["metadata"],
+            structure=snapshot["structure"], html=document["html"],
+            stylesheet=snapshot["stylesheet"], warnings=snapshot["warnings"],
+            document_publication=None, created_at=source.created_at,
+            app_version=source.app_version, adapter_version=source.adapter_version,
+            format_version=source.format_version,
+        )
+        destination = BytesIO()
+        render_pdf(
+            version, destination, selected_style(request), theme=selected_theme(request),
+            approved_assets=snapshot["assets"],
+        )
+        destination.seek(0)
+        response = FileResponse(
+            destination,
+            content_type="application/pdf",
+            as_attachment=True,
+            filename=pdf_filename(f"Draft preview - {document['title']}"),
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+    except DocumentEditConflict as exc:
+        return _workspace_error(exc, 409)
+    except PermissionDenied as exc:
+        return _workspace_error(exc, 403)
+    except (ValueError, ImportFailure, RecursionError, OSError) as exc:
+        return _workspace_error(exc, 422)
+    except PDFExportError:
+        logger.exception("Unable to export workspace PDF for rendition %s", pk)
+        response = _workspace_error(
+            ValueError("Draft PDF generation failed. The saved version is unchanged."),
+            503,
+        )
+        response["Retry-After"] = "10"
+        return response
 
 
 @require_http_methods(["GET", "POST"])
