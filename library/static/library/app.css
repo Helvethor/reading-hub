@@ -518,6 +518,10 @@ textarea:focus-visible {
 .reader-page .work-context[data-compact="true"] h2 { font-size: .85rem; }
 .reader-page .work-context[data-compact="true"] .work-status { font-size: .78rem; }
 .reader-page .reader-toolbar[data-compact="true"] { padding-block: .35rem; }
+.reader-page .site-header[data-compact="true"] { min-height: 3.5rem; padding-block: .4rem; }
+.reader-page .site-header[data-compact="true"] .brand { font-size: 1.15rem; }
+.reader-page .site-header[data-compact="true"] .brand-mark { width: 28px; height: 30px; }
+.reader-page .site-header[data-compact="true"] .primary-navigation { gap: .5rem; }
 .reader-page .publication-content [id] {
   scroll-margin-top: calc(var(--reader-stack-height, 0px) + 1rem);
 }
