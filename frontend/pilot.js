@@ -413,6 +413,7 @@ if (form) {
       status.textContent = "Choose a working copy, or explicitly start from this source-generated version, before editing.";
     }
   } catch (failure) {
+    console.error("Editor initialization failed:", failure);
     showError(failure.message);
     status.textContent = "Editor unavailable; the original edition and drafts are unchanged.";
   }

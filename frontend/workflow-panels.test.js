@@ -21,9 +21,10 @@ function setup(query = "") {
   return document.querySelector("form");
 }
 
-test("same-page panel preserves pending content, focus, style and browser history", async () => {
+test("same-page panel closes without navigating iframe history", () => {
   const form = setup("?style=chosen-style&style_profile=3");
   const error = [];
+  window.history.replaceState({workspaceTab: "sources"}, "", location.href);
   mountWorkflowPanels({form, showError: value => error.push(value), isDirty: () => true});
   const surface = form.querySelector("#editor-surface");
   surface.scrollTop = 42;
@@ -40,13 +41,17 @@ test("same-page panel preserves pending content, focus, style and browser histor
   assert.equal(new URL(location.href).searchParams.get("panel"), "/versions/1/editor/history/");
   assert.equal(form.querySelector("input").value, "Pending title");
   surface.scrollTop = 0;
-  const closed = new Promise(resolve => window.addEventListener("popstate", resolve, {once: true}));
+  let backCalled = false;
+  window.history.back = () => { backCalled = true; };
   dialog.querySelector("button").click();
-  await closed;
+  assert.equal(backCalled, false);
+  assert.equal(dialog.open, false);
   assert.equal(surface.scrollTop, 42);
   assert.equal(document.activeElement, link);
   assert.equal(dialog.querySelector("iframe").hasAttribute("src"), false);
   assert.equal(new URL(location.href).searchParams.has("panel"), false);
+  assert.equal(window.history.state.workflowPanel, undefined);
+  assert.equal(window.history.state.workspaceTab, "sources");
   assert.deepEqual(error, []);
 });
 

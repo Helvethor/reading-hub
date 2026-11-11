@@ -2,6 +2,7 @@ import io
 import json
 from unittest.mock import patch
 
+from bs4 import BeautifulSoup
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
@@ -241,6 +242,17 @@ class DocumentEditorViewTests(TestCase):
     def test_get_does_not_create_evidence_or_publish(self):
         before = DocumentDraftBase.objects.count()
         response = self.client.get(self.url)
+        document = BeautifulSoup(response.content, "html.parser")
+        workspace = document.select_one("#unified-workspace")
+        self.assertIsNotNone(workspace)
+        for panel in ("read", "edit", "versions", "sources"):
+            self.assertIsNotNone(workspace.select_one(f"#workspace-panel-{panel}"), panel)
+        for panel in ("read", "versions", "sources"):
+            self.assertIsNotNone(
+                workspace.select_one(f"#workspace-panel-{panel} #workspace-{panel}-content"),
+                panel,
+            )
+        self.assertIsNotNone(workspace.select_one("#workspace-back-to-top"))
         for asset in (
             "library/reader.css", "library/reading-style-controls.css",
             "library/generated/editor-pilot.css",

@@ -134,6 +134,8 @@ urlpatterns = [
     ),
     path("versions/<int:pk>/editor/source/",
          document_editor_views.retained_source, name="document-editor-source"),
+    path("versions/<int:pk>/editor/source-inspection/",
+         document_editor_views.inspect_retained_source, name="document-editor-source-inspection"),
     path("review/evaluation/", reviewer_evaluation_views.tasks, name="reviewer-tasks"),
     path(
         "versions/<int:pk>/editor/evaluation/",

@@ -505,6 +505,22 @@ def get_version(pk):
 
 @require_GET
 @metadata_reviewer_required
+def inspect_retained_source(request, pk):
+    source = get_version(pk)
+    try:
+        page = int(request.GET.get("page", "0"))
+        result = source_page(source, page)
+    except (ValueError, ImportFailure, OSError) as exc:
+        return panel_response(request, "library/document_retained_source.html", {
+            "version": source, "error": str(exc),
+        }, status=422)
+    return panel_response(request, "library/document_retained_source.html", {
+        "version": source, "source": result,
+    })
+
+
+@require_GET
+@metadata_reviewer_required
 def retained_source(request, pk):
     source = get_version(pk)
     try:

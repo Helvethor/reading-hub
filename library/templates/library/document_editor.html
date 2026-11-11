@@ -522,7 +522,7 @@
   </dialog>
   {{ initial|json_script:"document-editor-initial" }}
   <noscript><p class="error">The semantic editor requires JavaScript. Saved history and retained evidence remain available; obsolete source-editing pages do not accept changes.</p></noscript>
-    </div>
+    </section>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-versions" role="tabpanel" aria-labelledby="workspace-tab-versions" tabindex="-1" hidden>
       <div id="workspace-versions-content" aria-live="polite">
         <p>Select Versions to inspect saved editions, working copies and review evidence.</p>
@@ -538,4 +538,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v7"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v9"></script>{% endif %}{% endblock %}

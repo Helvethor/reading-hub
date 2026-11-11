@@ -175,3 +175,32 @@ class EditorSourceTests(TestCase):
         with patch("library.document_editor_views.adapter_for",
                    side_effect=ImportFailure("Unavailable", "source")):
             self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_retained_source_inspection_is_read_only_scoped_and_embeddable(self):
+        self.source('<p>Source &amp; evidence &lt;unsafe&gt;.</p><script>bad()</script>')
+        self.rendition.snapshot.save(update_fields=["manifest", "digest"])
+        url = reverse("document-editor-source-inspection", args=[self.rendition.pk])
+        before = (self.rendition.html, SourceExcerptRevision.objects.count())
+        embedded = self.client.get(url, {"embedded": "1", "page": "0"})
+        self.assertContains(embedded, "Source &amp; evidence &lt;unsafe&gt;.")
+        self.assertNotContains(embedded, "<script>bad()</script>")
+        self.assertContains(embedded, 'name="embedded" value="1"')
+        self.assertEqual(embedded["X-Frame-Options"], "SAMEORIGIN")
+        self.assertIn("frame-ancestors 'self'", embedded["Content-Security-Policy"])
+        lineage = self.client.get(
+            reverse("document-lineage", args=[self.rendition.document_id]),
+            {"embedded": "1", "filter": "sources",
+             "selected": f"snapshot:{self.rendition.snapshot_id}"},
+        )
+        self.assertContains(lineage, url + '?page=0&amp;embedded=1"')
+        self.assertContains(lineage, 'data-workflow-panel="Inspect retained source"')
+        standalone = self.client.get(url)
+        self.assertEqual(standalone["X-Frame-Options"], "DENY")
+        self.assertIn("frame-ancestors 'none'", standalone["Content-Security-Policy"])
+        invalid = self.client.get(url, {"embedded": "1", "page": "999"})
+        self.assertContains(invalid, "Choose a retained page", status_code=422)
+        self.assertEqual(invalid["X-Frame-Options"], "SAMEORIGIN")
+        self.assertEqual(self.client.post(url).status_code, 405)
+        self.assertEqual(Client().get(url).status_code, 302)
+        self.rendition.refresh_from_db()
+        self.assertEqual(before, (self.rendition.html, SourceExcerptRevision.objects.count()))

@@ -18,14 +18,12 @@ export function mountWorkflowPanels({
   let returnFocus = null;
   let returnScroll = 0;
   function closePanel() {
-    if (window.history.state?.workflowPanel && new URL(location.href).searchParams.has("panel")) {
-      window.history.back();
-      return;
-    }
     const url = new URL(location.href);
     if (url.searchParams.has("panel")) {
       url.searchParams.delete("panel");
-      window.history.replaceState(window.history.state, "", url);
+      const state = {...window.history.state};
+      delete state.workflowPanel;
+      window.history.replaceState(state, "", url);
     }
     if (dialog.open) dialog.close();
   }
@@ -104,10 +102,11 @@ export function mountWorkflowPanels({
     if (updateHistory) {
       const currentUrl = new URL(location.href);
       currentUrl.searchParams.set("panel", panelRoute);
+      const state = {...window.history.state, workflowPanel: true};
       if (dialog.open || window.history.state?.workflowPanel) {
-        window.history.replaceState({workflowPanel: true}, "", currentUrl);
+        window.history.replaceState(state, "", currentUrl);
       } else {
-        window.history.pushState({workflowPanel: true}, "", currentUrl);
+        window.history.pushState(state, "", currentUrl);
       }
     }
     frame.title = label || "Editor workflow";

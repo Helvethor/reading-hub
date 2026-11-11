@@ -80,8 +80,17 @@ work navigation now enters the corresponding tab in the unified editor shell;
 read-only visitors see only Read in that work navigation. Contextual workflow
 actions retain their in-shell dialog behavior. Direct lineage URLs remain
 available, but are no longer presented as tabs to read-only visitors. This
-fix is covered by route and frontend tests; authenticated browser acceptance
-remains open.
+fix is covered by route and frontend tests.
+
+A subsequent authenticated browser check used edition 96 and a temporary reviewer
+in a copied database. All four reader links opened their matching workspace tab;
+switching tabs preserved an unsaved metadata edit. A malformed Edit-panel closing
+tag had previously placed Versions and Sources outside the workspace in parsed
+HTML, preventing initialization; a rendered-template regression covers the
+hierarchy. In the same isolated session, retained-source inspection and
+regeneration preview opened and closed in the workspace without losing the
+unsaved edit. Source inspection is read-only and shows bounded block previews.
+These observations do not establish the full V1-V16 acceptance matrix.
 
 ## Workspace and state contract
 

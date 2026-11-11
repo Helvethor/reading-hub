@@ -138,7 +138,7 @@
       <h3>Versions sharing this source capture</h3>
       <ul>{% for edition in lineage.selected.related_editions %}
         <li><a href="{{ edition.reader_url }}" target="_blank" rel="noopener noreferrer">{{ edition.label }} · read</a>
-          {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source' edition.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}" data-workflow-panel="Inspect retained source">Inspect retained source</a>{% endif %}
+          {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source-inspection' edition.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Inspect retained source"{% endif %}>Inspect retained source</a>{% endif %}
           {% if can_review and not lineage.selected.context_only and not edition.archived %}· <a href="{% url 'document-fresh-draft' edition.rendition_id %}{% if embedded %}?embedded=1{% endif %}" data-workflow-panel="Preview retained-source regeneration">Preview fresh-source regeneration</a>{% endif %}
           {% if can_review and lineage_filter == "sources" and not embedded and not edition.archived %}
           <form method="post" action="{% url 'reformat' edition.rendition_id %}" class="source-operation">
@@ -163,7 +163,7 @@
       {% endif %}
       {% if lineage.selected.related_generations %}<ul>{% for generation in lineage.selected.related_generations %}
         <li>{{ generation.label }} · no intermediate edition; inspect its correction history in the tree.
-          {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source' generation.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}" data-workflow-panel="Inspect retained source">Inspect retained source</a>{% endif %}
+          {% if can_review and not lineage.selected.context_only %}· <a href="{% url 'document-editor-source-inspection' generation.rendition_id %}?page=0{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Inspect retained source"{% endif %}>Inspect retained source</a>{% endif %}
           {% if can_review and not lineage.selected.context_only and not generation.archived %}· <a href="{% url 'document-fresh-draft' generation.rendition_id %}{% if embedded %}?embedded=1{% endif %}" data-workflow-panel="Preview retained-source regeneration">Preview regeneration from this snapshot</a>{% endif %}</li>
       {% endfor %}</ul>{% endif %}
     {% endif %}

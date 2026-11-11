@@ -1,0 +1,23 @@
+{% extends panel_base %}
+{% block title %}Retained source | {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>Retained source for edition {{ version.pk }}</h1>
+  <p>Read-only source evidence. Text previews are limited to 500 characters per block; inspecting does not change the source or the current draft.</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if source %}
+  <form method="get">
+    {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
+    <label>Retained page
+      <select name="page">{% for page in source.pages %}<option value="{{ page.number }}"{% if page.number == source.page %} selected{% endif %}>{{ page.url }}</option>{% endfor %}</select>
+    </label>
+    <button type="submit">Inspect page</button>
+  </form>
+  <p>Source: {{ source.url }}</p>
+  <p>Source digest: <code>{{ source.source_digest }}</code></p>
+  <ol start="0">
+    {% for block in source.blocks %}<li><strong>{{ block.tag }}</strong> · {{ block.text }}</li>{% empty %}<li>No source blocks were found.</li>{% endfor %}
+  </ol>
+  {% endif %}
+</div>
+{% endblock %}
