@@ -92,6 +92,9 @@ function mountStickyStack(workspace, updateBackToTop) {
         continue;
       }
       bar.style.setProperty("--workspace-subbar-top", `${stackHeight + barsHeight}px`);
+      // Narrow layouts unstick tall bars; they then scroll away and take no stack space.
+      const position = bar.ownerDocument.defaultView.getComputedStyle(bar).position;
+      if (position === "static" || position === "relative") continue;
       barsHeight += bar.getBoundingClientRect().height;
     }
     workspace.style.setProperty("--workspace-full-stack", `${stackHeight + barsHeight}px`);

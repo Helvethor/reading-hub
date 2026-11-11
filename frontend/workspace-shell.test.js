@@ -544,3 +544,30 @@ test("visible secondary bars stack below the shared navigation and hidden ones a
   assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "110px");
   assert.equal(readBar.style.getPropertyValue("--workspace-subbar-top"), "");
 });
+
+test("unstuck secondary bars take no space in the sticky stack", () => {
+  const form = setup();
+  const edit = document.querySelector("#workspace-panel-edit");
+  const bar = (height, position) => {
+    const element = document.createElement("div");
+    element.dataset.workspaceSubbar = "";
+    if (position) element.style.position = position;
+    element.getBoundingClientRect = () => ({top: 0, bottom: height, height, left: 0, right: 0, width: 0});
+    edit.append(element);
+    return element;
+  };
+  const tabs = bar(20);
+  const toolbar = bar(300, "static");
+  const after = bar(10);
+  document.querySelector(".workspace-chrome").getBoundingClientRect =
+    () => ({top: 0, bottom: 50, height: 50, left: 0, right: 0, width: 0});
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  const workspace = document.querySelector("#unified-workspace");
+  assert.equal(tabs.style.getPropertyValue("--workspace-subbar-top"), "50px");
+  assert.equal(toolbar.style.getPropertyValue("--workspace-subbar-top"), "70px");
+  assert.equal(after.style.getPropertyValue("--workspace-subbar-top"), "70px");
+  assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "80px");
+});

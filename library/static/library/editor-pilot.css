@@ -411,6 +411,10 @@ body.workspace-page .review-navigation {
 .workspace-chrome[data-compact="true"] .workspace-identity .workspace-compact-state { display: block; flex-shrink: 0; font-size: .78rem; white-space: nowrap; }
 .workspace-chrome[data-compact="true"] .workspace-tabs [role="tab"] { padding-block: .3rem; }
 .unified-workspace .editor-pilot-toolbar { top: var(--workspace-subbar-top, var(--workspace-stack-height, 0px)); }
+/* A wrapped toolbar would leave little room for text on small screens. */
+@media (max-width: 760px), (max-height: 520px) {
+  .unified-workspace .editor-pilot-toolbar { position: static; }
+}
 @media (max-width: 760px) {
   .workspace-context { align-items: stretch; padding: .5rem; }
   .workspace-identity { min-width: 0; flex-basis: 100%; }
