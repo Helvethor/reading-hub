@@ -1062,10 +1062,11 @@ test("book, page and group rows follow the viewport like section rows and naviga
   assert.deepEqual(state(), {title: "", toc: "visible", sections: "active", metadata: ""});
   const original = editor.getHTML();
   offset = 0;
-  surface.scrollTop = 0;
+  const pageScrolls = [];
+  dom.window.scrollTo = ({top}) => pageScrolls.push(top);
   outline.querySelector('[data-book-view="toc"]').click();
   assert.equal(form.querySelector("#editor-part").value, "book");
-  assert.equal(surface.scrollTop, 100, "ToC navigation scrolls to the generated page.");
+  assert.equal(pageScrolls[0], 100, "ToC navigation scrolls the page to the generated page.");
   assert.equal(document.activeElement.dataset.bookView, "toc");
   assert.equal(editor.getHTML(), original);
 
@@ -5420,6 +5421,11 @@ test("editor widget tabs switch panels by click, arrow keys and events while sha
     {key: "ArrowRight", bubbles: true, cancelable: true}));
   assert.equal(tabs.current, "review");
   assert.equal(document.activeElement.id, "editor-tab-review");
+  document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
+  assert.equal(tabs.current, "structure");
+  assert(!panel("structure").hidden && form.hidden, "Pinned structure replaces the editing form.");
+  assert.match(panel("structure").textContent, /unchanged source structure, not the current edited order/);
+  assert(!form.contains(panel("structure")));
   document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
   assert.equal(tabs.current, "style");
   assert.equal(document.activeElement.id, "editor-tab-style");

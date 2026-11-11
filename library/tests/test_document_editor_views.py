@@ -393,7 +393,24 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'id="workspace-tab-versions"')
         self.assertContains(response, 'id="workspace-tab-sources"')
         self.assertContains(response, "Reader default:")
-        self.assertContains(response, "Download current draft PDF")
+        self.assertNotContains(response, "Download current draft PDF")
+        download = workspace.select_one("#workspace-panel-read #workspace-download-pdf")
+        self.assertEqual(download.get_text(strip=True), "Download PDF")
+        self.assertTrue(download.has_attr("disabled"))
+        self.assertTrue(download.find_parent(attrs={"data-workspace-subbar": True}))
+        structure_tab = workspace.select_one('#editor-tab-structure[role="tab"]')
+        self.assertEqual(structure_tab.get_text(strip=True), "Pinned source structure")
+        structure = workspace.select_one("#editor-panel-structure")
+        self.assertTrue(structure.has_attr("hidden"))
+        self.assertIsNone(structure.find_parent("form"))
+        self.assertIn(
+            "unchanged source structure, not the current edited order", structure.get_text(),
+        )
+        self.assertIsNone(
+            workspace.select_one("#workspace-panel-edit > details.editor-book-structure"),
+        )
+        for selector in (".editor-tabs", ".editor-pilot-toolbar"):
+            self.assertTrue(workspace.select_one(selector).has_attr("data-workspace-subbar"))
         self.assertNotContains(response, 'aria-label="Work destinations"', html=False)
         self.assertNotContains(response, 'aria-label="Work reviewer tools"')
         self.assertContains(
@@ -429,7 +446,8 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Shift+F10")
         self.assertContains(response, 'aria-label="Book parts"')
         self.assertContains(response, "Whole book")
-        self.assertContains(response, "lower-right handle")
+        self.assertNotContains(response, "lower-right handle")
+        self.assertContains(response, "The canvas scrolls with the page")
         for value, label in (("book", "Whole book"), ("title", "Title"),
                              ("toc", "ToC"), ("sections", "Sections")):
             self.assertContains(response, f'<option value="{value}">{label}</option>')

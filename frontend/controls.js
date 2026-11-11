@@ -16,6 +16,7 @@ import {
   workspaceContext, setWorkspaceContext,
 } from "./workspace.js";
 import {mountDynamicOutline} from "./outline.js";
+import {revealStart, scrollElementIntoView, visibleBand} from "./page-scroll.js";
 import {movableSections, mountSectionMoves} from "./section-moves.js";
 import {mountContentMoves} from "./content-moves.js";
 import {mountSectionCreation} from "./section-creation.js";
@@ -233,7 +234,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       closeMenu();
       bookViews.show("sections");
       showDocumentPart(editor, value === "" ? null : parts[Number(value)]);
-      surface.scrollTop = 0;
+      revealStart(surface);
       editor.commands.focus();
     } catch (failure) {
       showError(failure.message);
@@ -246,7 +247,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       closeMenu();
       bookViews.show(value);
       showDocumentPart(editor, null);
-      surface.scrollTop = 0;
+      revealStart(surface);
       refreshOutline();
     } catch (failure) { showError(failure.message); }
   }
@@ -261,9 +262,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showDocumentPart(editor, part, {filter: false});
       refreshOutline();
       const target = editor.view.nodeDOM(part.kind === "Section" ? part.from - 1 : part.from);
-      if (target instanceof owner.defaultView.HTMLElement) {
-        surface.scrollTop += target.getBoundingClientRect().top - surface.getBoundingClientRect().top;
-      }
+      if (target instanceof owner.defaultView.HTMLElement) scrollElementIntoView(target, 0);
       editor.view.focus();
     } catch (failure) { showError(failure.message); }
   }
@@ -277,8 +276,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       if (visiblePart(editor)) showDocumentPart(editor, null);
       refreshOutline();
       const target = bookViews.target(value);
-      if (!target) surface.scrollTop = 0;
-      else surface.scrollTop += target.getBoundingClientRect().top - surface.getBoundingClientRect().top;
+      if (!target) revealStart(surface);
+      else scrollElementIntoView(target, 0);
       dynamicOutline.schedule();
       outline.querySelector(`[data-book-view="${value}"]`)?.focus({preventScroll: true});
     } catch (failure) { showError(failure.message); }
@@ -395,7 +394,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   function openAtSelection() {
     const coords = editor.view.coordsAtPos(editor.state.selection.head);
-    const bounds = surface.getBoundingClientRect();
+    const bounds = visibleBand(surface);
     const visible = coords.top >= bounds.top && coords.bottom <= bounds.bottom;
     const fallback = trigger.getBoundingClientRect();
     openMenu(visible ? coords.left : fallback.left, visible ? coords.bottom : fallback.bottom);

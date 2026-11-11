@@ -39,7 +39,7 @@ export function mountWorkflowPanels({
   });
   dialog.addEventListener("close", () => {
     frame.removeAttribute("src");
-    form.querySelector("#editor-surface").scrollTop = returnScroll;
+    window.scrollTo({top: returnScroll, behavior: "auto"});
     returnFocus?.focus({preventScroll: true});
   });
   frame.addEventListener("load", () => {
@@ -97,7 +97,7 @@ export function mountWorkflowPanels({
     }
     if (!dialog.open) {
       returnFocus = document.activeElement;
-      returnScroll = form.querySelector("#editor-surface").scrollTop;
+      returnScroll = window.scrollY;
     }
     if (updateHistory) {
       const currentUrl = new URL(location.href);

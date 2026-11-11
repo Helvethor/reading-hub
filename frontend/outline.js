@@ -1,3 +1,4 @@
+import {visibleBand} from "./page-scroll.js";
 import {expandDocumentFolds, foldedDocumentParts, toggleDocumentFold, visiblePart} from "./workspace.js";
 
 export function outlineHierarchy(parts) {
@@ -73,7 +74,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
   }
   function track() {
     frame = null;
-    const viewport = surface.getBoundingClientRect();
+    const viewport = visibleBand(surface);
     const scope = visiblePart(editor);
     // Book-level rows (whole book, title, ToC, sections) and section rows share one
     // viewport model: visible rows get a light background, the current one is dark.
@@ -237,6 +238,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     schedule();
   });
   surface.addEventListener("scroll", schedule);
+  owner.defaultView.addEventListener("scroll", schedule, {passive: true});
   owner.defaultView.addEventListener("resize", schedule);
   const observer = typeof owner.defaultView.ResizeObserver === "function" ?
     new owner.defaultView.ResizeObserver(schedule) : null;
@@ -244,6 +246,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
   observer?.observe(editor.view.dom);
   editor.on("destroy", () => {
     surface.removeEventListener("scroll", schedule);
+    owner.defaultView.removeEventListener("scroll", schedule);
     owner.defaultView.removeEventListener("resize", schedule);
     observer?.disconnect();
     if (frame !== null) cancelAnimationFrame(frame);

@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v2">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v3">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -63,29 +63,18 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1" hidden>
-      <div class="workspace-read-actions"><button type="button" id="workspace-download-pdf" disabled>Download PDF</button></div>
+      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>Download PDF</button></div>
       <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
         <p>Select Read to render the current editor content. This does not save or publish it.</p>
       </div>
     </section>
     <section class="workspace-view-panel" id="workspace-panel-edit" role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1">
-  <details class="editor-book-structure">
-    <summary>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</summary>
-    <p>This is the unchanged source structure, not the current edited order. Manage corrected sections directly in the left Book outline: move, add or restore sections, repair headings into sections, and edit title/URL/role. These changes save with the document and publish only after separate confirmation.</p>
-    <ol>
-      {% for part in initial.structure.parts %}
-      <li><strong>{{ part.title }}</strong> — {{ part.role|default:"chapter" }}{% if part.url %} · <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a>{% endif %}</li>
-      {% empty %}
-      <li>Part details are unavailable in this edition’s structure.</li>
-      {% endfor %}
-    </ol>
-    <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment below. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" target="_blank" rel="noopener noreferrer">Catalogue book membership (separate page)</a> controls URL ownership only, not this draft's sections. Regenerated editions never replace pending or saved editor corrections.</p>
-  </details>
   <div class="editor-workspace" data-editor-tab="editor">
-    <div class="editor-tabs" role="tablist" aria-label="Edit tools">
+    <div class="editor-tabs" role="tablist" aria-label="Edit tools" data-workspace-subbar>
       <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
       <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
+      <button type="button" role="tab" id="editor-tab-structure" aria-controls="editor-panel-structure" aria-selected="false" tabindex="-1" data-editor-tab="structure">Pinned source structure</button>
       {% if reading_style_url %}<button type="button" role="tab" id="editor-tab-style" aria-controls="editor-panel-style" aria-selected="false" tabindex="-1" data-editor-tab="style">Appearance</button>{% endif %}
     </div>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
@@ -97,7 +86,7 @@
       <label><input name="approve_conversion" type="checkbox"> I approve this exact conversion for the draft.</label>
     </details>
     {% endif %}
-      <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands">
+      <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands" data-workspace-subbar>
         <div class="editor-format-toolbar" role="group" aria-label="Common formatting">
           <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
           <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
@@ -232,7 +221,7 @@
       <summary id="editor-help">Editing help and keyboard shortcuts</summary>
       <p>Ctrl/Cmd-click toggles whole-block selection within a section. Right-click or Shift+F10 opens selection and section tools; selected blocks must be contiguous to become an excerpt section. Click within a list, table or figure to select that whole block.</p>
       <p>Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy semantic content, preserving formatting, links and retained images; external paste opens a preview. Ctrl/Cmd+Z and outline Undo restore edits.</p>
-      <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The outline and canvas resize together from the lower-right handle.</p>
+      <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The canvas scrolls with the page; the outline stays beside it and scrolls on its own.</p>
       <p>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a>.</p>
     </details>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
@@ -278,6 +267,18 @@
     </div>
     <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
   </form>
+    <div class="editor-tab-panel editor-book-structure" id="editor-panel-structure" role="tabpanel" aria-labelledby="editor-tab-structure" tabindex="0" hidden>
+      <h3>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</h3>
+      <p>This is the unchanged source structure, not the current edited order. Manage corrected sections directly in the left Book outline: move, add or restore sections, repair headings into sections, and edit title/URL/role. These changes save with the document and publish only after separate confirmation.</p>
+      <ol>
+        {% for part in initial.structure.parts %}
+        <li><strong>{{ part.title }}</strong> — {{ part.role|default:"chapter" }}{% if part.url %} · <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a>{% endif %}</li>
+        {% empty %}
+        <li>Part details are unavailable in this edition’s structure.</li>
+        {% endfor %}
+      </ol>
+      <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment in the Content tab. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" target="_blank" rel="noopener noreferrer">Catalogue book membership (separate page)</a> controls URL ownership only, not this draft's sections. Regenerated editions never replace pending or saved editor corrections.</p>
+    </div>
   {% if reading_style_url %}
     <div class="editor-tab-panel" id="editor-panel-style" role="tabpanel" aria-labelledby="editor-tab-style" hidden>
       {% include "library/reading_style_controls.html" with style_defaults_only=True %}
@@ -534,4 +535,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v12"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v13"></script>{% endif %}{% endblock %}

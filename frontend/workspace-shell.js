@@ -1,3 +1,5 @@
+import {scrollElementIntoView} from "./page-scroll.js";
+
 function csrfToken(form) {
   const token = form.elements.csrfmiddlewaretoken?.value;
   if (!token) throw new Error("The session security token is unavailable. Reload before retrying.");
@@ -80,9 +82,19 @@ function mountStickyStack(workspace, updateBackToTop) {
       "--review-navigation-height", `${reviewHeight}px`,
     );
     workspace.style.setProperty("--workspace-chrome-top", `${stackTop}px`);
-    workspace.style.setProperty(
-      "--workspace-stack-height", `${stackTop + chrome.getBoundingClientRect().height}px`,
-    );
+    const stackHeight = stackTop + chrome.getBoundingClientRect().height;
+    workspace.style.setProperty("--workspace-stack-height", `${stackHeight}px`);
+    // Visible secondary bars stick in DOM order below the shared stack.
+    let barsHeight = 0;
+    for (const bar of workspace.querySelectorAll("[data-workspace-subbar]")) {
+      if (bar.closest("[hidden]")) {
+        bar.style.removeProperty("--workspace-subbar-top");
+        continue;
+      }
+      bar.style.setProperty("--workspace-subbar-top", `${stackHeight + barsHeight}px`);
+      barsHeight += bar.getBoundingClientRect().height;
+    }
+    workspace.style.setProperty("--workspace-full-stack", `${stackHeight + barsHeight}px`);
     updateBackToTop();
   }
 
@@ -162,6 +174,9 @@ export function mountWorkspaceShell({
   let readRequest = 0;
   const lineageRequests = {versions: 0, sources: 0};
   let lastEditorFocus = null;
+  let refreshStickyStack = () => {};
+  const tabPositions = new Map();
+  let pendingPosition = null;
 
   function updateState({draft, revision, dirty}) {
     compactState.textContent = `Edition ${workspace.dataset.versionId}` +
@@ -195,18 +210,30 @@ export function mountWorkspaceShell({
   }
 
   function scrollOwner() {
-    if (currentTab() !== "edit") return panels.get(currentTab());
-    return document.querySelector(".editor-workspace")?.dataset.editorTab === "editor"
-      ? document.querySelector("#editor-surface")
-      : document.scrollingElement;
+    return document.scrollingElement;
   }
 
-  function scrollToTop(owner) {
-    if (owner !== document.scrollingElement) {
-      owner.scrollTo({top: 0, behavior: "auto"});
+  function scrollToTop() {
+    pendingPosition = null;
+    window.scrollTo({top: 0, behavior: "auto"});
+  }
+
+  // Asynchronous content can arrive after a tab switch; reapply its remembered
+  // position only while that tab is still active and the user has not scrolled.
+  function applyPendingPosition() {
+    if (!pendingPosition || pendingPosition.tab !== currentTab()) return;
+    window.scrollTo({top: pendingPosition.top, behavior: "auto"});
+  }
+
+  function keepActivePosition(tab, replace) {
+    if (tab !== currentTab()) {
+      replace();
       return;
     }
-    window.scrollTo({top: 0, behavior: "auto"});
+    const top = window.scrollY;
+    replace();
+    if (pendingPosition?.tab === tab) applyPendingPosition();
+    else if (window.scrollY !== top) window.scrollTo({top, behavior: "auto"});
   }
 
   function modalOwnsFocus() {
@@ -216,19 +243,13 @@ export function mountWorkspaceShell({
   function updateBackToTop() {
     const owner = scrollOwner();
     const stackHeight = Number.parseFloat(
-      workspace.style.getPropertyValue("--workspace-stack-height"),
+      workspace.style.getPropertyValue("--workspace-full-stack")
+        || workspace.style.getPropertyValue("--workspace-stack-height"),
     ) || 0;
-    const toolbar = currentTab() === "edit"
-      ? workspace.querySelector(".editor-pilot-toolbar") : null;
-    const toolbarHeight = toolbar
-      && toolbar.getBoundingClientRect().top <= stackHeight + 1
-      ? toolbar.getBoundingClientRect().height : 0;
-    const visibleHeight = owner === document.scrollingElement
-      ? window.innerHeight - stackHeight - toolbarHeight
-      : owner?.clientHeight || 0;
+    const visibleHeight = window.innerHeight - stackHeight;
     backToTop.hidden = !owner || modalOwnsFocus()
       || owner.scrollTop < Math.max(120, visibleHeight);
-    if (owner?.id) backToTop.setAttribute("aria-controls", owner.id);
+    backToTop.setAttribute("aria-controls", panels.get(currentTab())?.id || "");
   }
 
   function writeTabState(tab, replace = false) {
@@ -241,6 +262,9 @@ export function mountWorkspaceShell({
 
   function selectTab(tab, {writeHistory = false, focus = false, restoreEditorFocus = false} = {}) {
     if (!panels.has(tab)) throw new Error("Choose Read, Edit, Versions or Sources.");
+    const previous = workspace.dataset.activeTab;
+    const switching = Boolean(previous) && previous !== tab;
+    if (switching) tabPositions.set(previous, window.scrollY);
     workspace.dataset.activeTab = tab;
     for (const button of buttons) {
       const active = button.dataset.workspaceTab === tab;
@@ -261,6 +285,11 @@ export function mountWorkspaceShell({
       link.dataset.readingStyle = "";
       link.dataset.workspaceReadingStyle = "";
       document.head.append(link);
+    }
+    refreshStickyStack();
+    if (switching) {
+      pendingPosition = {tab, top: tabPositions.get(tab) ?? 0};
+      applyPendingPosition();
     }
     updateBackToTop();
     if (tab === "read") loadRead();
@@ -310,9 +339,7 @@ export function mountWorkspaceShell({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || `Read preview failed (${response.status}).`);
       if (requestId !== readRequest) return;
-      const previousScroll = panels.get("read").scrollTop;
-      readContent.innerHTML = result.html;
-      panels.get("read").scrollTop = previousScroll;
+      keepActivePosition("read", () => { readContent.innerHTML = result.html; });
       showPdfState(result.state);
       status.textContent = "";
     } catch (error) {
@@ -366,11 +393,16 @@ export function mountWorkspaceShell({
     content.querySelector(".work-navigation")?.remove();
     content.querySelector(".work-scope-links")?.remove();
     const target = lineagePanels[tab];
-    const scrollTop = panels.get(tab).scrollTop;
-    target.replaceChildren(content);
+    for (const filter of content.querySelectorAll('form[method="get"], form:not([method])')) {
+      if (filter.querySelector('select[name="filter"]')) {
+        filter.classList.add("workspace-filter-bar");
+        filter.dataset.workspaceSubbar = "";
+      }
+    }
+    keepActivePosition(tab, () => target.replaceChildren(content));
     target.dataset.loadedUrl = destination.href;
     target.dataset.currentUrl = destination.href;
-    panels.get(tab).scrollTop = scrollTop;
+    refreshStickyStack();
     updateBackToTop();
   }
 
@@ -422,7 +454,11 @@ export function mountWorkspaceShell({
     const loaded = await loadLineage(tab, destination);
     if (loaded && currentTab() === tab && destination.hash
         && lineagePanels[tab].dataset.loadedUrl === destination.href) {
-      lineagePanels[tab].querySelector(destination.hash)?.scrollIntoView({block: "start"});
+      const anchor = lineagePanels[tab].querySelector(destination.hash);
+      if (anchor) {
+        pendingPosition = null;
+        scrollElementIntoView(anchor);
+      }
     }
   }
 
@@ -566,20 +602,17 @@ export function mountWorkspaceShell({
     }
   });
 
-  for (const panel of panels.values()) {
-    panel.addEventListener("scroll", updateBackToTop, {passive: true});
-  }
-  document.querySelector("#editor-surface")?.addEventListener(
-    "scroll", updateBackToTop, {passive: true},
-  );
   document.querySelector(".editor-workspace")?.addEventListener(
-    "editor-local-tab-change", updateBackToTop,
+    "editor-local-tab-change", () => refreshStickyStack(),
   );
-  let refreshStickyStack = () => {};
+  // Explicit user scrolling supersedes a remembered position awaiting content.
+  for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
+    window.addEventListener(type, () => { pendingPosition = null; }, {passive: true, capture: true});
+  }
   backToTop.addEventListener("click", event => {
     const owner = scrollOwner();
     if (!owner) return;
-    scrollToTop(owner);
+    scrollToTop();
     refreshStickyStack();
     if (event.detail === 0) {
       const panel = panels.get(currentTab());
@@ -592,7 +625,7 @@ export function mountWorkspaceShell({
   dialogObserver?.observe(document.body, {
     attributes: true, attributeFilter: ["open"], subtree: true,
   });
-  refreshStickyStack = mountStickyStack(workspace, updateBackToTop);
+  refreshStickyStack = mountStickyStack(workspace, () => updateBackToTop());
 
   const initialTab = workspace.dataset.initialTab;
   showPdfState(null);

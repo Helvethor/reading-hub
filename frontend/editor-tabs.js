@@ -13,7 +13,7 @@ export function mountEditorTabs(form) {
       panel(tab).hidden = !active;
     }
     workspace.dataset.editorTab = name;
-    form.hidden = name === "style";
+    form.hidden = name === "style" || name === "structure";
     if (focus) chosen.focus();
     workspace.dispatchEvent(new CustomEvent("editor-local-tab-change", {
       detail: {tab: name},

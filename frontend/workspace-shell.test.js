@@ -212,7 +212,12 @@ test("lineage inspection scrolls to the newly loaded target, not the old one", a
   const form = setup("?tab=versions");
   let finishInspection;
   let scrolled = [];
-  dom.window.HTMLElement.prototype.scrollIntoView = function() { scrolled.push(this.textContent); };
+  dom.window.HTMLElement.prototype.getBoundingClientRect = function() {
+    const top = this.id === "lineage-inspection" ? 500 : 0;
+    return {top, bottom: top + 10, left: 0, right: 0, width: 0, height: this.id ? 10 : 0};
+  };
+  window.scrollTo = ({top}) => scrolled.push(
+    document.querySelector("#lineage-inspection")?.textContent + ":" + top);
   globalThis.fetch = url => {
     if (new URL(url).searchParams.get("selected") === "history:one") {
       return new Promise(resolve => { finishInspection = resolve; });
@@ -239,14 +244,16 @@ test("lineage inspection scrolls to the newly loaded target, not the old one", a
       <div id="lineage-inspection">New target</div></div>`,
   });
   await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(scrolled, ["New target"]);
+  assert.deepEqual(scrolled.slice(0, 1), ["New target:492"],
+    "The new target is placed below the measured stack.");
 });
 
 test("a late lineage inspection does not scroll another active tab", async () => {
   const form = setup("?tab=versions");
   let finishInspection;
   let scrollCount = 0;
-  dom.window.HTMLElement.prototype.scrollIntoView = function() { scrollCount++; };
+  let afterSwitch = false;
+  window.scrollTo = () => { if (afterSwitch) scrollCount++; };
   globalThis.fetch = url => {
     if (new URL(url).searchParams.get("selected") === "history:one") {
       return new Promise(resolve => { finishInspection = resolve; });
@@ -266,6 +273,7 @@ test("a late lineage inspection does not scroll another active tab", async () =>
   await new Promise(resolve => setImmediate(resolve));
   document.querySelector("#workspace-versions-content a").click();
   document.querySelector('[data-workspace-tab="edit"]').click();
+  afterSwitch = true;
   finishInspection({
     ok: true,
     text: async () => `<div class="document-lineage">
@@ -420,4 +428,119 @@ test("pdfFilename prefers RFC 5987 names and tolerates plain parameters", () => 
   assert.equal(pdfFilename('attachment; filename="Saved revision 2 - T.pdf"'), "Saved revision 2 - T.pdf");
   assert.equal(pdfFilename("attachment; filename=plain.pdf"), "plain.pdf");
   assert.equal(pdfFilename(null), "");
+});
+
+function pageScroll() {
+  const page = {top: 0, max: 5000, calls: []};
+  Object.defineProperty(window, "scrollY", {get: () => page.top, configurable: true});
+  window.scrollTo = ({top}) => {
+    page.calls.push(top);
+    page.top = Math.max(0, Math.min(top, page.max));
+  };
+  return page;
+}
+
+test("each main tab keeps its own document position and new tabs start at the top", async () => {
+  const form = setup();
+  const page = pageScroll();
+  globalThis.fetch = url => Promise.resolve(String(url).includes("read-preview") ? {
+    ok: true,
+    headers: {get: () => "application/json"},
+    json: async () => ({html: "<p>Rendered</p>", state: "exact", revision: 0}),
+  } : {ok: true, text: async () => '<div class="document-lineage"><p>Evidence</p></div>'});
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  const tab = name => document.querySelector(`[data-workspace-tab="${name}"]`);
+  page.top = 700;
+  tab("read").click();
+  await settle();
+  assert.equal(page.top, 0, "A first visit starts at the top rather than inheriting Edit's position.");
+  page.top = 300;
+  tab("edit").click();
+  assert.equal(page.top, 700, "Edit returns to its previous document position.");
+  tab("read").click();
+  await settle();
+  assert.equal(page.top, 300, "Read returns to its previous document position.");
+  history.back = () => {};
+  tab("versions").click();
+  await settle();
+  assert.equal(page.top, 0);
+});
+
+test("user scrolling wins over a remembered position while Read is still loading", async () => {
+  const form = setup();
+  const page = pageScroll();
+  let finishRead;
+  globalThis.fetch = () => new Promise(resolve => { finishRead = resolve; });
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  page.top = 400;
+  document.querySelector('[data-workspace-tab="read"]').click();
+  assert.equal(page.top, 0);
+  window.dispatchEvent(new window.Event("wheel"));
+  page.top = 250;
+  finishRead({
+    ok: true,
+    headers: {get: () => "application/json"},
+    json: async () => ({html: "<p>Long rendered content</p>", state: "draft", revision: 0}),
+  });
+  await settle();
+  assert.equal(page.top, 250, "Replacing Read content keeps the user's current position.");
+});
+
+test("a late Read response does not move the page of another active tab", async () => {
+  const form = setup();
+  const page = pageScroll();
+  let finishRead;
+  globalThis.fetch = () => new Promise(resolve => { finishRead = resolve; });
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  page.top = 900;
+  document.querySelector('[data-workspace-tab="read"]').click();
+  document.querySelector('[data-workspace-tab="edit"]').click();
+  assert.equal(page.top, 900);
+  const calls = page.calls.length;
+  finishRead({
+    ok: true,
+    headers: {get: () => "application/json"},
+    json: async () => ({html: "<p>Rendered</p>", state: "exact", revision: 0}),
+  });
+  await settle();
+  assert.equal(page.top, 900);
+  assert.equal(page.calls.length, calls, "No scroll call is made for an inactive tab.");
+  assert.match(document.querySelector("#workspace-read-content").textContent, /Rendered/);
+});
+
+test("visible secondary bars stack below the shared navigation and hidden ones are ignored", () => {
+  const form = setup();
+  const read = document.querySelector("#workspace-panel-read");
+  const edit = document.querySelector("#workspace-panel-edit");
+  const bar = (parent, height) => {
+    const element = document.createElement("div");
+    element.dataset.workspaceSubbar = "";
+    element.getBoundingClientRect = () => ({top: 0, bottom: height, height, left: 0, right: 0, width: 0});
+    parent.prepend(element);
+    return element;
+  };
+  const readBar = bar(read, 30);
+  const tabs = bar(edit, 20);
+  const commands = bar(edit, 40);
+  edit.append(commands);
+  document.querySelector(".workspace-chrome").getBoundingClientRect =
+    () => ({top: 0, bottom: 50, height: 50, left: 0, right: 0, width: 0});
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  const workspace = document.querySelector("#unified-workspace");
+  assert.equal(tabs.style.getPropertyValue("--workspace-subbar-top"), "50px");
+  assert.equal(commands.style.getPropertyValue("--workspace-subbar-top"), "70px");
+  assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "110px");
+  assert.equal(readBar.style.getPropertyValue("--workspace-subbar-top"), "");
 });

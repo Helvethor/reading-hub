@@ -8,6 +8,7 @@ import {revealDocumentPosition, workspaceExtension, visiblePart} from "./workspa
 import {mountSemanticClipboard} from "./semantic-clipboard.js";
 import {BlockSelection, blockSelectionExtension} from "./block-selection.js";
 import {differenceExtension} from "./document-diffs.js";
+import {scrollElementIntoView, stackOffset} from "./page-scroll.js";
 
 const inlineTags = new Set([
   "strong", "b", "em", "i", "u", "s", "small", "sup", "sub", "a", "span",
@@ -1042,6 +1043,23 @@ export function navigatedDocumentTarget(editor) {
     ? target.id : null;
 }
 
+// The editor scrolls with the page, so the caret must also clear sticky bars.
+function keepSelectionClearOfStack(view) {
+  const doc = view.dom.ownerDocument;
+  const win = doc.defaultView;
+  if (!view.dom.closest("#editor-surface") || typeof win?.scrollBy !== "function") return false;
+  let coords;
+  try { coords = view.coordsAtPos(view.state.selection.head); }
+  catch { return false; }
+  if (!(coords.bottom > coords.top)) return false;
+  const top = stackOffset(doc) + 8;
+  const bottom = win.innerHeight - 8;
+  if (coords.top < top) win.scrollBy(0, coords.top - top);
+  else if (coords.bottom > bottom) win.scrollBy(0, coords.bottom - bottom);
+  else return false;
+  return true;
+}
+
 export function activateEditorLink(editor, anchor) {
   const href = anchor.getAttribute("href");
   if (!href) throw new Error("This anchor has no link destination.");
@@ -1054,10 +1072,8 @@ export function activateEditorLink(editor, anchor) {
     revealDocumentPosition(editor, target.position);
     const node = [...editor.view.dom.querySelectorAll("[id]")].find(node => node.id === id);
     if (!node) throw new Error(`Anchor target could not be displayed: ${id}.`);
-    const surface = editor.view.dom.closest("#editor-surface");
-    if (surface) {
-      surface.scrollTop += node.getBoundingClientRect().top - surface.getBoundingClientRect().top - 16;
-    } else node.scrollIntoView({block: "center"});
+    if (editor.view.dom.closest("#editor-surface")) scrollElementIntoView(node, 16);
+    else node.scrollIntoView({block: "center"});
     editor.view.focus();
     if (!targetTracking.has(editor)) {
       editor.on("transaction", ({transaction}) => {
@@ -1141,6 +1157,7 @@ export function createBoundedEditor(element, html, onUpdate = () => {}) {
     injectCSS: false,
     enableContentCheck: true,
     editorProps: {
+      handleScrollToSelection: keepSelectionClearOfStack,
       attributes: {
         role: "textbox", "aria-label": "Editable reading document", "aria-multiline": "true",
         "aria-describedby": "editor-help editor-view-notice",

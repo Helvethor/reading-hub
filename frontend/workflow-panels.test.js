@@ -26,8 +26,9 @@ test("same-page panel closes without navigating iframe history", () => {
   const error = [];
   window.history.replaceState({workspaceTab: "sources"}, "", location.href);
   mountWorkflowPanels({form, showError: value => error.push(value), isDirty: () => true});
-  const surface = form.querySelector("#editor-surface");
-  surface.scrollTop = 42;
+  let pageTop = 42;
+  Object.defineProperty(window, "scrollY", {get: () => pageTop, configurable: true});
+  window.scrollTo = ({top}) => { pageTop = top; };
   const link = document.querySelector("a");
   link.focus();
   link.click();
@@ -40,13 +41,13 @@ test("same-page panel closes without navigating iframe history", () => {
   assert.equal(url.searchParams.get("style_profile"), "3");
   assert.equal(new URL(location.href).searchParams.get("panel"), "/versions/1/editor/history/");
   assert.equal(form.querySelector("input").value, "Pending title");
-  surface.scrollTop = 0;
+  pageTop = 0;
   let backCalled = false;
   window.history.back = () => { backCalled = true; };
   dialog.querySelector("button").click();
   assert.equal(backCalled, false);
   assert.equal(dialog.open, false);
-  assert.equal(surface.scrollTop, 42);
+  assert.equal(pageTop, 42, "Closing returns the document scroll position.");
   assert.equal(document.activeElement, link);
   assert.equal(dialog.querySelector("iframe").hasAttribute("src"), false);
   assert.equal(new URL(location.href).searchParams.has("panel"), false);
