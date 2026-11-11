@@ -176,7 +176,7 @@ Documentation only is authorized for M. Schedule after the requested R -> A ->
 V -> P sequence; do not interrupt in-progress workspace/publication delivery.
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
-owns M1-M14 acceptance.
+owns M1-M18 acceptance.
 
 - [ ] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.
@@ -192,7 +192,12 @@ owns M1-M14 acceptance.
   independent visibility/title compactness, contextual presets and per-part reset.
 - [ ] Preserve legacy pagination and stable layout identities through live Read,
   draft PDF, undo/recovery/save/publication; prevent hidden/coincident blank pages.
-- [ ] Validate M1-M14 through actual output/metadata extraction, privacy sentinels,
+- [ ] Resolve personal appearance per field through built-in/admin/personal type
+  defaults and exact-output preferences, with reset, private persistence, guest
+  storage/import and explicit legacy compatibility.
+- [ ] Place version-page Reading/PDF style controls only in Read; preserve
+  editorial layout and align validated export snapshots/cache identities.
+- [ ] Validate M1-M18 through actual output/metadata extraction, privacy sentinels,
   exact preservation and explicit derived-PDF cache-policy checks.
 
 Preserve existing title-page settings and actionable warnings. Defer metadata

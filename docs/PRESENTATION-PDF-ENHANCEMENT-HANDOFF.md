@@ -243,6 +243,74 @@ existing editions. Applying new defaults to existing editable content must be
 explicit; defaults do not override a preserved legacy choice. Shared PDF cache
 versioning must distinguish old and new layout policy as required by M6.
 
+### M.g Cascading personal Reading and PDF style
+
+Preference extension agreed 2026-11-11. Resolve each supported personal appearance
+setting independently, from lowest to highest priority:
+
+1. Built-in defaults for the current work type.
+2. Explicit installation administrator overrides for that type.
+3. Explicit account-private personal defaults for that type across the site.
+4. Personal overrides for this exact version/publication output only.
+
+An unspecified key inherits; an explicit false/zero is a value, not absence.
+Reset removes a layer's key rather than copying its currently inherited value.
+Show the effective value and its origin so later lower-layer changes remain
+understandable. Never materialize a complete inherited style as an accidental
+override when changing one field. Validate each layer and final resolved values.
+
+Use the document's explicit work type with a documented Other/fallback preset
+when unknown; do not infer Book from length or page count. Reuse shared type
+vocabulary and clarify unsupported types rather than silently dropping settings.
+Type changes recompute inherited values; exact-output overrides remain explicit.
+
+Bind layer 4 to exact immutable version/output identity, not title, work identity,
+URL alias or catalogue parent. The containing book's resolved appearance styles
+all content rendered inside it, but a chapter opened independently uses its own
+cascade. Never copy those exact-output preferences automatically to children,
+later versions, branches or newly published outputs.
+
+Signed-in preferences are stored server-side and privately scoped to the account,
+including personal type defaults and exact-output overrides. Guests retain
+exact-output choices in browser-local persistent storage, not HTTP cache; disclose
+that clearing storage loses them. Do not promise guest cross-device persistence.
+On login, account preferences win; offer explicit validated import of guest
+choices without automatically overwriting account settings. Storage/network
+failures must remain visible and distinguish applied-in-memory from persisted.
+
+Unsaved-draft preview/export may retain the active workspace's effective choices
+for that session. Saving/publishing creates no automatic exact-output preference
+assignment for the successor; a new identity resolves its own cascade unless the
+user explicitly chooses to save preferences there. Do not lose editor content
+when updating appearance or importing/resetting preferences.
+
+Keep personal fonts, size, spacing, colours, reading aids and supported PDF
+appearance separate from editorial part inclusion, title content, containment
+and explicit separation policy in M.f. Personal style must not erase saved
+page-boundary choices or mandatory edition qualifications. Application theme is
+independent and supplies colours only when the resolved style selects Follow theme.
+
+Within version pages, show Reading and PDF style controls only in Read, not
+Edit/Versions/Sources or duplicated publication panels. Default the editing scope
+to This version; changing My defaults for [type] is a separate explicit action.
+Administrator type overrides belong in web administration; personal type defaults
+may also be managed in account settings. PDF actions elsewhere use the same
+resolved snapshot without duplicating style configuration.
+
+Read and PDF share resolved settings. Guest export must explicitly submit
+validated local choices because the server cannot discover browser storage.
+Signed/request-carried snapshots are transport for an explicit preview/export,
+not an undocumented persistent layer above this cascade. Bind export to the
+intended content and presentation snapshot, with cache keys covering effective
+settings, policy version and relevant resolved theme values.
+
+The existing named-profile/single-default system needs an explicit compatibility
+plan: preserve stored preferences and ownership, do not silently assign a legacy
+global default to all type overrides, and do not leave a competing hidden default
+resolver. Named profiles may remain optional explicit presets, not another
+implicit precedence layer. Document migration/reset behavior and rehearse any
+schema/data migration on isolated data.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -251,6 +319,9 @@ versioning must distinguish old and new layout policy as required by M6.
   `document_publication.py`, `book_views.py`, and V's draft-preview/export path.
 - Layout: `library/static/library/print.css`, reading-style page/font overrides
   and existing running-matter/figure-pagination helpers.
+- Preferences: `library/services/reading_styles.py`, `library/reading_style_views.py`,
+  existing profile models/admin/account settings, reading-style controls/scripts
+  and workspace style/export plumbing.
 - Tests: existing reader/printing, metadata, PDF and publication regressions;
   extract generated metadata with existing PDF inspection tooling.
 
@@ -277,8 +348,12 @@ saved versus changed-draft exports.
 | M12 | Hidden contents/metadata, consecutive boundary requests, nested sections and the first visible part create no unintended blank pages. Heading-only/unheaded boundaries require no new semantic containers or prose/ID changes. |
 | M13 | Layout edits immediately affect live Read separation and exact draft PDF, support undo/recovery/save/reopen/comparison, and survive section move/copy and publication with stable identities. Screen output uses spacing/dividers, not artificial full-page gaps. |
 | M14 | Legacy compact/full title and contents/metadata fixtures preserve their prior effective pagination until an explicit layout change/reset. New policy preserves running headers, heading/caption/quotation protections, two-line rules, targets, prose/notes/media and immutable evidence; actual reader/print/PDF checks record intentional reflow. |
+| M15 | Per-setting resolution follows built-in type -> explicit admin type -> personal type -> exact-output override. Missing versus explicit false/zero, unknown/type changes and per-field reset work; changing lower defaults affects only inheriting settings, with effective origins visible. |
+| M16 | Account preferences persist privately across devices; guest exact-output preferences persist locally with visible failure/clearing limits. Login uses account values and imports guest settings only explicitly. Independent chapters, successors, branches and new publications receive no automatic exact-output override. |
+| M17 | Version-page style controls appear only in Read, with explicit This version versus My defaults for type scopes. Admin/account controls retain proper authority. Read/PDF and request-time guest/draft exports agree on resolved settings/theme; cache identities prevent stale or cross-user presentation mixing. |
+| M18 | Personal style changes preserve editorial layout, mandatory evidence, content and editor state. Legacy profile/default compatibility is explicit and tested with ownership/data preserved; no competing implicit resolver or silent broad-scope preference migration remains. |
 
-Stop when M1-M14 are implemented and validated with actual rendered output and
+Stop when M1-M18 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.

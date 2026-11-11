@@ -149,7 +149,7 @@ was performed.
 ### Presentation and PDF metadata enhancement (handoff 2026-11-11; planned)
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
-defines milestone M and M1-M14 acceptance, scheduled after R -> A -> V -> P.
+defines milestone M and M1-M18 acceptance, scheduled after R -> A -> V -> P.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;
@@ -185,6 +185,17 @@ translate screen separation into spacing/dividers rather than page-sized gaps.
 Provide one outline-part workflow with reset, live preview, draft PDF and ordinary
 undo/recovery/save/publication. Preserve effective legacy pagination until an
 explicit change/reset. M10-M14 own acceptance; recto/verso and inline breaks defer.
+Personal Reading/PDF style resolves per field: built-in type defaults, explicit
+admin type overrides, account-private personal type overrides, then exact-output
+personal overrides. Missing inherits; reset removes the override; explicit false
+is retained. Signed-in choices persist server-side; guest exact-output choices
+persist locally, with explicit import on login. No automatic child/successor
+propagation. Style controls on version pages belong only in Read, with explicit
+scope; administration/account settings manage broader defaults. Read/PDF share
+validated snapshots and correctly scoped caches. Personal appearance cannot
+override editorial part policy or mandatory evidence; theme remains separate.
+M15-M18 supersede older single-default/profile-panel direction once implemented,
+with an explicit compatibility plan rather than silent preference migration.
 This handoff authorizes documentation only, not implementation or deployment.
 
 ### Unified version workspace (handoff 2026-11-11; planned)

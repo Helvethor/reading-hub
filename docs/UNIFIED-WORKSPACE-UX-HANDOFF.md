@@ -93,6 +93,12 @@ in Edit, not every tab. Preserve Metadata, Review and Appearance capabilities as
 local controls without another competing primary navigation bar. Reading
 appearance remains presentation-only and keeps its existing personal/theme scope.
 
+Superseding planned refinement in
+[milestone M](PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md): version-page Reading/PDF
+style configuration belongs only in Read, with a per-field type/account/exact-
+output cascade. Do not treat this older Appearance-control placement as authority
+to duplicate style panels after M; editorial layout remains a separate concern.
+
 ### Compact navigation stack and Back to top
 
 Scroll-reachability extension agreed 2026-11-11. Apply the shared mechanism to
