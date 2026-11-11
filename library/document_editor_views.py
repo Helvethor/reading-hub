@@ -374,6 +374,12 @@ def _workspace_preview_context(request, source, snapshot):
     }
 
 
+def _workspace_content_state(snapshot):
+    if snapshot["is_unsaved"]:
+        return "draft"
+    return "saved" if snapshot["draft"] is not None else "exact"
+
+
 def _workspace_error(exc, status):
     response = JsonResponse({"error": str(exc)}, status=status)
     response["Cache-Control"] = "private, no-store"
@@ -399,8 +405,40 @@ def workspace_preview(request, pk):
         return _workspace_error(exc, 403)
     except (ValueError, ImportFailure, RecursionError, OSError) as exc:
         return _workspace_error(exc, 422)
-    response = JsonResponse({"html": markup})
+    response = JsonResponse({
+        "html": markup,
+        "state": _workspace_content_state(snapshot),
+        "revision": snapshot["saved_revision"],
+    })
     response["Cache-Control"] = "private, no-store"
+    return response
+
+
+def _exact_workspace_pdf(request, source, selected_style, selected_theme):
+    from library.services.pdf import PDFExportError, cached_pdf, pdf_filename
+
+    try:
+        path = cached_pdf(source, selected_style(request), theme=selected_theme(request))
+        handle = path.open("rb")
+    except (PDFExportError, OSError):
+        logger.exception("Unable to export exact rendition %s as PDF", source.pk)
+        response = _workspace_error(
+            ValueError(
+                f"Exact PDF generation for saved edition {source.pk} failed. "
+                "No other version was substituted."
+            ),
+            503,
+        )
+        response["Retry-After"] = "10"
+        return response
+    response = FileResponse(
+        handle, content_type="application/pdf", as_attachment=True,
+        filename=pdf_filename(source.title),
+    )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["X-Reading-Hub-PDF-State"] = "exact"
+    response["X-Reading-Hub-PDF-Revision"] = "0"
     return response
 
 
@@ -415,6 +453,9 @@ def workspace_pdf(request, pk):
         from library.services.reading_styles import selected_style
         from library.themes import selected_theme
 
+        state = _workspace_content_state(snapshot)
+        if state == "exact":
+            return _exact_workspace_pdf(request, source, selected_style, selected_theme)
         document = snapshot["output_document"]
         version = SimpleNamespace(
             document=source.document, title=document["title"], metadata=document["metadata"],
@@ -434,10 +475,17 @@ def workspace_pdf(request, pk):
             destination,
             content_type="application/pdf",
             as_attachment=True,
-            filename=pdf_filename(f"Draft preview - {document['title']}"),
+            filename=pdf_filename(
+                f"Draft preview - {document['title']}" if state == "draft"
+                else f"Saved revision {snapshot['saved_revision']} - {document['title']}"
+                if snapshot["saved_revision"]
+                else f"Working copy start - {document['title']}"
+            ),
         )
         response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"
+        response["X-Reading-Hub-PDF-State"] = state
+        response["X-Reading-Hub-PDF-Revision"] = str(snapshot["saved_revision"])
         return response
     except DocumentEditConflict as exc:
         return _workspace_error(exc, 409)

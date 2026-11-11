@@ -249,18 +249,121 @@ class DocumentEditorViewTests(TestCase):
         ))
 
     def test_workspace_pdf_render_failure_is_explicit_and_does_not_fall_back(self):
-        with patch(
-            "library.services.pdf.render_pdf",
-            side_effect=PDFExportError("synthetic renderer failure"),
+        changed = canonical_document({
+            **self.draft.document,
+            "html": '<section id="c1"><p>Changed before failed export.</p></section>',
+        })
+        with (
+            patch(
+                "library.services.pdf.render_pdf",
+                side_effect=PDFExportError("synthetic renderer failure"),
+            ),
+            patch("library.services.pdf.cached_pdf") as exact,
         ):
             response = self.client.post(
                 reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
-                json.dumps(self.workspace_payload(self.draft.document)),
+                json.dumps(self.workspace_payload(changed)),
                 content_type="application/json",
             )
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response["Cache-Control"], "no-store")
         self.assertIn("Draft PDF generation failed", response.json()["error"])
+        exact.assert_not_called()
+
+    def test_workspace_pdf_state_unchanged_source_exports_exact_retained_output(self):
+        initial = self.client.get(self.url + "?start=source").context["initial"]
+        exact = self.rendition
+        exported = io.BytesIO(b"%PDF-1.7\\nexact")
+
+        class ExactPath:
+            def open(self, mode):
+                return exported
+
+        payload = json.dumps(self.workspace_payload(initial["document"]))
+        read = self.client.post(
+            reverse("document-editor-read-preview", args=[exact.pk]),
+            payload, content_type="application/json",
+        )
+        self.assertEqual(read.json()["state"], "exact")
+        with (
+            patch("library.services.pdf.cached_pdf", return_value=ExactPath()) as cached,
+            patch("library.services.pdf.render_pdf") as renderer,
+        ):
+            response = self.client.post(
+                reverse("document-editor-draft-pdf", args=[exact.pk]),
+                payload, content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["X-Reading-Hub-PDF-State"], "exact")
+        self.assertIn(f"{exact.title}.pdf", response["Content-Disposition"])
+        self.assertNotIn("Draft preview", response["Content-Disposition"])
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.7\\nexact")
+        self.assertEqual(cached.call_args.args[0].pk, exact.pk)
+        renderer.assert_not_called()
+        self.assertEqual(DocumentDraftBase.objects.count(), 1)
+        self.assertEqual(DocumentEditRevision.objects.count(), 0)
+
+    def test_workspace_pdf_exact_failure_is_explicit_without_fallback(self):
+        initial = self.client.get(self.url + "?start=source").context["initial"]
+        with (
+            patch(
+                "library.services.pdf.cached_pdf",
+                side_effect=PDFExportError("synthetic exact failure"),
+            ),
+            patch("library.services.pdf.render_pdf") as renderer,
+        ):
+            response = self.client.post(
+                reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+                json.dumps(self.workspace_payload(initial["document"])),
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("No other version was substituted", response.json()["error"])
+        renderer.assert_not_called()
+
+    def test_workspace_pdf_state_distinguishes_saved_copy_from_unsaved_draft(self):
+        document = canonical_document({
+            **self.draft.document, "title": "Saved copy title",
+            "html": '<section id="c1"><p>Saved revision text.</p></section>',
+        })
+        foundation.DocumentEditTests.save(self, value=document)
+        saved = self.client.get(self.url + f"?draft={self.draft.pk}").context["initial"]
+        self.assertEqual(saved["revision"], 1)
+        rendered = []
+
+        def render(version, destination, reading_style, *, theme, approved_assets):
+            rendered.append(version.html)
+            destination.write(b"%PDF-1.7\\nworkspace")
+
+        def export(value):
+            with patch("library.services.pdf.render_pdf", side_effect=render):
+                return self.client.post(
+                    reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+                    json.dumps(self.workspace_payload(value, draft=self.draft, revision=1)),
+                    content_type="application/json",
+                )
+
+        unchanged = export(saved["document"])
+        self.assertEqual(unchanged.status_code, 200)
+        self.assertEqual(unchanged["X-Reading-Hub-PDF-State"], "saved")
+        self.assertEqual(unchanged["X-Reading-Hub-PDF-Revision"], "1")
+        self.assertIn("Saved revision 1 - Saved copy title.pdf", unchanged["Content-Disposition"])
+        self.assertIn("Saved revision text.", rendered[-1])
+        read = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(saved["document"], draft=self.draft, revision=1)),
+            content_type="application/json",
+        )
+        self.assertEqual(read.json()["state"], "saved")
+
+        changed = export({
+            **saved["document"],
+            "html": '<section id="c1"><p>Unsaved later text.</p></section>',
+        })
+        self.assertEqual(changed["X-Reading-Hub-PDF-State"], "draft")
+        self.assertIn("Draft preview - Saved copy title.pdf", changed["Content-Disposition"])
+        self.assertIn("Unsaved later text.", rendered[-1])
+        self.assertEqual(DocumentEditRevision.objects.count(), 1)
 
     def test_get_does_not_create_evidence_or_publish(self):
         before = DocumentDraftBase.objects.count()
