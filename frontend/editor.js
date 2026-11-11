@@ -21,6 +21,7 @@ const attrs = {
 const tagAttrs = {
   ...Object.fromEntries(["h2", "h3", "h4", "h5", "h6"].map(tag => [tag, ["data-toc-style", "data-toc-entry"]])),
   section: ["data-section-url", "data-section-role", "data-section-title",
+    "data-section-label",
     "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style", "data-toc-entry"],
   a: ["href", "title", "aria-label", "rel"],
   img: ["src", "alt", "loading", "decoding"],

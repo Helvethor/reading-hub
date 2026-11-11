@@ -94,7 +94,7 @@ def section_title(section):
                 headings[0] if headings else None)
 
 
-def book_entries(soup):
+def book_entries(soup, document_title="", book=False):
     positions, ends = {}, {}
     cursor = 0
 
@@ -113,6 +113,10 @@ def book_entries(soup):
 
     locate(soup)
     parts = []
+    root_sections = [
+        section for section in soup.select("section[id]")
+        if section.find_parent("section") is None
+    ]
 
     def visit(parent):
         children = [node for node in parent.children if isinstance(node, Tag)]
@@ -120,12 +124,27 @@ def book_entries(soup):
             position, end = positions[id(node)], ends[id(node)]
             if node.name == "section":
                 heading = section_title(node)
+                role = node.get("data-section-role")
+                root_article = (
+                    role == "article" and not book
+                    and node.find_parent("section") is None and len(root_sections) == 1
+                )
+                if role == "article":
+                    title = document_title.strip() if root_article else node.get(
+                        "data-section-label", ""
+                    ).strip()
+                    title = title or "Untitled article"
+                else:
+                    title = (heading_label(heading).strip() if heading is not None else "")[:120]
+                    title = title or node.get("id") or "Untitled section"
                 parts.append({
                     "from": position + 1, "to": end - 1, "node": node,
                     "heading": heading,
-                    "title": (heading_label(heading).strip() if heading is not None else "")[:120]
-                    or node.get("id") or "Untitled section",
-                    "raw_title": (heading.get_text().strip() if heading is not None else "")[:120],
+                    "title": title[:120],
+                    "raw_title": title[:120] if role == "article" else (
+                        (heading.get_text().strip() if heading is not None else "")[:120]
+                    ),
+                    "root_article": root_article,
                 })
             elif node.name in HEADINGS:
                 following = next((sibling for sibling in children[index + 1:]
@@ -173,11 +192,11 @@ def book_entries(soup):
     return unique
 
 
-def publication_toc(soup):
+def publication_toc(soup, document_title="", *, book=False):
     """Assign navigation targets only; never insert numbering into saved prose."""
     used = {node["id"] for node in soup.select("[id]")}
     toc = []
-    for index, part in enumerate(book_entries(soup), 1):
+    for index, part in enumerate(book_entries(soup, document_title, book), 1):
         target = part["node"]
         if not target.get("id"):
             identifier = f"heading-{index}"
@@ -188,17 +207,18 @@ def publication_toc(soup):
         toc.append({
             "id": target["id"], "title": part["title"], "level": part["depth"] + 2,
             "style": part["style"], "number": part["number"], "marker": part["marker"],
-            "editor_entry": True, "in_toc": part["in_toc"],
+            "editor_entry": True,
+            "in_toc": part["in_toc"] and not part.get("root_article", False),
         })
     return toc
 
 
-def publication_view(html, saved_entries=()):
+def publication_view(html, saved_entries=(), document_title="", *, book=False):
     soup = BeautifulSoup(html, "html.parser")
-    toc = publication_toc(soup)
+    toc = publication_toc(soup, document_title, book=book)
     titles = {entry["id"]: entry["title"] for entry in saved_entries if entry.get("editor_entry")}
-    parts = book_entries(soup)
-    for entry, part in zip(toc, parts):
+    parts = book_entries(soup, document_title, book)
+    for entry, part in zip(toc, parts, strict=True):
         # Older saved entries kept note markers; only a deliberate different title wins.
         if titles.get(entry["id"], part["raw_title"]) != part["raw_title"]:
             entry["title"] = titles[entry["id"]]

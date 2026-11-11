@@ -267,6 +267,7 @@ function serialized(doc, owner) {
 const attributeNames = {
   "data-toc-style": "TOC numbering", "data-toc-entry": "ToC visibility", class: "classes", id: "target ID",
   "data-section-role": "section role", "data-section-title": "section title target",
+  "data-section-label": "Article title",
   "data-section-group": "section group", "data-excerpt-parent": "excerpt origin",
 };
 

@@ -23,7 +23,9 @@ import {
   canMoveAttribution, moveAttribution, removeQuotation,
 } from "./quotations.js";
 import {canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure} from "./figures.js";
-import {documentParts, showDocumentPart, visiblePart, showBlockLabels} from "./workspace.js";
+import {
+  documentParts, showDocumentPart, visiblePart, showBlockLabels, workspaceContext,
+} from "./workspace.js";
 import {mountWorkspace} from "./controls.js";
 import {mountEditorTabs} from "./editor-tabs.js";
 import {applySourceInsertion, sourceInsertionTarget} from "./source-insertion.js";
@@ -655,6 +657,21 @@ test("source section insertion wraps excerpts and remaps an explicit title bindi
   assert.equal(movableSections(editor.state.doc).at(-1).label, "Real title");
 });
 
+test("embedded Article insertion retains a local label without adding or rebinding a heading", () => {
+  open('<section id="book"><h2>Anthology</h2><p>Opening text.</p></section>');
+  const internal = '<p>Article opening.</p><h2 id="heading">First section</h2>' +
+    '<p>Article body.</p>';
+  applySourceInsertion(editor, sectionInsertionTarget(editor), internal, "end",
+    {section: {title: "Retained article title", role: "article"}});
+  const section = editor.state.doc.child(editor.state.doc.childCount - 1);
+  assert.equal(section.attrs["data-section-role"], "article");
+  assert.equal(section.attrs["data-section-label"], "Retained article title");
+  const headings = [];
+  section.descendants(node => { if (node.type.name === "h2") headings.push(node.textContent); });
+  assert.deepEqual(headings, ["First section"]);
+  assert.equal(section.attrs["data-section-title"], null);
+});
+
 test("original restoration recovers missing descendant targets for existing inbound links", () => {
   open('<p><a href="#note">Missing note</a></p>');
   applySourceInsertion(editor, sectionInsertionTarget(editor),
@@ -685,6 +702,142 @@ function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace, s
   onWorkspace?.(workspace);
   return form;
 }
+
+test("legacy standalone Article uses document title without rewriting its headings", () => {
+  const html = '<section id="article"><p>Opening paragraph.</p>' +
+    '<h2 id="first">First heading</h2><p>First body.</p>' +
+    '<h3 id="nested">Nested heading</h3><p>Nested body.</p>' +
+    '<h2 id="second">Second heading</h2><p>Second body.</p></section>';
+  const initial = {
+    document: {title: "Retained article title", metadata: {work_type: "article"}},
+    structure: {book: false, parts: [{id: "article", title: "Retained article title", role: "chapter"}]},
+  };
+  const form = mountSectionWorkspace(html, initial, {book: false});
+  const title = form.querySelector('[name="title"]');
+  title.value = "Retained article title";
+  title.dispatchEvent(new dom.window.Event("input", {bubbles: true}));
+  const context = workspaceContext(editor.state.doc, {
+    title: "Retained article title", metadata: {work_type: "article"},
+  }, initial.structure);
+  const parts = documentParts(editor.state.doc, context);
+  assert.equal(parts[0].displayKind, "Article");
+  assert.equal(parts[0].role, "article");
+  assert.equal(parts[0].label, "Retained article title");
+  assert.deepEqual(parts.filter(part => part.kind === "H2").map(part => part.label),
+    ["First heading", "Second heading"]);
+  assert(parts.some(part => part.kind === "H3" && part.label === "Nested heading"));
+  const originalHtml = editor.getHTML();
+  const articleRow = () => form.querySelector("#editor-outline-items [data-outline-index='0']");
+  assert.equal(articleRow().querySelector(".editor-outline-kind").textContent, "Article");
+  assert.equal(articleRow().querySelector(".editor-outline-title").textContent, "Retained article title");
+  const firstRange = parts.find(part => part.kind === "H2" && part.label === "First heading");
+  const nestedRange = parts.find(part => part.kind === "H3" && part.label === "Nested heading");
+  const secondRange = parts.find(part => part.kind === "H2" && part.label === "Second heading");
+  assert(firstRange.from > parts[0].from && firstRange.to <= parts[0].to);
+  assert(nestedRange.from > firstRange.from && nestedRange.to <= firstRange.to);
+  assert(firstRange.to <= secondRange.from);
+
+  title.value = "Updated article title";
+  title.dispatchEvent(new dom.window.Event("input", {bubbles: true}));
+  assert.equal(articleRow().querySelector(".editor-outline-title").textContent, "Updated article title");
+  assert.equal(editor.getHTML(), originalHtml);
+  selectText("First heading");
+  editor.commands.insertContent("Edited first heading");
+  assert.equal(articleRow().querySelector(".editor-outline-title").textContent, "Updated article title");
+  assert(form.querySelector("#editor-outline-items [data-outline-index='1'] .editor-outline-title")
+    .textContent.includes("Edited first heading"));
+  const currentContext = workspaceContext(editor.state.doc, {
+    title: "Updated article title", metadata: {work_type: "article"},
+  }, initial.structure);
+  const rootArticle = documentParts(editor.state.doc, currentContext)[0];
+  const before = editor.getHTML();
+  toggleDocumentFold(editor, rootArticle);
+  assert.equal(editor.getHTML(), before);
+  toggleDocumentFold(editor, rootArticle);
+  assert.equal(editor.getHTML(), before);
+
+  const section = form.querySelector('[data-section-move="0"]');
+  section.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  const menu = form.querySelector("#editor-section-actions");
+  [...menu.querySelectorAll("button")].find(button =>
+    button.textContent.startsWith("Edit title")).click();
+  const details = document.querySelector("#editor-section-details");
+  assert.equal(details.querySelector("[name=role]").value, "article");
+  assert.equal(details.querySelector("[name=title]").value, "Updated article title");
+  assert(details.querySelector("[name=title]").disabled);
+  assert(details.querySelector("[name=heading]").closest("label").hidden);
+  details.querySelector("[data-cancel]").click();
+  assert.equal(editor.getHTML(), before);
+  form.querySelector('[data-section-move="0"]').dispatchEvent(
+    new dom.window.MouseEvent("contextmenu", {bubbles: true}),
+  );
+  [...form.querySelector("#editor-section-actions").querySelectorAll("button")]
+    .find(button => button.textContent.startsWith("Edit title")).click();
+  document.querySelector("#editor-section-details [data-apply]").click();
+  const adopted = editor.getHTML();
+  assert(adopted.includes('data-section-role="article"'));
+  assert(!adopted.includes("data-section-label="));
+  assert(adopted.includes('id="first"'));
+  assert(adopted.includes("Edited first heading"));
+});
+
+test("legacy Article inference requires explicit article metadata and no explicit section role", () => {
+  const html = '<section id="article"><h2>First subsection</h2><p>Body.</p></section>';
+  const doc = createBoundedEditor(document.createElement("div"), html).state.doc;
+  const structure = {book: false, parts: [{id: "article", title: "Article", role: "chapter"}]};
+  const article = workspaceContext(doc, {
+    title: "Article", metadata: {work_type: "article"},
+  }, structure);
+  assert.equal(documentParts(doc, article)[0].role, "article");
+  const essay = workspaceContext(doc, {
+    title: "Essay", metadata: {work_type: "essay"},
+  }, structure);
+  assert.equal(documentParts(doc, essay)[0].role, "chapter");
+  const explicitChapterDoc = createBoundedEditor(document.createElement("div"),
+    '<section id="article" data-section-role="chapter"><h2>First subsection</h2></section>').state.doc;
+  const explicit = workspaceContext(explicitChapterDoc, {
+    title: "Article", metadata: {work_type: "article"},
+  }, structure);
+  assert.equal(documentParts(explicitChapterDoc, explicit)[0].role, "chapter");
+});
+
+test("anthology Article title edits remain local and do not rename the internal heading", () => {
+  const html = '<section id="anthology"><h2>Enclosing anthology</h2><p>Intro.</p>' +
+    '<section id="story" data-section-role="article" data-section-label="Retained story title">' +
+    '<p>Article opening.</p><h2 id="story-heading">Internal heading</h2>' +
+    '<p>Article body.</p></section>' +
+    '<section id="story-two" data-section-role="article" data-section-label="Second local title">' +
+    '<p>Second article.</p></section></section>';
+  const initial = {structure: {book: true, parts: [
+    {id: "anthology", title: "Enclosing anthology", role: "chapter"},
+    {id: "story", title: "Retained story title", role: "article", parent: "anthology"},
+    {id: "story-two", title: "Second local title", role: "article", parent: "anthology"},
+  ]}};
+  const form = mountSectionWorkspace(html, initial, {book: true});
+  const story = form.querySelector('[data-section-move="1"]');
+  story.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
+  const menu = form.querySelector("#editor-section-actions");
+  [...menu.querySelectorAll("button")].find(button =>
+    button.textContent.startsWith("Edit title")).click();
+  const details = document.querySelector("#editor-section-details");
+  assert.equal(details.querySelector("[name=title]").value, "Retained story title");
+  assert.equal(details.querySelector("[name=title]").disabled, false);
+  assert(details.querySelector("[name=heading]").closest("label").hidden);
+  details.querySelector("[name=title]").value = "Corrected local title";
+  details.querySelector("[data-apply]").click();
+  const output = editor.getHTML();
+  assert(output.includes('data-section-label="Corrected local title"'));
+  assert(output.includes('id="story-heading"'));
+  assert(output.includes(">Internal heading</h2>"));
+  assert(!output.includes('data-section-title="story-heading"'));
+  const sections = movableSections(editor.state.doc);
+  const storyIndex = sections.findIndex(section => section.node.attrs.id === "story");
+  const secondIndex = sections.findIndex(section => section.node.attrs.id === "story-two");
+  moveSection(editor, {doc: editor.state.doc}, storyIndex, "after", secondIndex);
+  const moved = editor.getHTML();
+  assert(moved.indexOf('id="story-two"') < moved.indexOf('id="story"'));
+  assert(moved.includes('data-section-label="Corrected local title"'));
+});
 
 test("book views have five choices, four navigation groups and a separate section filter", () => {
   const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Opening.</p>' +
@@ -1939,9 +2092,10 @@ test("semantic copy pastes styled text repeatedly without losing source or dupli
   assert.equal(editor.getHTML(), before);
 });
 
-test("whole-block semantic copy retains section metadata media and styles with fresh internal bindings", () => {
+test("whole-block semantic copy retains Article identity and section metadata with fresh bindings", () => {
   const errors = [];
-  open('<section id="s"><section id="excerpt" data-section-title="title" data-excerpt-parent="s">' +
+  open('<section id="s"><section id="excerpt" data-section-role="article" ' +
+    'data-section-label="Retained local title" data-section-title="title" data-excerpt-parent="s">' +
     '<h3 id="title">Excerpt</h3><figure id="plate"><img src="/assets/' + "a".repeat(64) +
     '/" alt="Plate"><figcaption>Caption</figcaption></figure><pre id="pre">  exact\n spacing</pre>' +
     '<p class="text-align-center"><strong>Styled</strong> <a href="#title">Back</a></p>' +
@@ -1958,6 +2112,8 @@ test("whole-block semantic copy retains section metadata media and styles with f
   root.innerHTML = editor.getHTML();
   const copy = root.querySelector("#excerpt-copy");
   assert(copy);
+  assert.equal(copy.getAttribute("data-section-role"), "article");
+  assert.equal(copy.getAttribute("data-section-label"), "Retained local title");
   assert.equal(copy.getAttribute("data-section-title"), "title-copy");
   assert.equal(copy.getAttribute("data-excerpt-parent"), "s");
   assert(copy.querySelector('a[href="#title-copy"]'));

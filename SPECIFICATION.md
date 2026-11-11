@@ -196,10 +196,15 @@ work. Preserve immutable evidence, source fallback, frame protections and
 existing selection controls. This is a documentation-only handoff, not
 implementation, deployment or live-data authorization.
 
-### Article identity and heading hierarchy (agreed 2026-11-09; planned)
+### Article identity and heading hierarchy (agreed 2026-11-09; implemented 2026-11-12)
 
 The [article hierarchy handoff](docs/ARTICLE-HIERARCHY-IMPLEMENTATION-HANDOFF.md)
-defines the accepted, not-yet-implemented milestone and A1-A10 acceptance.
+defines the accepted milestone and A1-A10 acceptance. The implementation uses
+the Article section role and a validated `data-section-label` for embedded
+Article titles; standalone legacy inference is limited to article metadata,
+non-book structure, one matching root section, a historical Chapter role and no
+explicit role attribute. Explicit roles and non-Article work types are
+preserved.
 A standalone article's outer content container uses the editable document title
 and an Article editorial role, not the first internal H2. Root title edits must
 not rename an internal heading or insert a duplicate title into the prose.
@@ -221,8 +226,10 @@ semantics must round-trip through recovery, save/reopen, comparison and new
 reader/contents/PDF output. Existing title/contents settings remain independent;
 the standalone root must not create a duplicate title entry in the contents.
 Automatic H2 wrapping, bulk live conversion and source-title cleanup are excluded.
-The current approval covers design and documentation, not implementation,
-deployment or live-data changes.
+The focused validation on 2026-11-12 passed 50 Django tests, 278 frontend tests,
+the frontend asset build, Ruff lint and a synthetic Article editor-compatibility
+check; no migration is required. Local deployment and browser-level acceptance
+remain pending. No live records or historical evidence were changed.
 
 ### Catalogue membership and editorial sections (agreed 2026-11-07)
 

@@ -7,7 +7,34 @@ import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 const workspaceKey = new PluginKey("readingHubWorkspace");
 const headingTypes = new Set(["h2", "h3", "h4", "h5", "h6"]);
 
-export function documentParts(doc) {
+export function workspaceContext(doc, document = {}, structure = {}) {
+  const topSections = [];
+  doc.forEach((node, pos) => {
+    if (node.type.name === "section") topSections.push({node, pos});
+  });
+  const parts = Array.isArray(structure.parts) ? structure.parts : [];
+  const legacyPart = parts.length === 1 ? parts[0] : null;
+  const legacySection = topSections.length === 1 ? topSections[0].node : null;
+  const legacyArticleId = document.metadata?.work_type === "article" &&
+    structure.book === false && legacyPart?.role === "chapter" &&
+    legacySection?.attrs.id === legacyPart.id &&
+    !legacySection.attrs["data-section-role"] ? legacyPart.id : null;
+  const rootSectionId = topSections.length === 1 && structure.book !== true
+    ? topSections[0].node.attrs.id : null;
+  const standaloneArticleId = rootSectionId &&
+    (legacyArticleId === rootSectionId ||
+      topSections[0].node.attrs["data-section-role"] === "article")
+    ? rootSectionId : null;
+  return {
+    title: document.title || "",
+    parts,
+    legacyArticleId,
+    rootSectionId,
+    standaloneArticleId,
+  };
+}
+
+export function documentParts(doc, context = {}) {
   const parts = [];
   function visit(parent, start, depth) {
     const children = [];
@@ -19,11 +46,22 @@ export function documentParts(doc) {
       if (node.type.name === "section") {
         const title = sectionHeading(node, pos)?.node;
         const heading = title ? headingLabel(title) : "";
+        const retainedTitle = context.parts?.find(part => part.id === node.attrs.id);
+        const role = node.attrs["data-section-role"] ||
+          (context.legacyArticleId === node.attrs.id ? "article" : retainedTitle?.role);
+        const article = role === "article";
+        const isRootArticle = article && context.rootSectionId === node.attrs.id;
+        const label = article
+          ? (isRootArticle ? context.title : node.attrs["data-section-label"] ||
+            (retainedTitle?.role === "article" ? retainedTitle.title : ""))?.trim()
+          : heading.trim();
         parts.push({
           from: pos + 1, to: pos + node.nodeSize - 1, depth,
-          label: heading.trim().slice(0, 120) || node.attrs.id || "Untitled section",
+          label: (label || (article ? "Untitled article" :
+            node.attrs.id || "Untitled section")).slice(0, 120),
           kind: "Section", id: node.attrs.id,
-          role: node.attrs["data-section-role"],
+          role, displayKind: article ? "Article" : "Section",
+          titleMissing: article && !label,
           excerptParent: node.attrs["data-excerpt-parent"],
         });
       } else if (headingTypes.has(node.type.name)) {
@@ -63,10 +101,10 @@ function foldBody(doc, part) {
   return {from, to: part.to};
 }
 
-function decorations(doc, scope, labels, folds = []) {
+function decorations(doc, scope, labels, folds = [], context = {}) {
   const result = [];
   const hidden = folds.map(part => foldBody(doc, part));
-  const parts = documentParts(doc), numbering = tocNumberingEntries(doc, parts);
+  const parts = documentParts(doc, context), numbering = tocNumberingEntries(doc, parts);
   parts.forEach((part, index) => {
     const marker = tocMarker(numbering[index]);
     if (!marker) return;
@@ -114,8 +152,10 @@ function decorations(doc, scope, labels, folds = []) {
       return false;
     }
     if (node.type.name === "section") {
-      const heading = sectionHeading(node, pos);
-      const label = (heading && headingLabel(heading.node)) || node.attrs.id || "Untitled section";
+      const part = parts.find(candidate => candidate.from === pos + 1);
+      const heading = part?.role === "article" ? null : sectionHeading(node, pos);
+      const label = part?.label || (heading && headingLabel(heading.node)) ||
+        node.attrs.id || "Untitled section";
       const origin = node.attrs["data-excerpt-parent"];
       result.push(Decoration.node(pos, end, {class: "editor-section-boundary"}));
       for (const [at, text, edge] of [
@@ -281,29 +321,35 @@ export function workspaceExtension(onError) {
         view: mountLabelColumns,
         state: {
           init: (_, state) => ({
-            scope: null, labels: true, folds: [], decorations: decorations(state.doc, null, true),
+            scope: null, labels: true, folds: [], context: {},
+            decorations: decorations(state.doc, null, true),
           }),
           apply(tr, previous) {
             const change = tr.getMeta(workspaceKey);
             let scope = change && "scope" in change ? change.scope : previous.scope;
             const labels = change?.labels ?? previous.labels;
             let folds = change?.folds ?? previous.folds;
-            if (tr.docChanged) {
-              const parts = documentParts(tr.doc);
+            const context = change?.context ?? previous.context;
+            if (tr.docChanged || change?.context) {
+              const parts = documentParts(tr.doc, context);
               folds = folds.map(part => {
-                const from = tr.mapping.map(part.from, 1), to = tr.mapping.map(part.to, -1);
+                const from = tr.docChanged ? tr.mapping.map(part.from, 1) : part.from;
+                const to = tr.docChanged ? tr.mapping.map(part.to, -1) : part.to;
                 return parts.find(candidate => candidate.from === from && candidate.to === to);
               }).filter(Boolean);
             }
             if (scope && tr.docChanged) {
               scope = {...scope, from: tr.mapping.map(scope.from, -1),
                 to: tr.mapping.map(scope.to, 1)};
-              const current = documentParts(tr.doc).find(part =>
+            }
+            if (scope && (tr.docChanged || change?.context)) {
+              const current = documentParts(tr.doc, context).find(part =>
                 part.from === scope.from && part.to === scope.to);
               if (current) scope = {...scope, label: current.label};
             }
             if (!change && !tr.docChanged) return previous;
-            return {scope, labels, folds, decorations: decorations(tr.doc, scope, labels, folds)};
+            return {scope, labels, folds, context,
+              decorations: decorations(tr.doc, scope, labels, folds, context)};
           },
         },
         filterTransaction(tr, state) {
@@ -387,9 +433,19 @@ export function visiblePart(editor) {
   return workspaceKey.getState(editor.state).scope;
 }
 
+export function getWorkspaceContext(editor) {
+  return workspaceKey.getState(editor.state).context;
+}
+
+export function setWorkspaceContext(editor, context) {
+  editor.view.dispatch(editor.state.tr.setMeta(workspaceKey, {context})
+    .setMeta("addToHistory", false));
+}
+
 export function showDocumentPart(editor, part, {filter = true} = {}) {
   const {state} = editor;
-  if (part && !documentParts(state.doc).some(candidate =>
+  const context = getWorkspaceContext(editor);
+  if (part && !documentParts(state.doc, context).some(candidate =>
     candidate.from === part.from && candidate.to === part.to)) {
     throw new Error("This part changed. Choose it again from the current outline.");
   }
@@ -409,7 +465,7 @@ export function foldedDocumentParts(editor) {
 }
 
 export function toggleDocumentFold(editor, part) {
-  const current = documentParts(editor.state.doc).find(candidate =>
+  const current = documentParts(editor.state.doc, getWorkspaceContext(editor)).find(candidate =>
     candidate.from === part.from && candidate.to === part.to);
   if (!current) throw new Error("This part changed. Choose it again from the outline.");
   const previous = foldedDocumentParts(editor);

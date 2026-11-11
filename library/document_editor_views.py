@@ -395,7 +395,10 @@ def publication(request, pk):
     if candidate or published:
         version = published.rendition if published else Rendition(
             document=source.document, snapshot=source.snapshot, **candidate["output"])
-        projection = publication_view(version.html, version.structure["toc"])
+        projection = publication_view(
+            version.html, version.structure["toc"], version.title,
+            book=bool(version.structure.get("book")),
+        )
         display_author = version.metadata.get("author", "").strip() or source_name(
             source.document.url)
         book = version.structure.get("book")

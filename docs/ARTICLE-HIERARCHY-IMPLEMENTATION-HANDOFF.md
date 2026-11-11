@@ -1,6 +1,7 @@
 # Milestone A: article identity and heading hierarchy
 
-Design accepted 2026-11-09. Status: specified; not implemented or validated.
+Design accepted 2026-11-09. Status: implemented; focused automated validation
+passed 2026-11-12. Local deployment and browser-level acceptance are pending.
 
 ## Outcome, authority and stopping point
 
@@ -9,11 +10,11 @@ title, navigates its internal headings, changes its title without changing its
 first subsection, saves and reopens, then previews reader/PDF output with the
 same identity and hierarchy. Existing book/chapter editing remains intact.
 
-This handoff records the approved design and defines a future implementation
-assignment. The current request authorizes documentation only, not application
-implementation, deployment, publication, migration or mutation of live records.
-Future implementation should use isolated representative fixtures and explicit
-task paths for validated local checkpoint commits under the repository agreements.
+This handoff records the approved design and implementation evidence. The
+current milestone instruction authorizes implementation and localhost
+deployment, not public deployment, publication or mutation of live records.
+Use isolated representative fixtures and explicit task paths for validated
+local checkpoint commits under the repository agreements.
 
 Stop when A1-A10 below are implemented and validated with bounded evidence.
 Passing old tests, adding an Article option, or changing the outline label alone
@@ -181,6 +182,28 @@ entry under the book, with its internal headings beneath it.
 
 ## Delivery and evidence
 
+### Implementation and automated evidence (2026-11-12)
+
+- Added the Article role and validated `data-section-label` round-trip for local
+  embedded titles. The standalone legacy rule is deliberately bounded: Article
+  work type, non-book structure, exactly one matching root section, historical
+  Chapter role and no explicit role attribute. Explicit roles and other work
+  types are preserved; page count is not used.
+- Article root labels use the document title without rewriting heading content.
+  Embedded Article labels remain local. The corrected publication structure
+  carries the effective Article role while the retained rendition and historical
+  structure remain unchanged.
+- Added editor, semantic-validation, structure, publication, reader, contents
+  and PDF regressions using isolated fixtures. Validation passed:
+  `manage.py test library.tests.test_book_views library.tests.test_document_publication library.tests.test_editor_structure`
+  (50 tests), `npm test` (278 tests), `npm run build`, Ruff lint, targeted Ruff
+  formatting and a synthetic `npm run check:editor` Article input. No migration
+  is required.
+- Browser review of an authenticated editor, real keyboard/focus and narrow
+  screen behavior, human accessibility review and post-deployment checks have
+  not yet been performed. The version-98 scenario is synthetic, not a live-data
+  reproduction. No live record was changed.
+
 1. Reproduce the title fallback and destructive-title-edit risk on isolated
    inputs. Record compatibility/title ownership decisions and baseline
    preservation assertions before changing code.
@@ -210,5 +233,6 @@ with actual status, not optimistic completion claims.
   types or automatic work-type/page-preset changes.
 - Changing catalogue membership, source provenance, reader selection, historical
   publications or live user corrections to demonstrate acceptance.
-- Deployment, release/version bumps, Git push, public hosting, publication or
-  review certification. These require separate authorization.
+- Public deployment, release/version bumps, Git push, public hosting, publication
+  or review certification. These require separate authorization; only localhost
+  deployment is authorized by the current milestone instruction.

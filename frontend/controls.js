@@ -11,7 +11,10 @@ import {
 import {
   canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure,
 } from "./figures.js";
-import {documentParts, foldedDocumentParts, showDocumentPart, showBlockLabels, visiblePart} from "./workspace.js";
+import {
+  documentParts, foldedDocumentParts, showDocumentPart, showBlockLabels, visiblePart,
+  workspaceContext, setWorkspaceContext,
+} from "./workspace.js";
 import {mountDynamicOutline} from "./outline.js";
 import {movableSections, mountSectionMoves} from "./section-moves.js";
 import {mountContentMoves} from "./content-moves.js";
@@ -33,7 +36,8 @@ function bookNotice(pages) {
 }
 
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
-  title: form.querySelector('[name="title"]')?.value || initial.document?.title || "",
+  title: form.querySelector('[name="title"]')
+    ? form.querySelector('[name="title"]').value : initial.document?.title || "",
   metadata: initial.document?.metadata || {},
 })) {
   const owner = form.ownerDocument;
@@ -55,6 +59,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError,
     initial.presentation);
   const sectionFilter = bookViews.filter;
+  let context = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
+  setWorkspaceContext(editor, context);
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
     () => bookViews.expandNavigation(), () => bookViews.targets());
   mountSectionBoundaries(form, editor, showError, initial.structure?.parts || []);
@@ -163,13 +169,13 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     if (focus) editor.commands.focus();
   }
   function refreshOutline() {
-    const currentParts = documentParts(editor.state.doc);
+    const currentParts = documentParts(editor.state.doc, context);
     const numbering = tocNumberingEntries(editor.state.doc, currentParts);
     parts = currentParts.map((part, index) => {
       const original = initial.structure?.parts?.find(source => source.id === part.id);
       return {...part, role: part.role || original?.role, marker: tocMarker(numbering[index])};
     });
-    const sections = movableSections(editor.state.doc);
+    const sections = movableSections(editor.state.doc, context);
     const scope = visiblePart(editor);
     if (scope && bookViews.view !== "sections") bookViews.show("sections");
     sectionFilter.replaceChildren(new Option("All sections", ""));
@@ -180,7 +186,9 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       const value = index ? String(index - 1) : "";
       const current = index ? scope?.from === part.from && scope?.to === part.to : !scope;
       const title = `${part.marker ? `${part.marker} ` : ""}${part.label}`;
-      const label = index ? `${"  ".repeat(Math.min(part.depth, 8))}${part.kind}: ${title}` : title;
+      const label = index
+        ? `${"  ".repeat(Math.min(part.depth, 8))}${part.displayKind || part.kind}: ${title}`
+        : title;
       if (index) sectionFilter.add(new Option(label, value));
       if (current) sectionFilter.value = value;
       if (current) matched = true;
@@ -680,6 +688,15 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     owner.removeEventListener("scroll", pageScrolled, true);
     owner.defaultView.removeEventListener("resize", scrolled);
   });
+  function updateWorkspaceContext() {
+    const next = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
+    if (JSON.stringify(next) === JSON.stringify(context)) return;
+    context = next;
+    setWorkspaceContext(editor, context);
+    refreshOutline();
+  }
+  form.querySelector('[name="title"]')?.addEventListener("input", updateWorkspaceContext);
+  form.querySelector('[name="work_type"]')?.addEventListener("change", updateWorkspaceContext);
   const sectionMoves = mountSectionMoves(form, editor, showError, {externalMenu: true});
   const sectionCreation = mountSectionCreation(form, editor, showError);
   mountSectionManagement(form, editor, showError, sectionMoves, sectionCreation, initial);

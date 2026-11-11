@@ -11,9 +11,9 @@ from django.urls import reverse
 from PIL import Image
 from pypdf import PdfReader
 
-from library.models import Blob, DocumentPublication, Rendition, RenditionAsset
+from library.models import Blob, Document, DocumentPublication, Rendition, RenditionAsset, Snapshot
 from library.profile import get_profile
-from library.services.document_edits import DocumentEditConflict, save_revision
+from library.services.document_edits import DocumentEditConflict, create_draft, save_revision
 from library.services.document_publication import (
     PUBLICATION_VERSION,
     prepare_publication,
@@ -75,6 +75,135 @@ class DocumentPublicationTests(TestCase):
                          revision.document["html"])
         self.assertContains(self.client.get(reverse("reader", args=[rendition.pk])),
                             "Reviewed Appendix")
+
+    def test_legacy_standalone_article_publication_keeps_identity_and_heading_hierarchy(self):
+        url = "https://www.marxists.org/test/article-hierarchy.htm"
+        work = Document.objects.create(url=url)
+        snapshot = Snapshot.objects.create(
+            document=work, digest="1" * 64,
+            manifest={"pages": [{"url": url, "digest": "2" * 64}]},
+        )
+        html = (
+            '<section id="article">'
+            '<p id="opening-1">Opening one.</p><p id="opening-2">Opening two.</p>'
+            '<p id="opening-3">Opening three.</p><p id="opening-4">Opening four.</p>'
+            '<p id="opening-5">Opening five.</p><p id="opening-6">Opening six.</p>'
+            '<h2 id="h2-one">First section</h2><p id="note-one">Text <a href="#note-two">2</a>.</p>'
+            '<h3 id="h3-one">Nested section</h3><p>Nested detail.</p>'
+            '<h4 id="h4-one">Nested detail</h4><p>More detail.</p>'
+            '<p id="note-two"><a href="#note-one">Return</a></p>'
+            '<h2 id="h2-two">Second section</h2><p>Second body.</p>'
+            '<h2 id="h2-three">Third section</h2><p>Third body.</p>'
+            '<h2 id="h2-four">Fourth section</h2><p>Fourth body.</p></section>'
+        )
+        rendition = Rendition.objects.create(
+            document=work, snapshot=snapshot, identity="3" * 64,
+            title="Full article identity", metadata={
+                "language": "en", "work_type": "article", "contents_page": False,
+            },
+            html=html, structure={
+                "toc": [], "book": False,
+                "parts": [{"id": "article", "title": "Full article identity", "role": "chapter"}],
+            },
+            stylesheet="retained stylesheet", app_version="0.30.0",
+            adapter_version="19", format_version="19", output_digest="4" * 64,
+        )
+        draft = create_draft(rendition, self.reviewer)
+        draft_html = BeautifulSoup(draft.document["html"], "html.parser")
+        self.assertFalse(draft_html.section.has_attr("data-section-role"))
+        self.assertEqual(draft_html.get_text(), BeautifulSoup(html, "html.parser").get_text())
+        self.assertEqual(draft.evidence["generated_html"], html)
+        revision = save_revision(draft, self.reviewer, {
+            **draft.document, "title": "Updated article identity",
+        }, 0)
+        reopened = self.client.get(
+            reverse("document-editor", args=[rendition.pk]), {"draft": draft.pk},
+        )
+        self.assertEqual(reopened.status_code, 200)
+        self.assertEqual(
+            reopened.context["initial"]["document"]["title"], "Updated article identity",
+        )
+        reopened_html = BeautifulSoup(
+            reopened.context["initial"]["document"]["html"], "html.parser",
+        )
+        self.assertFalse(reopened_html.section.has_attr("data-section-role"))
+        candidate = prepare_publication(draft, revision.revision)
+        output = candidate["output"]
+        published_html = BeautifulSoup(output["html"], "html.parser")
+        article = published_html.find("section", id="article")
+        self.assertEqual(article["data-section-role"], "article")
+        self.assertFalse(article.has_attr("data-section-label"))
+        self.assertEqual([item.get_text() for item in article.find_all("p")[:6]], [
+            "Opening one.", "Opening two.", "Opening three.", "Opening four.",
+            "Opening five.", "Opening six.",
+        ])
+        self.assertEqual(output["structure"]["parts"][0]["title"], "Updated article identity")
+        self.assertEqual(output["structure"]["parts"][0]["role"], "article")
+        toc = output["structure"]["toc"]
+        root = next(entry for entry in toc if entry["id"] == "article")
+        self.assertEqual(root["title"], "Updated article identity")
+        self.assertFalse(root["in_toc"])
+        self.assertEqual(
+            [entry["title"] for entry in toc if entry["id"].startswith("h2-")],
+            ["First section", "Second section", "Third section", "Fourth section"],
+        )
+        self.assertTrue(all(entry["in_toc"] for entry in toc if entry["id"].startswith("h2-")))
+
+        published = publish_revision(draft, self.reviewer, revision.revision, candidate["digest"])
+        response = self.client.get(reverse("reader", args=[published.rendition.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Updated article identity")
+        self.assertContains(response, "First section")
+        self.assertNotContains(response, "Contents page")
+        output_pdf = io.BytesIO()
+        render_pdf(published.rendition, output_pdf)
+        pdf_text = "\n".join(page.extract_text() for page in PdfReader(output_pdf).pages)
+        self.assertIn("Updated article identity", pdf_text)
+        self.assertIn("First section", pdf_text)
+        self.assertLess(pdf_text.index("First section"), pdf_text.index("Second section"))
+        self.assertLess(pdf_text.index("Second section"), pdf_text.index("Third section"))
+
+        rendition.refresh_from_db()
+        self.assertEqual(rendition.html, html)
+        self.assertEqual(rendition.structure["parts"][0]["role"], "chapter")
+
+    def test_anthology_article_keeps_local_identity_in_publication_reader_and_pdf(self):
+        html = (
+            '<section id="collection"><h2>Collected works</h2><p>Collection introduction.</p>'
+            '<section id="story" data-section-role="article" '
+            'data-section-label="Retained local story title">'
+            '<p>Story opening.</p><h2 id="story-one">First story section</h2>'
+            '<p>Story body.</p><h3 id="story-nested">Nested story section</h3>'
+            '<p>Nested detail.</p></section></section>'
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "title": "Enclosing anthology title", "html": html,
+        }, 1)
+        candidate = prepare_publication(self.draft, revision.revision)
+        output = candidate["output"]
+        self.assertTrue(output["structure"]["book"])
+        self.assertEqual(output["title"], "Enclosing anthology title")
+        story = next(part for part in output["structure"]["parts"] if part["id"] == "story")
+        self.assertEqual(story["title"], "Retained local story title")
+        self.assertEqual(story["role"], "article")
+        self.assertEqual(story["parent"], "collection")
+        story_toc = next(entry for entry in output["structure"]["toc"] if entry["id"] == "story")
+        self.assertEqual(story_toc["title"], "Retained local story title")
+        self.assertTrue(story_toc["in_toc"])
+
+        published = publish_revision(
+            self.draft, self.reviewer, revision.revision, candidate["digest"],
+        )
+        response = self.client.get(reverse("reader", args=[published.rendition.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Enclosing anthology title")
+        self.assertContains(response, "Retained local story title")
+        output_pdf = io.BytesIO()
+        render_pdf(published.rendition, output_pdf)
+        pdf_text = "\n".join(page.extract_text() for page in PdfReader(output_pdf).pages)
+        self.assertIn("Enclosing anthology title", pdf_text)
+        self.assertIn("Retained local story title", pdf_text)
+        self.assertIn("First story section", pdf_text)
 
     def test_toc_numbering_preferences_survive_publication_without_title_prefixes(self):
         source = self.rendition.html
@@ -181,7 +310,8 @@ class DocumentPublicationTests(TestCase):
             '<p>Body</p></section>'
         save_revision(self.draft, self.reviewer, {**self.revision.document, "html": markup}, 1)
         with patch("library.services.document_publication.PUBLICATION_VERSION", 3), patch(
-            "library.services.document_publication.publication_toc", side_effect=heading_toc,
+            "library.services.document_publication.publication_toc",
+            side_effect=lambda soup, document_title="", *, book=False: heading_toc(soup),
         ):
             publication = self.publish(2)
         published = publication.rendition

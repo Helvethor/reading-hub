@@ -1,18 +1,23 @@
 import {closeHistory} from "@tiptap/pm/history";
 import {TextSelection} from "@tiptap/pm/state";
-import {showDocumentPart, visiblePart} from "./workspace.js";
+import {
+  documentParts, getWorkspaceContext, showDocumentPart, visiblePart,
+} from "./workspace.js";
 import {headingLabel, sectionHeading} from "./section-info.js";
 
-export function movableSections(doc) {
+export function movableSections(doc, context = {}) {
   const sections = [];
+  const parts = documentParts(doc, context);
   doc.descendants((node, from) => {
     if (node.type.name !== "section") return;
+    const part = parts.find(candidate => candidate.from === from + 1);
     const title = sectionHeading(node, from)?.node;
-    const label = title ? headingLabel(title) : "";
+    const label = part?.label || (title ? headingLabel(title) : "");
     const depth = doc.resolve(from).depth;
     sections.push({
       from, to: from + node.nodeSize, node, depth,
       label: label.trim().slice(0, 120) || node.attrs.id || "Untitled section",
+      role: part?.role,
     });
   });
   return sections;
@@ -88,7 +93,7 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
   function open(index) {
     try {
       showError("");
-      sections = movableSections(editor.state.doc);
+      sections = movableSections(editor.state.doc, getWorkspaceContext(editor));
       if (!sections.length) throw new Error("This document has no section containers to reorder.");
       const cursor = editor.state.selection.from;
       const current = sections.findLastIndex(section => cursor > section.from && cursor < section.to);

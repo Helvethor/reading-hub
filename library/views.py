@@ -165,12 +165,16 @@ def reader(request, pk):
         reading_style = style_context(request)
     except ValueError as exc:
         return HttpResponse(str(exc), status=400, content_type="text/plain")
-    projection = publication_view(rendition.html, rendition.structure["toc"]) if getattr(
-        rendition, "document_publication", None,
-    ) else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
+    book = rendition.structure.get("book")
+    projection = (
+        publication_view(
+            rendition.html, rendition.structure["toc"], rendition.title, book=bool(book),
+        )
+        if getattr(rendition, "document_publication", None)
+        else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
+    )
     display_author = rendition.metadata.get("author", "").strip() or source_name(
         rendition.document.url)
-    book = rendition.structure.get("book")
     return render(
         request,
         "library/reader.html",

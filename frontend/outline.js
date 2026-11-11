@@ -169,8 +169,10 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
       const badge = owner.createElement("span");
       badge.className = "editor-outline-kind";
       badge.textContent = part.kind === "Section"
-        ? `${part.excerptParent ? "Excerpt" : "§"} ${part.role || ""}`.trim() : part.kind;
-      badge.title = part.excerptParent ? `Excerpt from #${part.excerptParent}` : part.kind;
+        ? part.role === "article" ? "Article" :
+          `${part.excerptParent ? "Excerpt" : "§"} ${part.role || ""}`.trim() : part.kind;
+      badge.title = part.excerptParent ? `Excerpt from #${part.excerptParent}` :
+        part.role === "article" ? "Article container" : part.kind;
       badge.setAttribute("aria-label", badge.title);
       const title = owner.createElement("span");
       title.className = "editor-outline-title";

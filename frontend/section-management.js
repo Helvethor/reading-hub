@@ -3,7 +3,9 @@ import {Fragment} from "@tiptap/pm/model";
 import {closeHistory} from "@tiptap/pm/history";
 import {movableSections, moveSection} from "./section-moves.js";
 import {sectionHeading, sectionHeadings} from "./section-info.js";
-import {documentParts, showDocumentPart, expandDocumentFolds} from "./workspace.js";
+import {
+  documentParts, getWorkspaceContext, showDocumentPart, expandDocumentFolds,
+} from "./workspace.js";
 import {applySourceInsertion} from "./source-insertion.js";
 
 function uniqueTarget(doc, base) {
@@ -17,16 +19,27 @@ function uniqueTarget(doc, base) {
   return id;
 }
 
-export function prepareSectionDetails(editor, index, originals = []) {
-  const section = movableSections(editor.state.doc)[index];
+export function prepareSectionDetails(editor, index, originals = [], context = getWorkspaceContext(editor)) {
+  const section = movableSections(editor.state.doc, context)[index];
   if (!section) throw new Error("Choose a section container.");
   const original = originals.find(part => part.id === section.node.attrs.id);
   const heading = sectionHeading(section.node, section.from);
+  const part = documentParts(editor.state.doc, context).find(candidate =>
+    candidate.from === section.from + 1);
+  const role = part?.role || original?.role || "chapter";
+  const articleTitleOwner = context.rootSectionId === section.node.attrs.id
+    ? "document" : "section";
   return {
     ...section, doc: editor.state.doc, headings: sectionHeadings(section.node, section.from),
-    titleFrom: heading?.from, title: heading?.node.textContent || "",
+    titleFrom: role === "article" ? undefined : heading?.from,
+    title: role === "article"
+      ? articleTitleOwner === "document" ? context.title || "" :
+        section.node.attrs["data-section-label"] ||
+          (original?.role === "article" ? original.title : "")
+      : heading?.node.textContent || "",
+    articleTitleOwner, documentTitle: context.title || "",
     url: section.node.attrs["data-section-url"] ?? original?.url ?? "",
-    role: section.node.attrs["data-section-role"] || original?.role || "chapter",
+    role,
     group: section.node.attrs["data-section-group"] ?? original?.group ?? "",
     origin: section.node.attrs["data-excerpt-parent"] ? {
       section: section.node.attrs["data-excerpt-parent"],
@@ -43,24 +56,34 @@ export function applySectionDetails(editor, proposal, {
   }
   title = title.trim();
   url = url.trim();
-  if (!title || title.length > 500 || /[\x00-\x1f\x7f]/.test(title)) {
-    throw new Error("Enter a title of 1-500 characters without control characters.");
-  }
   if (url) {
     let parsed;
     try { parsed = new URL(url); } catch { throw new Error("Enter an absolute HTTP(S) source URL."); }
     if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password ||
         /[\s\\\x00-\x1f\x7f]/.test(url)) throw new Error("Enter an absolute HTTP(S) source URL without credentials or whitespace.");
   }
-  if (!["preface", "chapter", "appendix", "postscript"].includes(role)) {
+  if (!["preface", "chapter", "appendix", "postscript", "article"].includes(role)) {
     throw new Error("Choose a supported section role.");
+  }
+  const articleRoot = role === "article" && proposal.articleTitleOwner === "document";
+  if (articleRoot) {
+    if (!proposal.documentTitle.trim()) {
+      throw new Error("Enter the article title in the document Title field before applying Article role.");
+    }
+  } else if (!title || title.length > 500 || /[\x00-\x1f\x7f]/.test(title)) {
+    throw new Error(role === "article"
+      ? "Enter an Article title of 1-500 characters without control characters."
+      : "Enter a title of 1-500 characters without control characters.");
   }
   group = group.trim();
   if (group.length > 1000 || /[\x00-\x1f\x7f]/.test(group)) {
     throw new Error("Enter a group of at most 1000 characters without control characters.");
   }
-  const heading = proposal.headings.find(item => item.from === titleFrom);
-  if (proposal.headings.length && !heading) throw new Error("Choose a heading owned by this section.");
+  const heading = role === "article" ? null :
+    proposal.headings.find(item => item.from === titleFrom);
+  if (role !== "article" && proposal.headings.length && !heading) {
+    throw new Error("Choose a heading owned by this section.");
+  }
   const tr = closeHistory(editor.state.tr);
   const id = heading?.node.attrs.id || uniqueTarget(proposal.doc, "section-title");
   if (heading) {
@@ -74,21 +97,29 @@ export function applySectionDetails(editor, proposal, {
         editor.schema.text(title, heading.node.firstChild?.marks));
     }
     tr.setNodeMarkup(heading.from, undefined, {...heading.node.attrs, id});
-  } else {
+  } else if (role !== "article") {
     tr.insert(proposal.from + 1, editor.schema.nodes.h2.create({id}, editor.schema.text(title)));
   }
-  tr.setNodeMarkup(proposal.from, undefined, {
-    ...proposal.node.attrs, "data-section-title": id,
+  const attrs = {
+    ...proposal.node.attrs,
     "data-section-url": url, "data-section-role": role, "data-section-group": group,
-  });
+  };
+  if (role === "article") {
+    if (articleRoot) delete attrs["data-section-label"];
+    else attrs["data-section-label"] = title;
+  } else {
+    delete attrs["data-section-label"];
+    attrs["data-section-title"] = id;
+  }
+  tr.setNodeMarkup(proposal.from, undefined, attrs);
   tr.doc.check();
   editor.view.dispatch(tr.scrollIntoView());
   if (editor.state.doc !== tr.doc) throw new Error("Expand the affected content before changing section details.");
   editor.view.dispatch(closeHistory(editor.state.tr));
 }
 
-export function prepareSectionRemoval(editor, index) {
-  const section = movableSections(editor.state.doc)[index];
+export function prepareSectionRemoval(editor, index, context = getWorkspaceContext(editor)) {
+  const section = movableSections(editor.state.doc, context)[index];
   if (!section) throw new Error("Choose a section container.");
   return {...section, doc: editor.state.doc};
 }
@@ -160,6 +191,9 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   const origin = details.querySelector("[data-origin]");
   const heading = details.querySelector("[name=heading]");
   const detailError = details.querySelector('[role=alert]');
+  const titleOwner = details.querySelector("[data-title-owner]");
+  const titleLabel = title.closest("label");
+  const headingLabel = heading.closest("label");
   let proposal;
   function whole() {
     showDocumentPart(editor, null);
@@ -167,7 +201,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   }
   function edit(index) {
     whole();
-    proposal = prepareSectionDetails(editor, index, originals);
+    proposal = prepareSectionDetails(editor, index, originals, getWorkspaceContext(editor));
     title.value = proposal.title;
     url.value = proposal.url;
     role.value = proposal.role;
@@ -179,12 +213,36 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
       new Option(`${item.node.type.name.toUpperCase()}: ${item.node.textContent}`,
         String(item.from))));
     heading.value = String(proposal.titleFrom);
+    updateTitleControls(proposal.role === "article");
     detailError.textContent = "";
     details.showModal();
     title.focus();
   }
   heading.addEventListener("change", () => {
     title.value = proposal.headings.find(item => item.from === Number(heading.value))?.node.textContent || "";
+  });
+  function updateTitleControls(article) {
+    const documentOwned = article && proposal.articleTitleOwner === "document";
+    headingLabel.hidden = article;
+    title.disabled = documentOwned;
+    titleLabel.firstChild.textContent = documentOwned ? "Document title " :
+      article ? "Article title " : "Section title ";
+    if (titleOwner) {
+      titleOwner.hidden = !documentOwned;
+      titleOwner.textContent = documentOwned
+        ? "This root Article uses the document Title. Change it in the document metadata above; its headings remain independent."
+        : "";
+    }
+  }
+  role.addEventListener("change", () => {
+    const article = role.value === "article";
+    if (article && proposal.role !== "article") {
+      title.value = proposal.articleTitleOwner === "document" ? proposal.documentTitle : "";
+    } else if (!article && proposal.role === "article") {
+      title.value = proposal.headings.find(item => item.from === Number(heading.value))
+        ?.node.textContent || "";
+    }
+    updateTitleControls(article);
   });
   details.querySelector("[data-apply]").addEventListener("click", () => {
     try {
@@ -416,8 +474,10 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   let selected = null, dragged = null;
   function closeMenu() { menu.hidden = true; }
   function selectedPart(button) {
-    const part = documentParts(editor.state.doc)[Number(button.dataset.part)];
-    const index = movableSections(editor.state.doc).findIndex(section => section.from + 1 === part?.from);
+    const context = getWorkspaceContext(editor);
+    const part = documentParts(editor.state.doc, context)[Number(button.dataset.part)];
+    const index = movableSections(editor.state.doc, context)
+      .findIndex(section => section.from + 1 === part?.from);
     return {doc: editor.state.doc, part, index, button};
   }
   function action(label, handler, enabled = true) {
@@ -448,7 +508,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   outline.before(missing);
   function missingSections() {
     missing.replaceChildren();
-    const sections = movableSections(editor.state.doc);
+    const sections = movableSections(editor.state.doc, getWorkspaceContext(editor));
     for (const original of originals) {
       if (sections.some(section => section.node.attrs.id === original.id)) continue;
       const notice = owner.createElement("p");
@@ -492,7 +552,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     for (const [label, direction] of [["Move section up", -1], ["Move section down", 1]]) {
       action(label, () => {
         whole();
-        const sections = movableSections(editor.state.doc);
+        const sections = movableSections(editor.state.doc, getWorkspaceContext(editor));
         const current = sections[selected.index];
         const siblings = sections.filter(item => editor.state.doc.resolve(item.from).parent ===
           editor.state.doc.resolve(current.from).parent);

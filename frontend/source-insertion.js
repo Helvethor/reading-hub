@@ -63,9 +63,11 @@ export function applySourceInsertion(editor, target, html, placement, {section =
     }
     if (section.url) root.setAttribute("data-section-url", section.url);
     root.setAttribute("data-section-role", section.role || "chapter");
-    const heading = [...root.querySelectorAll("h2,h3,h4,h5,h6")]
+    if (section.role === "article") root.setAttribute("data-section-label", section.title);
+    else root.removeAttribute("data-section-label");
+    const heading = section.role === "article" ? null : [...root.querySelectorAll("h2,h3,h4,h5,h6")]
       .find(node => node.closest("section") === root);
-    if (!heading) {
+    if (section.role !== "article" && !heading) {
       const title = owner.createElement("h2");
       title.textContent = section.title;
       root.prepend(title);

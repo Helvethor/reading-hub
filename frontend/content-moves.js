@@ -2,7 +2,7 @@ import {Fragment} from "@tiptap/pm/model";
 import {NodeSelection, TextSelection} from "@tiptap/pm/state";
 import {closeHistory} from "@tiptap/pm/history";
 import {movableSections} from "./section-moves.js";
-import {showDocumentPart, visiblePart} from "./workspace.js";
+import {getWorkspaceContext, showDocumentPart, visiblePart} from "./workspace.js";
 import {BlockSelection} from "./block-selection.js";
 
 export function prepareContentMove(editor) {
@@ -79,7 +79,7 @@ export function buildContentMove(editor, proposal, destinationIndex, placement, 
     throw new Error("The document changed. Select the content and open Move selected content again.");
   }
   if (visiblePart(editor)) throw new Error("Show the whole document before moving between sections.");
-  const sections = movableSections(proposal.doc);
+  const sections = movableSections(proposal.doc, getWorkspaceContext(editor));
   const destination = sections[destinationIndex];
   if (placement !== "document-end" && !destination) throw new Error("Choose a destination section.");
   if (!["section-end", "new-section", "document-end", "before", "after"].includes(placement)) {
@@ -162,7 +162,7 @@ export function mountContentMoves(form, editor, showError) {
     try {
       proposal = prepareContentMove(editor);
       form.querySelector("#editor-menu-close")?.click();
-      const sections = movableSections(editor.state.doc);
+      const sections = movableSections(editor.state.doc, getWorkspaceContext(editor));
       destination.replaceChildren(...sections.map((section, index) => {
         const option = new Option(
           `${"  ".repeat(Math.min(section.depth, 8))}${section.label}` +

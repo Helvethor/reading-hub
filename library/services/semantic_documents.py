@@ -29,7 +29,7 @@ CLASSES = {
 ATTRIBUTES = {
     **{tag: {"data-toc-style", "data-toc-entry"} for tag in ("h2", "h3", "h4", "h5", "h6")},
     "section": {
-        "data-section-url", "data-section-role", "data-section-title",
+        "data-section-url", "data-section-role", "data-section-title", "data-section-label",
         "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style",
         "data-toc-entry",
     },
@@ -130,9 +130,13 @@ class SemanticParser(HTMLParser):
                 if urlsplit(value).scheme not in {"http", "https"}:
                     raise ValueError("Section URLs require an explicit HTTP(S) URL.")
             if name == "data-section-role" and value not in {
-                "preface", "chapter", "appendix", "postscript",
+                "preface", "chapter", "appendix", "postscript", "article",
             }:
                 raise ValueError("Choose a supported section role.")
+            if name == "data-section-label" and (
+                not value.strip() or len(value) > 500 or re.search(r"[\x00-\x1f\x7f]", value)
+            ):
+                raise ValueError("Article titles support 1-500 characters without controls.")
             if name == "data-toc-style" and value not in {
                 "disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha",
             }:
@@ -221,6 +225,11 @@ def canonical_document(value):
     if parser.stack:
         raise ValueError("Semantic HTML has unclosed elements.")
     soup = BeautifulSoup(value["html"], "html.parser")
+    if any(
+        section.get("data-section-role") != "article"
+        for section in soup.select("section[data-section-label]")
+    ):
+        raise ValueError("Article titles require the Article section role.")
     ids = [node["id"] for node in soup.select("[id]")]
     if len(ids) != len(set(ids)):
         raise ValueError("Semantic target IDs must be unique.")

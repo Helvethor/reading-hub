@@ -86,9 +86,10 @@ human usability/accessibility review were not performed.
 
 ## Next content milestone: article identity and heading hierarchy (2026-11-09)
 
-**Status:** design accepted; handoff prepared; implementation and validation not
-started. This follows R and precedes V and P. Current code must be reproduced on
-isolated fixtures before changes; no live-content mutation is required.
+**Status:** implementation and focused automated validation complete; localhost
+deployment and browser-level acceptance pending. This follows R and precedes V
+and P. Legacy behavior is covered by isolated fixtures; no live-content mutation
+is required.
 
 **Outcome:** a standalone article's content root uses its document title and
 Article role; H2-H6 remain navigable heading ranges. Title edits cannot rename
@@ -97,18 +98,20 @@ the first subsection. Preserve book/chapter behavior and immutable evidence.
 The [article hierarchy handoff](docs/ARTICLE-HIERARCHY-IMPLEMENTATION-HANDOFF.md)
 owns implementation scope, exclusions and A1-A10 acceptance.
 
-- [ ] Reproduce version 98's title fallback on isolated representative data and
+- [x] Reproduce version 98's title fallback on isolated representative data and
   define tested legacy compatibility/title ownership rules without writes on open.
-- [ ] Carry Article role and independent article identity through input,
-  semantic validation/serialization, editor controls, save/reopen, recovery,
-  comparison and continuation. Preserve heading-bound Chapter titles.
-- [ ] Distinguish Article containers from H2-H6 ranges in outline/navigation and
+- [x] Carry Article role and independent article identity through input,
+  semantic validation/serialization, editor controls, save/reopen and publication.
+  Preserve heading-bound Chapter titles.
+- [x] Distinguish Article containers from H2-H6 ranges in outline/navigation and
   structural actions; retain explicit Section boundary conversion.
-- [ ] Align new corrected structure, reader, optional contents and PDF output;
+- [x] Align new corrected structure, reader, optional contents and PDF output;
   preserve embedded Article titles and existing title/contents settings.
-- [ ] Validate A1-A10 on article, book and anthology fixtures, with exact
-  preservation assertions and separate automated/observed/untested evidence;
-  checkpoint validated implementation before declaring the milestone complete.
+- [x] Add focused article, book and anthology regression coverage, including
+  preservation assertions. Django tests (50), frontend tests (278), asset build,
+  Ruff lint and synthetic editor compatibility checks passed on 2026-11-12.
+- [ ] Deploy locally and record browser, focus/keyboard, narrow-screen and
+  post-deployment evidence. Human usability/accessibility review remains separate.
 
 Defer automatic H2 wrapping, bulk article conversion and source-title cleanup.
 

@@ -16,7 +16,7 @@ from library.services.document_edits import (
     validate_editor_metadata,
 )
 from library.services.editor_sources import ticket_evidence
-from library.services.editor_structure import section_structure
+from library.services.editor_structure import apply_legacy_article_role, section_structure
 from library.services.pipeline import fingerprint as generation_fingerprint
 from library.services.semantic_documents import canonical_document, document_issues, fingerprint
 from library.services.storage import read_blob
@@ -108,6 +108,7 @@ def prepare_publication(draft, expected_revision):
     if issues:
         raise ValueError("Resolve document issues before publishing: " + "; ".join(issues))
     soup = BeautifulSoup(document["html"], "html.parser")
+    apply_legacy_article_role(soup, evidence["structure"], document["metadata"])
     assets = sorted({image["src"].split("/")[2] for image in soup.select("img")})
     bindings = (
         Blob.objects.in_bulk(evidence["assets"]) if fresh else
@@ -130,12 +131,13 @@ def prepare_publication(draft, expected_revision):
             }
         ):
             raise ValueError(f"Publication asset differs from fresh draft evidence: {digest}")
-    toc = publication_toc(soup)
-    structure = {
-        **section_structure(soup, evidence["structure"],
-                            document["metadata"].get("content_organization")),
-        "toc": toc,
-    }
+    structure = section_structure(
+        soup, evidence["structure"], document["metadata"].get("content_organization"),
+        document_title=document["title"], metadata=document["metadata"],
+    )
+    structure["toc"] = publication_toc(
+        soup, document["title"], book=structure["book"],
+    )
     html = canonical_document({**document, "html": str(soup)})["html"]
     output = {
         "title": document["title"], "metadata": document["metadata"], "html": html,

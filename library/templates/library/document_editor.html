@@ -238,8 +238,9 @@
     <h2 id="editor-section-details-heading">Section title, URL and role</h2>
     <label>Heading used as section title <select name="heading"></select></label>
     <label>Title <input name="title" maxlength="500"></label>
+    <p data-title-owner hidden></p>
     <label>Source URL <input name="url" type="url"></label>
-    <label>Role <select name="role"><option value="chapter">Chapter</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
+    <label>Role <select name="role"><option value="chapter">Chapter</option><option value="article">Article</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
     <label>Group label <input name="group" maxlength="1000"></label>
     <p data-origin></p>
     <p>The selected heading is labeled in the canvas. Changing URL records a citation only; it does not fetch or replace content. Targets, links and all other sections are preserved. One undo step; save and publish separately.</p>
@@ -280,8 +281,8 @@
     <p>Any supported retained URL can be inserted, including non-members. Inspection never fetches a live URL. <a href="{% url 'request' %}" target="_blank" rel="noopener">Capture or import a missing source</a>.</p>
     <label>Parsed section / saved excerpt <select name="candidate"></select></label>
     <details><summary>Or select source blocks</summary><div data-blocks></div></details>
-    <label>Title (used when source has no heading) <input name="title" maxlength="500"></label>
-    <label>Role <select name="role"><option value="chapter">Chapter</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
+    <label>Section title (or local Article title) <input name="title" maxlength="500"></label>
+    <label>Role <select name="role"><option value="chapter">Chapter</option><option value="article">Article</option><option value="preface">Preface</option><option value="appendix">Appendix</option><option value="postscript">Postscript</option></select></label>
     <label>Place <select name="placement"><option value="after">After selected section</option><option value="before">Before selected section</option><option value="end">At document end</option></select></label>
     <button type="button" data-load>Preview section content</button>
     <p role="status"></p>
