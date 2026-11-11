@@ -8,6 +8,12 @@ assignment. See [Operations](OPERATIONS.md), [Tasks](../TASKS.md) and
 
 ## Mission, authority and stopping point
 
+The [unified version workspace contract](UNIFIED-WORKSPACE-UX-HANDOFF.md),
+specified 2026-11-11 with V1-V11 acceptance, supersedes this handoff's earlier
+separate-page requirements for Read/Edit/Versions/Sources. Other preservation
+and outstanding acceptance requirements remain. Its current authorization is
+documentation only; the earlier delivery does not implement that new contract.
+
 The [publication completion/defaults follow-up](PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
 records the bounded UX milestone specified on 2026-11-11, with separate P1-P10
 acceptance. It does not mark the acceptance below complete or inherit this
@@ -125,9 +131,11 @@ does not complete the assignment; continue to milestone 2.
 ### Application and work navigation
 
 Use Library with Saved / Discover, role-appropriate Review queue and Administration,
-and Account/appearance. Use Read / Edit / Versions / Sources inside a work.
-Page destinations are real links with URLs, active state and browser history;
-local editor panels use proper keyboard-operable tabs. Operations are not tabs.
+and Account/appearance. The planned unified workspace uses Read / Edit / Versions /
+Sources as persistent version-bound views, with addressable URLs and browser
+history, without page reloads/editor remounts on tab changes. Other application
+destinations remain real navigation links; tabs are keyboard-operable.
+Operations are not tabs.
 Prominent navigation may be styled like a button without losing link semantics.
 
 Remove overlapping ordinary navigation and obsolete source-edit/reformat guidance.
@@ -157,9 +165,10 @@ formatting is visible without requiring a context-menu discovery. Keep shortcuts
 and right-click as accelerators, with keyboard/pointer alternatives.
 Section actions belong beside the outline; selection repair tools remain local.
 
-Versions and Sources are ordinary page-level work destinations, not iframe tabs.
-Navigating away from an edited workspace invokes its unsaved-change guard; browser
-history and tab recovery allow return to the editor. Small comparison,
+Superseding direction (2026-11-11): Versions and Sources inspect evidence within
+the persistent version workspace, without changing its current content. Do not
+add iframe navigation as a substitute for shared state. Leaving the workspace
+or opening another version invokes pending-content safeguards. Small comparison,
 generation and publication inspections may use same-page panels without creating
 a second document window. Actual working-copy/version switches remain explicit
 with the existing dirty-state guard. Do not rebuild the editor merely to implement

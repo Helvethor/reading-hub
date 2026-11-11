@@ -35,13 +35,16 @@ on computers. Public reading and discovery remain responsive first-class workflo
 
 **Information architecture:** use stable application navigation: Library
 (Saved / Discover), Review queue for reviewers, Administration for administrators,
-and an Account/appearance menu. Within a selected work, use Read, Edit, Versions
-and Sources as sibling destinations with a consistent active indication and
-compact work context. Catalogue membership remains a separate reviewer page with
-an explicit global catalogue scope, not an editor content tab.
-Page-level destinations retain real URLs, browser history and link semantics;
-same-page editor tabs use tab semantics and keyboard navigation. Save, Publish,
-Refresh and Attach are operations, never navigation tabs.
+and an Account/appearance menu. The planned 2026-11-11
+[unified version workspace](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) supersedes the
+earlier separate-page model for Read, Edit, Versions and Sources: use persistent
+same-page views tied to exact current content, with stable context above the tabs.
+Keep directly addressable state URLs and browser history without remounting the
+editor on tab changes; tabs use keyboard-operable tab semantics. Existing public
+immutable reader/PDF URLs remain compatible. Catalogue membership remains a
+separate reviewer page with explicit global scope. Save, Publish, Refresh and
+Attach are operations, never navigation tabs. This workspace is specified, not
+implemented; existing page-level behavior is historical implementation evidence.
 
 **Reading and discovery:** prioritize returning to saved works over promotional
 introductions and import guidance. Saved works must be reachable without scrolling
@@ -115,6 +118,26 @@ Theme changes retain pending editor content. Embedded panels, reader and
 administration use the same preference; **Follow theme** PDF caches bind the
 selected palette. Personal reading styles and source-profile identity remain
 independent. Migration 0028 adds account preferences without changing documents.
+
+### Unified version workspace (handoff 2026-11-11; planned)
+
+The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V11
+acceptance. A stable header distinguishes current exact content, working draft,
+unsaved changes, saved baseline and reader default above Read/Edit/Versions/Sources.
+Entering Edit opens or explicitly resumes a draft; tab changes preserve the
+editor instance and state without implicit saves. Read projects the current
+semantic draft, including unsaved text/metadata, rather than the reader default.
+PDF exports an exact request-time snapshot of that current content and settings,
+clearly identified as draft when applicable, without saving or publishing.
+
+Versions/Sources inspection does not switch active content. Actual version or
+working-copy changes remain explicit and guarded. Preserve deep links/history,
+recovery limits, immutable public outputs, scoped annotations, permissions and
+private export artifacts. Publication still requires exact saved content; its
+specific reader/PDF links must not resolve a newer unsaved draft. Shared controls
+retain consistent placement across views. This direction supersedes conflicting
+separate-page requirements, not preservation rules or historical evidence.
+Current authorization covers documentation only.
 
 ### Publication completion and defaults (handoff 2026-11-11; planned)
 

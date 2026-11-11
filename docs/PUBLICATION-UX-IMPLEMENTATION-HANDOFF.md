@@ -22,6 +22,12 @@ This is a bounded follow-up to the
 Neither milestone depends on implementing the other. Outstanding U1/U2 acceptance
 is not completed or replaced by this handoff.
 
+The [unified version workspace milestone](UNIFIED-WORKSPACE-UX-HANDOFF.md) owns
+persistent tabs, live draft Read and current-content PDF. Coordinate shared shell
+and entry points: default selection applies to new work-level starts, never tab
+changes in an already opened workspace. This handoff's Read publication/PDF links
+always identify the exact immutable publication, not that workspace's newer draft.
+
 ## Starting evidence and gaps
 
 The 2026-11-09 review traced code and ran four focused isolated Django tests:

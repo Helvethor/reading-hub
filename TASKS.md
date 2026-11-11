@@ -60,6 +60,30 @@ fixes in `0e14b01` are deployed to the documented local service at
 Historical work-centred delivery below remains bounded evidence, not certification
 of the new UI/UX goals. These milestones take priority over older next-step ordering.
 
+## UX milestone V: unified version workspace (2026-11-11)
+
+**Status:** direction specified; implementation and acceptance not started.
+Documentation only is authorized. The
+[unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V11
+acceptance and supersedes earlier separate-page requirements for the four work
+views. U1/U2 delivery/evidence above is historical, not proof of this new outcome.
+
+- [ ] Deliver stable version/draft identity above persistent Read/Edit/Versions/
+  Sources tabs and consistently placed shared actions.
+- [ ] Preserve editor instance/state, history and recovery across tabs; distinguish
+  immutable version, unchanged draft, unsaved changes and saved baseline.
+- [ ] Render current unsaved content in Read and export validated request-time
+  draft PDFs without implicit save/publication or shared-cache leakage.
+- [ ] Separate history/source inspection from guarded version switching; preserve
+  exact public links, annotation scopes, permissions and other working copies.
+- [ ] Validate V1-V11 through isolated article/book journeys, focused regressions,
+  actual browser/PDF evidence and preservation assertions; checkpoint validated work.
+
+Coordinate shared shell/entry points with publication milestone P and title
+projection with article milestone A; do not claim those acceptance rows complete
+from workspace delivery. Neither runtime changes nor deployment are authorized
+by this handoff.
+
 ## UX follow-up milestone P: publication completion and defaults (2026-11-11)
 
 **Status:** handoff prepared; implementation and milestone validation not started.
