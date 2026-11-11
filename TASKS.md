@@ -60,6 +60,31 @@ fixes in `0e14b01` are deployed to the documented local service at
 Historical work-centred delivery below remains bounded evidence, not certification
 of the new UI/UX goals. These milestones take priority over older next-step ordering.
 
+## UX follow-up milestone P: publication completion and defaults (2026-11-11)
+
+**Status:** handoff prepared; implementation and milestone validation not started.
+Documentation only is authorized. This bounded follow-up does not replace
+outstanding U1/U2 acceptance or depend on the article-hierarchy milestone.
+
+The [publication UX handoff](docs/PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
+owns the workflow contract and P1-P10 acceptance.
+
+- [ ] Integrate optional, initially unchecked default selection into exact
+  publication confirmation; show current default and require an audited reason.
+- [ ] Make combined publish/select atomic, stale-state guarded and retry-safe;
+  publishing without selection must preserve the existing reader fallback/mode.
+- [ ] Provide embedded and standalone completion status, exact Read publication/
+  PDF links, safe return and a subsequent Make default action without republishing.
+- [ ] Make ordinary new work-level editing starts honor the selected publication,
+  preserving explicit version/working-copy links, pending edits and branch choices.
+- [ ] Validate P1-P10 on isolated article/book journeys, including concurrency,
+  rollback, replay and exact preservation; checkpoint validated implementation.
+
+Historical review evidence: four focused isolated tests passed on 2026-11-09
+for embedded publication, standalone redirect, audited selection and unchanged-
+content continuation. This does not validate the proposed milestone. No live
+publication/default change or authenticated browser journey was performed.
+
 ## Next content milestone: article identity and heading hierarchy (2026-11-09)
 
 **Status:** design accepted; handoff prepared; implementation and validation not

@@ -8,6 +8,11 @@ assignment. See [Operations](OPERATIONS.md), [Tasks](../TASKS.md) and
 
 ## Mission, authority and stopping point
 
+The [publication completion/defaults follow-up](PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
+records the bounded UX milestone specified on 2026-11-11, with separate P1-P10
+acceptance. It does not mark the acceptance below complete or inherit this
+handoff's implementation authority; its current authorization is documentation only.
+
 Deliver BOTH current UI/UX milestones in [Tasks](../TASKS.md):
 
 1. Shared visual/interaction cleanup and contextual help.

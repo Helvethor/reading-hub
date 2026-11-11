@@ -116,6 +116,28 @@ administration use the same preference; **Follow theme** PDF caches bind the
 selected palette. Personal reading styles and source-profile identity remain
 independent. Migration 0028 adds account preferences without changing documents.
 
+### Publication completion and defaults (handoff 2026-11-11; planned)
+
+The [publication UX handoff](docs/PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
+defines the bounded follow-up and P1-P10 acceptance. Publication confirmation
+offers an optional, initially unchecked choice to make the exact publication
+the default for readers and new work-level editing starts. Show the current
+default; reuse confirmed, reasoned, audited reader selection, not a second
+default model. Combined publish/select is atomic, stale-state guarded and
+retry-safe. Publishing without selection preserves the existing effective
+reader target and selection mode.
+
+Embedded and standalone completion identify the exact publication and default
+status, provide exact Read publication/PDF links and safe editor return, and
+offer a later Make default action without republishing. Ordinary new work-level
+Edit starts use the selected output and exact-content continuation rules;
+advanced branches offer latest versus published alternatives explicitly.
+Explicit historical/source and named-working-copy links retain their scope.
+Changing defaults never replaces open editors, pending edits or other reviewers'
+work. Preserve immutable evidence, source fallback, frame protections and
+existing selection controls. This is a documentation-only handoff, not
+implementation, deployment or live-data authorization.
+
 ### Article identity and heading hierarchy (agreed 2026-11-09; planned)
 
 The [article hierarchy handoff](docs/ARTICLE-HIERARCHY-IMPLEMENTATION-HANDOFF.md)
