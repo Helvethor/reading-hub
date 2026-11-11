@@ -60,6 +60,22 @@ fixes in `0e14b01` are deployed to the documented local service at
 Historical work-centred delivery below remains bounded evidence, not certification
 of the new UI/UX goals. These milestones take priority over older next-step ordering.
 
+## UX retirement R: private annotations (2026-11-11)
+
+**Status:** abandoned as a product feature; retirement implementation and
+validation pending. Dormant code may remain; no live data deletion is authorized.
+The [UX handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md#private-annotation-retirement-r1-r4)
+owns R1-R4 acceptance and supersedes earlier annotation-reachability goals.
+
+- [ ] Remove annotation UI/overlays, links, prompts, help and annotation-only form
+  requirements across reader/workspace, preserved and historical surfaces.
+- [ ] Retire direct annotation pages and all read/write API methods for every
+  role; stop annotation script loading and data fetching.
+- [ ] Validate R1-R4 with retained-data, multi-user, UI/network and route checks;
+  preserve accounts, notes, formatting and private records without exposure.
+
+This update records the decision only; no application retirement was performed.
+
 ## UX milestone V: unified version workspace (2026-11-11)
 
 **Status:** direction specified; implementation and acceptance not started.
@@ -75,7 +91,7 @@ views. U1/U2 delivery/evidence above is historical, not proof of this new outcom
 - [ ] Render current unsaved content in Read and export validated request-time
   draft PDFs without implicit save/publication or shared-cache leakage.
 - [ ] Separate history/source inspection from guarded version switching; preserve
-  exact public links, annotation scopes, permissions and other working copies.
+  exact public links, retained private data, permissions and other working copies.
 - [ ] Keep navigation/context/command bars reachable through a coordinated compact
   scroll stack, with dynamic anchor/focus offsets and state-safe transitions.
 - [ ] Add active-content Back to top with keyboard/focus/reduced-motion safety;

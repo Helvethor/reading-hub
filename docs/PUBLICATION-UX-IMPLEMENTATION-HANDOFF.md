@@ -168,7 +168,7 @@ changes. For each row record implementation and validation separately.
 | P7 | New work-level Edit follows the selected publication across catalogue/work/reader entry points. Exact-content continuation stays on its branch; review-only events create no artificial branch. Advanced content offers latest versus published alternative explicitly. |
 | P8 | Named working copies, explicit historical/source links, other reviewers' work and pending edits remain intact. Reading/downloading/returning from the panel preserves editor content, focus and scroll. Reader frame protections remain unchanged. |
 | P9 | Repeat submit/network retry creates no duplicate publication or selection event. Replay after another reviewer's default change never overwrites that change. Selection failure messages accurately distinguish existing publication from failed default selection. |
-| P10 | Article and book journeys preserve exact saved content, headings/order, targets/links, notes/media, source bindings, private annotations, immutable history and membership. Changed controls have keyboard/focus access and basic narrow-screen usability. |
+| P10 | Article and book journeys preserve exact saved content, headings/order, targets/links, notes/media, source bindings, retained private records, immutable history and membership. Retired private-annotation UI/routes remain unavailable under R1-R4 in the shared UX handoff. Changed controls have keyboard/focus access and basic narrow-screen usability. |
 
 Stop only after P1-P10 are implemented and validated. Run focused existing
 frontend/backend tests, editor checks and asset build when frontend changes

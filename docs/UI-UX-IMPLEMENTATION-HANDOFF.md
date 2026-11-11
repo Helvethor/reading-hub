@@ -6,7 +6,39 @@ The deployment was authorized separately from the original implementation
 assignment. See [Operations](OPERATIONS.md), [Tasks](../TASKS.md) and
 [Assessment](PROJECT-ASSESSMENT.md) for evidence and remaining gaps.
 
+## Private annotation retirement (R1-R4)
+
+Decision 2026-11-11; implementation/validation pending. Remove private annotations
+as a reachable feature, including owner/staff direct access, not merely navigation.
+Dormant code may stay. Preserve stored records and ownership without deletion,
+remapping or disclosure. Do not remove ordinary accounts, footnotes, editor
+underline/formatting tools or unrelated source-review/training annotations.
+This session records the contract only, not application implementation authority.
+
+Audit reader scripts/toolboxes, preserved-annotation pages, annotation-only login
+prompts, help and links in version/source/membership/legacy views. Remove
+annotation-only acknowledgements from forms and validation without weakening
+other confirmation or data-preservation guards. Use the existing retired-route
+convention (404 or 410) for direct pages and all annotation API methods. Retained
+publications need not be rewritten: retire injected application UI and overlays.
+
+| ID | Observable acceptance |
+|---|---|
+| R1 | Guest, owner, reviewer and staff article/book journeys show no private-annotation controls, overlays, links, prompts or help, including historical/source/membership views. Footnotes, normal formatting and account functions remain usable. |
+| R2 | Direct preserved-annotation pages and collection/detail APIs refuse every previously supported read/write method with 404 or 410 for all roles. No private payload or mutation is possible; hiding links or requiring login is not sufficient. |
+| R3 | Reader/workspace loads no annotation-specific script and performs no annotation-data requests. Browser print/PDF and dataset output expose no retained private annotations. |
+| R4 | Exact before/after record and ownership assertions show retained annotation data unchanged; unrelated content, accounts, notes, permissions and confirmation safeguards are preserved. Dormant code need not be deleted. |
+
+Use isolated fixtures with retained marks and multiple users, route/API tests,
+UI absence/network checks and stored-data preservation checks. Record actual
+evidence and limitations separately; do not mark retirement complete from this
+documentation update.
+
 ## Mission, authority and stopping point
+
+Private annotations were abandoned on 2026-11-11. The R1-R4 retirement contract
+above supersedes all earlier annotation-reachability requirements; stored private
+data remains protected. This decision is documented, not implemented.
 
 The [unified version workspace contract](UNIFIED-WORKSPACE-UX-HANDOFF.md),
 specified 2026-11-11 with V1-V16 acceptance (including compact scroll navigation
@@ -152,9 +184,10 @@ mandatory source/author expansion; keep hierarchy and advanced filters available
 Separate available-local Read navigation from Import operations, showing fetching
 implications and progress/failures. Do not turn mutation requests into unsafe GETs.
 
-Quiet the reader: compact work/version context, contents, PDF, appearance and
-annotations. Put refresh/regeneration in Sources, print options in export/print,
-and technical provenance behind inspectable details. Preserve reader selection,
+Quiet the reader: compact work/version context, contents, PDF and appearance.
+Remove retired private-annotation UI. Put refresh/regeneration in Sources, print
+options in export/print, and technical provenance behind inspectable details.
+Preserve reader selection,
 exact version links, chapter targets and intentional book title/contents layouts.
 Reducing application chrome does not authorize deleting bibliographic content.
 
@@ -226,7 +259,7 @@ state. Do not create extra planning documents unless needed as requested deliver
 | U5 | Unsaved/stale/missing-evidence/publication/global-routing decisions | Relevant warnings remain visible at the decision point; neutral context is not an alert; refusal preserves pending work and cannot look successful. |
 | U6 | Returning user opens Library at 390x844 and on desktop | Saved-list heading/search and at least one existing work are visible in the initial viewport without scrolling past promotional/import prose; empty library has a clear import action. Discover remains directly reachable. |
 | U7 | Search Discover, read retained work, request missing work | Flat search results require no hierarchy expansion; advanced grouping remains available; local Read and fetching Import are distinguishable with real progress/error outcomes. |
-| U8 | Open article/book reader and switch work destinations | Reading dominates ordinary chrome; work/version status is compact, no repeated self-navigation block; contents/PDF/styles/annotations remain reachable and mobile reading remains usable. |
+| U8 | Open article/book reader and switch work destinations | Reading dominates ordinary chrome; work/version status is compact, no repeated self-navigation block; contents/PDF/styles remain reachable, retired annotation UI is absent and mobile reading remains usable. |
 | U9 | Computer reviewer edits content, metadata and section structure | Common tools are discoverable without shortcuts; desktop outline/canvas remain useful; Save creates the intended exact version and reopening retains content/metadata/targets/assets. |
 | U10 | Dirty editor opens/closes tabs, evidence, comparison, generation and publication panels | Content, selection/context, undo, recovery and focus survive non-navigating actions; switching working copies is explicit and guarded; theme/style changes retain their correct independent scopes. |
 | U11 | Inspect many versions/branches, compare exact saved versions and current diffs | Details are adjacent on desktop; current reader/working copy/latest save differ clearly; exact comparison scope/baseline is visible; full/unknown ancestry and archive inspection remain available without false relations. |

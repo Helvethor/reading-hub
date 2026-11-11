@@ -53,7 +53,8 @@ import controls. Catalogue search and useful filters precede advanced grouping
 and sorting; a flat results view must be available without expanding a source/
 author hierarchy. Distinguish available-local reading links from import operations
 that may fetch. Retain the existing reader-selection and root/member routing rules.
-The reader prioritizes the document, contents, PDF, appearance and annotations.
+The reader prioritizes the document, contents, PDF and appearance.
+Private annotations are retired by the 2026-11-11 decision below.
 Move source refresh/generation into Sources and print settings into export/print
 context; technical evidence belongs in inspectable details.
 
@@ -119,6 +120,28 @@ administration use the same preference; **Follow theme** PDF caches bind the
 selected palette. Personal reading styles and source-profile identity remain
 independent. Migration 0028 adds account preferences without changing documents.
 
+### Private annotations retired (decision 2026-11-11; implementation pending)
+
+Private annotations are abandoned, not a feature to preserve in the UI.
+Remove annotation controls, highlights/underlines created by that feature,
+preserved-annotation links/pages, annotation-specific sign-in prompts and help
+from ordinary and historical application surfaces. Stop loading annotation
+scripts or fetching annotation data from the reader/workspace.
+
+Direct annotation pages and read/write APIs must be unavailable to all users,
+including owners and staff, through the repository's retired-route convention
+(404 or 410), without returning private content or mutating records. Hiding
+links alone is insufficient. Dormant code/models may remain; retain existing
+annotation data and ownership privately without remapping, deletion, migration
+or exposure in reader/PDF/dataset output. This does not retire accounts, document
+notes/footnotes, editorial formatting or source-review/training annotations.
+
+The [UX retirement acceptance](docs/UI-UX-IMPLEMENTATION-HANDOFF.md#private-annotation-retirement-r1-r4)
+supersedes earlier requirements to keep private-annotation workflows reachable.
+Historical implementation claims remain evidence of old behavior, not current
+product intent. This records the decision only; application retirement is not
+implemented or validated by this documentation change.
+
 ### Unified version workspace (handoff 2026-11-11; planned)
 
 The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V16
@@ -132,7 +155,7 @@ clearly identified as draft when applicable, without saving or publishing.
 
 Versions/Sources inspection does not switch active content. Actual version or
 working-copy changes remain explicit and guarded. Preserve deep links/history,
-recovery limits, immutable public outputs, scoped annotations, permissions and
+recovery limits, immutable public outputs, retained private data, permissions and
 private export artifacts. Publication still requires exact saved content; its
 specific reader/PDF links must not resolve a newer unsaved draft. Shared controls
 retain consistent placement across views. This direction supersedes conflicting
@@ -1116,9 +1139,9 @@ verification or completeness certification is implied.
 6. Network fetching belongs to the engine: source/asset allowlists, per-hop
    validation, public-IP checks, robots, rate limits and resource budgets.
    Adapters, editor operations and future model services cannot bypass them.
-7. Private annotations are owner-only, tied to an exact rendition and never
-   automatically moved, including during organization changes. There is no
-   application-level staff bypass for another reader's marks.
+7. Retired private-annotation data retains its owner and exact rendition binding;
+   never automatically move or expose it, including during organization changes.
+   No owner/staff UI or API access remains in the target retirement contract.
 8. Saving source corrections or edited documents, accepting metadata proposals,
    changing book organization and applying catalogue overlays are distinct decisions.
    Preserve explicit scope, audit history and concurrency checks.
@@ -1143,7 +1166,7 @@ verification or completeness certification is implied.
   indices and retained bytes are not changed by output cleanup.
 - Explicit chapter-to-book membership suppresses standalone chapter listings
   and directs retired chapter reader routes into a complete book. Preserve
-  original evidence, editions and owner-accessible annotations.
+  original evidence, editions and privately retained annotation records.
 - Reviewed organization can combine/attach/detach/reorder/rename book parts and
   assign roles. Preview all affected works, require a reason and annotation
   acknowledgement, validate before atomic publication, and provide audited undo.
@@ -1335,8 +1358,10 @@ server validation without discarding inputs.
 
 ### Accounts, PDF and operations
 
-Local accounts, owner-only highlights/underlines, staff worker administration,
-crawler controls and explicit failures are implemented. Managed workers run
+Local accounts, staff worker administration, crawler controls and explicit
+failures are implemented. Private highlights/underlines were implemented but
+are retired by the 2026-11-11 decision; removal of their reachable surfaces is
+pending, not established by this historical capability listing. Managed workers run
 independently of ordinary web restarts; they are not installed boot services.
 Do not enable/resume crawls or change resource limits as an implementation side
 effect.

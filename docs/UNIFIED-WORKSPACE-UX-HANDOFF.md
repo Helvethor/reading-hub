@@ -161,9 +161,11 @@ Label working content Draft preview, and explicitly indicate when it includes
 unsaved changes. A saved state is labelled with its exact saved identity.
 Preview does not certify review, publish content or alter immutable reader output.
 
-Existing private annotations remain attached to their original immutable version.
-Do not silently project or write them onto changed draft text. Preserve the
-existing immutable-reader annotation workflow with clear availability/scope.
+Private annotations are retired by the 2026-11-11 decision. Show no annotation
+controls/overlays, links or annotation-only prompts, and load no annotation data.
+Keep existing records privately bound to their original owner/version without
+remapping or deletion. Direct page/API access is also retired; see
+[R1-R4](UI-UX-IMPLEMENTATION-HANDOFF.md#private-annotation-retirement-r1-r4).
 
 ### Current-content PDF
 
@@ -244,7 +246,7 @@ unsaved edits. Track implementation and validation independently.
 | V7 | Inspect another version/source without changing active content. Explicit version/working-copy opening is guarded; cancel preserves everything. Tab deep links and Back/Forward work without editor remount; actual context changes retain safeguards. |
 | V8 | Reload/unload/recovery retain existing safety and disclose unrecoverable content. New tabs never pretend a URL contains unsaved state. Existing immutable reader/PDF links and public/default routing remain correct. |
 | V9 | Publish exact saved content under milestone P semantics; unsaved preview is never silently included. Publication-specific reader/PDF links stay exact even with a newer current draft. No pending state or other reviewer's working copy is replaced. |
-| V10 | Private annotations remain immutable-version scoped; guest access and permissions are preserved. Article/book preservation checks retain prose, targets, notes/media, source evidence, membership, review/publication facts and reader choices except explicitly confirmed operations. |
+| V10 | Retired private annotations have no UI/data loading or direct page/API access; stored records remain unchanged and private under R1-R4. Guest access and other permissions remain intact. Article/book preservation checks retain prose, targets, notes/media, source evidence, membership, review/publication facts and reader choices except explicitly confirmed operations. |
 | V11 | Keyboard tab semantics, focus, history, consistent placement and basic narrow-screen access work. Common commands remain reachable without confusing duplicated navigation or mobile-only desktop controls. |
 | V12 | Deep-scroll each work view and the retained reader surface: application navigation, compact version/unsaved context, tabs and applicable commands remain reachable in the specified stack order. Returning upward expands them without content jumps or threshold flicker. |
 | V13 | Contents/internal-link navigation, outline following and keyboard-focused controls land below the actual stack. Resize, zoom, wrapping and short/narrow viewports cause no overlapping bars or inaccessible content; menus/dialogs remain correctly layered and reachable. |
