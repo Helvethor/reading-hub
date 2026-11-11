@@ -191,7 +191,7 @@ if (form) {
       getSnapshot: () => ({
         draft: initial.draft,
         revision: initial.revision,
-        document: documentValue(),
+        document: dirty ? documentValue() : initial.document,
         source_tickets: sourceTickets,
       }),
       initialDraft: initial.draft,
@@ -408,9 +408,9 @@ if (form) {
       if (dirty) { event.preventDefault(); event.returnValue = ""; }
     });
     if (initial.choose_history) {
-      editor.setEditable(false);
+      editor.setEditable(false, false);
       form.inert = true;
-      status.textContent = "Choose a working copy, or explicitly start from this source-generated version, before editing.";
+      status.textContent = "Choose a working copy in Versions before editing.";
     }
   } catch (failure) {
     console.error("Editor initialization failed:", failure);

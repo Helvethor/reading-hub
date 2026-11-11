@@ -879,12 +879,21 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(audit.reason, payload["reason"])
         self.assertRedirects(
             self.client.get(reverse("latest", args=[document.pk])),
-            reverse("reader", args=[publication.rendition_id]),
+            reverse("document-editor", args=[publication.rendition_id])
+            + "?start=edition&tab=read",
         )
+        selected_workspace = self.client.get(
+            reverse("document-editor", args=[publication.rendition_id])
+            + "?start=edition&tab=read"
+        )
+        self.assertEqual(selected_workspace.status_code, 200)
+        self.assertEqual(selected_workspace.context["version"].pk, publication.rendition_id)
+        self.assertIsNone(selected_workspace.context["initial"]["draft"])
+        self.assertTrue(selected_workspace.context["initial"]["choose_history"])
         source_reader = self.client.get(reverse("reader", args=[self.rendition.pk]))
         self.assertContains(
             source_reader,
-            f'href="{reverse("document-editor", args=[publication.rendition_id])}?start=source"',
+            f'href="{reverse("document-editor", args=[publication.rendition_id])}?tab=edit"',
         )
         self.assertRedirects(
             self.client.get(

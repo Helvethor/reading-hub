@@ -39,7 +39,7 @@ DEFAULTS = {
 }
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
-STYLE_VERSION = 5
+STYLE_VERSION = 6
 
 # (ink, paper, accent) per palette, light/dark mode and contrast level. Accents colour headings
 # and links; None keeps them in the ink colour. Every combination is checked in tests: low
@@ -221,15 +221,22 @@ def stylesheet_url(token):
 
 
 def selected_style(request):
-    if request.GET.get("style"):
+    use_default = (
+        request.GET.get("style_action") == "default"
+        or (
+            request.GET.get("style_action") == "load"
+            and request.GET.get("style_profile") == "__default__"
+        )
+    )
+    if request.GET.get("style") and not use_default:
         return token_style(request.GET["style"])
     if request.GET.get("style_action") == "apply":
         form = ReadingStyleForm(upgrade_style(request.GET.dict()))
         if not form.is_valid():
             raise ValueError("Invalid reading style: " + form.errors.as_text())
         return form.cleaned_data
-    selected = request.GET.get("style_profile")
-    if request.GET.get("style_action") == "load" and not selected:
+    selected = None if use_default else request.GET.get("style_profile")
+    if request.GET.get("style_action") == "load" and not selected and not use_default:
         raise ValueError("Choose a profile to load.")
     if selected == "marxist":
         return dict(DEFAULTS)
@@ -251,6 +258,8 @@ def style_context(request):
         if request.user.is_authenticated else []
     default = next((str(profile.pk) for profile in profiles if profile.is_default), "marxist")
     selected = request.GET.get("style_profile", default)
+    if selected == "__default__" and request.GET.get("style_action") == "load":
+        selected = default
     if (request.GET.get("style") or request.GET.get("style_action") == "apply") \
             and not request.GET.get("style_profile"):
         selected = ""

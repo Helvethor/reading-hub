@@ -112,6 +112,7 @@ export function mountWorkspaceShell({
   const status = workspace.querySelector("#workspace-action-status");
   const savedIdentity = workspace.querySelector("#workspace-baseline-state");
   const saveState = workspace.querySelector("#workspace-save-state");
+  const compactState = workspace.querySelector("#workspace-compact-state");
   const readContent = workspace.querySelector("#workspace-read-content");
   const downloadButton = workspace.querySelector("#workspace-download-pdf");
   const backToTop = workspace.querySelector("#workspace-back-to-top");
@@ -130,16 +131,19 @@ export function mountWorkspaceShell({
   let lastEditorFocus = null;
 
   function updateState({draft, revision, dirty}) {
+    compactState.textContent = `Edition ${workspace.dataset.versionId}` +
+      (draft ? ` · rev ${revision || "0"}` : " · source") +
+      (dirty ? " · unsaved" : initialChooseHistory && !draft ? " · choose copy" : "");
     savedIdentity.textContent = initialChooseHistory && !draft
-      ? `Choose a working copy in Versions, or explicitly start from saved edition ${workspace.dataset.versionId}.`
+      ? `Choose a working copy in Versions for saved edition ${workspace.dataset.versionId}.`
       : draft
       ? `Working copy based on saved edition ${workspace.dataset.versionId}. ` +
         (revision ? `Latest saved draft revision ${revision}.` : "No saved draft version yet.")
       : `Starting from saved edition ${workspace.dataset.versionId}. No working copy has been created.`;
-    saveState.textContent = initialChooseHistory && !draft
-      ? "Choose a working copy in Versions before editing or saving."
-      : dirty
+    saveState.textContent = dirty
       ? "Unsaved editor changes. Read and PDF capture the current in-memory content only."
+      : initialChooseHistory && !draft
+        ? "Choose a working copy in Versions before editing or saving."
       : draft
         ? `Saved draft revision ${revision || "none"} loaded; no unsaved changes in this tab.`
         : "No working copy has been created; the original saved edition is unchanged.";
@@ -462,7 +466,14 @@ export function mountWorkspaceShell({
     downloadButton.disabled = true;
     status.textContent = "Preparing a PDF of the captured current draft; no version is being saved.";
     try {
-      const response = await fetch(workspace.dataset.pdfUrl, {
+      const pdfUrl = new URL(workspace.dataset.pdfUrl, location.href);
+      const currentUrl = new URL(location.href);
+      for (const name of ["style", "style_profile"]) {
+        if (currentUrl.searchParams.has(name)) {
+          pdfUrl.searchParams.set(name, currentUrl.searchParams.get(name));
+        }
+      }
+      const response = await fetch(pdfUrl.href, {
         method: "POST",
         credentials: "same-origin",
         cache: "no-store",

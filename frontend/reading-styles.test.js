@@ -10,9 +10,9 @@ function fixture({defaultsOnly = false} = {}) {
   dom = new JSDOM(`<!doctype html><head>${defaultsOnly ? "" : '<link rel="stylesheet" href="/old.css" data-reading-style>'}</head>
     <body><a href="/versions/2/download.pdf?style=old" data-reading-pdf>Download PDF</a>
     <article><h2 data-reading-marker="I. ">Exact title</h2><p>Unchanged prose.</p></article>
-    <details class="reading-style-controls" data-preview-url="/reading-style/preview/"${defaultsOnly ? " data-defaults-only" : ""}>
+    <details class="reading-style-controls" data-preview-url="/reading-style/preview/" data-default="1"${defaultsOnly ? " data-defaults-only" : ""}>
     <form class="reading-style-settings"><select name="style_profile">
-    <option value="">Custom</option><option value="marxist" selected>Marxist</option>
+    <option value="">Custom</option><option value="__default__">Reset</option><option value="marxist" selected>Marxist</option>
     <option value="1">Comfort</option></select>
     <input type="number" name="font_size" value="14" min="9" max="28" required>
     <input type="checkbox" name="italic_to_bold"><button value="apply">Apply</button></form>
@@ -110,6 +110,23 @@ test("editor defaults update and save exact profiles without loading publication
   assert.equal(panel.dataset.default, "1");
   assert.equal(view.document.querySelector("article").innerHTML, original);
   assert.equal(view.document.querySelectorAll("link").length, 1);
+});
+
+test("reset restores inherited account default without saving a profile", async () => {
+  const {view, panel, form} = fixture({defaultsOnly: true});
+  view.history.replaceState({workspaceTab: "edit"}, "", "?tab=edit&style=old&style_profile=marxist");
+  let url;
+  view.fetch = async request => { url = request; return json(snapshot("default", 22)); };
+  change(view, form.elements.style_profile, "__default__");
+  await tick();
+  assert.equal(new URL(url, view.location.href).searchParams.get("style_action"), "default");
+  assert.equal(form.elements.font_size.value, "22");
+  assert.equal(form.elements.style_profile.value, "1");
+  assert.equal(panel.querySelector('input[name=style]').value, "default");
+  assert.equal(new URL(view.location).searchParams.has("style"), false);
+  assert.equal(new URL(view.location).searchParams.has("style_profile"), false);
+  assert.equal(view.history.state.workspaceTab, "edit");
+  assert.match(panel.querySelector(".reading-style-status").textContent, /saved default was not changed/);
 });
 
 test("failed editor default settings preserve the previous token and expose the error", async () => {

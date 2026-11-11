@@ -10,6 +10,7 @@
         <label>Profile
           <select name="style_profile">
             <option value=""{% if not reading_style_profile %} selected{% endif %}>Custom settings</option>
+            <option value="__default__">Reset to account default</option>
             <option value="marxist"{% if reading_style_profile == 'marxist' %} selected{% endif %}>{{ reading_preset_name }}</option>
             {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}"{% if reading_style_profile == profile.pk|stringformat:'s' %} selected{% endif %}>{{ profile.name }}</option>{% endfor %}
           </select>

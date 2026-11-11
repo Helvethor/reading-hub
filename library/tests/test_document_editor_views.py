@@ -79,6 +79,29 @@ class DocumentEditorViewTests(TestCase):
             self.rendition.html, self.rendition.document.reader_rendition_id,
         ))
 
+    def test_workspace_unchanged_source_has_no_draft_preview_banner(self):
+        self.rendition.metadata = {**self.rendition.metadata, "author": "Example author"}
+        self.rendition.metadata.pop("author_is_fallback", None)
+        self.rendition.save(update_fields=["metadata"])
+        initial = self.client.get(self.url + "?start=source").context["initial"]
+        response = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(initial["document"])),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("PRIVATE WORKSPACE PREVIEW", response.json()["html"])
+        self.assertNotIn("Draft preview:", response.json()["html"])
+
+    def test_catalogue_reviewer_opens_selected_source_not_existing_draft(self):
+        response = self.client.get(reverse("latest", args=[self.rendition.document_id]))
+        self.assertRedirects(response, self.url + "?start=edition&tab=read")
+        workspace = self.client.get(response.url)
+        self.assertIsNone(workspace.context["initial"]["draft"])
+        self.assertEqual(workspace.context["version"].pk, self.rendition.pk)
+        guest = Client().get(reverse("latest", args=[self.rendition.document_id]))
+        self.assertRedirects(guest, reverse("reader", args=[self.rendition.pk]))
+
     def test_workspace_preview_rejects_stale_revision_and_other_reviewers_draft(self):
         document = canonical_document({
             **self.draft.document, "html": '<section id="c1"><p>Saved revision.</p></section>',

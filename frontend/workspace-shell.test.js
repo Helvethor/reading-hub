@@ -27,17 +27,16 @@ function setup(query = "") {
       data-sources-url="/documents/5/lineage/?filter=sources&amp;selected=snapshot%3A4&amp;embedded=1"
       data-lineage-path="/documents/5/lineage/" data-version-id="12">
       <div class="workspace-chrome">
-        <p id="workspace-baseline-state"></p><p id="workspace-save-state"></p>
+        <p id="workspace-baseline-state"></p><p id="workspace-save-state"></p><p id="workspace-compact-state"></p>
         <div role="tablist">
           <button role="tab" data-workspace-tab="read" aria-controls="workspace-panel-read">Read</button>
           <button role="tab" data-workspace-tab="edit" aria-controls="workspace-panel-edit">Edit</button>
           <button role="tab" data-workspace-tab="versions" aria-controls="workspace-panel-versions">Versions</button>
           <button role="tab" data-workspace-tab="sources" aria-controls="workspace-panel-sources">Sources</button>
         </div>
-        <button id="workspace-download-pdf">Download PDF</button>
         <p id="workspace-action-status"></p>
       </div>
-      <section id="workspace-panel-read"><div id="workspace-read-content"></div></section>
+      <section id="workspace-panel-read"><button id="workspace-download-pdf">Download PDF</button><div id="workspace-read-content"></div></section>
       <section id="workspace-panel-edit"><h2>Edit content</h2></section>
       <section id="workspace-panel-versions"><div id="workspace-versions-content"></div></section>
       <section id="workspace-panel-sources"><div id="workspace-sources-content"></div></section>
@@ -124,6 +123,7 @@ test("Read uses the current captured document and tab history keeps the editor m
   assert.equal(new URL(location.href).searchParams.get("tab"), "read");
   assert.equal(document.querySelector("#workspace-save-state").textContent,
     "No working copy has been created; the original saved edition is unchanged.");
+  assert.equal(document.querySelector("#workspace-compact-state").textContent, "Edition 12 · source");
   assert.equal(shell.selectTab instanceof Function, true);
   history.replaceState({}, "", "?tab=edit");
   window.dispatchEvent(new window.PopStateEvent("popstate"));
@@ -208,16 +208,18 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   assert.equal(workflowUrl.searchParams.get("embedded"), "1");
 });
 
-test("PDF request body is captured before later editor changes", async () => {
-  const form = setup();
+test("PDF request captures the current document and reading style", async () => {
+  const form = setup("?style=chosen-style&style_profile=3");
   const snapshot = {
     draft: null, revision: 0,
     document: {title: "Captured title", html: "<p>Captured</p>", metadata: {}},
     source_tickets: [],
   };
   let capturedBody;
+  let capturedUrl;
   let finishRequest;
   globalThis.fetch = (url, options) => {
+    capturedUrl = url;
     capturedBody = options.body;
     return new Promise(resolve => { finishRequest = resolve; });
   };
@@ -235,5 +237,7 @@ test("PDF request body is captured before later editor changes", async () => {
   });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(JSON.parse(capturedBody).document.title, "Captured title");
+  assert.equal(new URL(capturedUrl).searchParams.get("style"), "chosen-style");
+  assert.equal(new URL(capturedUrl).searchParams.get("style_profile"), "3");
   assert.match(document.querySelector("#workspace-action-status").textContent, /Captured title/);
 });

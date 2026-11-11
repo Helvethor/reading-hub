@@ -113,11 +113,20 @@ publication output and branch/working-copy context. Keep current content,
 starting point, latest saved baseline and selected reader output separate.
 Never silently substitute the reader default when switching to Read.
 
-Shared actions, including Download PDF, retain consistent placement across all
-four views and name their scope. Contextual tools may differ: formatting belongs
+Download current draft PDF is placed in Read only, outside the shared header.
+Contextual tools may differ: formatting belongs
 in Edit, not every tab. Preserve Metadata, Review and Appearance capabilities as
 local controls without another competing primary navigation bar. Reading
 appearance remains presentation-only and keeps its existing personal/theme scope.
+Appearance can reset this view to the current account default without saving a
+new default; the per-field cascade described below is not yet implemented.
+
+For reviewers, catalogue links to reader defaults enter Read using the selected
+edition instead of automatically resuming a working copy; a published edition
+requires explicit working-copy selection before saving. Guests still use the
+immutable reader. The compact header
+reduces the title to one ellipsized line alongside edition, revision and unsaved
+state, and the title links to the saved reader default.
 
 Superseding planned refinement in
 [milestone M](PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md): version-page Reading/PDF

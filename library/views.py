@@ -127,6 +127,14 @@ def latest(request, pk):
         return destination
     version = document.reader_target()
     if version:
+        if (
+            settings.READING_HUB_EDITOR_PILOT
+            and request.user.is_authenticated
+            and (request.user.is_staff or request.user.has_perm("library.review_metadata"))
+        ):
+            return redirect(
+                reverse("document-editor", args=[version.pk]) + "?start=edition&tab=read"
+            )
         return redirect("reader", pk=version.pk)
     job = document.jobs.order_by("-created_at").first()
     if job:

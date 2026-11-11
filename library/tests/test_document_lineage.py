@@ -580,7 +580,10 @@ class DocumentLineageTests(TestCase):
         self.assertEqual(audit.reason, "Prefer reviewed text.")
         self.assertTrue(audit.explicit)
         latest = client.get(reverse("latest", args=[self.work.pk]))
-        self.assertEqual(latest.url, reverse("reader", args=[self.rendition.pk]))
+        self.assertEqual(
+            latest.url, reverse("document-editor", args=[self.rendition.pk])
+            + "?start=edition&tab=read",
+        )
 
         stale = client.post(url, {
             "action": "select-reader-target", "rendition_id": newer.pk,
@@ -603,7 +606,10 @@ class DocumentLineageTests(TestCase):
         self.assertEqual(fallback_audit.rendition_id, newer.pk)
         self.assertFalse(fallback_audit.explicit)
         latest = client.get(reverse("latest", args=[self.work.pk]))
-        self.assertEqual(latest.url, reverse("reader", args=[newer.pk]))
+        self.assertEqual(
+            latest.url, reverse("document-editor", args=[newer.pk])
+            + "?start=edition&tab=read",
+        )
 
         outsider = get_user_model().objects.create_user("reader-target-outsider")
         unauthorized = Client()

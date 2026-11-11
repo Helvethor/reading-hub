@@ -213,8 +213,10 @@ Versions/Sources inspection does not switch active content. Actual version or
 working-copy changes remain explicit and guarded. Preserve deep links/history,
 recovery limits, immutable public outputs, retained private data, permissions and
 private export artifacts. Publication still requires exact saved content; its
-specific reader/PDF links must not resolve a newer unsaved draft. Shared controls
-retain consistent placement across views. This direction supersedes conflicting
+specific reader/PDF links must not resolve a newer unsaved draft. Draft PDF is
+available in Read rather than the shared header; the compact header abbreviates
+edition, revision and unsaved state, with the work title linking to the saved
+reader default. This direction supersedes conflicting
 separate-page requirements, not preservation rules or historical evidence.
 Reviewer work navigation opens the corresponding tab in the unified editor;
 read-only visitors do not see navigation links to standalone Versions/Sources
@@ -222,6 +224,14 @@ pages. Contextual workflow actions remain in the editor's same-page dialog.
 Direct lineage URLs remain available. Full V1-V16 acceptance remains partial;
 local implementation/deployment is authorized, but remote deployment and live
 publication/default changes are not.
+
+For reviewer catalogue entry, the selected edition opens in the workspace Read
+tab without silently resuming a working copy. A published edition requires
+explicit working-copy selection before saving. Guests continue to the immutable
+reader; publication continuation and exact older revisions must not be
+substituted implicitly.
+Appearance offers a reset to the existing account-wide default without changing
+that default. The per-field, type/account/output cascade remains planned in M.
 
 Scroll-reachability extension (2026-11-11): relevant application header,
 work/version context and tabs, and current-view command bars compact and stack

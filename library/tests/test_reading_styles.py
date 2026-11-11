@@ -47,6 +47,26 @@ class ReadingStyleTests(TestCase):
                        "letter_spacing": .06, "word_spacing": .2, "line_height": 1.8,
                        "italic_to_bold": True, "underline_to_bold": True}
 
+    def test_reset_resolves_account_default_without_changing_it(self):
+        profile = ReadingStyleProfile.objects.create(
+            owner=self.user, name="Comfort", settings=self.custom, is_default=True,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("reading-style-preview"), {
+            "style_action": "default", "style": style_token(DEFAULTS),
+            "style_profile": "marxist",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["settings"], validate_style(self.custom))
+        fallback = self.client.get(self.url, {
+            "style_action": "load", "style_profile": "__default__",
+        })
+        self.assertEqual(fallback.status_code, 200)
+        self.assertEqual(fallback.context["reading_style"], validate_style(self.custom))
+        profile.refresh_from_db()
+        self.assertTrue(profile.is_default)
+        self.assertEqual(profile.settings, self.custom)
+
     def test_strict_settings_and_signed_snapshots_refuse_invalid_input(self):
         self.assertEqual(validate_style(self.custom), self.custom)
         self.assertEqual(token_style(style_token(self.custom)), self.custom)

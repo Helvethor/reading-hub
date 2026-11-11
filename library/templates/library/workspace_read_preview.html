@@ -1,13 +1,13 @@
-<section class="workspace-read-preview" aria-labelledby="workspace-preview-heading">
+<section class="workspace-read-preview" aria-label="Workspace reading view">
+  {% if preview_is_unsaved %}
   <header class="workspace-preview-heading">
     <p class="eyebrow">PRIVATE WORKSPACE PREVIEW</p>
     <h2 id="workspace-preview-heading">Draft preview: {{ version.title }}</h2>
     <p role="status">
-      {% if preview_is_unsaved %}Unsaved editor changes are shown; nothing has been saved or published.
-      {% elif preview_has_draft %}Showing saved draft revision {{ preview_saved_revision }}; nothing has been published.
-      {% else %}Showing the current source proposal; no working draft or saved version was created.{% endif %}
+      Unsaved editor changes are shown; nothing has been saved or published.
     </p>
   </header>
+  {% endif %}
   <div class="reader-layout">
     <aside class="toc-panel" aria-label="Draft navigation">
       <details open>
@@ -20,7 +20,7 @@
     <div class="reading-column">
       <div class="publication-content">
         <header class="document-header document-header-{{ book_pages.title_layout }}">
-          <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} · DRAFT PREVIEW</p>
+          <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %}{% if preview_is_unsaved %} · DRAFT PREVIEW{% endif %}</p>
           <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
           {% include 'library/document_metadata.html' %}
         </header>

@@ -333,6 +333,7 @@ body.workspace-page .review-navigation {
 .workspace-identity .eyebrow { margin: 0; }
 .workspace-identity h2 { margin: .1rem 0; font-size: 1.35rem; overflow-wrap: anywhere; }
 .workspace-identity p { margin: .1rem 0; font-size: .85rem; }
+.workspace-compact-state { display: none; }
 .workspace-reader-default { color: var(--muted); }
 .workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 .workspace-actions > * { font-size: .85rem; }
@@ -377,6 +378,7 @@ body.workspace-page .review-navigation {
 .workspace-preview-heading h2 { margin: .1rem 0; overflow-wrap: anywhere; }
 .workspace-preview-heading p { margin: .25rem 0; }
 .workspace-scroll-panel .document-lineage { max-width: none; padding: .5rem; }
+.workspace-read-actions { padding: .5rem 1rem 0; }
 .workspace-scroll-panel .lineage-timeline { max-height: none; overflow: visible; }
 .workspace-scroll-panel .lineage-workspace { grid-template-columns: minmax(15rem, .9fr) minmax(0, 1.1fr); }
 .workspace-scroll-panel #lineage-inspection { top: .5rem; max-height: calc(72vh - 1rem); }
@@ -394,8 +396,10 @@ body.workspace-page .review-navigation {
 .site-header[data-compact="true"] .brand-mark { width: 28px; height: 30px; }
 .site-header[data-compact="true"] .primary-navigation { gap: .5rem; }
 .workspace-chrome[data-compact="true"] .workspace-context { padding-block: .35rem; }
-.workspace-chrome[data-compact="true"] .workspace-identity h2 { font-size: 1.1rem; }
-.workspace-chrome[data-compact="true"] .workspace-identity p { font-size: .78rem; }
+.workspace-chrome[data-compact="true"] .workspace-identity { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+.workspace-chrome[data-compact="true"] .workspace-identity h2 { font-size: 1rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-chrome[data-compact="true"] .workspace-identity p { display: none; }
+.workspace-chrome[data-compact="true"] .workspace-identity .workspace-compact-state { display: block; flex-shrink: 0; font-size: .78rem; white-space: nowrap; }
 .workspace-chrome[data-compact="true"] .workspace-tabs [role="tab"] { padding-block: .3rem; }
 .unified-workspace .editor-pilot-toolbar { top: var(--workspace-stack-height, 0px); }
 @media (max-width: 760px) {

@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v2">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -33,10 +33,11 @@
       <header class="workspace-context" aria-label="Current work and draft">
         <div class="workspace-identity">
           <p class="eyebrow">WORKSPACE</p>
-          <h2>{{ initial.document.title }}</h2>
+          <h2>{% if reader_target %}<a href="{% url 'reader' reader_target.pk %}" title="Open saved reader default (edition {{ reader_target.pk }})">{{ initial.document.title }}</a>{% else %}{{ initial.document.title }}{% endif %}</h2>
+          <p id="workspace-compact-state" class="workspace-compact-state" role="status"></p>
           <p id="workspace-baseline-state">
             {% if choose_history %}
-              Choose a working copy in Versions, or explicitly start from saved edition {{ version.pk }}.
+              Choose a working copy in Versions for saved edition {{ version.pk }}.
             {% elif draft %}
               Working copy based on saved edition {{ version.pk }}.
               {% if initial.revision %}Latest saved draft revision {{ initial.revision }}.{% else %}No saved draft version yet.{% endif %}
@@ -52,12 +53,6 @@
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
           </p>
         </div>
-        <div class="workspace-actions" role="group" aria-label="Workspace actions">
-          <button type="button" id="workspace-download-pdf">Download current draft PDF</button>
-          {% if reader_target %}
-          <a class="button secondary" href="{% url 'reader' reader_target.pk %}" target="_blank" rel="noopener noreferrer">Open saved reader default</a>
-          {% endif %}
-        </div>
       </header>
       <div class="workspace-tabs" role="tablist" aria-label="Work workspace">
         <button type="button" role="tab" id="workspace-tab-read" aria-controls="workspace-panel-read" data-workspace-tab="read" aria-selected="false" tabindex="-1">Read</button>
@@ -68,6 +63,7 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1" hidden>
+      <div class="workspace-read-actions"><button type="button" id="workspace-download-pdf">Download current draft PDF</button></div>
       <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
         <p>Select Read to render the current editor content. This does not save or publish it.</p>
       </div>
@@ -538,4 +534,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v9"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v12"></script>{% endif %}{% endblock %}

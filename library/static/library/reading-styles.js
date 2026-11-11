@@ -79,9 +79,11 @@ export function mountReadingStyles(panel) {
     let sheet;
     try {
       if (!loadProfile && !form.reportValidity()) throw new Error("Check the highlighted settings.");
-      const params = loadProfile ? new URLSearchParams({
-        style_profile: profile.value, style_action: "load",
-      }) : new URLSearchParams(new view.FormData(form));
+      const reset = loadProfile && profile.value === "__default__";
+      const params = reset ? new URLSearchParams({style_action: "default"})
+        : loadProfile ? new URLSearchParams({
+          style_profile: profile.value, style_action: "load",
+        }) : new URLSearchParams(new view.FormData(form));
       if (!loadProfile) params.set("style_action", "apply");
       const data = await responseData(await view.fetch(`${panel.dataset.previewUrl}?${params}`, {
         signal, headers: {Accept: "application/json"},
@@ -92,10 +94,11 @@ export function mountReadingStyles(panel) {
       if (signal.aborted) throw new Error("Style update timed out.");
       const url = new URL(view.location.href);
       for (const name of [...settingNames, "style_action"]) url.searchParams.delete(name);
-      url.searchParams.set("style", data.token);
-      if (loadProfile && profile.value) url.searchParams.set("style_profile", profile.value);
+      if (reset) url.searchParams.delete("style");
+      else url.searchParams.set("style", data.token);
+      if (loadProfile && profile.value && !reset) url.searchParams.set("style_profile", profile.value);
       else url.searchParams.delete("style_profile");
-      view.history.replaceState(null, "", url);
+      view.history.replaceState(view.history.state, "", url);
       if (loadProfile) {
         for (const [key, value] of Object.entries(data.settings)) {
           const input = form.elements[key];
@@ -109,15 +112,22 @@ export function mountReadingStyles(panel) {
         sheet.dataset.readingStyle = "";
       }
       for (const input of panel.querySelectorAll('input[name="style"]')) input.value = data.token;
+      const workspace = owner.querySelector("#unified-workspace");
+      if (workspace) workspace.dataset.readingStyleUrl = data.stylesheet;
       downloads.forEach((link, index) => {
         link.href = `${pdfPaths[index]}?style=${encodeURIComponent(data.token)}`;
         link.dataset.appliedHref = link.href;
       });
       if (loadProfile && save) {
-        save.elements.profile_id.value = profile.value === "marxist" ? "" : profile.value;
+        save.elements.profile_id.value = reset
+          ? (panel.dataset.default === "marxist" ? "" : panel.dataset.default)
+          : profile.value === "marxist" ? "" : profile.value;
       }
+      if (reset) profile.value = panel.dataset.default;
       if (!loadProfile) profile.value = "";
-      status.textContent = defaultsOnly
+      status.textContent = reset
+        ? "Account default restored for this view. The saved default was not changed."
+        : defaultsOnly
         ? "Publication & PDF settings are ready. Save or update a profile, then Set default to reuse it. Editor appearance is unchanged."
         : "Displayed style and PDF are in sync. Profile changes are saved only with Update or Save as new.";
     } catch (failure) {

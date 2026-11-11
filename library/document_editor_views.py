@@ -107,7 +107,8 @@ def workspace(request, pk):
         publication = DocumentPublication.objects.filter(rendition=version).select_related(
             "revision__draft__rendition",
         ).first()
-        if publication:
+        reading_edition = request.GET.get("start") == "edition" and not draft_id
+        if publication and not reading_edition:
             candidate = (
                 DocumentDraftBase.objects.filter(
                     pk=draft_id, profile=get_profile().key,
@@ -148,7 +149,9 @@ def workspace(request, pk):
                 if request.GET.get("tab") in {"read", "edit", "versions", "sources"}:
                     query += f"&tab={request.GET['tab']}"
                 return redirect(target + query)
-        if not draft_id and request.GET.get("start") != "source":
+        if reading_edition and publication:
+            choose_history = True
+        if not draft_id and request.GET.get("start") not in {"source", "edition"}:
             choices = list(histories[:2])
             if len(choices) == 1 and choices[0].reviewer_id == request.user.pk:
                 draft_id = str(choices[0].pk)
@@ -279,11 +282,16 @@ def _workspace_snapshot(request, source):
     prepared = prepare_workspace_document(
         payload["document"], original_metadata, original_structure, allowed_assets,
     )
+    prepared_baseline = prepare_workspace_document(
+        baseline, original_metadata, original_structure, allowed_assets,
+    )
     return {
         **prepared,
         "draft": draft,
         "baseline": baseline,
-        "is_unsaved": fingerprint(prepared["document"]) != fingerprint(baseline),
+        "is_unsaved": (
+            fingerprint(prepared["document"]) != fingerprint(prepared_baseline["document"])
+        ),
         "saved_revision": payload["revision"],
         "stylesheet": (
             draft.evidence.get("stylesheet", source.stylesheet)
