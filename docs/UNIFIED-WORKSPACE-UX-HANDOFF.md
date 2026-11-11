@@ -69,6 +69,60 @@ in Edit, not every tab. Preserve Metadata, Review and Appearance capabilities as
 local controls without another competing primary navigation bar. Reading
 appearance remains presentation-only and keeps its existing personal/theme scope.
 
+### Compact navigation stack and Back to top
+
+Scroll-reachability extension agreed 2026-11-11. Apply the shared mechanism to
+application navigation and the relevant reader/workspace command bars, including
+existing reader surfaces during transition to the unified workspace. Do not pin
+every explanatory block, metadata panel, notice or contextual menu.
+
+As each participating region reaches the viewport's top stack boundary, retain
+it in a compact form in this order:
+
+1. Application header/navigation.
+2. Work/version context and Read/Edit/Versions/Sources tabs.
+3. Current-view commands, such as reader actions or editing tools.
+
+Each bar uses the space below the bars already retained. Expand it again when
+its original position returns into view. Preserve layout space and stable
+thresholds so compaction causes neither content jumps nor repeated
+collapse/expand flicker. Coordinate existing local sticky editor tools rather
+than layering independent `top: 0` bars.
+
+Keep work title, current version/draft identity, unsaved status and common
+actions available. Longer metadata and secondary actions may become accessible
+disclosures; material warnings and primary actions must not disappear behind
+hover-only controls. Compact representations replace expanded controls, without
+duplicate interactive elements, remounting the editor, losing focus/selection
+or unexpectedly closing an active menu.
+
+Account for actual stack height when positioning sticky outlines, scrolling to
+targets, navigating contents or bringing focused controls into view. Handle
+wrapping, resize, zoom, font changes and theme/layout differences; do not assume
+fixed pixel heights. Popovers, menus and modal dialogs must layer correctly,
+remain reachable and not be clipped by sticky ancestors. Short/narrow viewports
+must consolidate secondary controls instead of letting stacked chrome consume
+the content area. Basic navigation and commands remain keyboard reachable.
+
+Show a labelled Back to top button after scrolling at least one usable viewport
+height in the active content scroll area; hide it again near that area's start.
+The threshold uses the visible area below the stack and is recomputed on resize.
+Identify the active content scroll owner explicitly: page content for a
+page-scrolling reader, the editor surface when it scrolls independently, or the
+current Versions/Sources content pane. Scrolling an outline, menu or dialog must
+not accidentally change the button's target.
+
+Activation returns that content area to its beginning without switching tabs,
+saving, changing editor selection or clearing undo/recovery. Position the button
+clear of content and other floating tools; suppress the underlying button while
+a modal interaction owns focus. Provide keyboard access and a visible focus
+indicator. Respect reduced-motion preferences. If keyboard activation would
+hide the focused button, move focus to a stable, named content-start destination
+without changing the editor's saved selection.
+
+Exclude compact navigation, floating controls and Back to top from browser print
+and generated PDFs. Their state is presentation-only, never saved document data.
+
 ### Version to working draft to saved version
 
 - Opening an immutable saved version shows its exact identity and saved state.
@@ -192,13 +246,20 @@ unsaved edits. Track implementation and validation independently.
 | V9 | Publish exact saved content under milestone P semantics; unsaved preview is never silently included. Publication-specific reader/PDF links stay exact even with a newer current draft. No pending state or other reviewer's working copy is replaced. |
 | V10 | Private annotations remain immutable-version scoped; guest access and permissions are preserved. Article/book preservation checks retain prose, targets, notes/media, source evidence, membership, review/publication facts and reader choices except explicitly confirmed operations. |
 | V11 | Keyboard tab semantics, focus, history, consistent placement and basic narrow-screen access work. Common commands remain reachable without confusing duplicated navigation or mobile-only desktop controls. |
+| V12 | Deep-scroll each work view and the retained reader surface: application navigation, compact version/unsaved context, tabs and applicable commands remain reachable in the specified stack order. Returning upward expands them without content jumps or threshold flicker. |
+| V13 | Contents/internal-link navigation, outline following and keyboard-focused controls land below the actual stack. Resize, zoom, wrapping and short/narrow viewports cause no overlapping bars or inaccessible content; menus/dialogs remain correctly layered and reachable. |
+| V14 | Compaction/expansion preserves keyboard focus, active menus, editor selection, content and undo/recovery. No duplicate interactive controls, save/version/selection events or editor remounts are introduced by scrolling. |
+| V15 | Back to top appears after one usable viewport of active-content scrolling, targets the correct page/editor/Versions/Sources pane and hides near its start. Pointer/keyboard activation, reduced motion, focus after hiding and modal suppression work without editing or selecting content. Outline/dialog scrolling does not retarget it. |
+| V16 | Browser print and saved/draft PDF outputs contain no navigation stack or floating button. Verify actual print/export output and unchanged document content, not only screen visibility. |
 
-Stop when V1-V11 are implemented and validated, not when tabs merely look alike.
+Stop when V1-V16 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
 changes. Observe full edit -> Read -> PDF -> Versions/Sources -> Edit -> save
 journeys, with identity, content and mutation-count assertions.
+Include deep scrolling, return-to-top, anchor/focus navigation, resize/zoom,
+reduced-motion and print/export scenarios for the navigation-stack extension.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify

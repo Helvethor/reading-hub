@@ -9,7 +9,8 @@ assignment. See [Operations](OPERATIONS.md), [Tasks](../TASKS.md) and
 ## Mission, authority and stopping point
 
 The [unified version workspace contract](UNIFIED-WORKSPACE-UX-HANDOFF.md),
-specified 2026-11-11 with V1-V11 acceptance, supersedes this handoff's earlier
+specified 2026-11-11 with V1-V16 acceptance (including compact scroll navigation
+and Back to top), supersedes this handoff's earlier
 separate-page requirements for Read/Edit/Versions/Sources. Other preservation
 and outstanding acceptance requirements remain. Its current authorization is
 documentation only; the earlier delivery does not implement that new contract.

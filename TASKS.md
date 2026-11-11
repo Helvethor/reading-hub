@@ -64,7 +64,7 @@ of the new UI/UX goals. These milestones take priority over older next-step orde
 
 **Status:** direction specified; implementation and acceptance not started.
 Documentation only is authorized. The
-[unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V11
+[unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V16
 acceptance and supersedes earlier separate-page requirements for the four work
 views. U1/U2 delivery/evidence above is historical, not proof of this new outcome.
 
@@ -76,7 +76,11 @@ views. U1/U2 delivery/evidence above is historical, not proof of this new outcom
   draft PDFs without implicit save/publication or shared-cache leakage.
 - [ ] Separate history/source inspection from guarded version switching; preserve
   exact public links, annotation scopes, permissions and other working copies.
-- [ ] Validate V1-V11 through isolated article/book journeys, focused regressions,
+- [ ] Keep navigation/context/command bars reachable through a coordinated compact
+  scroll stack, with dynamic anchor/focus offsets and state-safe transitions.
+- [ ] Add active-content Back to top with keyboard/focus/reduced-motion safety;
+  validate nested scrolling, constrained screens and print/PDF exclusion.
+- [ ] Validate V1-V16 through isolated article/book journeys, focused regressions,
   actual browser/PDF evidence and preservation assertions; checkpoint validated work.
 
 Coordinate shared shell/entry points with publication milestone P and title

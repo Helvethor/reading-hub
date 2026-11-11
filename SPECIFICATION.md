@@ -121,7 +121,7 @@ independent. Migration 0028 adds account preferences without changing documents.
 
 ### Unified version workspace (handoff 2026-11-11; planned)
 
-The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V11
+The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V16
 acceptance. A stable header distinguishes current exact content, working draft,
 unsaved changes, saved baseline and reader default above Read/Edit/Versions/Sources.
 Entering Edit opens or explicitly resumes a draft; tab changes preserve the
@@ -138,6 +138,17 @@ specific reader/PDF links must not resolve a newer unsaved draft. Shared control
 retain consistent placement across views. This direction supersedes conflicting
 separate-page requirements, not preservation rules or historical evidence.
 Current authorization covers documentation only.
+
+Scroll-reachability extension (2026-11-11): relevant application header,
+work/version context and tabs, and current-view command bars compact and stack
+at the top as their normal positions scroll out of view. Preserve essential
+identity/status/actions, focus, menus and editor state without duplicate controls,
+overlap or scroll jumps. Account for dynamic stack height in anchors, outlines
+and focused destinations; consolidate secondary controls on constrained screens.
+A keyboard-accessible Back to top button appears after one usable viewport of
+active-content scrolling and targets that content's page or independent pane,
+not an outline/dialog. Respect reduced motion and focus safety. These controls
+are presentation-only and excluded from print/PDF. V12-V16 define acceptance.
 
 ### Publication completion and defaults (handoff 2026-11-11; planned)
 
