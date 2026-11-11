@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
-import {mountWorkspaceShell} from "./workspace-shell.js";
+import {mountWorkspaceShell, pdfFilename} from "./workspace-shell.js";
 import {mountWorkflowPanels} from "./workflow-panels.js";
 
 let dom;
@@ -276,36 +276,148 @@ test("a late lineage inspection does not scroll another active tab", async () =>
   assert.equal(scrollCount, 0);
 });
 
-test("PDF request captures the current document and reading style", async () => {
-  const form = setup("?style=chosen-style&style_profile=3");
+function pdfHeaders(state, disposition) {
+  return {
+    get: name => ({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": disposition,
+      "X-Reading-Hub-PDF-State": state,
+    })[name] ?? null,
+  };
+}
+
+async function settle() {
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+}
+
+function readThenPdf(readState, pdfResponse, requests) {
+  return (url, options) => {
+    requests.push({url, body: options.body});
+    if (url === "/versions/12/editor/read-preview/") {
+      return Promise.resolve({
+        ok: true,
+        headers: {get: () => "application/json"},
+        json: async () => ({html: "<p>Rendered</p>", state: readState, revision: 0}),
+      });
+    }
+    return pdfResponse(url, options);
+  };
+}
+
+test("PDF button is disabled until Read reports the actual content state", async () => {
+  for (const [state, label] of [
+    ["exact", "Download PDF"],
+    ["saved", "Download saved version PDF"],
+    ["draft", "Download draft PDF"],
+  ]) {
+    const form = setup("?tab=read");
+    const requests = [];
+    let resolveRead;
+    globalThis.fetch = (url) => {
+      requests.push(url);
+      return new Promise(resolve => { resolveRead = resolve; });
+    };
+    mount(form, {
+      draft: null, revision: 0,
+      document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+    });
+    const button = document.querySelector("#workspace-download-pdf");
+    assert.equal(button.disabled, true);
+    resolveRead({
+      ok: true,
+      headers: {get: () => "application/json"},
+      json: async () => ({html: "<p>T</p>", state, revision: 0}),
+    });
+    await settle();
+    assert.equal(button.disabled, false);
+    assert.equal(button.textContent, label);
+    dom.window.close();
+  }
+});
+
+test("PDF request captures the Read-rendered document and reading style", async () => {
+  const form = setup("?tab=read&style=chosen-style&style_profile=3");
   const snapshot = {
-    draft: null, revision: 0,
+    draft: "d", revision: 1,
     document: {title: "Captured title", html: "<p>Captured</p>", metadata: {}},
     source_tickets: [],
   };
-  let capturedBody;
-  let capturedUrl;
+  const requests = [];
   let finishRequest;
-  globalThis.fetch = (url, options) => {
-    capturedUrl = url;
-    capturedBody = options.body;
-    return new Promise(resolve => { finishRequest = resolve; });
-  };
+  globalThis.fetch = readThenPdf("draft",
+    () => new Promise(resolve => { finishRequest = resolve; }), requests);
   mount(form, snapshot);
+  await settle();
   dom.window.HTMLAnchorElement.prototype.click = function() {};
+  dom.window.URL.createObjectURL = () => "blob:x";
+  dom.window.URL.revokeObjectURL = () => {};
+  globalThis.URL.createObjectURL = () => "blob:x";
+  globalThis.URL.revokeObjectURL = () => {};
   document.querySelector("#workspace-download-pdf").click();
   snapshot.document.title = "Later title";
   finishRequest({
     ok: true,
-    headers: {
-      get: name => name === "Content-Type" ? "application/pdf"
-        : 'attachment; filename="Draft preview - Captured title.pdf"',
-    },
+    headers: pdfHeaders("draft",
+      "attachment; filename=\"Draft preview - Captured title.pdf\"; " +
+      "filename*=UTF-8''Draft%20preview%20-%20Captured%20title%20%C3%A9.pdf"),
     blob: async () => new Blob(["pdf"]),
   });
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(JSON.parse(capturedBody).document.title, "Captured title");
-  assert.equal(new URL(capturedUrl).searchParams.get("style"), "chosen-style");
-  assert.equal(new URL(capturedUrl).searchParams.get("style_profile"), "3");
-  assert.match(document.querySelector("#workspace-action-status").textContent, /Captured title/);
+  await settle();
+  const pdf = requests.at(-1);
+  assert.equal(JSON.parse(pdf.body).document.title, "Captured title");
+  assert.equal(new URL(pdf.url).searchParams.get("style"), "chosen-style");
+  assert.equal(new URL(pdf.url).searchParams.get("style_profile"), "3");
+  const message = document.querySelector("#workspace-action-status").textContent;
+  assert.match(message, /Draft preview - Captured title é\.pdf/);
+  assert.match(message, /unsaved draft content only/);
+});
+
+test("PDF refuses content changed after Read and refreshes Read instead", async () => {
+  const form = setup("?tab=read");
+  const snapshot = {
+    draft: "d", revision: 1,
+    document: {title: "First", html: "<p>First</p>", metadata: {}}, source_tickets: [],
+  };
+  const requests = [];
+  globalThis.fetch = readThenPdf("saved", () => assert.fail("PDF must not be requested"), requests);
+  mount(form, snapshot);
+  await settle();
+  snapshot.document.html = "<p>Edited after Read</p>";
+  document.querySelector("#workspace-download-pdf").click();
+  await settle();
+  assert.deepEqual(requests.map(request => request.url), [
+    "/versions/12/editor/read-preview/", "/versions/12/editor/read-preview/",
+  ]);
+  assert.match(document.querySelector("#workspace-action-status").textContent
+    + document.querySelector("#workspace-download-pdf").textContent, /saved version PDF/);
+});
+
+test("PDF with a server state different from the label is not downloaded", async () => {
+  const form = setup("?tab=read");
+  const requests = [];
+  let downloaded = false;
+  globalThis.fetch = readThenPdf("exact", () => Promise.resolve({
+    ok: true,
+    headers: pdfHeaders("draft", 'attachment; filename="Draft preview - T.pdf"'),
+    blob: async () => new Blob(["pdf"]),
+  }), requests);
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  await settle();
+  dom.window.HTMLAnchorElement.prototype.click = function() { downloaded = true; };
+  document.querySelector("#workspace-download-pdf").click();
+  await settle();
+  assert.equal(downloaded, false);
+  assert.match(document.querySelector("#workspace-action-status").textContent,
+    /different PDF state.*Nothing was downloaded/);
+});
+
+test("pdfFilename prefers RFC 5987 names and tolerates plain parameters", () => {
+  assert.equal(pdfFilename("attachment; filename=\"a.pdf\"; filename*=UTF-8''b%20%C3%A9.pdf"), "b é.pdf");
+  assert.equal(pdfFilename('attachment; filename="Saved revision 2 - T.pdf"'), "Saved revision 2 - T.pdf");
+  assert.equal(pdfFilename("attachment; filename=plain.pdf"), "plain.pdf");
+  assert.equal(pdfFilename(null), "");
 });

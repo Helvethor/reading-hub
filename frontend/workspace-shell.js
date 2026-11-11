@@ -12,6 +12,38 @@ function statusMessage(target, text, role = "status") {
   target.append(message);
 }
 
+const PDF_LABELS = {
+  exact: "Download PDF",
+  saved: "Download saved version PDF",
+  draft: "Download draft PDF",
+};
+
+const PDF_PREPARING = {
+  exact: "Preparing the PDF of the unchanged saved edition.",
+  saved: "Preparing a PDF of the saved working-copy revision; it is not published or verified.",
+  draft: "Preparing a PDF of the unsaved draft in this tab; no version is being saved.",
+};
+
+const PDF_DONE = {
+  exact: "It is the retained output of the unchanged saved edition.",
+  saved: "It shows the saved working-copy revision, which is neither published nor verified.",
+  draft: "It shows unsaved draft content only.",
+};
+
+export function pdfFilename(disposition) {
+  if (!disposition) return "";
+  const encoded = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded.trim());
+    } catch {
+      // Fall back to the plain filename parameter.
+    }
+  }
+  return disposition.match(/filename\s*=\s*"([^"]+)"/i)?.[1]
+    || disposition.match(/filename\s*=\s*([^;"\s]+)/i)?.[1] || "";
+}
+
 function mountStickyStack(workspace, updateBackToTop) {
   const siteHeader = document.querySelector(".site-header");
   const reviewNavigation = document.querySelector(".review-navigation");
@@ -126,6 +158,7 @@ export function mountWorkspaceShell({
     sources: workspace.querySelector("#workspace-sources-content"),
   };
   let readSignature = "";
+  let readState = null;
   let readRequest = 0;
   const lineageRequests = {versions: 0, sources: 0};
   let lastEditorFocus = null;
@@ -147,6 +180,14 @@ export function mountWorkspaceShell({
       : draft
         ? `Saved draft revision ${revision || "none"} loaded; no unsaved changes in this tab.`
         : "No working copy has been created; the original saved edition is unchanged.";
+    if (currentTab() === "read") loadRead();
+  }
+
+  function showPdfState(state) {
+    readState = PDF_LABELS[state] ? state : null;
+    downloadButton.disabled = !readState;
+    downloadButton.textContent = PDF_LABELS[readState] || "Download PDF";
+    downloadButton.dataset.pdfState = readState || "";
   }
 
   function currentTab() {
@@ -242,11 +283,13 @@ export function mountWorkspaceShell({
       body = JSON.stringify(payload);
     } catch (error) {
       readSignature = "";
+      showPdfState(null);
       statusMessage(readContent, error.message, "alert");
       return;
     }
     if (!force && body === readSignature) return;
     readSignature = body;
+    showPdfState(null);
     const requestId = ++readRequest;
     status.textContent = "Rendering the current draft for reading; no content is being saved.";
     readContent.setAttribute("aria-busy", "true");
@@ -270,10 +313,12 @@ export function mountWorkspaceShell({
       const previousScroll = panels.get("read").scrollTop;
       readContent.innerHTML = result.html;
       panels.get("read").scrollTop = previousScroll;
+      showPdfState(result.state);
       status.textContent = "";
     } catch (error) {
       if (requestId !== readRequest) return;
       readSignature = "";
+      showPdfState(null);
       statusMessage(readContent, error.message, "alert");
       status.textContent = "The current draft could not be rendered. No older content was substituted.";
     } finally {
@@ -465,8 +510,14 @@ export function mountWorkspaceShell({
       status.textContent = error.message;
       return;
     }
+    const expected = readState;
+    if (!expected || body !== readSignature) {
+      status.textContent = "The content changed since Read was rendered. Read is refreshing; download again once it has updated.";
+      loadRead(true);
+      return;
+    }
     downloadButton.disabled = true;
-    status.textContent = "Preparing a PDF of the captured current draft; no version is being saved.";
+    status.textContent = PDF_PREPARING[expected];
     try {
       const pdfUrl = new URL(workspace.dataset.pdfUrl, location.href);
       const currentUrl = new URL(location.href);
@@ -488,13 +539,17 @@ export function mountWorkspaceShell({
       if (!response.ok) {
         const result = response.headers.get("Content-Type")?.includes("application/json")
           ? await response.json() : {};
-        throw new Error(result.error || `Draft PDF failed (${response.status}).`);
+        throw new Error(result.error || `PDF failed (${response.status}).`);
       }
       if (!response.headers.get("Content-Type")?.includes("application/pdf")) {
-        throw new Error("Draft PDF returned an unexpected response. Reload and sign in before retrying.");
+        throw new Error("PDF returned an unexpected response. Reload and sign in before retrying.");
       }
-      const filename = response.headers.get("Content-Disposition")
-        ?.match(/filename="?([^";]+)"?/i)?.[1] || `Draft preview - ${snapshot.document.title}.pdf`;
+      const actual = response.headers.get("X-Reading-Hub-PDF-State");
+      if (actual !== expected) {
+        throw new Error("The server produced a different PDF state than the one shown. Nothing was downloaded; refresh Read and retry.");
+      }
+      const filename = pdfFilename(response.headers.get("Content-Disposition"))
+        || `${snapshot.document.title}.pdf`;
       const objectUrl = URL.createObjectURL(await response.blob());
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
@@ -503,11 +558,11 @@ export function mountWorkspaceShell({
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      status.textContent = `Downloaded ${filename} from the captured current draft.`;
+      status.textContent = `Downloaded ${filename}. ${PDF_DONE[expected]}`;
     } catch (error) {
       status.textContent = error.message;
     } finally {
-      downloadButton.disabled = false;
+      downloadButton.disabled = !readState;
     }
   });
 
@@ -540,6 +595,7 @@ export function mountWorkspaceShell({
   refreshStickyStack = mountStickyStack(workspace, updateBackToTop);
 
   const initialTab = workspace.dataset.initialTab;
+  showPdfState(null);
   updateState({draft: initialDraft, revision: initialRevision, dirty: false});
   selectTab(panels.has(initialTab) ? initialTab : "edit");
   return {
