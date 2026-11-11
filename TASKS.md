@@ -86,10 +86,10 @@ human usability/accessibility review were not performed.
 
 ## Next content milestone: article identity and heading hierarchy (2026-11-09)
 
-**Status:** implementation and focused automated validation complete; localhost
-deployment and browser-level acceptance pending. This follows R and precedes V
-and P. Legacy behavior is covered by isolated fixtures; no live-content mutation
-is required.
+**Status:** implementation, focused automated validation and localhost
+deployment complete; Article editor browser acceptance remains pending. This
+follows R and precedes V and P. Legacy behavior is covered by isolated fixtures;
+no live-content mutation is required.
 
 **Outcome:** a standalone article's content root uses its document title and
 Article role; H2-H6 remain navigable heading ranges. Title edits cannot rename
@@ -110,8 +110,10 @@ owns implementation scope, exclusions and A1-A10 acceptance.
 - [x] Add focused article, book and anthology regression coverage, including
   preservation assertions. Django tests (50), frontend tests (278), asset build,
   Ruff lint and synthetic editor compatibility checks passed on 2026-11-12.
-- [ ] Deploy locally and record browser, focus/keyboard, narrow-screen and
-  post-deployment evidence. Human usability/accessibility review remains separate.
+- [x] Deploy to `127.0.0.1:8765` and verify the homepage after restart; no
+  migration or live-record change was made.
+- [ ] Validate the authenticated Article editor journey, focus/keyboard and
+  narrow-screen behavior. Human usability/accessibility review remains separate.
 
 Defer automatic H2 wrapping, bulk article conversion and source-title cleanup.
 

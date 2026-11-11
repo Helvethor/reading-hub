@@ -1,7 +1,8 @@
 # Milestone A: article identity and heading hierarchy
 
-Design accepted 2026-11-09. Status: implemented; focused automated validation
-passed 2026-11-12. Local deployment and browser-level acceptance are pending.
+Design accepted 2026-11-09. Status: implemented and deployed locally;
+focused automated validation passed 2026-11-12. Authenticated editor and
+human-accessibility acceptance remain pending.
 
 ## Outcome, authority and stopping point
 
@@ -200,9 +201,12 @@ entry under the book, with its internal headings beneath it.
   formatting and a synthetic `npm run check:editor` Article input. No migration
   is required.
 - Browser review of an authenticated editor, real keyboard/focus and narrow
-  screen behavior, human accessibility review and post-deployment checks have
-  not yet been performed. The version-98 scenario is synthetic, not a live-data
-  reproduction. No live record was changed.
+  screen behavior, and human accessibility review have not yet been performed.
+  A browser smoke check of `http://127.0.0.1:8765/` returned the Reading Hub
+  homepage with its main content and script loaded and no horizontal overflow
+  at the default viewport; this does not validate the Article editor journey.
+  The version-98 scenario is synthetic, not a live-data reproduction. No live
+  record was changed.
 
 1. Reproduce the title fallback and destructive-title-edit risk on isolated
    inputs. Record compatibility/title ownership decisions and baseline

@@ -228,8 +228,11 @@ the standalone root must not create a duplicate title entry in the contents.
 Automatic H2 wrapping, bulk live conversion and source-title cleanup are excluded.
 The focused validation on 2026-11-12 passed 50 Django tests, 278 frontend tests,
 the frontend asset build, Ruff lint and a synthetic Article editor-compatibility
-check; no migration is required. Local deployment and browser-level acceptance
-remain pending. No live records or historical evidence were changed.
+check; no migration is required. The implementation is deployed locally at
+`127.0.0.1:8765`; a browser smoke check observed the homepage with one page
+script loaded and no horizontal overflow at the default viewport. The authenticated
+Article editor journey, narrow-screen/focus behavior and human accessibility
+review remain unverified. No live records or historical evidence were changed.
 
 ### Catalogue membership and editorial sections (agreed 2026-11-07)
 
