@@ -134,6 +134,9 @@ for scope, dependencies and V17-V22 acceptance.
 
 - [ ] V.a: reproduce and fix first-scroll oscillation; stabilize measured
   compaction and the ordered header/context/secondary-tabs/command stack.
+  The user's clarified trigger is tiny wheel increments or a held scrollbar
+  drag: header shrinkage changes scroll geometry and immediately re-expands it.
+  Validate stable flow reservation and thresholds, not just large scroll steps.
 - [ ] V.b: put all main tab content, including the editor canvas, into document
   flow; preserve per-view position, anchor/focus navigation and footer ownership.
 - [ ] V.c: coordinate secondary tabs/actions/filters; move pinned source

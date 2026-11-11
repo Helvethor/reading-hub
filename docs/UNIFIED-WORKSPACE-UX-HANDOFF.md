@@ -295,6 +295,14 @@ static draft-download label. These observations identify investigation targets;
 the oscillation's root cause has not been reproduced or established in a browser.
 The shared browser at investigation time was at sign-in.
 
+User clarification (2026-11-11): even a tiny downward movement immediately
+compacts the site title/header. Its reduced height changes the scroll geometry,
+making the view effectively return upward and triggering the large header again.
+Continuing to drag the scrollbar thumb, or receiving many small mouse-wheel
+increments, repeatedly retriggers this compact/large loop. This is the user's
+observed reproduction and explanation, not an independently measured browser
+trace. Diagnose layout/scroll feedback, not merely an animated visual flicker.
+
 Subsequent isolated browser probes on an article and a long book did not
 reproduce oscillation; their hidden-page timing limits prevent treating this as
 V17 validation. A synthetic delayed-response test reproduced and covers an
@@ -308,6 +316,15 @@ Reproduce the first-scroll defect before selecting a fix. Inspect marker
 positions, flow reservation, scroll anchoring, height measurement and observer
 feedback. Use stable thresholds and sufficient hysteresis where needed; changing
 a bar's height must not change its own threshold into immediate reversal.
+Reserve equivalent document-flow space as the header shrinks, and derive
+transition decisions from a stable reference unaffected by that shrinkage.
+Hysteresis alone must not mask uncompensated height changes or scrollbar-thumb
+movement caused by a changing document scroll range. With no further user input,
+a compaction transition must not induce an expansion transition, or vice versa.
+Reproduce both continuous scrollbar-thumb dragging near the top and sequences
+of tiny mouse-wheel increments; a single large programmatic scroll is not a
+substitute. Capture scroll position/range, header height and transition decisions
+before and after each change to distinguish the trigger from the feedback.
 Do not hide the issue with arbitrary delays, smooth scrolling or blanket removal
 of browser scroll anchoring without evidence and preservation checks.
 
@@ -438,7 +455,7 @@ unsaved edits. Track implementation and validation independently.
 | V14 | Compaction/expansion preserves keyboard focus, active menus, editor selection, content and undo/recovery. No duplicate interactive controls, save/version/selection events or editor remounts are introduced by scrolling. |
 | V15 | Back to top appears after one usable viewport of active-content scrolling, targets the document under V.b and hides near its start. Pointer/keyboard activation, reduced motion, focus after hiding and modal suppression work without editing or selecting content. Outline/dialog scrolling does not retarget it. |
 | V16 | Browser print and saved/draft PDF outputs contain no navigation stack or floating button. Verify actual print/export output and unchanged document content, not only screen visibility. |
-| V17 | On article and long-book fixtures, slowly cross the initial scroll threshold in both directions repeatedly, then deep-scroll and return. No oscillation, involuntary jump or observer feedback occurs; repeat after resize, zoom and long-title wrapping. Record real browser evidence and the reproduced root cause. |
+| V17 | On article and long-book fixtures, start at the top and use both tiny repeated mouse-wheel increments and a held scrollbar-thumb drag across the initial threshold, in both directions. Compaction must not itself trigger expansion or move the scroll range/thumb unexpectedly; stopping input leaves a stable state. Then deep-scroll and return; repeat after resize, zoom and long-title wrapping. Record visible-browser evidence, scroll geometry/transition traces and the reproduced root cause; one large programmatic scroll is insufficient. |
 | V18 | Every main tab, including Edit's canvas and long Versions/Sources inspection, scrolls with the document; the footer appears only after all active content. Hidden panels do not extend the page. Auxiliary scrolling does not retarget Back to top. |
 | V19 | Switch all tabs with unsaved edits and return to preserved per-view positions/editor state; exercise asynchronous Read/evidence refresh, history, deep links, contents/internal links, outline following and dialog return. No stale response moves another tab, and navigation/focus targets clear the full stack. |
 | V20 | Edit secondary tabs, pinned historical structure and editor commands occupy the coordinated stack; Read actions and Versions/Sources filters remain reachable. Verify keyboard semantics, filter results, inspection URLs, focus, active menus and short/narrow viewport access without duplicate navigation. |
