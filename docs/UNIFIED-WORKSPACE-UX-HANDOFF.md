@@ -2,6 +2,10 @@
 
 Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
+The V.a-V.d follow-up below is specified only; V17-V22 are not implemented or
+validated. The latest user instruction is "don't implement", followed by a request
+to store this handoff. It authorizes documentation only for this follow-up,
+superseding any inference of implementation/deployment permission from older work.
 The later user instruction to implement R, A, V, then P supersedes this
 handoff's original documentation-only authorization. Local deployment is
 authorized; remote publication, migrations and live content mutation are not.
@@ -113,7 +117,8 @@ publication output and branch/working-copy context. Keep current content,
 starting point, latest saved baseline and selected reader output separate.
 Never silently substitute the reader default when switching to Read.
 
-Download current draft PDF is placed in Read only, outside the shared header.
+Download PDF is placed in Read only, outside the shared header; its label follows
+the effective content state under V.d below.
 Contextual tools may differ: formatting belongs
 in Edit, not every tab. Preserve Metadata, Review and Appearance capabilities as
 local controls without another competing primary navigation bar. Reading
@@ -172,10 +177,9 @@ the content area. Basic navigation and commands remain keyboard reachable.
 Show a labelled Back to top button after scrolling at least one usable viewport
 height in the active content scroll area; hide it again near that area's start.
 The threshold uses the visible area below the stack and is recomputed on resize.
-Identify the active content scroll owner explicitly: page content for a
-page-scrolling reader, the editor surface when it scrolls independently, or the
-current Versions/Sources content pane. Scrolling an outline, menu or dialog must
-not accidentally change the button's target.
+The V.b refinement below supersedes independent main editor/Versions/Sources
+scroll owners: use document scrolling for active main content. Scrolling an
+outline, menu or dialog must not accidentally change the button's target.
 
 Activation returns that content area to its beginning without switching tabs,
 saving, changing editor selection or clearing undo/recovery. Position the button
@@ -273,6 +277,111 @@ public entry must never expose a reviewer's browser-local draft or grant editing
 rights. This milestone does not require guests to load editing/history tools.
 Catalogue membership remains a separately scoped global operation.
 
+## Follow-up milestones V.a-V.d: stable page-flow workspace
+
+Requested 2026-11-11. Documentation/handoff only; obtain implementation authority
+before changing application code. Keep these within V rather than presentation
+milestone M: they concern workspace navigation, scroll ownership and export scope.
+Do not treat earlier implementation/test counts as evidence for these additions.
+
+### Starting evidence and uncertainty
+
+The user reports erratic first downward scrolling, main tab content trapped in
+scroll boxes, insufficiently coordinated secondary navigation and commands,
+pinned source structure above Edit's tools, and a draft PDF label in non-draft
+contexts. Code inspection found viewport-constrained workspace panels/editor
+canvas, marker/spacer compaction that changes layout during scrolling, and a
+static draft-download label. These observations identify investigation targets;
+the oscillation's root cause has not been reproduced or established in a browser.
+The shared browser at investigation time was at sign-in.
+
+### V.a: stable compaction and coordinated stack
+
+Reproduce the first-scroll defect before selecting a fix. Inspect marker
+positions, flow reservation, scroll anchoring, height measurement and observer
+feedback. Use stable thresholds and sufficient hysteresis where needed; changing
+a bar's height must not change its own threshold into immediate reversal.
+Do not hide the issue with arbitrary delays, smooth scrolling or blanket removal
+of browser scroll anchoring without evidence and preservation checks.
+
+Use one ordered stack: application navigation; work/version identity and primary
+tabs; active view's secondary tabs; relevant command/filter row. Reuse styling
+and stack measurement, not duplicated controls or a second navigation system.
+Account for actual wrapping/heights, resize, zoom and short viewports. Consolidate
+secondary commands into labelled keyboard-accessible disclosures where necessary;
+preserve essential identity, unsaved state and primary commands.
+
+### V.b: document scrolling and footer ownership
+
+Read, Edit (including the main canvas), Versions and Sources participate in normal
+document flow. Remove viewport-height clamps, resizing handles and independent
+vertical scrolling from main content. The page footer follows all active content,
+not the end of a viewport-sized box. Hidden panels must not lengthen the page.
+Bounded auxiliary scrolling remains permitted for outline, menus and dialogs;
+long main inspection content must not become an alternative hidden scroll box.
+
+Preserve per-view document position when switching, without editor remounts or
+loss of edits, undo, folds, selection or source bindings. Define sensible initial
+positions for new tabs and preserve explicit anchor/deep-link destinations.
+Restore positions after asynchronous projection/evidence loading without a late
+response moving the page of a different active tab. Back to top targets the
+document, not an auxiliary pane.
+
+Audit every former surface-scroll assumption: contents/section/internal-link
+navigation, outline viewport tracking, focus visibility, workflow-dialog return,
+Read/evidence refresh and Back/Forward. Targets must clear the measured full stack.
+
+### V.c: contextual navigation and action bars
+
+Edit uses secondary tabs styled consistently with workspace tabs: Content,
+Metadata, Review and Pinned source structure. Move historical pinned structure
+into its own panel, retaining its evidence-only wording, links and permission
+boundaries; it is not the edited outline or a structure mutation control.
+Keep existing Appearance available until M relocates personal Reading/PDF style
+configuration to Read; this follow-up does not implement M's preference cascade.
+Editing commands form a coordinated sticky row below secondary tabs.
+
+Read's Download and existing relevant controls form a contextual action bar.
+Versions/Sources Show and Apply filter form contextual filter bars. Add genuine
+secondary tabs only for distinct content views; actions remain buttons/links and
+filters remain labelled form controls, not ARIA tabs. Preserve filter submission,
+inspection URLs, keyboard behavior and contextual workflow dialogs.
+
+### V.d: truthful PDF scope and identity
+
+Derive label, accessible name, status messages and downloaded-file identity from
+effective content state, not the selected tab or mere existence of a draft ID:
+
+| State | Read action | Required content |
+|---|---|---|
+| Immutable version, no working content changes | Download PDF | Exact opened retained version/output, not the reader default. |
+| Working copy matching its saved baseline | Download saved version PDF | Exact latest saved baseline represented by that copy, not its older starting edition. |
+| Working content differs from saved baseline | Download draft PDF | Captured current content, explicitly including unsaved changes. |
+
+Use existing content-identity/dirty rules, including unchanged-content and
+review-only events; do not manufacture a new saved version for accurate labelling.
+An unchanged working copy may still carry draft/review qualifications: "saved"
+does not imply published, verified or the reader default. A request-time preview
+must not claim immutable publication fidelity unless it actually exports that
+output. Reuse exact retained output where required, and validated snapshot export
+for working content. Preserve applicable styles and capture identity/content
+together so later typing or saving cannot relabel an in-flight download.
+On validation, authorization, revision or render failure, show an explicit error;
+never silently export an older version. No save, publication, review event,
+default selection or shared-cache draft artifact is authorized by download.
+
+### Delivery boundaries and implementation-agent handoff
+
+After separate implementation authorization, deliver V.a/V.b together where
+scroll geometry requires it, then integrate V.c and V.d; checkpoint coherent,
+validated slices rather than deploying automatically. Use isolated article and
+long, media-rich book fixtures, not live corrections. Preserve R annotation
+retirement, A hierarchy, P publication/default contracts and M's planned style
+placement. No new framework, personal-style system, publication model or live-data
+mutation belongs to this follow-up. Stop only after V17-V22 and relevant V1-V16
+preservation checks are evidenced; report browser limitations rather than claiming
+full acceptance from jsdom tests.
+
 ## Implementation discovery map
 
 Recheck current implementation before editing:
@@ -282,6 +391,10 @@ Recheck current implementation before editing:
   `document_lineage.html`, `library/views.py`, `library/document_editor_views.py`.
 - State and projections: `frontend/pilot.js`, `editor-tabs.js`,
   `workflow-panels.js`, `book-views.js`, editor serialization and metadata helpers.
+- Scroll/stack follow-up: `frontend/workspace-shell.js`, `controls.js`,
+  `outline.js`, `editor.js`, `library/static/library/reader-workspace.js`,
+  `editor-pilot.css`, and existing workspace/reader/editor tests. Check retained
+  reader behavior without assuming it shares the workspace defect.
 - Rendering/export: `library/services/book_views.py`, `document_metadata.py`,
   `semantic_documents.py`, `document_publication.py`, `pdf.py`, reading-style and
   asset-binding services.
@@ -316,10 +429,16 @@ unsaved edits. Track implementation and validation independently.
 | V12 | Deep-scroll each work view and the retained reader surface: application navigation, compact version/unsaved context, tabs and applicable commands remain reachable in the specified stack order. Returning upward expands them without content jumps or threshold flicker. |
 | V13 | Contents/internal-link navigation, outline following and keyboard-focused controls land below the actual stack. Resize, zoom, wrapping and short/narrow viewports cause no overlapping bars or inaccessible content; menus/dialogs remain correctly layered and reachable. |
 | V14 | Compaction/expansion preserves keyboard focus, active menus, editor selection, content and undo/recovery. No duplicate interactive controls, save/version/selection events or editor remounts are introduced by scrolling. |
-| V15 | Back to top appears after one usable viewport of active-content scrolling, targets the correct page/editor/Versions/Sources pane and hides near its start. Pointer/keyboard activation, reduced motion, focus after hiding and modal suppression work without editing or selecting content. Outline/dialog scrolling does not retarget it. |
+| V15 | Back to top appears after one usable viewport of active-content scrolling, targets the document under V.b and hides near its start. Pointer/keyboard activation, reduced motion, focus after hiding and modal suppression work without editing or selecting content. Outline/dialog scrolling does not retarget it. |
 | V16 | Browser print and saved/draft PDF outputs contain no navigation stack or floating button. Verify actual print/export output and unchanged document content, not only screen visibility. |
+| V17 | On article and long-book fixtures, slowly cross the initial scroll threshold in both directions repeatedly, then deep-scroll and return. No oscillation, involuntary jump or observer feedback occurs; repeat after resize, zoom and long-title wrapping. Record real browser evidence and the reproduced root cause. |
+| V18 | Every main tab, including Edit's canvas and long Versions/Sources inspection, scrolls with the document; the footer appears only after all active content. Hidden panels do not extend the page. Auxiliary scrolling does not retarget Back to top. |
+| V19 | Switch all tabs with unsaved edits and return to preserved per-view positions/editor state; exercise asynchronous Read/evidence refresh, history, deep links, contents/internal links, outline following and dialog return. No stale response moves another tab, and navigation/focus targets clear the full stack. |
+| V20 | Edit secondary tabs, pinned historical structure and editor commands occupy the coordinated stack; Read actions and Versions/Sources filters remain reachable. Verify keyboard semantics, filter results, inspection URLs, focus, active menus and short/narrow viewport access without duplicate navigation. |
+| V21 | Exercise immutable output, unchanged working copy, saved revised copy, unsaved edits, undo-to-baseline and review-only states. PDF action/status/file identity and extracted output content agree with the effective state; changing/saving content during export does not alter captured output or its identity. |
+| V22 | V17-V21 introduce no implicit persistence, publication, review, default selection, permission/asset bypass, cache leakage or annotation access. Test export failures explicitly; verify retained exact PDFs and screen/print exclusions, and report synthetic, mocked and observed evidence separately. |
 
-Stop when V1-V16 are implemented and validated, not when tabs merely look alike.
+Stop when V1-V22 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
@@ -338,3 +457,5 @@ No automatic saves/publication, live content conversion, collaboration/autosync
 service, framework rewrite, new version ancestry model, draft annotation remapping,
 automatic branch merge, catalogue mutation, public exposure or remote deployment.
 Local deployment is authorized by the later implementation instruction.
+That historical permission does not authorize implementation/deployment of
+V.a-V.d: the latest request for this follow-up is documentation only.

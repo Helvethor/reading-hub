@@ -125,6 +125,23 @@ The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns
 V1-V16 acceptance and supersedes earlier separate-page requirements for the four
 work views. U1/U2 delivery/evidence above is historical, not proof of this outcome.
 
+**New V.a-V.d follow-up:** specified only, not implemented or validated.
+The latest "don't implement" and handoff request authorize documentation only
+for this refinement; older implementation/deployment permission does not extend
+to it. See the [implementation-agent handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
+for scope, dependencies and V17-V22 acceptance.
+
+- [ ] V.a: reproduce and fix first-scroll oscillation; stabilize measured
+  compaction and the ordered header/context/secondary-tabs/command stack.
+- [ ] V.b: put all main tab content, including the editor canvas, into document
+  flow; preserve per-view position, anchor/focus navigation and footer ownership.
+- [ ] V.c: coordinate secondary tabs/actions/filters; move pinned source
+  structure into an evidence-only Edit tab without duplicating navigation.
+- [ ] V.d: make PDF labels, status, file identity and exported content agree
+  across immutable, saved-working-copy and unsaved states.
+- [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
+  observations; preserve relevant V1-V16 behavior and report limitations.
+
 - [x] Deliver persistent Read/Edit/Versions/Sources tabs with explicit saved,
   draft, unsaved and reader-default identities and common actions.
 - [x] Keep the editor mounted while switching tabs; preserve local state, history,
