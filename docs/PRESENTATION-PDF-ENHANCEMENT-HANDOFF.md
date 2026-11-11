@@ -123,12 +123,41 @@ before enabling the new rendering/metadata policy; do not silently serve stale
 old-policy files or overwrite archived evidence. No bulk historical export is
 authorized by this milestone handoff.
 
+### M.d Balanced running-header/footer frame
+
+Layout extension agreed 2026-11-11: give running headers and footers consistent
+outer insets, visually balancing their top/bottom distance from the paper edge
+with their left/right distance. Align their lateral edges with the body content
+frame to create the requested framed or "mitred" effect; no decorative border
+is implied.
+
+The inspected baseline uses 18 mm page margins but top-aligned header text with
+6 mm top padding. Page margins alone therefore do not establish equal visible
+text insets. Recheck reading-style overrides and actual rendered geometry before
+choosing values; do not simply increase every page margin.
+
+Adjust running furniture independently, leaving the body sufficiently inset
+vertically to maintain a separate comfortable header/body and body/footer gap.
+Prefer optically balanced visible text bounds over mechanically equal baselines:
+ascenders, descenders and differing header/footer fonts affect perception.
+Record chosen physical dimensions and a bounded optical tolerance after comparing
+rendered candidates, rather than inventing acceptance measurements from CSS alone.
+
+Preserve existing first-page suppression, running-title/section selection,
+page numbering, reading-style choices and content sequence. Test long titles,
+multi-digit page numbers, continuation pages and retained figures/notes. Reflow
+and page-count changes may follow spacing adjustments; never claim identical
+pagination or permit clipping, overlaps, missing content or cramped body gaps.
+Keep browser-print behavior intentional where it differs from generated PDF.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
   `document_metadata_page.html`, `document_publication.html`.
 - Services: `library/services/pdf.py`, `document_metadata.py`,
   `document_publication.py`, `book_views.py`, and V's draft-preview/export path.
+- Layout: `library/static/library/print.css`, reading-style page/font overrides
+  and existing running-matter/figure-pagination helpers.
 - Tests: existing reader/printing, metadata, PDF and publication regressions;
   extract generated metadata with existing PDF inspection tooling.
 
@@ -147,9 +176,13 @@ saved versus changed-draft exports.
 | M4 | Draft export has explicit draft-snapshot identity and never claims verification of changed unsaved content. Any historical base review is clearly distinguished from current-content status. |
 | M5 | Reader, preview, browser print and PDF agree; contents/navigation reach end matter without duplicate status, broken targets or changes to prose/order, notes/media or reading/page settings. |
 | M6 | Parsed metadata and visible output contain none of the excluded private/internal fields, using sentinel fixtures. Historical records remain exact; cache-policy tests prove new exports cannot silently reuse old-policy PDFs or overwrite protected evidence. |
+| M7 | Representative PDF continuation pages show optically balanced outer header/footer insets and lateral alignment with the body frame. Record candidate comparison, selected dimensions, tolerance and measured rendered text bounds; preserve a distinct comfortable gap to body content. |
+| M8 | Long running titles, multi-digit numbering, supported reading styles and media-rich article/book fixtures have no clipped/overlapping furniture or lost/reordered content. First-page suppression and page numbering remain correct; inspect browser print separately and report any pagination changes. |
 
-Stop when M1-M6 are implemented and validated with actual rendered output and
+Stop when M1-M8 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
+For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
+equality alone does not establish optical balance.
 Record automated correctness/preservation, observed reader/print/PDF behavior,
 synthetic/mocked checks and untested/human limitations separately. Use focused
 existing tests and validated local checkpoint commits under repository agreements.
