@@ -66,6 +66,13 @@ requests; they do not prove browser layout, authenticated article/book journeys,
 retained-media PDF output, branch/reviewer preservation or human accessibility.
 Those V1-V16 checks remain open and must be recorded only after observation.
 
+On 2026-11-12, a local guest-reader browser check on retained edition 101
+scrolled to the end and returned to `scrollY=0` through both pointer and keyboard
+activation. The header, work context and reader toolbar expanded, the button
+became hidden, and keyboard activation focused the article. The same outcome
+was observed with reduced motion enabled. This does not validate the
+authenticated workspace sticky stack or the broader V1-V16 matrix.
+
 ## Workspace and state contract
 
 ### Stable shell and explicit identity

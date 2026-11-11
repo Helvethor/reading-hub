@@ -14,7 +14,9 @@
       Unsaved edits stay in this tab until saved or recovered.
     </p>
     {% else %}
-    <p class="work-status"><a href="{% url 'document-editor' version.pk %}?start=source">Choose a working copy or start from this version</a></p>
+    {% with start_version=reader_target|default:version %}
+    <p class="work-status"><a href="{% url 'document-editor' start_version.pk %}?start=source">Choose a working copy or start from this version</a></p>
+    {% endwith %}
     {% endif %}
   {% endif %}
 </section>

@@ -5,7 +5,9 @@
   <a href="{% url 'reader' version.pk %}"{% if active_work_tab == "read" %} aria-current="page"{% endif %}>Read</a>
   {% else %}<span aria-disabled="true">Read unavailable</span>{% endif %}
   {% if can_edit_work and version %}
-  <a href="{% url 'document-editor' version.pk %}{% if draft %}?draft={{ draft.pk }}{% else %}?start=source{% endif %}"{% if active_work_tab == "edit" %} aria-current="page"{% endif %}>Edit</a>
+  {% with edit_version=reader_target|default:version %}
+  <a href="{% url 'document-editor' edit_version.pk %}{% if draft %}?draft={{ draft.pk }}{% else %}?start=source{% endif %}"{% if active_work_tab == "edit" %} aria-current="page"{% endif %}>Edit</a>
+  {% endwith %}
   {% endif %}
   {% if version %}
   <a href="{% url 'document-lineage' version.document_id %}?filter=all&amp;selected=edition%3A{{ version.pk }}{% if embedded %}&amp;embedded=1{% endif %}"{% if active_work_tab == "versions" %} aria-current="page"{% endif %}>Versions</a>

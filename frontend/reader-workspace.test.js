@@ -26,6 +26,11 @@ test("reader navigation compacts as a stack and Back to top targets the article"
 
   const owner = {scrollTop: 0, scrollTo(options) { this.lastScroll = options; }};
   Object.defineProperty(document, "scrollingElement", {value: owner});
+  Object.defineProperty(window, "scrollY", {get: () => owner.scrollTop});
+  window.scrollTo = options => {
+    owner.lastScroll = options;
+    owner.scrollTop = options.top;
+  };
   Object.defineProperty(window, "innerHeight", {value: 800, configurable: true});
   const offsets = new Map([
     [".site-header", 0],
@@ -70,6 +75,11 @@ test("reader navigation compacts as a stack and Back to top targets the article"
   const button = document.querySelector("#reader-back-to-top");
   assert.equal(button.hidden, false);
   button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 0}));
-  assert.deepEqual(owner.lastScroll, {top: 0, behavior: "smooth"});
+  assert.deepEqual(owner.lastScroll, {top: 0, behavior: "auto"});
+  assert.equal(owner.scrollTop, 0);
+  assert.equal(document.querySelector(".site-header").dataset.compact, "false");
+  assert.equal(document.querySelector(".work-context").dataset.compact, "false");
+  assert.equal(document.querySelector(".reader-toolbar").dataset.compact, "false");
+  assert.equal(button.hidden, true);
   assert.equal(document.activeElement.id, "reader-article");
 });

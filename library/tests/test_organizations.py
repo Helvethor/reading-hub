@@ -287,10 +287,14 @@ class OrganizationTests(TestCase):
                     "preview_digest": preview.context["candidate"]["digest"],
                 },
             )
-            self.assertEqual(published.status_code, 302)
-            return DocumentPublication.objects.get(
+            self.assertEqual(published.status_code, 200)
+            rendition = DocumentPublication.objects.get(
                 revision__draft__pk=draft, revision__revision=1,
             ).rendition
+            self.assertContains(
+                published, reverse("reader", args=[rendition.pk]),
+            )
+            return rendition
 
         new_book.refresh_from_db()
         new_book_publication = edit_and_publish(new_book)
@@ -607,14 +611,14 @@ class OrganizationTests(TestCase):
         )
         self.assertEqual(
             response.status_code,
-            302,
+            200,
             response.context.get("publication_error") if response.context else "",
         )
         publication = DocumentPublication.objects.get(revision=revision)
-        self.assertRedirects(
+        self.assertContains(
             response, reverse("reader", args=[publication.rendition_id]),
-            fetch_redirect_response=False,
         )
+        self.assertContains(response, "Not the default")
         self.assertEqual(publication.rendition.document_version_id, revision.document_version_id)
         self.assertTrue(publication.rendition.structure["book"])
         self.book.document.refresh_from_db()

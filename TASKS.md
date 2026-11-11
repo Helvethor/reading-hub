@@ -133,9 +133,13 @@ work views. U1/U2 delivery/evidence above is historical, not proof of this outco
   revision, semantic-content, retained-asset and no-persistence checks.
 - [x] Move Versions/Sources inspection in place and add compact reader/workspace
   navigation plus active-content Back to top and print/PDF exclusions.
-- [x] Pass 283 frontend tests, 89 focused Django tests (including a real PDF from
-  an isolated synthetic article fixture), production build, Ruff, Django checks,
-  migration consistency, and read-only compatibility for retained edition 101.
+- [x] Pass 284 frontend tests, 89 focused Django tests from the workspace
+  baseline, and 72 current publication/workflow tests; production build, Ruff,
+  Django checks, migration consistency, and read-only compatibility for retained
+  edition 101. The synthetic article PDF check remains bounded evidence.
+- [x] Verify the retained guest reader locally: pointer and keyboard Back to top
+  return to zero, expand all three navigation bars, hide the button and focus the
+  article; repeat with reduced motion enabled.
 - [ ] Observe an authenticated end-to-end article and media-rich multi-chapter
   book journey through edit, Read, PDF, Versions/Sources, save and recovery.
 - [ ] Validate V1-V16 across branch/reviewer preservation, browser history,
@@ -148,26 +152,33 @@ from workspace delivery.
 
 ## UX follow-up milestone P: publication completion and defaults (2026-11-11)
 
-**Status:** handoff prepared; implementation and milestone validation not started.
-This bounded follow-up does not replace outstanding U1/U2 acceptance.
+**Status:** implementation present; focused automated validation passes; full
+P1-P10 acceptance remains partial. This bounded follow-up does not replace
+outstanding U1/U2 acceptance.
 
 The [publication UX handoff](docs/PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
 owns the workflow contract and P1-P10 acceptance.
 
-- [ ] Integrate optional, initially unchecked default selection into exact
+- [x] Integrate optional, initially unchecked default selection into exact
   publication confirmation; show current default and require an audited reason.
-- [ ] Make combined publish/select atomic, stale-state guarded and retry-safe;
+- [x] Make combined publish/select atomic, stale-state guarded and retry-safe;
   publishing without selection must preserve the existing reader fallback/mode.
-- [ ] Provide embedded and standalone completion status, exact Read publication/
+- [x] Provide embedded and standalone completion status, exact Read publication/
   PDF links, safe return and a subsequent Make default action without republishing.
-- [ ] Make ordinary new work-level editing starts honor the selected publication,
+- [x] Make ordinary new work-level editing starts honor the selected publication,
   preserving explicit version/working-copy links, pending edits and branch choices.
 - [ ] Validate P1-P10 on isolated article/book journeys, including concurrency,
   rollback, replay and exact preservation; checkpoint validated implementation.
 
-Historical review evidence: four focused isolated tests passed on 2026-11-09
-for embedded publication, standalone redirect, audited selection and unchanged-
-content continuation. This does not validate the proposed milestone.
+Validation: 72 focused Django tests currently pass across publication, editor
+workflow panels and organizations. Coverage includes an isolated publication and
+default-selection retry, competing selection, selection-mode staleness, atomic
+rollback, exact Read/PDF links, selected-output editing and existing article/book
+preservation regressions. The current 284-test frontend suite, production asset
+build, Django checks, migration consistency, Ruff and CRLF-aware diff checks
+passed. The browser observation remains guest-reader-only; no authenticated
+publish/default journey, live selection mutation or human accessibility review
+was performed.
 
 ## Presentation/PDF milestone M: edition provenance and embedded metadata (2026-11-11)
 

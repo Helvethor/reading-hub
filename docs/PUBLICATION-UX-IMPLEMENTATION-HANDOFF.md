@@ -1,7 +1,8 @@
 # UX milestone P: publication completion and default selection
 
 Workflow reviewed 2026-11-09; handoff requested 2026-11-11.
-Status: specified; implementation and milestone validation not started.
+Status: implementation present; focused automated validation passes; full P1-P10
+acceptance remains partial.
 
 ## Outcome and authority
 
@@ -10,10 +11,10 @@ about reader-default selection, sees the result of both decisions, and can open
 that exact publication or its PDF immediately. Ordinary new editing starts use
 the selected reader publication without replacing existing working copies.
 
-This request authorizes documentation only. This contract defines a future
-implementation milestone, not permission to implement, deploy, publish, migrate,
-push Git changes or change live reader selections. Use isolated fixtures for
-future mutation acceptance. Existing permissions, concurrency guards, immutable
+The later explicit user instruction authorizes local implementation and
+deployment of R -> A -> V -> P. Use isolated fixtures for mutation acceptance;
+no live publication, reader-selection change, migration, remote deployment or
+push is authorized here. Existing permissions, concurrency guards, immutable
 evidence and repository checkpoint agreements remain mandatory.
 
 This is a bounded follow-up to the
@@ -46,6 +47,34 @@ validation of this new milestone. Embedded tests mocked editor asset discovery.
 The shared browser required sign-in; no authenticated browser journey or live
 publication/default mutation was performed. Reproduce current behavior on
 isolated fixtures before implementation.
+
+## Implementation and validation update
+
+The local implementation now offers the optional default choice in the exact
+saved-revision confirmation, shows the current reader target and explicit versus
+source-fallback mode, and requires a reason only when selection is requested.
+Combined publication and selection share one transaction and bind both the
+preview digest and the complete prior selection state. Replays of the same
+successful request are idempotent; stale replays cannot override a later
+selection. A publication without selection preserves the source-generated
+fallback rather than allowing the new immutable edition to displace it.
+
+Embedded and standalone completion pages identify the exact immutable edition,
+report its current default status, expose exact Read/PDF links and safe editor
+return, and link to the existing audited selection workflow for later promotion.
+Generic work-navigation Edit starts use the selected reader target; explicit
+working-copy and historical paths remain scoped. No live reader selection was
+changed.
+
+Focused isolated tests cover publication/default retry, stale preview and mode,
+atomic rollback, exact links, selected-output editing, existing selection
+controls, article/book preservation and embedded-panel behavior; 72 focused
+Django tests currently pass across publication, editor workflow panels and
+organizations. A guest browser check covers the retained reader only.
+Authenticated publication browser journeys, comprehensive
+narrow-screen/keyboard/accessibility checks and all
+P1-P10 article/book scenarios remain unverified; implementation does not certify
+the full acceptance matrix.
 
 ## Required workflow
 

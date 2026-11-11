@@ -31,7 +31,7 @@ function updateBackToTop(stackHeight) {
 function updateStack() {
   let stackHeight = 0;
   for (const item of stack) {
-    const past = item.marker.getBoundingClientRect().bottom <= stackHeight;
+    const past = item.marker.getBoundingClientRect().bottom < stackHeight - 1;
     if (item.compact) item.element.dataset.compact = String(past);
     item.element.style.setProperty("--reader-stack-top", `${stackHeight}px`);
     const currentHeight = item.element.getBoundingClientRect().height;
@@ -65,11 +65,8 @@ if (typeof ResizeObserver !== "undefined") {
   stack.forEach(({element}) => observer.observe(element));
 }
 backToTop?.addEventListener("click", event => {
-  document.scrollingElement.scrollTo({
-    top: 0,
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? "auto" : "smooth",
-  });
+  window.scrollTo({top: 0, behavior: "auto"});
+  updateStack();
   if (event.detail === 0) {
     document.querySelector("#reader-article")?.focus({preventScroll: true});
   }

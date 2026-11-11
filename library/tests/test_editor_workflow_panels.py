@@ -112,7 +112,7 @@ class EditorWorkflowPanelTests(TestCase):
             "draft": self.draft.pk, "revision": 1, "preview_digest": candidate["digest"],
             "confirm": "yes",
         })
-        self.assertContains(response, "Published saved revision 1")
+        self.assertContains(response, "Saved revision 1 was published as edition")
         self.assertContains(response, "Saved revision")
         self.assertNotContains(response, 'class="site-header"')
         self.assertEqual(DocumentPublication.objects.count(), 1)

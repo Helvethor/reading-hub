@@ -17,6 +17,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from library.metadata_views import metadata_reviewer_required
 from library.models import (
     CanonicalAuthor,
+    Document,
     DocumentDraftBase,
     DocumentPublication,
     Rendition,
@@ -36,7 +37,12 @@ from library.services.document_edits import (
 )
 from library.services.document_lineage import archived_draft_ids, node_is_archived
 from library.services.document_metadata import WORK_TYPES
-from library.services.document_publication import prepare_publication, publish_revision
+from library.services.document_publication import (
+    prepare_publication,
+    publish_revision,
+    publish_revision_and_select,
+)
+from library.services.document_versions import ReaderSelectionConflict
 from library.services.editor_sources import (
     member_choices,
     original_section,
@@ -599,39 +605,79 @@ def publication(request, pk):
 
     source = get_version(pk)
     error, candidate, published, status = "", None, None, 200
+    draft, revision, selection_reason = None, None, ""
+    select_as_default = False
     try:
         draft = get_draft(request.GET.get("draft"), source)
         values = request.POST if request.method == "POST" else request.GET
         revision = int(values.get("revision", ""))
+        reading_style = style_context(request)
         if request.method == "POST":
             if values.get("draft") and values["draft"] != str(draft.pk):
                 raise ValueError("The submitted draft does not match the preview.")
             if values.get("confirm") != "yes":
                 raise ValueError("Explicitly confirm publication of this saved revision.")
-            result = publish_revision(
-                draft, request.user, revision, values.get("preview_digest"),
-            )
-            if not panel_context(request)["embedded"]:
-                return redirect("reader", pk=result.rendition_id)
-            published = result
+            select_as_default = values.get("make_default") == "yes"
+            selection_reason = values.get("reason", "")
+            candidate = prepare_publication(draft, revision)
+            if select_as_default:
+                expected_reader = values.get("expected_reader", "")
+                expected_explicit = values.get("expected_selection_explicit", "")
+                if expected_explicit not in {"yes", "no"}:
+                    raise ValueError("Reload the publication preview before changing the default.")
+                if expected_reader and not expected_reader.isdecimal():
+                    raise ValueError("Reload the publication preview before changing the default.")
+                published = publish_revision_and_select(
+                    draft, request.user, revision, values.get("preview_digest"),
+                    int(expected_reader) if expected_reader else None,
+                    expected_explicit == "yes", selection_reason,
+                )
+            else:
+                published = publish_revision(
+                    draft, request.user, revision, values.get("preview_digest"),
+                )
+            candidate = None
         else:
             candidate = prepare_publication(draft, revision)
             if request.GET.get("stylesheet") == "1":
                 return HttpResponse(
                     candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
                 )
-        reading_style = style_context(request)
     except DocumentEditConflict as exc:
-        error, status = str(exc), 409
+        error, status, candidate = str(exc), 409, None
+    except ReaderSelectionConflict as exc:
+        error, status, candidate = str(exc), 409, None
     except (ValueError, ImportFailure) as exc:
-        error, status, candidate = str(exc), 422, None
+        error, status = str(exc), 422
     except OperationalError as exc:
         if "locked" not in str(exc).lower():
             raise
         error, status, candidate = (
             "Another writer is active. Reload the publication preview.", 409, None,
         )
-    context = {"source": source, "publication_error": error, "published": published}
+    publication_exists = (
+        DocumentPublication.objects.filter(
+            revision__draft=draft, revision__revision=revision,
+        ).select_related("rendition").first()
+        if draft and revision else None
+    )
+    reader_document = Document.objects.get(pk=source.document_id)
+    reader_target = reader_document.reader_target()
+    context = {
+        "source": source, "publication_error": error, "published": published,
+        "reader_target": reader_target,
+        "reader_selection_explicit": reader_document.reader_selection_explicit,
+        "is_reader_default": bool(
+            published and reader_target and reader_target.pk == published.rendition_id
+        ),
+        "publication_exists": publication_exists,
+        "selection_requested": select_as_default,
+        "selection_reason": selection_reason,
+        "return_editor_url": (
+            reverse("document-editor", args=[source.pk]) + f"?draft={draft.pk}"
+            if draft else reverse("document-editor", args=[source.pk])
+        ),
+    }
     if candidate or published:
         version = published.rendition if published else Rendition(
             document=source.document, snapshot=source.snapshot, **candidate["output"])

@@ -5,22 +5,61 @@
 {% block content %}
 <div class="page-container">
   <h1>Review publication</h1>
-  {% if not embedded %}<p><a href="{% url 'document-editor' source.pk %}?draft={{ request.GET.draft|urlencode }}">Back to saved draft</a></p>{% endif %}
-  {% if publication_error %}<p class="error" role="alert">{{ publication_error }}</p><p>Return to the editor and preview the latest saved revision again. Nothing was published by this request.</p>{% endif %}
+  {% if not embedded %}<p><a href="{{ return_editor_url }}">Return to editor</a></p>{% endif %}
+  {% if publication_error %}
+  <p class="error" role="alert">{{ publication_error }}</p>
+  {% if publication_exists %}
+  <p>The existing immutable publication, edition {{ publication_exists.rendition_id }}, remains intact. This request did not change the reader selection.</p>
+  {% else %}
+  <p>No new publication or reader selection was created by this request. Return to the editor and review a fresh preview.</p>
+  {% endif %}
+  {% endif %}
   {% if candidate %}
   <p><a href="{% url 'document-comparison' source.pk %}?draft={{ request.GET.draft|urlencode }}&amp;to={{ candidate.revision.revision }}{% if embedded %}&amp;embedded=1{% endif %}">Compare this saved revision with its pinned starting document</a></p>
   <p class="notice">Preview of saved revision {{ candidate.revision.revision }} only. Unsaved editor changes are not included. Publication creates a separate immutable edition; it does not verify content or modify the original edition, source corrections or catalogue ownership.</p>
   {% include 'library/document_review_status.html' with revision=candidate.revision %}
+  <p>
+    Current default for readers and new editing starts:
+    {% if reader_target %}
+      <a href="{% url 'reader' reader_target.pk %}" target="_blank" rel="noopener noreferrer">{{ reader_target.title }} (version {{ reader_target.pk }})</a>
+      {% if reader_selection_explicit %}· explicitly selected{% else %}· source-generated fallback{% endif %}
+    {% else %}No reader version is available.{% endif %}
+  </p>
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="draft" value="{{ candidate.revision.draft_id }}">
     <input type="hidden" name="revision" value="{{ candidate.revision.revision }}">
     <input type="hidden" name="preview_digest" value="{{ candidate.digest }}">
+    <input type="hidden" name="expected_reader" value="{{ reader_target.pk|default:'' }}">
+    <input type="hidden" name="expected_selection_explicit" value="{% if reader_selection_explicit %}yes{% else %}no{% endif %}">
     <label><input type="checkbox" name="confirm" value="yes" required> I have reviewed this saved result and its review status. Publish it as a separate edition.</label>
+    <label><input type="checkbox" name="make_default" value="yes"{% if selection_requested %} checked{% endif %}> Make this the default for readers and new editing starts.</label>
+    <label for="publication-selection-reason">Reason for changing the reader default (required only when selected)</label>
+    <textarea id="publication-selection-reason" name="reason" maxlength="2000"{% if selection_requested %} required{% endif %}>{{ selection_reason }}</textarea>
     <button type="submit">Publish saved revision</button>
   </form>
   {% endif %}
-  {% if published %}<p role="status">Published saved revision {{ published.revision.revision }} as edition {{ published.rendition_id }}. This is the published reading view; close this panel to return to the editor.</p>{% endif %}
+  {% if published %}
+  <section class="notice" aria-labelledby="publication-complete-heading">
+    <h2 id="publication-complete-heading">Publication complete</h2>
+    <p role="status">Saved revision {{ published.revision.revision }} was published as edition {{ published.rendition_id }}.</p>
+    {% if is_reader_default %}
+    <p><strong>Default for readers and new editing starts.</strong></p>
+    {% elif reader_target %}
+    <p>Not the default; readers still receive <a href="{% url 'reader' reader_target.pk %}">{{ reader_target.title }} (version {{ reader_target.pk }})</a>.</p>
+    {% else %}
+    <p>Not the default; no reader version is currently available.</p>
+    {% endif %}
+    <p>
+      <a href="{% url 'reader' published.rendition_id %}" target="_blank" rel="noopener noreferrer">Read publication</a>
+      · <a href="{% url 'reader-pdf' published.rendition_id %}" target="_blank" rel="noopener noreferrer">Download PDF</a>
+      {% if not is_reader_default %}
+      · <a href="{% url 'document-lineage' published.rendition.document_id %}?filter=publications&amp;selected=edition%3A{{ published.rendition_id }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Make default...</a>
+      {% endif %}
+      · {% if embedded %}<a href="#" data-workflow-close>Return to editor</a>{% else %}<a href="{{ return_editor_url }}">Return to editor</a>{% endif %}
+    </p>
+  </section>
+  {% endif %}
   {% if candidate or published %}
   {% if candidate %}{% include 'library/reading_style_controls.html' %}{% endif %}
   <div class="reader-layout">

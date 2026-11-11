@@ -60,6 +60,12 @@ export function mountWorkflowPanels({
         target.append(embedded);
       });
       frame.contentDocument.addEventListener("click", event => {
+        const closeLink = event.target.closest("a[data-workflow-close]");
+        if (closeLink && !event.defaultPrevented && event.button === 0) {
+          event.preventDefault();
+          closePanel();
+          return;
+        }
         const link = event.target.closest("a[data-workflow-switch]");
         if (!link || event.defaultPrevented || event.button !== 0) return;
         event.preventDefault();

@@ -11,7 +11,15 @@ from django.urls import reverse
 from PIL import Image
 from pypdf import PdfReader
 
-from library.models import Blob, Document, DocumentPublication, Rendition, RenditionAsset, Snapshot
+from library.models import (
+    Blob,
+    Document,
+    DocumentPublication,
+    DocumentReaderSelection,
+    Rendition,
+    RenditionAsset,
+    Snapshot,
+)
 from library.profile import get_profile
 from library.services.document_edits import DocumentEditConflict, create_draft, save_revision
 from library.services.document_publication import (
@@ -823,7 +831,139 @@ class DocumentPublicationTests(TestCase):
             self.assertEqual(self.client.post(self.url + self.query, payload).status_code, 404)
         response = self.client.post(self.url + self.query, payload)
         result = DocumentPublication.objects.get()
-        self.assertRedirects(response, reverse("reader", args=[result.rendition_id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{reverse("reader", args=[result.rendition_id])}"')
+        self.assertContains(
+            response, f'href="{reverse("reader-pdf", args=[result.rendition_id])}"',
+        )
+        self.assertContains(response, "Not the default")
+        document = Document.objects.get(pk=self.rendition.document_id)
+        self.assertEqual(document.reader_target().pk, self.rendition.pk)
+        self.assertFalse(document.reader_selection_explicit)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 0)
+
+    def test_publication_preview_and_default_selection_are_exact_and_retry_safe(self):
+        candidate = prepare_publication(self.draft, 1)
+        preview = self.client.get(self.url + self.query)
+        self.assertContains(preview, "Current default for readers and new editing starts")
+        self.assertContains(preview, 'name="make_default" value="yes"')
+        self.assertNotContains(preview, 'name="make_default" value="yes" checked')
+        self.assertFalse(DocumentPublication.objects.exists())
+        self.assertEqual(DocumentReaderSelection.objects.count(), 0)
+
+        payload = {
+            "draft": str(self.draft.pk), "revision": 1, "preview_digest": candidate["digest"],
+            "confirm": "yes", "make_default": "yes",
+            "expected_reader": str(self.rendition.pk),
+            "expected_selection_explicit": "no",
+            "reason": "Select the exact reviewed publication.",
+        }
+        response = self.client.post(self.url + self.query, payload)
+        publication = DocumentPublication.objects.get()
+        self.assertContains(response, f"edition {publication.rendition_id}")
+        self.assertContains(response, "Default for readers and new editing starts")
+        self.assertContains(
+            response, f'href="{reverse("reader", args=[publication.rendition_id])}"',
+        )
+        self.assertContains(
+            response, f'href="{reverse("reader-pdf", args=[publication.rendition_id])}"',
+        )
+        self.assertContains(response, "Return to editor")
+        document = Document.objects.get(pk=self.rendition.document_id)
+        self.assertEqual(document.reader_target().pk, publication.rendition_id)
+        self.assertTrue(document.reader_selection_explicit)
+        audit = DocumentReaderSelection.objects.get()
+        self.assertEqual(audit.previous_rendition_id, self.rendition.pk)
+        self.assertEqual(audit.rendition_id, publication.rendition_id)
+        self.assertEqual(audit.reviewer_id, self.reviewer.pk)
+        self.assertEqual(audit.reason, payload["reason"])
+        self.assertRedirects(
+            self.client.get(reverse("latest", args=[document.pk])),
+            reverse("reader", args=[publication.rendition_id]),
+        )
+        source_reader = self.client.get(reverse("reader", args=[self.rendition.pk]))
+        self.assertContains(
+            source_reader,
+            f'href="{reverse("document-editor", args=[publication.rendition_id])}?start=source"',
+        )
+        self.assertRedirects(
+            self.client.get(
+                reverse("document-editor", args=[publication.rendition_id]) + "?start=source",
+            ),
+            reverse("document-editor", args=[self.rendition.pk]) + f"?draft={self.draft.pk}",
+        )
+
+        retry = self.client.post(self.url + self.query, payload)
+        self.assertContains(retry, f"edition {publication.rendition_id}")
+        self.assertEqual(DocumentPublication.objects.count(), 1)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 1)
+
+        other_reviewer = type(self.reviewer).objects.create_user("publication-default-reviewer")
+        document.reader_selection_explicit = True
+        document.save(update_fields=["reader_selection_explicit"])
+        from library.services.document_versions import select_reader_target
+
+        select_reader_target(
+            document, self.rendition.pk, other_reviewer, publication.rendition_id,
+            "Restore the prior reader output.",
+        )
+        stale_retry = self.client.post(self.url + self.query, payload)
+        self.assertEqual(stale_retry.status_code, 409)
+        self.assertContains(stale_retry, "existing immutable publication", status_code=409)
+        self.assertEqual(
+            Document.objects.get(pk=document.pk).reader_target().pk, self.rendition.pk,
+        )
+        self.assertEqual(DocumentPublication.objects.count(), 1)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 2)
+
+    def test_default_selection_stale_mode_and_failure_roll_back_publication(self):
+        candidate = prepare_publication(self.draft, 1)
+        payload = {
+            "draft": str(self.draft.pk), "revision": 1, "preview_digest": candidate["digest"],
+            "confirm": "yes", "make_default": "yes",
+            "expected_reader": str(self.rendition.pk),
+            "expected_selection_explicit": "no", "reason": "Select publication.",
+        }
+        Document.objects.filter(pk=self.rendition.document_id).update(
+            reader_selection_explicit=True,
+        )
+        stale = self.client.post(self.url + self.query, payload)
+        self.assertEqual(stale.status_code, 409)
+        self.assertFalse(DocumentPublication.objects.exists())
+        self.assertEqual(DocumentReaderSelection.objects.count(), 0)
+
+        Document.objects.filter(pk=self.rendition.document_id).update(
+            reader_selection_explicit=False,
+        )
+        with patch(
+            "library.services.document_publication.select_reader_target",
+            side_effect=ValueError("selection failure"),
+        ):
+            failed = self.client.post(self.url + self.query, payload)
+        self.assertEqual(failed.status_code, 422)
+        self.assertContains(failed, "selection failure", status_code=422)
+        self.assertContains(
+            failed, 'name="make_default" value="yes" checked', status_code=422,
+        )
+        self.assertContains(failed, "Select publication.", status_code=422)
+        self.assertFalse(DocumentPublication.objects.exists())
+        self.assertEqual(Rendition.objects.count(), 1)
+        self.assertEqual(DocumentReaderSelection.objects.count(), 0)
+
+    def test_default_selection_requires_reason_without_discarding_preview_choice(self):
+        candidate = prepare_publication(self.draft, 1)
+        response = self.client.post(self.url + self.query, {
+            "draft": str(self.draft.pk), "revision": 1, "preview_digest": candidate["digest"],
+            "confirm": "yes", "make_default": "yes",
+            "expected_reader": str(self.rendition.pk),
+            "expected_selection_explicit": "no", "reason": "",
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertContains(response, "1-2000 characters", status_code=422)
+        self.assertContains(response, 'name="make_default" value="yes" checked', status_code=422)
+        self.assertContains(response, 'name="preview_digest"', status_code=422)
+        self.assertFalse(DocumentPublication.objects.exists())
+        self.assertEqual(DocumentReaderSelection.objects.count(), 0)
 
     def test_edited_reader_stylesheet_and_pdf_do_not_redirect_to_another_book(self):
         result = self.publish()

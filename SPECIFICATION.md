@@ -229,7 +229,7 @@ active-content scrolling and targets that content's page or independent pane,
 not an outline/dialog. Respect reduced motion and focus safety. These controls
 are presentation-only and excluded from print/PDF. V12-V16 define acceptance.
 
-### Publication completion and defaults (handoff 2026-11-11; planned)
+### Publication completion and defaults (handoff 2026-11-11; implementation present; acceptance partial)
 
 The [publication UX handoff](docs/PUBLICATION-UX-IMPLEMENTATION-HANDOFF.md)
 defines the bounded follow-up and P1-P10 acceptance. Publication confirmation
@@ -248,8 +248,9 @@ advanced branches offer latest versus published alternatives explicitly.
 Explicit historical/source and named-working-copy links retain their scope.
 Changing defaults never replaces open editors, pending edits or other reviewers'
 work. Preserve immutable evidence, source fallback, frame protections and
-existing selection controls. This is a documentation-only handoff, not
-implementation, deployment or live-data authorization.
+existing selection controls. The later explicit R -> A -> V -> P implementation
+instruction authorizes local implementation and deployment only; it does not
+authorize publication, live reader-default changes or remote deployment.
 
 ### Article identity and heading hierarchy (agreed 2026-11-09; implemented 2026-11-12)
 

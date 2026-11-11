@@ -41,7 +41,7 @@ class Document(models.Model):
             if target.document_id != self.pk:
                 raise ValueError("The selected reader version belongs to another work.")
             return target
-        return self.latest()
+        return self.source_generated_reader_fallback()
 
     def source_generated_reader_fallback(self):
         from library.profile import get_profile

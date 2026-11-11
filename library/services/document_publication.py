@@ -7,7 +7,14 @@ from django.db import transaction
 from django.db.models import F
 
 from library import versions
-from library.models import Blob, DocumentPublication, Rendition, RenditionAsset
+from library.models import (
+    Blob,
+    Document,
+    DocumentPublication,
+    DocumentReaderSelection,
+    Rendition,
+    RenditionAsset,
+)
 from library.profile import get_profile
 from library.services.book_views import publication_toc
 from library.services.document_edits import (
@@ -15,6 +22,7 @@ from library.services.document_edits import (
     saved_source_tickets,
     validate_editor_metadata,
 )
+from library.services.document_versions import ReaderSelectionConflict, select_reader_target
 from library.services.editor_sources import ticket_evidence
 from library.services.editor_structure import apply_legacy_article_role, section_structure
 from library.services.pipeline import fingerprint as generation_fingerprint
@@ -196,3 +204,50 @@ def publish_revision(draft, reviewer, expected_revision, preview_digest):
         revision=revision, rendition=rendition, preview_digest=candidate["digest"],
         publication_version=PUBLICATION_VERSION, reviewer=reviewer,
     )
+
+
+@transaction.atomic
+def publish_revision_and_select(
+    draft, reviewer, expected_revision, preview_digest,
+    expected_reader_id, expected_selection_explicit, reason,
+):
+    Document.objects.filter(pk=draft.rendition.document_id).update(id=F("id"))
+    document = Document.objects.select_for_update().get(pk=draft.rendition.document_id)
+    candidate = prepare_publication(draft, expected_revision)
+    if preview_digest != candidate["digest"]:
+        raise DocumentEditConflict("The publication preview changed. Review it again.")
+    revision = candidate["revision"]
+    existing = DocumentPublication.objects.filter(revision=revision).select_related(
+        "rendition",
+    ).first()
+    current = document.reader_target()
+    current_id = current.pk if current else None
+    latest_selection = DocumentReaderSelection.objects.filter(
+        document=document,
+    ).order_by("-created_at", "-pk").first()
+    if (
+        existing
+        and existing.preview_digest == candidate["digest"]
+        and current_id == existing.rendition_id
+        and document.reader_selection_explicit
+        and latest_selection
+        and latest_selection.rendition_id == existing.rendition_id
+        and latest_selection.previous_rendition_id == expected_reader_id
+        and latest_selection.reviewer_id == reviewer.pk
+        and latest_selection.reason == (reason.strip() if isinstance(reason, str) else "")
+        and latest_selection.explicit
+    ):
+        return existing
+    if (
+        current_id != expected_reader_id
+        or document.reader_selection_explicit != expected_selection_explicit
+    ):
+        raise ReaderSelectionConflict(
+            "The reader selection changed. Review the current target before publishing "
+            "and changing the default."
+        )
+    publication = publish_revision(draft, reviewer, expected_revision, preview_digest)
+    select_reader_target(
+        document, publication.rendition_id, reviewer, expected_reader_id, reason,
+    )
+    return publication

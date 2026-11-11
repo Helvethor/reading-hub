@@ -67,7 +67,7 @@ function mountStickyStack(workspace, updateBackToTop) {
     ) + (
       reviewNavigation?.getBoundingClientRect().height || 0
     );
-    const chromePast = chromeMarker.getBoundingClientRect().bottom <= stackTop;
+    const chromePast = chromeMarker.getBoundingClientRect().bottom < stackTop - 1;
     chrome.dataset.compact = String(chromePast);
     chromeSpacer.style.height = chromePast
       ? `${Math.max(0, expandedChromeHeight - chrome.getBoundingClientRect().height)}px`
@@ -94,6 +94,7 @@ function mountStickyStack(workspace, updateBackToTop) {
   window.addEventListener("scroll", compact, {passive: true});
   window.addEventListener("resize", remeasure);
   compact();
+  return compact;
 }
 
 export function mountWorkspaceShell({
@@ -153,6 +154,14 @@ export function mountWorkspaceShell({
     return document.querySelector(".editor-workspace")?.dataset.editorTab === "editor"
       ? document.querySelector("#editor-surface")
       : document.scrollingElement;
+  }
+
+  function scrollToTop(owner) {
+    if (owner !== document.scrollingElement) {
+      owner.scrollTo({top: 0, behavior: "auto"});
+      return;
+    }
+    window.scrollTo({top: 0, behavior: "auto"});
   }
 
   function modalOwnsFocus() {
@@ -503,13 +512,12 @@ export function mountWorkspaceShell({
   document.querySelector(".editor-workspace")?.addEventListener(
     "editor-local-tab-change", updateBackToTop,
   );
+  let refreshStickyStack = () => {};
   backToTop.addEventListener("click", event => {
     const owner = scrollOwner();
     if (!owner) return;
-    owner.scrollTo({
-      top: 0,
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-    });
+    scrollToTop(owner);
+    refreshStickyStack();
     if (event.detail === 0) {
       const panel = panels.get(currentTab());
       panel.focus({preventScroll: true});
@@ -521,7 +529,7 @@ export function mountWorkspaceShell({
   dialogObserver?.observe(document.body, {
     attributes: true, attributeFilter: ["open"], subtree: true,
   });
-  mountStickyStack(workspace, updateBackToTop);
+  refreshStickyStack = mountStickyStack(workspace, updateBackToTop);
 
   const initialTab = workspace.dataset.initialTab;
   updateState({draft: initialDraft, revision: initialRevision, dirty: false});

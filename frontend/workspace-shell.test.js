@@ -63,6 +63,37 @@ function mount(form, snapshot) {
   });
 }
 
+test("Back to top refreshes the sticky stack and button without a scroll event", () => {
+  const form = setup();
+  const owner = {
+    scrollTop: 500,
+    scrollTo({top}) { this.scrollTop = top; },
+  };
+  Object.defineProperty(document, "scrollingElement", {value: owner});
+  window.scrollTo = ({top}) => { owner.scrollTop = top; };
+  const shell = mount(form, {
+    draft: null, revision: 0,
+    document: {title: "Current", html: "<p>Current</p>", metadata: {}},
+    source_tickets: [],
+  });
+  const header = document.querySelector(".site-header");
+  const chrome = document.querySelector(".workspace-chrome");
+  const button = document.querySelector("#workspace-back-to-top");
+
+  assert.equal(header.dataset.compact, "false");
+  assert.equal(chrome.dataset.compact, "false");
+  header.dataset.compact = "true";
+  chrome.dataset.compact = "true";
+  button.hidden = false;
+  button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 1}));
+
+  assert.equal(owner.scrollTop, 0);
+  assert.equal(header.dataset.compact, "false");
+  assert.equal(chrome.dataset.compact, "false");
+  assert.equal(button.hidden, true);
+  assert.equal(shell.selectTab instanceof Function, true);
+});
+
 test("Read uses the current captured document and tab history keeps the editor mounted", async () => {
   const form = setup();
   const surface = document.querySelector("#editor-surface");
