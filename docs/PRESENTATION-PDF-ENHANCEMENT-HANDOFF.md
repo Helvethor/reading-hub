@@ -171,6 +171,78 @@ long prose and a splitting list item. Compare with the prior three-line policy.
 Check supported fonts/styles and media-rich content, with no text loss or order
 changes. Pagination/page-count changes are intentional, not content changes.
 
+### M.f Unified part layout and separation
+
+Extension agreed 2026-11-11: use one Layout and separation workflow for generated
+title/contents, body opening, chapter/article/appendix containers, subordinate
+heading ranges, bibliographic metadata and edition end matter. Avoid adding a
+chapter-only switch alongside unrelated title/contents pagination controls.
+
+Keep three properties independent:
+
+- Visibility: existing inclusion settings and mandatory edition qualifications.
+- Presentation: title compact/full size, chosen fields and typography.
+- Separation before: Default, Continuous or New page.
+
+Compact title presentation controls content density/size only; it no longer
+determines whether subsequent content starts a separate page. Both compact title
+with a separate following page and full title with continuous flow are supported.
+Continuous means no forced page break, not a promise to fit on the previous page.
+Normal pagination, two-line protection and heading/media relationships still apply.
+
+Use one rule at the start of each part, not competing break-before/break-after
+switches. Resolve legacy title/contents break-after behavior into the boundary
+before the next visible part. Hidden parts contribute no break; the first visible
+part starts normally. Coalesce coincident generated-body/first-section boundaries
+so adjacent requests and nested wrappers do not create unintended blank pages.
+
+The body's unheaded opening content has an addressable presentation boundary,
+not an invented Introduction heading or semantic section. Heading-only ranges
+can carry layout policy without conversion into movable containers. Bind policy
+to stable part identities and preserve it through moves/copies without duplicate
+targets or accidental reassignment.
+
+Defaults for new content or explicitly reset settings:
+
+| Boundary | Book / explicitly identified anthology | Article / shorter work |
+|---|---|---|
+| Before next visible part after title | New page | Continuous |
+| Before body after visible contents | New page | Continuous |
+| Before top-level chapter, anthology Article or appendix | New page | Continuous |
+| Before nested subsections or H2-H6 ranges | Continuous | Continuous |
+| Before first visible end-matter part | New page | Continuous with clear spacing |
+| Before subsequent end-matter parts | Continuous | Continuous with clear spacing |
+
+Use existing explicit work types and structural roles, not page count. Reports
+and pamphlets may reuse the book-like preset. If no usable type exists, disclose
+the conservative effective preset and use existing book classification as the
+compatibility fallback; do not infer anthology identity from multiple Articles.
+A standalone Article root is the body, not another redundant page boundary.
+
+Default dynamically resolves the applicable preset and displays its effective
+value/reason, for example "Default - New page (chapter in book)". Persist only
+deliberate overrides; resetting removes that override. New page may follow a
+user-chosen continuous predecessor without imposing an extra blank page.
+
+For continuous screen reading, translate New page into a deliberate visual
+boundary using generous spacing and, where useful, a restrained divider. Do not
+insert viewport-sized blank areas or pretend the reader has physical pages.
+Retain the same boundary policy across live Read, publication, print and PDF
+while allowing appropriate medium-specific visual treatment.
+
+Expose Layout and separation consistently in outline-part details, including
+generated parts, with a document-level effective-default summary and per-part
+Reset to default. Changes update Read and request-time draft PDF, support
+undo/recovery/save/reopen/comparison and persist into publication. Keep visibility
+controls rather than introducing a separate configuration screen for each part.
+
+Define and test legacy compatibility before changing CSS or defaults. Translate
+effective existing compact/full title, contents and metadata pagination into
+compatible policy without rewriting immutable records or silently restyling
+existing editions. Applying new defaults to existing editable content must be
+explicit; defaults do not override a preserved legacy choice. Shared PDF cache
+versioning must distinguish old and new layout policy as required by M6.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -200,8 +272,13 @@ saved versus changed-draft exports.
 | M7 | Representative PDF continuation pages show optically balanced outer header/footer insets and lateral alignment with the body frame. Record candidate comparison, selected dimensions, tolerance and measured rendered text bounds; preserve a distinct comfortable gap to body content. |
 | M8 | Long running titles, multi-digit numbering, supported reading styles and media-rich article/book fixtures have no clipped/overlapping furniture or lost/reordered content. First-page suppression and page numbering remain correct; inspect browser print separately and report any pagination changes. |
 | M9 | PDF and shared print rules use two-line widow/orphan protection for prose paragraphs/list items. Controlled rendered fixtures demonstrate newly permitted splits with at least two lines on each side where feasible, including a four/five-line paragraph and list item; heading/media/quotation protections and exact content/order remain intact. Record actual pagination and browser-print evidence, not just CSS declarations. |
+| M10 | One Layout and separation workflow covers title, contents, body opening, chapter/Article/appendix, heading ranges and both end-matter kinds. Visibility, compact/full presentation and separation are independent; compact+new-page and full+continuous title combinations render correctly. |
+| M11 | New/reset book, anthology and article fixtures resolve the documented defaults with visible reasons. Overrides survive work-type/role changes until reset; standalone Article roots and coincident body/first-chapter boundaries produce no redundant break. |
+| M12 | Hidden contents/metadata, consecutive boundary requests, nested sections and the first visible part create no unintended blank pages. Heading-only/unheaded boundaries require no new semantic containers or prose/ID changes. |
+| M13 | Layout edits immediately affect live Read separation and exact draft PDF, support undo/recovery/save/reopen/comparison, and survive section move/copy and publication with stable identities. Screen output uses spacing/dividers, not artificial full-page gaps. |
+| M14 | Legacy compact/full title and contents/metadata fixtures preserve their prior effective pagination until an explicit layout change/reset. New policy preserves running headers, heading/caption/quotation protections, two-line rules, targets, prose/notes/media and immutable evidence; actual reader/print/PDF checks record intentional reflow. |
 
-Stop when M1-M9 are implemented and validated with actual rendered output and
+Stop when M1-M14 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.
@@ -214,3 +291,5 @@ existing tests and validated local checkpoint commits under repository agreement
 No metadata editor, arbitrary custom-field support, digital signatures, PDF/A
 certification, private-annotation restoration, model changes to review/ancestry,
 bulk historical re-export, live publication/default changes or deployment.
+Also defer recto/verso starts, deliberate blank pages and arbitrary inline
+page-break markers; this milestone manages part boundaries, not manual pagination.

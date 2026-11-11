@@ -146,7 +146,7 @@ was performed.
 ### Presentation and PDF metadata enhancement (handoff 2026-11-11; planned)
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
-defines milestone M and M1-M9 acceptance, scheduled after R -> A -> V -> P.
+defines milestone M and M1-M14 acceptance, scheduled after R -> A -> V -> P.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;
@@ -172,6 +172,16 @@ Use two-line widow/orphan protection (`orphans: 2; widows: 2`) for prose paragra
 and list items in PDF/shared print output, permitting feasible paragraph splits
 without weakening heading/media relationship rules. M9 requires rendered-line
 and content-preservation evidence; pagination changes are intentional.
+Generalize Layout and separation to generated and content parts, including title,
+contents, body opening, chapter/Article/appendix, heading ranges and end matter.
+Visibility, compact/full title presentation and separation-before are independent.
+Offer Default (with effective reason), Continuous and New page; use book/article/
+explicit anthology context for presets and preserve deliberate overrides.
+Resolve hidden/coincident boundaries without blank pages or invented sections;
+translate screen separation into spacing/dividers rather than page-sized gaps.
+Provide one outline-part workflow with reset, live preview, draft PDF and ordinary
+undo/recovery/save/publication. Preserve effective legacy pagination until an
+explicit change/reset. M10-M14 own acceptance; recto/verso and inline breaks defer.
 This handoff authorizes documentation only, not implementation or deployment.
 
 ### Unified version workspace (handoff 2026-11-11; planned)
