@@ -143,6 +143,28 @@ output and dataset export. The change is deployed to the documented localhost
 service. No authenticated browser/network trace or human accessibility review
 was performed.
 
+### Presentation and PDF metadata enhancement (handoff 2026-11-11; planned)
+
+The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
+defines milestone M and M1-M6 acceptance, scheduled after R -> A -> V -> P.
+Keep configured title-page bibliographic material; move concise edition/review
+status to distinct end matter independent of the optional bibliographic metadata
+page. Preserve exact review scope and the publication-not-verification caveat;
+source-generated outputs must not acquire invented review facts. Technical
+toolchain details belong in inspectable reader details and bounded PDF provenance,
+not opening prose. Actionable warnings and publication-confirmation status remain
+visible at their decision points.
+
+Embed supported bibliographic facts in standard PDF/XMP fields and document a
+bounded custom namespace for non-sensitive edition/source/review/toolchain facts.
+Keep original publication, capture and PDF creation dates distinct. Exclude
+credentials, account/reviewer identities, retained private annotations, local
+paths and recovery/signing evidence. Metadata complements, not replaces, readable
+provenance. Align reader/preview/print/PDF and identify draft snapshots without
+claiming verification of unsaved changes. Preserve immutable records; explicitly
+version derived PDF caches rather than silently reusing stale outputs.
+This handoff authorizes documentation only, not implementation or deployment.
+
 ### Unified version workspace (handoff 2026-11-11; planned)
 
 The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns V1-V16
