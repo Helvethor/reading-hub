@@ -331,7 +331,8 @@ export function mountWorkspaceShell({
 
   async function loadLineage(tab, destination = lineageUrl(tab)) {
     const target = lineagePanels[tab];
-    if (!target || target.dataset.loadedUrl === destination.href) return;
+    if (!target) return false;
+    if (target.dataset.loadedUrl === destination.href) return true;
     const requestId = ++lineageRequests[tab];
     target.setAttribute("aria-busy", "true");
     status.textContent = `Loading ${tab} evidence without changing the active draft.`;
@@ -346,11 +347,13 @@ export function mountWorkspaceShell({
       if (requestId !== lineageRequests[tab]) return;
       displayLineage(tab, html, destination);
       status.textContent = "";
+      return true;
     } catch (error) {
       if (requestId !== lineageRequests[tab]) return;
       target.dataset.loadedUrl = "";
       statusMessage(target, error.message, "alert");
       status.textContent = "Evidence inspection failed; the editor content remains unchanged.";
+      return false;
     } finally {
       if (requestId === lineageRequests[tab]) {
         target.removeAttribute("aria-busy");
@@ -359,7 +362,7 @@ export function mountWorkspaceShell({
     }
   }
 
-  function handleLineageClick(event, tab) {
+  async function handleLineageClick(event, tab) {
     const link = event.target.closest("a[href]");
     if (!link || event.defaultPrevented || event.button !== 0
         || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
@@ -371,11 +374,10 @@ export function mountWorkspaceShell({
     event.preventDefault();
     destination.searchParams.set("embedded", "1");
     recordLineageState(tab, destination);
-    loadLineage(tab, destination);
-    if (destination.hash) {
-      window.setTimeout(() => {
-        lineagePanels[tab].querySelector(destination.hash)?.scrollIntoView({block: "start"});
-      }, 0);
+    const loaded = await loadLineage(tab, destination);
+    if (loaded && currentTab() === tab && destination.hash
+        && lineagePanels[tab].dataset.loadedUrl === destination.href) {
+      lineagePanels[tab].querySelector(destination.hash)?.scrollIntoView({block: "start"});
     }
   }
 

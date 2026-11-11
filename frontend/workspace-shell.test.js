@@ -208,6 +208,74 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   assert.equal(workflowUrl.searchParams.get("embedded"), "1");
 });
 
+test("lineage inspection scrolls to the newly loaded target, not the old one", async () => {
+  const form = setup("?tab=versions");
+  let finishInspection;
+  let scrolled = [];
+  dom.window.HTMLElement.prototype.scrollIntoView = function() { scrolled.push(this.textContent); };
+  globalThis.fetch = url => {
+    if (new URL(url).searchParams.get("selected") === "history:one") {
+      return new Promise(resolve => { finishInspection = resolve; });
+    }
+    return Promise.resolve({
+      ok: true,
+      text: async () => `<div class="document-lineage">
+        <a href="/documents/5/lineage/?filter=all&amp;selected=history%3Aone#lineage-inspection">Inspect</a>
+        <div id="lineage-inspection">Old target</div></div>`,
+    });
+  };
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "Current", html: "<p>Current</p>", metadata: {}},
+    source_tickets: [],
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  document.querySelector("#workspace-versions-content a").click();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.deepEqual(scrolled, []);
+  finishInspection({
+    ok: true,
+    text: async () => `<div class="document-lineage">
+      <div id="lineage-inspection">New target</div></div>`,
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(scrolled, ["New target"]);
+});
+
+test("a late lineage inspection does not scroll another active tab", async () => {
+  const form = setup("?tab=versions");
+  let finishInspection;
+  let scrollCount = 0;
+  dom.window.HTMLElement.prototype.scrollIntoView = function() { scrollCount++; };
+  globalThis.fetch = url => {
+    if (new URL(url).searchParams.get("selected") === "history:one") {
+      return new Promise(resolve => { finishInspection = resolve; });
+    }
+    return Promise.resolve({
+      ok: true,
+      text: async () => `<div class="document-lineage">
+        <a href="/documents/5/lineage/?filter=all&amp;selected=history%3Aone#lineage-inspection">Inspect</a>
+        </div>`,
+    });
+  };
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "Current", html: "<p>Current</p>", metadata: {}},
+    source_tickets: [],
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  document.querySelector("#workspace-versions-content a").click();
+  document.querySelector('[data-workspace-tab="edit"]').click();
+  finishInspection({
+    ok: true,
+    text: async () => `<div class="document-lineage">
+      <div id="lineage-inspection">New target</div></div>`,
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(scrollCount, 0);
+});
+
 test("PDF request captures the current document and reading style", async () => {
   const form = setup("?style=chosen-style&style_profile=3");
   const snapshot = {

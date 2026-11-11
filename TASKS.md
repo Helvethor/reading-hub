@@ -125,10 +125,11 @@ The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns
 V1-V16 acceptance and supersedes earlier separate-page requirements for the four
 work views. U1/U2 delivery/evidence above is historical, not proof of this outcome.
 
-**New V.a-V.d follow-up:** specified only, not implemented or validated.
-The latest "don't implement" and handoff request authorize documentation only
-for this refinement; older implementation/deployment permission does not extend
-to it. See the [implementation-agent handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
+**V.a-V.d follow-up:** implementation requested; milestones remain incomplete
+and V17-V22 acceptance is unvalidated. A narrow V.b preparation fixes a
+delayed evidence-inspection anchor race, covered by synthetic tests; this does
+not implement document-flow scrolling. See the
+[implementation-agent handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
 for scope, dependencies and V17-V22 acceptance.
 
 - [ ] V.a: reproduce and fix first-scroll oscillation; stabilize measured

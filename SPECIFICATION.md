@@ -225,8 +225,8 @@ Direct lineage URLs remain available. Full V1-V16 acceptance remains partial;
 local implementation/deployment is authorized, but remote deployment and live
 publication/default changes are not.
 
-Planned workspace refinement V.a-V.d (documentation only; latest user instruction
-is not to implement): all main tab content, including the editor canvas, uses
+Workspace refinement V.a-V.d (implementation requested, acceptance pending):
+all main tab content, including the editor canvas, uses
 document scrolling with the footer after active content. Compact navigation must
 not oscillate on initial scroll. Coordinate primary tabs, secondary tabs and
 contextual action/filter bars; pinned source structure becomes an evidence-only
@@ -235,7 +235,7 @@ saved working-copy baseline and unsaved draft content. Preserve per-view positio
 editor state, navigation/focus offsets and exact-output semantics. The
 [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
 owns V17-V22 acceptance and supersedes older independent-main-panel scroll
-guidance. No implementation or deployment of this follow-up is authorized here.
+guidance. The follow-up has not been deployed.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

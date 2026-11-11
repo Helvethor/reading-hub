@@ -279,8 +279,8 @@ Catalogue membership remains a separately scoped global operation.
 
 ## Follow-up milestones V.a-V.d: stable page-flow workspace
 
-Requested 2026-11-11. Documentation/handoff only; obtain implementation authority
-before changing application code. Keep these within V rather than presentation
+Requested 2026-11-11; subsequent user instruction authorized implementation.
+Keep these within V rather than presentation
 milestone M: they concern workspace navigation, scroll ownership and export scope.
 Do not treat earlier implementation/test counts as evidence for these additions.
 
@@ -294,6 +294,13 @@ canvas, marker/spacer compaction that changes layout during scrolling, and a
 static draft-download label. These observations identify investigation targets;
 the oscillation's root cause has not been reproduced or established in a browser.
 The shared browser at investigation time was at sign-in.
+
+Subsequent isolated browser probes on an article and a long book did not
+reproduce oscillation; their hidden-page timing limits prevent treating this as
+V17 validation. A synthetic delayed-response test reproduced and covers an
+evidence-inspection anchor race: navigation now waits for the selected response
+and does not scroll a different active tab. This is only a narrow preparation
+for V.b, not completion of document-flow scrolling.
 
 ### V.a: stable compaction and coordinated stack
 
@@ -372,7 +379,7 @@ default selection or shared-cache draft artifact is authorized by download.
 
 ### Delivery boundaries and implementation-agent handoff
 
-After separate implementation authorization, deliver V.a/V.b together where
+Deliver V.a/V.b together where
 scroll geometry requires it, then integrate V.c and V.d; checkpoint coherent,
 validated slices rather than deploying automatically. Use isolated article and
 long, media-rich book fixtures, not live corrections. Preserve R annotation
