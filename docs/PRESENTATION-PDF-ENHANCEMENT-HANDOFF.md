@@ -150,6 +150,27 @@ and page-count changes may follow spacing adjustments; never claim identical
 pagination or permit clipping, overlaps, missing content or cramped body gaps.
 Keep browser-print behavior intentional where it differs from generated PDF.
 
+### M.e Two-line widow/orphan protection
+
+Pagination change agreed 2026-11-11: use `orphans: 2` and `widows: 2` for reader
+prose paragraphs and list items in generated PDFs and the shared browser-print
+stylesheet, replacing the inspected three-line policy. Allow paragraphs to split
+across pages when at least two lines can remain on each side under normal layout
+conditions; do not introduce a blanket paragraph keep-together rule.
+
+Preserve heading-with-following-content, figure/caption, table-row and quotation
+relationship rules unless a directly coupled regression requires correction.
+Do not force a split when content fits, override every nested container's
+pagination behavior, or promise that all bottom-page whitespace disappears.
+Very short paragraphs and constrained figure/table layouts may still move intact;
+renderer behavior for impossible constraints must be reported honestly.
+
+Validate actual rendered lines around page boundaries on controlled fixtures:
+include a four/five-line paragraph with space for two lines before the break,
+long prose and a splitting list item. Compare with the prior three-line policy.
+Check supported fonts/styles and media-rich content, with no text loss or order
+changes. Pagination/page-count changes are intentional, not content changes.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -178,8 +199,9 @@ saved versus changed-draft exports.
 | M6 | Parsed metadata and visible output contain none of the excluded private/internal fields, using sentinel fixtures. Historical records remain exact; cache-policy tests prove new exports cannot silently reuse old-policy PDFs or overwrite protected evidence. |
 | M7 | Representative PDF continuation pages show optically balanced outer header/footer insets and lateral alignment with the body frame. Record candidate comparison, selected dimensions, tolerance and measured rendered text bounds; preserve a distinct comfortable gap to body content. |
 | M8 | Long running titles, multi-digit numbering, supported reading styles and media-rich article/book fixtures have no clipped/overlapping furniture or lost/reordered content. First-page suppression and page numbering remain correct; inspect browser print separately and report any pagination changes. |
+| M9 | PDF and shared print rules use two-line widow/orphan protection for prose paragraphs/list items. Controlled rendered fixtures demonstrate newly permitted splits with at least two lines on each side where feasible, including a four/five-line paragraph and list item; heading/media/quotation protections and exact content/order remain intact. Record actual pagination and browser-print evidence, not just CSS declarations. |
 
-Stop when M1-M8 are implemented and validated with actual rendered output and
+Stop when M1-M9 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.

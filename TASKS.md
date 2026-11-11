@@ -173,7 +173,7 @@ Documentation only is authorized for M. Schedule after the requested R -> A ->
 V -> P sequence; do not interrupt in-progress workspace/publication delivery.
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
-owns M1-M8 acceptance.
+owns M1-M9 acceptance.
 
 - [ ] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.
@@ -183,7 +183,9 @@ owns M1-M8 acceptance.
   without inherited verification claims for changed content.
 - [ ] Balance running-header/footer outer insets and body-frame alignment with
   separate comfortable body gaps; compare rendered candidates and measure geometry.
-- [ ] Validate M1-M8 through actual output/metadata extraction, privacy sentinels,
+- [ ] Replace three-line widow/orphan protection with two-line protection for
+  print/PDF paragraphs and list items; verify actual splits and preservation.
+- [ ] Validate M1-M9 through actual output/metadata extraction, privacy sentinels,
   exact preservation and explicit derived-PDF cache-policy checks.
 
 Preserve existing title-page settings and actionable warnings. Defer metadata
