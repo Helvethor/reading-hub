@@ -228,10 +228,58 @@ export function applyList(editor, action, readDocument = () => ({})) {
   assertVisible(editor, target.from, target.to);
   const tr = closeHistory(editor.state.tr).replaceWith(target.from, target.to, Fragment.fromArray(replacement));
   tr.setSelection(mappedSelection(editor, tr.doc, target, mappings));
+  dispatchListEdit(editor, tr, readDocument);
+}
+
+function dispatchListEdit(editor, tr, readDocument) {
   validateCandidate(editor, tr.doc, readDocument);
   editor.view.dispatch(tr.scrollIntoView());
   if (editor.state.doc !== tr.doc) throw new Error("The editor refused the list edit. Show and expand all affected items.");
   editor.view.dispatch(closeHistory(editor.state.tr));
+}
+
+function joinItems(editor, target, rightIndex, readDocument) {
+  const {items, list} = target;
+  if (!rightIndex || rightIndex >= items.length) {
+    throw new Error("There is no adjacent item to join. Use Outdent item or the active list command to leave the list.");
+  }
+  const left = items[rightIndex - 1], right = items[rightIndex];
+  if (right.attrs.id || right.attrs.class !== left.attrs.class) {
+    throw new Error("Joining would remove an item's target or distinct styling. Remove its list formatting instead.");
+  }
+  const rightFrom = target.from + 1 + items.slice(0, rightIndex).reduce((sum, item) => sum + item.nodeSize, 0);
+  if (protectedNote(editor.state.doc, editor.state.doc.resolve(rightFrom + 1))) {
+    throw new Error("Note structures are protected from item joins.");
+  }
+  let joined, caretBody, offset;
+  if (left.inlineContent && right.inlineContent) {
+    joined = left.copy(left.content.append(right.content));
+    caretBody = joined;
+    offset = left.content.size;
+  } else {
+    const mappings = new Map(), a = asBlockItem(editor, left, mappings), b = asBlockItem(editor, right, mappings);
+    const before = children(a), after = children(b), last = before.at(-1), first = after[0];
+    if (last.type === first.type && ["p", "inlineRun"].includes(first.type.name)) {
+      if (first.attrs.id || first.attrs.class !== last.attrs.class) {
+        throw new Error("Joining would remove a paragraph target or distinct styling. Use list formatting instead.");
+      }
+      caretBody = last.copy(last.content.append(first.content));
+      offset = last.content.size;
+      before[before.length - 1] = caretBody;
+      after.shift();
+    } else {
+      caretBody = first;
+      offset = 0;
+    }
+    joined = a.copy(Fragment.fromArray([...before, ...after]));
+  }
+  const replacement = [...items.slice(0, rightIndex - 1), joined, ...items.slice(rightIndex + 1)];
+  const tr = closeHistory(editor.state.tr).replaceWith(target.from, target.to, list.copy(Fragment.fromArray(replacement)));
+  let caret;
+  tr.doc.descendants((node, at) => { if (node === caretBody) caret = at + 1 + offset; });
+  if (caret === undefined) throw new Error("The joined item's caret cannot be retained safely.");
+  tr.setSelection(TextSelection.create(tr.doc, caret));
+  dispatchListEdit(editor, tr, readDocument);
 }
 
 export function listState(editor) {
@@ -310,7 +358,14 @@ export function handleListKey(editor, event, readDocument = () => ({})) {
     protectedDeletion(doc, from, to);
     if (selection.empty && (event.key === "Backspace" && !selection.$from.parentOffset ||
         event.key === "Delete" && selection.$from.parentOffset === body.content.size)) {
-      throw new Error("Joining at a list boundary is not supported. Use list formatting, item moves or outdent instead.");
+      const index = first.node.inlineContent ? 0 : selection.$from.index(first.depth);
+      if (bodyDepth > first.depth + 1 || event.key === "Backspace" && index !== 0 ||
+          event.key === "Delete" && !first.node.inlineContent && index !== first.node.childCount - 1) {
+        throw new Error("This is an internal structural boundary. Use list formatting or move the caret to the item's outer text boundary.");
+      }
+      const target = selectionRange(editor);
+      joinItems(editor, target, target.start + (event.key === "Delete" ? 1 : 0), readDocument);
+      return true;
     }
     return false;
   }
@@ -328,31 +383,41 @@ export function handleListKey(editor, event, readDocument = () => ({})) {
   if (protectedNote(doc, selection.$from)) throw new Error("Note structures are protected from list splitting.");
   if (event.shiftKey) {
     const tr = closeHistory(editor.state.tr).replaceSelectionWith(editor.schema.nodes.br.create(), true);
-    validateCandidate(editor, tr.doc, readDocument);
-    editor.view.dispatch(tr.scrollIntoView());
-    editor.view.dispatch(closeHistory(editor.state.tr));
+    dispatchListEdit(editor, tr, readDocument);
     return true;
   }
   const target = selectionRange(editor), {node: item} = first;
-  const empty = selection.empty && !body.content.size && !hasAttrs(item) && !hasAttrs(body) &&
+  const empty = selection.empty && !body.content.size &&
     (item.inlineContent || item.childCount === 1);
+  if (empty && target.start < target.items.length - 1) {
+    if (hasAttrs(item) || hasAttrs(body)) {
+      joinItems(editor, target, target.start, readDocument);
+      return true;
+    }
+    const items = target.items.filter((_, index) => index !== target.start);
+    const tr = closeHistory(editor.state.tr).replaceWith(target.from, target.to,
+      target.list.copy(Fragment.fromArray(items)));
+    tr.setSelection(TextSelection.near(tr.doc.resolve(first.from + 1), 1));
+    dispatchListEdit(editor, tr, readDocument);
+    return true;
+  }
   if (empty && target.start === target.items.length - 1) {
     const $list = doc.resolve(target.from + 1);
     if (target.listDepth > 1 && isItem($list.node(target.listDepth - 1))) {
       applyList(editor, "outdent", readDocument);
       return true;
     }
-    const paragraph = editor.schema.nodes.p.create(body.attrs);
+    const mappings = new Map(), content = unlistItem(editor, item, mappings);
+    const caretBody = mappings.get(item) || body;
     const before = target.items.slice(0, -1), replacement = before.length
-      ? [target.list.copy(Fragment.fromArray(before)), paragraph]
-      : hasAttrs(target.list) ? [editor.schema.nodes.div.create(target.list.attrs, paragraph)] : [paragraph];
+      ? [target.list.copy(Fragment.fromArray(before)), ...content]
+      : hasAttrs(target.list) ? [editor.schema.nodes.div.create(target.list.attrs, content)] : content;
     const tr = closeHistory(editor.state.tr).replaceWith(target.from, target.to, Fragment.fromArray(replacement));
-    let caret = target.from + (before.length ? replacement[0].nodeSize : 0) + 1;
-    if (!before.length && hasAttrs(target.list)) caret++;
+    let caret;
+    tr.doc.descendants((node, at) => { if (node === caretBody) caret = at + 1; });
+    if (caret === undefined) throw new Error("The empty item's caret cannot be retained safely.");
     tr.setSelection(TextSelection.create(tr.doc, caret));
-    validateCandidate(editor, tr.doc, readDocument);
-    editor.view.dispatch(tr.scrollIntoView());
-    editor.view.dispatch(closeHistory(editor.state.tr));
+    dispatchListEdit(editor, tr, readDocument);
     return true;
   }
   const left = body.copy(body.content.cut(0, selection.$from.parentOffset));
@@ -370,9 +435,7 @@ export function handleListKey(editor, event, readDocument = () => ({})) {
   }
   const tr = closeHistory(editor.state.tr).replaceWith(first.from, first.from + item.nodeSize, [prefix, suffix]);
   tr.setSelection(TextSelection.create(tr.doc, caret));
-  validateCandidate(editor, tr.doc, readDocument);
-  editor.view.dispatch(tr.scrollIntoView());
-  editor.view.dispatch(closeHistory(editor.state.tr));
+  dispatchListEdit(editor, tr, readDocument);
   return true;
 }
 

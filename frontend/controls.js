@@ -16,6 +16,7 @@ import {
 } from "./quotation-insertion.js";
 import {semanticDOM} from "./semantic-structure.js";
 import {applyList, listState, mountListEditing} from "./lists.js";
+import {insertHorizontalRule} from "./horizontal-rule.js";
 import {
   documentParts, foldedDocumentParts, showDocumentPart, showBlockLabels, visiblePart,
   workspaceContext, setWorkspaceContext,
@@ -341,6 +342,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     for (const button of form.querySelectorAll("[data-quotation]")) {
       available(button, button.dataset.quotation === "insert" || canEditFigure(editor));
     }
+    for (const button of form.querySelectorAll("[data-rule-insert]")) available(button, true);
     const lists = listState(editor);
     const listHelp = {
       indent: "Indent item: requires a preceding sibling.",
@@ -569,6 +571,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         linkDialog.querySelector("#editor-link-href").focus();
         return;
       } else if ("linkRemove" in button.dataset) applyLinkRemoval(editor, prepareLinkEdit(editor));
+      else if ("ruleInsert" in button.dataset) insertHorizontalRule(editor, readDocument);
       else if (button.dataset.list) applyList(editor, button.dataset.list, readDocument);
       else if (button.dataset.mark) toggleInlineStyle(editor, button.dataset.mark);
       else if (button.dataset.block) {
@@ -586,7 +589,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showError(failure.message);
     }
   }
-  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-list]")) {
+  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-list], [data-rule-insert]")) {
     button.addEventListener("click", () => perform(button));
   }
   for (const button of form.querySelectorAll(".editor-format-toolbar button")) {

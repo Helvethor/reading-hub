@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v9">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v10">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -99,6 +99,7 @@
           <button type="button" aria-label="Heading 3" title="Heading 3" aria-pressed="false" data-block="h3" disabled>H3</button>
           <button type="button" aria-label="Bulleted list" title="Bulleted list" aria-pressed="false" data-list="ul" disabled>• List</button>
           <button type="button" aria-label="Numbered list" title="Numbered list" aria-pressed="false" data-list="ol" disabled>1. List</button>
+          <button type="button" aria-label="Insert horizontal rule" title="Insert horizontal rule" data-rule-insert disabled>HR</button>
           <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled>Link</button>
         </div>
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
@@ -269,6 +270,7 @@
       </div>
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
+      <button type="button" role="menuitem" data-rule-insert disabled>Insert horizontal rule</button>
       <button type="button" role="menuitem" data-quotation="edit" disabled>Figure &amp; caption…</button>
       <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
       <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
@@ -551,4 +553,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v19"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v20"></script>{% endif %}{% endblock %}

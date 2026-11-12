@@ -214,7 +214,7 @@ function decorations(doc, scope, labels, folds = [], context = {}) {
 function labelled(node, ancestors) {
   return !ancestors.some(ancestor => ancestor.type.name === "table") &&
     (node.isTextblock || node.isLeaf ||
-      ["table", "figure", "blockquote", "figcaption", "div", "li", "dd"].includes(node.type.name));
+      ["table", "figure", "blockquote", "figcaption", "div", "ul", "ol", "li", "dd"].includes(node.type.name));
 }
 
 // Shared with removed-content diff widgets so they render the same gutters and borders.
@@ -235,12 +235,14 @@ export function blockLabel(doc, pos, node) {
     EMPTYBLOCKTARGET: "TGT"}[tag] || (tag.length > 5 ? tag.slice(0, 3) : tag);
   const depth = chain.filter((ancestor, index) => labelled(ancestor, chain.slice(0, index))).length;
   const gutter = `--editor-label-gutter: var(--editor-label-column-${depth}, 1.5rem)`;
+  const marker = ["ul", "ol"].includes(node.type.name)
+    ? `; --editor-list-marker-width: ${node.type.name === "ul" ? 1 : String(node.childCount).length + 1}ch` : "";
   // Replaced nodes and scrolling tables cannot paint a label outside their box.
   const external = node.isLeaf || node.type.name === "table";
   return {tag, short, depth, gutter, external, attrs: {
     class: `editor-labelled-block${external ? " editor-external-block-label" : ""}`,
     "data-editor-block": short, "data-editor-block-type": tag,
-    "data-editor-label-depth": String(depth), style: gutter,
+    "data-editor-label-depth": String(depth), style: gutter + marker,
     "data-editor-structure": [...ancestors, tag + (node.attrs.id ? ` #${node.attrs.id}` : "")].join(" / "),
   }};
 }

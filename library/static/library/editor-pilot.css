@@ -222,6 +222,20 @@
 #editor-surface .editor-toc-marker { user-select: none; pointer-events: none; }
 #editor-surface .editor-outside-part { display: none !important; }
 #editor-surface .tiptap .editor-labelled-block { position: relative; margin-inline-start: var(--editor-label-gutter); border-inline-start: 1px solid var(--editor-border, #cbd1c4); padding-inline-start: .65rem; }
+#editor-surface .tiptap li.editor-labelled-block {
+  --editor-item-marker-gutter: calc(var(--editor-list-marker-width, 2ch) + .75rem);
+  margin-inline-start: calc(var(--editor-label-gutter) + var(--editor-item-marker-gutter));
+  border-inline-start: 0;
+}
+#editor-surface .tiptap li.editor-labelled-block::before { inset-inline-end: calc(100% + var(--editor-item-marker-gutter) + .35rem); }
+#editor-surface .tiptap li.editor-labelled-block::after {
+  content: ""; position: absolute; inset-inline-start: calc(-1 * var(--editor-item-marker-gutter));
+  inset-block: 0; border-inline-start: 1px solid var(--editor-border, #cbd1c4); pointer-events: none;
+}
+#editor-surface .tiptap hr.editor-labelled-block {
+  min-block-size: 1.5rem; border-block: 0;
+  background: linear-gradient(#d9ddd1, #d9ddd1) .65rem center / calc(100% - .65rem) 1px no-repeat;
+}
 #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font: .7rem/1.5 system-ui, sans-serif; letter-spacing: .02em; }
 #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before { content: attr(data-editor-block) / ""; position: absolute; inset-inline-end: calc(100% + .35rem); top: 0; box-sizing: border-box; width: calc(var(--editor-label-gutter) - .55rem); padding-block-start: .2rem; text-align: end; color: var(--muted, #4c554b); pointer-events: none; user-select: none; }
 #editor-surface .editor-label-measure { position: absolute; visibility: hidden; pointer-events: none; width: max-content; min-width: .8rem; box-sizing: content-box; padding-inline: .275rem; white-space: nowrap; }

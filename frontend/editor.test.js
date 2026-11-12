@@ -25,6 +25,7 @@ import {
 import {canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure} from "./figures.js";
 import {prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion} from "./quotation-insertion.js";
 import {applyList, handleListKey, listState} from "./lists.js";
+import {insertHorizontalRule} from "./horizontal-rule.js";
 import {
   documentParts, showDocumentPart, visiblePart, showBlockLabels, workspaceContext,
 } from "./workspace.js";
@@ -3562,11 +3563,11 @@ test("list commands reject cross-container, partial-item, target splits and boun
   selectText("Third"); editor.commands.setTextSelection({from: start, to: editor.state.selection.from + 2});
   assert.throws(() => applyList(editor, "ul"), /complete paragraph/);
   assert(!undo(editor.state));
-  editor.destroy(); open('<ul id="list"><li>A</li><li>B</li></ul>');
+  editor.destroy(); open('<ul id="list"><li>A</li><li id="b">B</li></ul>');
   selectText("B");
   assert.throws(() => applyList(editor, "ol"), /whole attribute/);
   assert.throws(() => applyList(editor, "outdent"), /top-level/);
-  assert.throws(() => handleListKey(editor, {key: "Backspace"}), /boundary/);
+  assert.throws(() => handleListKey(editor, {key: "Backspace"}), /target/);
   editor.destroy(); open('<ul><li><span id="target">Text</span></li><li>Second</li></ul><p><a href="#target">Go</a></p>');
   selectText("Text"); editor.commands.setTextSelection(editor.state.selection.from + 1);
   assert.throws(() => handleListKey(editor, {key: "Enter"}), /target-bearing/);
@@ -3616,7 +3617,8 @@ test("list controls retain menu selection, owning active state, disabled boundar
     return event.defaultPrevented;
   };
   assert(key("Backspace"));
-  assert.match(errors.at(-1), /list boundary/);
+  assert.equal(editor.getHTML(), "<ol><li><p>FirstSecond</p></li><li><p>Third</p></li></ol>");
+  assert(undo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), before);
   selectText("Second"); editor.commands.setTextSelection(editor.state.selection.from + 3);
   assert(key("Enter"));
@@ -3692,6 +3694,93 @@ test("list deletion guards whole graphemes and modified deletion without losing 
     assert.equal(editor.getHTML(), original);
     assert(!undo(editor.state));
   }
+});
+
+test("Backspace and Delete reverse item splits without losing descendants, paragraph styles or targets", () => {
+  for (const html of [
+    '<ul id="list"><li id="item">abcd</li><li>Next</li></ul>',
+    '<ol id="list"><li id="item"><p id="prose" class="text-align-center"><em>abcd</em></p><ul><li id="child">Child</li></ul></li><li>Next</li></ol>',
+  ]) {
+    for (const key of ["Backspace", "Delete"]) {
+      editor?.destroy(); open(html);
+      selectText("abcd"); editor.commands.setTextSelection(editor.state.selection.from + 2);
+      assert(handleListKey(editor, {key: "Enter"}));
+      const split = editor.getHTML();
+      if (key === "Delete") { selectText("ab"); editor.commands.setTextSelection(editor.state.selection.from + 2); }
+      assert(handleListKey(editor, {key}));
+      assert.equal(editor.getHTML(), html);
+      assert.equal(editor.state.selection.$from.parentOffset, 2);
+      assert(undo(editor.state, editor.view.dispatch));
+      assert.equal(editor.getHTML(), split);
+      assert(redo(editor.state, editor.view.dispatch));
+      assert.equal(editor.getHTML(), html);
+    }
+  }
+});
+
+test("Return removes interior empty items and exits styled or targeted final items without dropping identities", () => {
+  for (const index of [0, 1]) {
+    editor?.destroy(); open(index ? "<ol><li>A</li><li></li><li>B</li></ol>" : "<ul><li></li><li>B</li></ul>");
+    const original = editor.getHTML();
+    let at;
+    editor.state.doc.descendants((node, pos) => { if (node.type.name === "liText" && !node.content.size) at = pos + 1; });
+    editor.commands.setTextSelection(at);
+    assert(handleListKey(editor, {key: "Enter"}));
+    assert.equal(editor.state.selection.$from.parent.textContent, "B");
+    assert.equal(editor.getHTML(), index ? "<ol><li>A</li><li>B</li></ol>" : "<ul><li>B</li></ul>");
+    assert(undo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), original);
+  }
+  editor.destroy(); open('<ul id="list"><li>A</li><li id="item"><p id="empty" class="text-align-center"></p></li></ul>');
+  let at;
+  editor.state.doc.descendants((node, pos) => { if (node.attrs.id === "empty") at = pos + 1; });
+  editor.commands.setTextSelection(at);
+  assert(handleListKey(editor, {key: "Enter"}));
+  assert.equal(editor.getHTML(), '<ul id="list"><li>A</li></ul><div id="item"><p id="empty" class="text-align-center"></p></div>');
+  assert.equal(editor.state.selection.$from.parent.attrs.id, "empty");
+});
+
+test("manual horizontal rules preserve paragraph targets and provide an undoable continuation caret", () => {
+  for (const [html, offset, expected] of [
+    ["<p></p>", 0, "<hr><p></p>"],
+    ['<p id="a"></p>', 0, '<p id="a"></p><hr><p></p>'],
+    ['<p id="a">LeftRight</p>', 0, '<hr><p id="a">LeftRight</p>'],
+    ['<p id="a">LeftRight</p>', 4, '<p id="a">Left</p><hr><p>Right</p>'],
+    ['<p id="a">LeftRight</p>', 9, '<p id="a">LeftRight</p><hr><p></p>'],
+  ]) {
+    editor?.destroy(); open(html);
+    editor.commands.setTextSelection(1 + offset);
+    insertHorizontalRule(editor);
+    assert.equal(editor.getHTML(), expected);
+    assert.equal(editor.state.selection.$from.parent.type.name, "p");
+    assert.equal(editor.state.selection.$from.parentOffset, 0);
+    assert(undo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), html);
+    assert(redo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), expected);
+  }
+});
+
+test("horizontal-rule controls retain selection and refuse unsafe or oversized insertion without history", () => {
+  const form = mountSectionWorkspace('<section id="s"><p id="text">LeftRight</p></section>');
+  selectText("LeftRight"); editor.commands.setTextSelection(editor.state.selection.from + 4);
+  form.querySelector("#editor-tools").click();
+  form.querySelector('#editor-context-menu [data-rule-insert]').click();
+  assert.equal(editor.getHTML(), '<section id="s"><p id="text">Left</p><hr><p>Right</p></section>');
+  editor.destroy(); open('<p><span id="target">Text</span></p>');
+  selectText("Text"); editor.commands.setTextSelection(editor.state.selection.from + 1);
+  assert.throws(() => insertHorizontalRule(editor), /target-bearing/);
+  selectText("Text", 2);
+  assert.throws(() => insertHorizontalRule(editor), /paragraph caret/);
+  assert(!undo(editor.state));
+  editor.destroy(); open("<ul><li>Item</li></ul>");
+  assert.throws(() => insertHorizontalRule(editor), /outside lists/);
+  editor.destroy(); open("<p>Text</p>");
+  editor.view.dom.hidden = true;
+  assert.throws(() => insertHorizontalRule(editor), /hidden/);
+  editor.view.dom.hidden = false;
+  assert.throws(() => insertHorizontalRule(editor, () => ({metadata: {description: "x".repeat(2 * 1024 * 1024)}})), /2 MiB/);
+  assert(!undo(editor.state));
 });
 
 test("new quotation proposals insert at empty, beginning, middle and end carets without duplicating targets", () => {
@@ -4124,6 +4213,23 @@ test("image and table block labels have view-only anchors outside replaced or sc
   showBlockLabels(editor, false);
   assert(!editor.view.dom.querySelector(".editor-leaf-label"));
   assert.equal(editor.getHTML(), original);
+});
+
+test("list containers have independent gutters above item and paragraph labels without changing semantics", () => {
+  open('<ul id="bullets"><li id="a">Inline</li><li><p>Block</p><ol id="numbers"><li>Nested</li></ol></li></ul><hr>');
+  const html = editor.getHTML(), json = editor.getJSON();
+  for (const [selector, label, depth] of [["#bullets","UL","0"], ["#a","LI","1"], ["li > p","P","2"], ["#numbers","OL","2"]]) {
+    const node = editor.view.dom.querySelector(selector);
+    assert.equal(node.dataset.editorBlock, label);
+    assert.equal(node.dataset.editorLabelDepth, depth);
+  }
+  assert.equal(editor.view.dom.querySelector("#numbers").style.getPropertyValue("--editor-list-marker-width"), "2ch");
+  assert.equal(editor.view.dom.querySelector("hr").previousElementSibling.dataset.editorBlock, "HR");
+  assert.equal(editor.getHTML(), html);
+  assert.deepEqual(editor.getJSON(), json);
+  showBlockLabels(editor, false);
+  assert(!editor.view.dom.querySelector(".editor-labelled-block"));
+  assert.equal(editor.getHTML(), html);
 });
 
 test("label columns size independently from their longest rendered word and refresh after filters and edits", () => {
