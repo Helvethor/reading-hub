@@ -248,6 +248,8 @@ V/P/M work or authorize deployment or live-draft changes.
 
 The [list-editing handoff](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) owns
 L1-L10 acceptance.
+The 2026-11-12 readiness refinement fixes selection/item-shape rules, exact Enter
+and nesting behavior, ordinal-preserving refusals and mandatory success fixtures.
 
 - [ ] Create, convert and remove bulleted/numbered lists safely; preserve
   retained inline/block list shapes, targets, links, notes and assets.
@@ -261,6 +263,8 @@ L1-L10 acceptance.
 **Status:** specified only. The
 [citation authoring handoff](docs/CITATION-AUTHORING-IMPLEMENTATION-HANDOFF.md)
 owns Q1-Q5 acceptance.
+The 2026-11-12 readiness refinement fixes insertion boundaries/ID ownership,
+multiline input limits, dialog/focus behavior and exact semantic fixture outcomes.
 
 - [ ] Add discoverable Insert quotation at a prose caret, without existing
   selected text; reuse Figure & caption for new body, attribution and optional

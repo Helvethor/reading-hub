@@ -1702,6 +1702,10 @@ paragraphs; prose and preformatted whitespace remains significant.
 Planned [milestone L](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) adds safe
 creation and editing of bulleted/numbered lists, including item splitting,
 nesting and reordering, with semantic identity and existing list shapes preserved.
+The refined contract defines innermost-item selection, guarded list keyboard
+behavior and required success fixtures. Partial ordered-list conversions must
+not reset unselected ordinals; refuse operations needing unsupported numbering
+attributes rather than extending the schema implicitly.
 It is a documentation-only handoff, not a claim that list authoring is implemented
 or that live drafts or deployment may be changed.
 Bare prose and inline wrappers interleaved with blocks are represented by
@@ -1949,6 +1953,10 @@ Preserve semantic validation, focus, recovery and save/Read/print/PDF fidelity;
 Cancel and unsupported/stale locations must not alter content. Here citation
 means a quotation with attribution, not bibliography management or automatic
 footnote generation.
+The refined Q contract defines caret/start/end/mid-paragraph insertion,
+deterministic ID ownership, bounded plain multiline input and exact semantic
+fixtures. Preview and Apply share a candidate, Cancel/stale-target errors do not
+mutate content, and existing image/quotation repair remains unchanged.
 Standalone block images and image-only paragraphs can gain a figure/caption;
 mixed prose/image paragraphs and multi-image figures are not automatically split.
 
