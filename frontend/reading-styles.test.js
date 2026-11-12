@@ -6,16 +6,19 @@ import {mountReadingStyles} from "../library/static/library/reading-styles.js";
 let dom;
 afterEach(() => dom?.window.close());
 
-function fixture({authenticated = false, guest = {}, accountSettings = false} = {}) {
+function fixture({
+  authenticated = false, guest = {}, accountSettings = false, workType = "article",
+} = {}) {
+  const typeTitle = `${workType[0].toUpperCase()}${workType.slice(1)}`;
   const scope = accountSettings
     ? 'data-account-settings data-scope="account"'
     : 'data-scope="output"';
   const scopeControl = authenticated && !accountSettings
-    ? '<select data-style-scope><option value="output">This version</option><option value="account">My defaults</option></select>'
+    ? `<select data-style-scope><option value="output">This version</option><option value="account">My defaults · ${typeTitle}</option></select>`
     : "";
   const type = accountSettings
     ? '<select data-style-type><option value="article" selected>Article</option><option value="other">Other</option></select>'
-    : '<span data-style-type-label>Work type: Article</span>';
+    : `<span data-style-type-label>Work type: ${typeTitle}</span>`;
   const guestActions = authenticated
     ? '<div class="reading-style-import" hidden><button data-import-guest>Import guest style</button></div>'
     : '<button data-clear-guest>Clear guest style</button>';
@@ -24,7 +27,7 @@ function fixture({authenticated = false, guest = {}, accountSettings = false} = 
     </head><body>
       <a href="/versions/101/pdf/" data-reading-pdf>Download PDF</a>
       <details class="reading-style-controls" data-preview-url="/reading-style/preview/"
-        data-work-type="article" data-rendition-id="101" data-output-id="immutable-101"
+        data-work-type="${workType}" data-rendition-id="101" data-output-id="immutable-101"
         data-authenticated="${authenticated}" data-import-guest-url="/reading-style/import-guest/"
         ${scope}>
         ${scopeControl}
@@ -73,19 +76,22 @@ function fixture({authenticated = false, guest = {}, accountSettings = false} = 
     const settings = {font_size: 14, letter_spacing: 0, italic_to_bold: false, ...layer};
     const origins = Object.fromEntries(Object.keys(settings).map(key => [
       key, {source: Object.hasOwn(layer, key) ? body.scope || "output" : "built-in",
-        label: Object.hasOwn(layer, key) ? "This version" : "Built-in · Article"},
+        label: Object.hasOwn(layer, key) ? "This version" : `Built-in · ${typeTitle}`},
     ]));
     const activeLayers = body.scope === "account"
       ? {output: {}, account: layer} : {output: layer, account: {}};
     return json({
       settings, origins, layers: activeLayers, layer, overridden: Object.keys(layer),
-      work_type: body.work_type || "article", output_id: "immutable-101", rendition_id: 101,
+      work_type: body.work_type || workType, output_id: "immutable-101", rendition_id: 101,
       scope: body.scope || "output", token: "style-token",
       presentation: "signed-appearance-token", theme: "", persisted: authenticated,
       stylesheet: "/reading-style.css?style=style-token&theme=&v=7",
     });
   };
   const panel = view.document.querySelector(".reading-style-controls");
+  const workspace = view.document.createElement("section");
+  workspace.id = "unified-workspace";
+  panel.before(workspace);
   mountReadingStyles(panel);
   return {
     view, panel, calls,
@@ -163,6 +169,34 @@ test("signed-in controls persist only changed fields in the selected private lay
   panel.querySelector('[data-reset-setting="font_size"]').click();
   await settle(view);
   assert.deepEqual(JSON.parse(calls.at(-1).options.body).reset, ["font_size"]);
+});
+
+test("workspace appearance updates the work-type label and account scope option", async () => {
+  const {view, panel} = fixture({authenticated: true, workType: "other"});
+  await settle(view);
+
+  assert.equal(panel.querySelector('[data-style-type-label]').textContent, "Work type: Other");
+  assert.equal(panel.querySelector('option[value="account"]').textContent, "My defaults · Other");
+
+  view.document.querySelector("#unified-workspace").dispatchEvent(
+    new view.CustomEvent("reading-style-snapshot", {
+      detail: {
+        work_type: "article",
+        settings: {font_size: 14, letter_spacing: 0, italic_to_bold: false},
+        origins: {
+          font_size: {source: "built-in", label: "Built-in · Article"},
+          letter_spacing: {source: "built-in", label: "Built-in · Article"},
+          italic_to_bold: {source: "built-in", label: "Built-in · Article"},
+        },
+        layers: {output: {}, account: {}},
+      },
+    }),
+  );
+
+  assert.equal(panel.querySelector('[data-style-type-label]').textContent, "Work type: Article");
+  assert.equal(panel.querySelector('option[value="account"]').textContent, "My defaults · Article");
+  assert.equal(panel.querySelector('[data-style-origin-for="font_size"]').textContent,
+    "Built-in · Article");
 });
 
 test("storage failure remains visible while the in-memory style is applied", async () => {

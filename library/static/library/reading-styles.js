@@ -93,15 +93,22 @@ export function mountReadingStyles(panel) {
     }
   }
 
+  function syncWorkType(workType) {
+    activeType = workType || activeType;
+    panel.dataset.workType = activeType;
+    if (typeSelect) typeSelect.value = activeType;
+    const title = `${activeType[0].toUpperCase()}${activeType.slice(1)}`;
+    const typeLabel = panel.querySelector("[data-style-type-label]");
+    if (typeLabel) typeLabel.textContent = `Work type: ${title}`;
+    const accountScope = scopeSelect?.querySelector('option[value="account"]');
+    if (accountScope) accountScope.textContent = `My defaults · ${title}`;
+  }
+
   function syncPresentation(data) {
     setInputs(data.settings);
-    activeType = data.work_type || activeType;
+    syncWorkType(data.work_type);
     activeLayers = data.layers || activeLayers;
-    panel.dataset.workType = activeType;
     panel.dataset.outputId = data.output_id || outputId;
-    if (typeSelect) typeSelect.value = activeType;
-    const typeLabel = panel.querySelector("[data-style-type-label]");
-    if (typeLabel) typeLabel.textContent = `Work type: ${activeType[0].toUpperCase()}${activeType.slice(1)}`;
     setOriginLabels(data.origins, activeLayers);
     if (data.presentation && workspace) {
       workspace.dataset.readingPresentation = data.presentation;
@@ -337,14 +344,12 @@ export function mountReadingStyles(panel) {
   workspace?.addEventListener("reading-style-snapshot", event => {
     const appearance = event.detail;
     if (!appearance) return;
-    activeType = appearance.work_type;
-    if (typeSelect) typeSelect.value = activeType;
+    syncWorkType(appearance.work_type);
     setInputs(appearance.settings);
     activeLayers = {...(appearance.layers || activeLayers)};
     if (!authenticated && activeScope === "output") {
       activeLayers.output = {...(activeLayers.output || {}), ...guestLayer};
     }
-    panel.dataset.workType = activeType;
     setOriginLabels(appearance.origins, activeLayers);
   });
 
