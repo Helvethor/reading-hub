@@ -1,5 +1,7 @@
 {% extends "library/base.html" %}
+{% load static %}
 {% block title %}User settings | {{ site.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">{% endblock %}
 {% block content %}
 <section class="page-container account-form">
   <h1>User settings</h1>
@@ -12,6 +14,10 @@
       <div class="form-actions"><button type="submit">Save settings</button></div>
     </fieldset>
   </form>
+  <section aria-labelledby="account-reading-style-heading">
+    <h2 id="account-reading-style-heading">Personal reading defaults</h2>
+    {% include "library/reading_style_controls.html" %}
+  </section>
   <p><a href="{% url 'password_change' %}">Change password</a></p>
 </section>
 {% endblock %}

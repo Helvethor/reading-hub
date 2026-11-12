@@ -22,6 +22,8 @@ function setup(query = "") {
     </form>
     <section id="unified-workspace" data-initial-tab="${initialTab}"
       data-read-url="/versions/12/editor/read-preview/"
+      data-reading-style-preview-url="/reading-styles/preview/"
+      data-reading-style-type="other"
       data-pdf-url="/versions/12/editor/draft.pdf"
       data-versions-url="/documents/5/lineage/?filter=all&amp;selected=edition%3A12&amp;embedded=1"
       data-sources-url="/documents/5/lineage/?filter=sources&amp;selected=snapshot%3A4&amp;embedded=1"
@@ -45,7 +47,7 @@ function setup(query = "") {
   </body>`, {url: `http://localhost/versions/12/editor/${query}`});
   for (const name of [
     "window", "document", "location", "history", "DOMParser", "Element",
-    "HTMLFormElement", "FormData", "matchMedia",
+    "HTMLFormElement", "FormData", "CustomEvent", "matchMedia",
   ]) {
     Object.defineProperty(globalThis, name, {
       value: dom.window[name],
@@ -53,7 +55,24 @@ function setup(query = "") {
     });
   }
   originalFetch = globalThis.fetch;
+  const append = document.head.append.bind(document.head);
+  document.head.append = (...nodes) => {
+    append(...nodes);
+    for (const node of nodes) {
+      if (node.matches?.("link[data-workspace-reading-style]")) {
+        queueMicrotask(() => node.onload?.());
+      }
+    }
+  };
   return document.querySelector("#document-editor");
+}
+
+function appearance() {
+  return {
+    stylesheet: "/reading-styles.css",
+    presentation: "signed-appearance-snapshot",
+    work_type: "other",
+  };
 }
 
 function mount(form, snapshot) {
@@ -177,14 +196,17 @@ test("Read uses the current captured document and tab history keeps the editor m
     source_tickets: [],
   };
   globalThis.fetch = async (url, options) => {
-    assert.equal(url, "/versions/12/editor/read-preview/");
+    assert.equal(new URL(url).pathname, "/versions/12/editor/read-preview/");
     assert.equal(options.cache, "no-store");
     assert.equal(options.headers["X-CSRFToken"], "csrf");
     assert.equal(JSON.parse(options.body).document.title, "Unsaved title");
     return {
       headers: {get: () => "application/json"},
       ok: true,
-      json: async () => ({html: "<h2>Draft preview</h2><p>Current prose</p>"}),
+      json: async () => ({
+        html: "<h2>Draft preview</h2><p>Current prose</p>",
+        appearance: appearance(),
+      }),
     };
   };
   const shell = mount(form, snapshot);
@@ -221,7 +243,7 @@ test("a late Read response cannot replace a newer draft projection", async () =>
   const response = html => ({
     headers: {get: () => "application/json"},
     ok: true,
-    json: async () => ({html}),
+    json: async () => ({html, appearance: appearance()}),
   });
   responses[1](response("<p>Second projection</p>"));
   await new Promise(resolve => setImmediate(resolve));
@@ -374,11 +396,14 @@ async function settle() {
 function readThenPdf(readState, pdfResponse, requests) {
   return (url, options) => {
     requests.push({url, body: options.body});
-    if (url === "/versions/12/editor/read-preview/") {
+    if (new URL(url).pathname === "/versions/12/editor/read-preview/") {
       return Promise.resolve({
         ok: true,
         headers: {get: () => "application/json"},
-        json: async () => ({html: "<p>Rendered</p>", state: readState, revision: 0}),
+        json: async () => ({
+          html: "<p>Rendered</p>", state: readState, revision: 0,
+          appearance: appearance(),
+        }),
       });
     }
     return pdfResponse(url, options);
@@ -407,7 +432,7 @@ test("PDF button is disabled until Read reports the actual content state", async
     resolveRead({
       ok: true,
       headers: {get: () => "application/json"},
-      json: async () => ({html: "<p>T</p>", state, revision: 0}),
+      json: async () => ({html: "<p>T</p>", state, revision: 0, appearance: appearance()}),
     });
     await settle();
     assert.equal(button.disabled, false);
@@ -417,7 +442,7 @@ test("PDF button is disabled until Read reports the actual content state", async
 });
 
 test("PDF request captures the Read-rendered document and reading style", async () => {
-  const form = setup("?tab=read&style=chosen-style&style_profile=3");
+  const form = setup("?tab=read");
   const snapshot = {
     draft: "d", revision: 1,
     document: {title: "Captured title", html: "<p>Captured</p>", metadata: {}},
@@ -446,8 +471,7 @@ test("PDF request captures the Read-rendered document and reading style", async 
   await settle();
   const pdf = requests.at(-1);
   assert.equal(JSON.parse(pdf.body).document.title, "Captured title");
-  assert.equal(new URL(pdf.url).searchParams.get("style"), "chosen-style");
-  assert.equal(new URL(pdf.url).searchParams.get("style_profile"), "3");
+  assert.equal(new URL(pdf.url).searchParams.get("presentation"), "signed-appearance-snapshot");
   const message = document.querySelector("#workspace-action-status").textContent;
   assert.match(message, /Draft preview - Captured title é\.pdf/);
   assert.match(message, /unsaved draft content only/);
@@ -467,7 +491,8 @@ test("PDF refuses content changed after Read and refreshes Read instead", async 
   document.querySelector("#workspace-download-pdf").click();
   await settle();
   assert.deepEqual(requests.map(request => request.url), [
-    "/versions/12/editor/read-preview/", "/versions/12/editor/read-preview/",
+    "http://localhost/versions/12/editor/read-preview/",
+    "http://localhost/versions/12/editor/read-preview/?presentation=signed-appearance-snapshot",
   ]);
   assert.match(document.querySelector("#workspace-action-status").textContent
     + document.querySelector("#workspace-download-pdf").textContent, /saved version PDF/);
@@ -518,7 +543,9 @@ test("each main tab keeps its own document position and new tabs start at the to
   globalThis.fetch = url => Promise.resolve(String(url).includes("read-preview") ? {
     ok: true,
     headers: {get: () => "application/json"},
-    json: async () => ({html: "<p>Rendered</p>", state: "exact", revision: 0}),
+    json: async () => ({
+      html: "<p>Rendered</p>", state: "exact", revision: 0, appearance: appearance(),
+    }),
   } : {ok: true, text: async () => '<div class="document-lineage"><p>Evidence</p></div>'});
   mount(form, {
     draft: null, revision: 0,
@@ -558,7 +585,10 @@ test("user scrolling wins over a remembered position while Read is still loading
   finishRead({
     ok: true,
     headers: {get: () => "application/json"},
-    json: async () => ({html: "<p>Long rendered content</p>", state: "draft", revision: 0}),
+    json: async () => ({
+      html: "<p>Long rendered content</p>", state: "draft", revision: 0,
+      appearance: appearance(),
+    }),
   });
   await settle();
   assert.equal(page.top, 250, "Replacing Read content keeps the user's current position.");
@@ -581,7 +611,9 @@ test("a late Read response does not move the page of another active tab", async 
   finishRead({
     ok: true,
     headers: {get: () => "application/json"},
-    json: async () => ({html: "<p>Rendered</p>", state: "exact", revision: 0}),
+    json: async () => ({
+      html: "<p>Rendered</p>", state: "exact", revision: 0, appearance: appearance(),
+    }),
   });
   await settle();
   assert.equal(page.top, 900);

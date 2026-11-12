@@ -1,58 +1,133 @@
+function csrfToken(panel) {
+  return panel.querySelector('[name="csrfmiddlewaretoken"]')?.value || "";
+}
+
+function validLayer(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
 export function mountReadingStyles(panel) {
-  const owner = panel.ownerDocument, view = owner.defaultView;
-  const defaultsOnly = panel.hasAttribute("data-defaults-only");
+  const owner = panel.ownerDocument;
+  const view = owner.defaultView;
   const form = panel.querySelector(".reading-style-settings");
-  const profile = form.elements.style_profile;
-  const save = panel.querySelector(".reading-style-save");
+  if (!form) return;
+
   const status = panel.querySelector(".reading-style-status");
   const error = panel.querySelector(".reading-style-error");
+  const scopeSelect = panel.querySelector("[data-style-scope]");
+  const typeSelect = panel.querySelector("[data-style-type]");
+  const workspace = owner.querySelector("#unified-workspace");
+  const accountSettings = panel.hasAttribute("data-account-settings");
+  const authenticated = panel.dataset.authenticated === "true";
+  const renditionId = panel.dataset.renditionId || "";
+  const outputId = panel.dataset.outputId || "";
+  const importBox = panel.querySelector(".reading-style-import");
+  const importGuestButton = panel.querySelector("[data-import-guest]");
+  const clearGuestButton = panel.querySelector("[data-clear-guest]");
+  const guestKey = outputId ? `reading-hub:reading-style:v1:${outputId}` : "";
   const downloads = [...owner.querySelectorAll("[data-reading-pdf]")];
+  const downloadPaths = downloads.map(link => new URL(link.href, view.location.href).pathname);
+  const inputs = [...form.elements].filter(input => input.name);
   const mutations = new Set();
-  let generation = 0, controller = null, timer = null, pending = false;
-  const pdfPaths = downloads.map(link => new URL(link.href).pathname);
-  const settingNames = [...form.elements].map(input => input.name).filter(name =>
-    name && !["style_profile", "style_action", "draft", "revision"].includes(name));
-  panel.classList.add("reading-style-live");
+  let generation = 0;
+  let controller = null;
+  let guestLayer = {};
+  let guestStorageError = "";
+  let activeScope = panel.dataset.scope || "output";
+  let activeType = panel.dataset.workType || "other";
+  let activeLayers = {};
 
   function showError(message) {
     error.textContent = message;
     error.hidden = !message;
   }
-  function syncControls() {
-    if (save) {
-      save.querySelector("[value=update]").disabled =
-        pending || mutations.has(save) || !save.elements.profile_id.value;
-      save.querySelector("[value=create]").disabled = pending || mutations.has(save);
-    }
-    for (const link of downloads) {
-      link.setAttribute("aria-disabled", String(pending));
-      if (pending) link.removeAttribute("href");
+
+  function readGuestLayer() {
+    if (!guestKey) return {};
+    try {
+      const saved = view.localStorage.getItem(guestKey);
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      if (!validLayer(parsed)) throw new Error("Stored preferences are not an object.");
+      return parsed;
+    } catch (failure) {
+      guestStorageError = `Could not read this version’s guest settings (${failure.message}). ` +
+        "Clear them to continue. Clearing browser storage also removes guest preferences.";
+      showError(guestStorageError);
+      return {};
     }
   }
-  downloads.forEach(link => link.addEventListener("click", event => {
-    if (pending) event.preventDefault();
-  }));
-  async function responseData(response) {
-    const json = response.headers.get("content-type")?.includes("application/json");
-    const data = json ? await response.json() : null;
-    if (!response.ok) {
-      const message = data?.error || (json ? "" : await response.text());
-      throw new Error(message && !message.trim().startsWith("<")
-        ? message : `Request failed (${response.status}). Reload and retry.`);
+
+  function writeGuestLayer(layer) {
+    if (!guestKey) return false;
+    try {
+      if (Object.keys(layer).length) view.localStorage.setItem(guestKey, JSON.stringify(layer));
+      else view.localStorage.removeItem(guestKey);
+      guestStorageError = "";
+      return true;
+    } catch (failure) {
+      guestStorageError = `Applied in this tab, but browser storage failed (${failure.message}). ` +
+        "This guest choice may be lost when you leave or reload.";
+      showError(guestStorageError);
+      return false;
     }
-    if (!data) throw new Error("The server returned an invalid style response.");
-    return data;
   }
+
+  function setInputs(settings) {
+    for (const [key, value] of Object.entries(settings || {})) {
+      const input = form.elements.namedItem(key);
+      if (!input) continue;
+      if (input.type === "checkbox") input.checked = value;
+      else input.value = value;
+    }
+  }
+
+  function setOriginLabels(origins = {}, layers = activeLayers) {
+    const active = layers?.[activeScope] || {};
+    for (const node of panel.querySelectorAll("[data-style-origin-for]")) {
+      const key = node.dataset.styleOriginFor;
+      node.textContent = origins[key]?.label || "Built-in";
+    }
+    for (const button of panel.querySelectorAll("[data-reset-setting]")) {
+      button.disabled = !Object.hasOwn(active, button.dataset.resetSetting);
+    }
+  }
+
+  function syncPresentation(data) {
+    setInputs(data.settings);
+    activeType = data.work_type || activeType;
+    activeLayers = data.layers || activeLayers;
+    panel.dataset.workType = activeType;
+    panel.dataset.outputId = data.output_id || outputId;
+    if (typeSelect) typeSelect.value = activeType;
+    const typeLabel = panel.querySelector("[data-style-type-label]");
+    if (typeLabel) typeLabel.textContent = `Work type: ${activeType[0].toUpperCase()}${activeType.slice(1)}`;
+    setOriginLabels(data.origins, activeLayers);
+    if (data.presentation && workspace) {
+      workspace.dataset.readingPresentation = data.presentation;
+      workspace.dataset.readingStyleUrl = data.stylesheet;
+      workspace.dataset.readingStyleType = activeType;
+      workspace.dataset.readingStyleGuest = JSON.stringify(guestLayer);
+    }
+    for (const [index, link] of downloads.entries()) {
+      const url = new URL(downloadPaths[index], view.location.href);
+      url.searchParams.set("presentation", data.presentation);
+      link.href = `${url.pathname}${url.search}`;
+    }
+  }
+
   function prepareSheet(url, signal) {
     return new Promise((resolve, reject) => {
       const link = owner.createElement("link");
       link.rel = "stylesheet";
       link.media = "not all";
       link.href = url;
+      link.dataset.readingStyle = "";
       const fail = () => {
         link.remove();
-        reject(new Error(signal.aborted ? "Style update cancelled or timed out." :
-          "The style sheet could not load. The previous style is still displayed."));
+        reject(new Error(signal.aborted
+          ? "Style update cancelled or timed out."
+          : "The style sheet could not load. The previous style is still displayed."));
       };
       signal.addEventListener("abort", fail, {once: true});
       link.onerror = fail;
@@ -63,172 +138,229 @@ export function mountReadingStyles(panel) {
       owner.head.append(link);
     });
   }
-  async function apply(loadProfile = false) {
+
+  async function responseData(response) {
+    const data = response.headers.get("content-type")?.includes("application/json")
+      ? await response.json() : null;
+    if (!response.ok) {
+      throw new Error(data?.error || `Reading style request failed (${response.status}).`);
+    }
+    if (!data) throw new Error("The server returned an invalid reading style response.");
+    return data;
+  }
+
+  async function requestStyle({
+    scope = activeScope, workType = activeType, changes = {}, reset = [],
+  } = {}) {
     const current = ++generation;
     controller?.abort();
     controller = new view.AbortController();
     const signal = controller.signal;
     const activeController = controller;
     const timeout = view.setTimeout(() => activeController.abort(), 15000);
-    pending = true;
-    const oldLinks = downloads.map(link => link.href || link.dataset.appliedHref);
-    downloads.forEach((link, index) => { if (oldLinks[index]) link.dataset.appliedHref = oldLinks[index]; });
-    syncControls();
+    status.textContent = "Applying reading style…";
     showError("");
-    status.textContent = defaultsOnly ? "Updating publication & PDF defaults…" : "Updating displayed style and PDF…";
     let sheet;
     try {
-      if (!loadProfile && !form.reportValidity()) throw new Error("Check the highlighted settings.");
-      const reset = loadProfile && profile.value === "__default__";
-      const params = reset ? new URLSearchParams({style_action: "default"})
-        : loadProfile ? new URLSearchParams({
-          style_profile: profile.value, style_action: "load",
-        }) : new URLSearchParams(new view.FormData(form));
-      if (!loadProfile) params.set("style_action", "apply");
-      const data = await responseData(await view.fetch(`${panel.dataset.previewUrl}?${params}`, {
-        signal, headers: {Accept: "application/json"},
-      }));
-      if (current !== generation) return;
-      if (!defaultsOnly) sheet = await prepareSheet(data.stylesheet, signal);
-      if (current !== generation) { sheet?.remove(); return; }
+      const payload = {
+        scope, work_type: workType, changes, reset,
+        ...(renditionId ? {rendition_id: Number(renditionId)} : {}),
+        ...(!authenticated && scope === "output" ? {guest_overrides: guestLayer} : {}),
+      };
+      const response = await view.fetch(panel.dataset.previewUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRFToken": csrfToken(panel),
+        },
+        body: JSON.stringify(payload),
+        signal,
+      });
+      const data = await responseData(response);
+      if (current !== generation) return null;
+      if (!accountSettings) sheet = await prepareSheet(data.stylesheet, signal);
+      if (current !== generation) { sheet?.remove(); return null; }
       if (signal.aborted) throw new Error("Style update timed out.");
-      const url = new URL(view.location.href);
-      for (const name of [...settingNames, "style_action"]) url.searchParams.delete(name);
-      if (reset) url.searchParams.delete("style");
-      else url.searchParams.set("style", data.token);
-      if (loadProfile && profile.value && !reset) url.searchParams.set("style_profile", profile.value);
-      else url.searchParams.delete("style_profile");
-      view.history.replaceState(view.history.state, "", url);
-      if (loadProfile) {
-        for (const [key, value] of Object.entries(data.settings)) {
-          const input = form.elements[key];
-          if (input.type === "checkbox") input.checked = value;
-          else input.value = value;
+      if (!authenticated && scope === "output") {
+        guestLayer = data.layer || {};
+        writeGuestLayer(guestLayer);
+      }
+      const old = owner.querySelector("link[data-reading-style]");
+      if (!accountSettings) {
+        old?.remove();
+        sheet.media = "all";
+        if (workspace && workspace.dataset.activeTab === "read") {
+          sheet.dataset.workspaceReadingStyle = "";
         }
       }
-      if (!defaultsOnly) {
-        owner.querySelector("[data-reading-style]")?.remove();
-        sheet.media = "all";
-        sheet.dataset.readingStyle = "";
+      activeScope = scope;
+      if (scopeSelect) scopeSelect.value = scope;
+      syncPresentation(data);
+      panel.dataset.scope = scope;
+      importBox?.removeAttribute("hidden");
+      if (importBox && (!authenticated || !Object.keys(guestLayer).length)) {
+        importBox.hidden = true;
       }
-      for (const input of panel.querySelectorAll('input[name="style"]')) input.value = data.token;
-      const workspace = owner.querySelector("#unified-workspace");
-      if (workspace) workspace.dataset.readingStyleUrl = data.stylesheet;
-      downloads.forEach((link, index) => {
-        link.href = `${pdfPaths[index]}?style=${encodeURIComponent(data.token)}`;
-        link.dataset.appliedHref = link.href;
-      });
-      if (loadProfile && save) {
-        save.elements.profile_id.value = reset
-          ? (panel.dataset.default === "marxist" ? "" : panel.dataset.default)
-          : profile.value === "marxist" ? "" : profile.value;
-      }
-      if (reset) profile.value = panel.dataset.default;
-      if (!loadProfile) profile.value = "";
-      status.textContent = reset
-        ? "Account default restored for this view. The saved default was not changed."
-        : defaultsOnly
-        ? "Publication & PDF settings are ready. Save or update a profile, then Set default to reuse it. Editor appearance is unchanged."
-        : "Displayed style and PDF are in sync. Profile changes are saved only with Update or Save as new.";
+      status.textContent = guestStorageError || (
+        accountSettings || scope === "account"
+          ? "My defaults are saved privately to your account."
+          : authenticated
+            ? "This version’s style is saved privately to your account."
+            : "This version’s style is saved in this browser only."
+      );
+      if (guestStorageError) showError(guestStorageError);
+      return data;
     } catch (failure) {
       sheet?.remove();
-      if (current !== generation) return;
-      showError(`${failure.message} ` + (defaultsOnly
-        ? "The previous publication & PDF settings are unchanged."
-        : "The previous displayed style and PDF are unchanged."));
-      status.textContent = "Style not applied.";
+      if (current !== generation) return null;
+      showError(failure.message);
+      status.textContent = "Style not applied; the previous displayed style remains.";
+      return null;
     } finally {
       view.clearTimeout(timeout);
-      if (current === generation) {
-        pending = false;
-        downloads.forEach(link => { if (link.dataset.appliedHref) link.href = link.dataset.appliedHref; });
-        syncControls();
-      }
     }
   }
-  function schedule() {
-    view.clearTimeout(timer);
-    // Cancel an older in-flight response as soon as the controls change.
-    generation++;
-    controller?.abort();
-    timer = view.setTimeout(() => apply(false), 120);
+
+  function settingValue(input) {
+    return input.type === "checkbox" ? input.checked : input.value;
   }
-  function chooseFont(input) {
+
+  function currentType() {
+    return typeSelect?.value || activeType;
+  }
+
+  function setFontMode(input) {
     if (["body_font", "title_font", "metadata_font", "contents_font", "code_font"].includes(input.name)) {
       form.elements.font_mode.value = "mixed";
+      return {font_mode: "mixed", [input.name]: settingValue(input)};
     }
+    return {[input.name]: settingValue(input)};
   }
-  form.addEventListener("input", event => {
-    if (event.target !== profile) {
-      chooseFont(event.target);
-      schedule();
-    }
-  });
-  form.addEventListener("change", event => {
-    view.clearTimeout(timer);
-    if (event.target === profile) {
-      apply(Boolean(profile.value));
-    } else {
-      chooseFont(event.target);
-      apply(false);
-    }
-  });
-  form.addEventListener("submit", event => {
-    event.preventDefault();
-    view.clearTimeout(timer);
-    apply(event.submitter?.value === "load");
-  });
-  save?.elements.profile_id.addEventListener("change", syncControls);
-  for (const mutation of panel.querySelectorAll(".reading-style-save,.reading-style-default")) {
-    mutation.addEventListener("submit", async event => {
-      event.preventDefault();
-      if (pending || mutations.has(mutation)) return;
-      mutations.add(mutation);
-      const data = new view.FormData(mutation);
-      if (event.submitter?.name) data.set(event.submitter.name, event.submitter.value);
-      const buttons = [...mutation.querySelectorAll("button")];
-      buttons.forEach(button => { button.disabled = true; });
-      showError("");
-      try {
-        const result = await responseData(await view.fetch(mutation.action, {
-          method: "POST", body: data, headers: {Accept: "application/json"},
-        }));
-        if (result.id) {
-          for (const select of panel.querySelectorAll(
-            'select[name="style_profile"],select[name="profile_id"]',
-          )) {
-            let option = [...select.options].find(item => item.value === String(result.id));
-            if (!option) { option = new view.Option(result.name, result.id); select.add(option); }
-            option.textContent = result.name;
-          }
-          save.elements.profile_id.value = result.id;
-          save.elements.profile_name.value = "";
-          const current = save.elements.style.value === data.get("style");
-          profile.value = current ? result.id : "";
-          if (current) {
-            const url = new URL(view.location.href);
-            url.searchParams.set("style_profile", result.id);
-            view.history.replaceState(null, "", url);
-          }
-          status.textContent = `Saved profile “${result.name}”. ` + (current ?
-            "Reuse it from the Profile list." : "The display has newer unsaved style changes.");
-        } else status.textContent = "Default profile updated for other publications.";
-        panel.dataset.default = result.default;
-        panel.querySelector(".reading-style-default select").value = result.default;
-      } catch (failure) { showError(failure.message); }
-      finally {
-        mutations.delete(mutation);
-        buttons.forEach(button => { button.disabled = false; });
-        syncControls();
-      }
+
+  for (const input of inputs) {
+    input.addEventListener("change", () => {
+      if (!input.name) return;
+      requestStyle({workType: currentType(), changes: setFontMode(input)});
     });
   }
-  status.textContent = defaultsOnly
-    ? "Publication & PDF defaults only. Editor appearance follows the site theme."
-    : "Live preview. PDF follows the displayed settings.";
-  syncControls();
+
+  for (const button of panel.querySelectorAll("[data-reset-setting]")) {
+    button.addEventListener("click", () => requestStyle({
+      workType: currentType(), reset: [button.dataset.resetSetting],
+    }));
+  }
+
+  scopeSelect?.addEventListener("change", () => {
+    activeScope = scopeSelect.value;
+    requestStyle({scope: activeScope, workType: currentType()});
+  });
+
+  typeSelect?.addEventListener("change", () => {
+    const url = new URL(view.location.href);
+    url.searchParams.set("style_type", typeSelect.value);
+    view.history.replaceState(view.history.state, "", url);
+    requestStyle({scope: "account", workType: typeSelect.value});
+  });
+
+  form.addEventListener("submit", event => event.preventDefault());
+
+  clearGuestButton?.addEventListener("click", async () => {
+    try {
+      view.localStorage.removeItem(guestKey);
+      guestLayer = {};
+      guestStorageError = "";
+      await requestStyle({scope: "output", workType: currentType()});
+      status.textContent = "Guest style cleared for this exact version; inherited settings are restored.";
+      showError("");
+    } catch (failure) {
+      showError(`Could not clear browser storage (${failure.message}).`);
+    }
+  });
+
+  importGuestButton?.addEventListener("click", async () => {
+    try {
+      if (!Object.keys(guestLayer).length) throw new Error("There are no guest settings to import.");
+      const response = await view.fetch(panel.dataset.importGuestUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRFToken": csrfToken(panel),
+        },
+        body: JSON.stringify({rendition_id: Number(renditionId), settings: guestLayer}),
+      });
+      const data = await responseData(response);
+      await requestStyle({scope: "output", workType: data.work_type});
+      try { view.localStorage.removeItem(guestKey); } catch (failure) {
+        throw new Error(`Imported successfully, but guest storage could not be cleared (${failure.message}).`);
+      }
+      guestLayer = {};
+      importBox.hidden = true;
+      status.textContent = data.message;
+      showError("");
+    } catch (failure) {
+      showError(failure.message);
+    }
+  });
+
+  const importProfileButton = panel.querySelector("[data-import-profile-url]");
+  importProfileButton?.addEventListener("click", async () => {
+    const profileId = panel.querySelector("[data-legacy-profile]")?.value;
+    if (!profileId) {
+      showError("Choose a legacy profile to import.");
+      return;
+    }
+    try {
+      const response = await view.fetch(importProfileButton.dataset.importProfileUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRFToken": csrfToken(panel),
+        },
+        body: JSON.stringify({profile_id: profileId, work_type: currentType()}),
+      });
+      const data = await responseData(response);
+      await requestStyle({scope: "account", workType: data.work_type});
+      status.textContent = data.message;
+      showError("");
+    } catch (failure) {
+      showError(failure.message);
+    }
+  });
+
+  workspace?.addEventListener("reading-style-snapshot", event => {
+    const appearance = event.detail;
+    if (!appearance) return;
+    activeType = appearance.work_type;
+    if (typeSelect) typeSelect.value = activeType;
+    setInputs(appearance.settings);
+    activeLayers = {...(appearance.layers || activeLayers)};
+    if (!authenticated && activeScope === "output") {
+      activeLayers.output = {...(activeLayers.output || {}), ...guestLayer};
+    }
+    panel.dataset.workType = activeType;
+    setOriginLabels(appearance.origins, activeLayers);
+  });
+
+  if (guestKey) guestLayer = readGuestLayer();
+  if (importBox) {
+    importBox.hidden = !authenticated || !Object.keys(guestLayer).length;
+  }
+  requestStyle({
+    scope: activeScope,
+    workType: currentType(),
+    changes: {},
+  });
 }
 
 if (typeof document !== "undefined") {
-  for (const panel of document.querySelectorAll(".reading-style-controls")) mountReadingStyles(panel);
+  for (const panel of document.querySelectorAll(".reading-style-controls")) {
+    mountReadingStyles(panel);
+  }
 }

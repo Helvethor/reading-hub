@@ -22,6 +22,10 @@ from library import (
 urlpatterns = [
     path("reading-style/preview/", reading_style_views.preview, name="reading-style-preview"),
     path("reading-style.css", reading_style_views.stylesheet, name="reading-style-css"),
+    path("reading-style/import-profile/", reading_style_views.import_legacy_profile,
+         name="reading-style-import-profile"),
+    path("reading-style/import-guest/", reading_style_views.import_guest,
+         name="reading-style-import-guest"),
     path("versions/<int:pk>/reading-style/save/", reading_style_views.save_profile,
          name="reading-style-save"),
     path("versions/<int:pk>/reading-style/default/", reading_style_views.default_profile,

@@ -1,7 +1,6 @@
 import io
 import json
 import subprocess
-from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
@@ -9,13 +8,13 @@ from xml.etree.ElementTree import SubElement
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import TestCase
 from django.urls import reverse
 from pypdf import PdfReader
 from weasyprint import HTML
 from weasyprint.formatting_structure.boxes import MarginBox
 
-from library.models import ReadingStyleProfile
+from library.models import ReadingStyleOutputOverride, ReadingStyleProfile
 from library.services.pdf import PDFExportError, cached_pdf, pdf_content_boxes, render_pdf
 from library.services.reading_styles import (
     DEFAULTS,
@@ -46,26 +45,6 @@ class ReadingStyleTests(TestCase):
                        "paragraph_align": "justify", "title_align": "center",
                        "letter_spacing": .06, "word_spacing": .2, "line_height": 1.8,
                        "italic_to_bold": True, "underline_to_bold": True}
-
-    def test_reset_resolves_account_default_without_changing_it(self):
-        profile = ReadingStyleProfile.objects.create(
-            owner=self.user, name="Comfort", settings=self.custom, is_default=True,
-        )
-        self.client.force_login(self.user)
-        response = self.client.get(reverse("reading-style-preview"), {
-            "style_action": "default", "style": style_token(DEFAULTS),
-            "style_profile": "marxist",
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["settings"], validate_style(self.custom))
-        fallback = self.client.get(self.url, {
-            "style_action": "load", "style_profile": "__default__",
-        })
-        self.assertEqual(fallback.status_code, 200)
-        self.assertEqual(fallback.context["reading_style"], validate_style(self.custom))
-        profile.refresh_from_db()
-        self.assertTrue(profile.is_default)
-        self.assertEqual(profile.settings, self.custom)
 
     def test_strict_settings_and_signed_snapshots_refuse_invalid_input(self):
         self.assertEqual(validate_style(self.custom), self.custom)
@@ -186,35 +165,40 @@ class ReadingStyleTests(TestCase):
         profile = ReadingStyleProfile.objects.create(
             owner=self.user, name="Old cream", settings={**legacy, "contrast": "cream"})
         self.client.force_login(self.user)
-        response = self.client.get(self.url, {"style_profile": profile.pk})
+        response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reading_style"], DEFAULTS)
+        response = self.client.post(
+            reverse("reading-style-import-profile"),
+            json.dumps({"profile_id": profile.pk, "work_type": "other"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["reading_style"]["palette"], "sepia")
         self.assertContains(response, '<option value="sepia" selected>')
         profile.refresh_from_db()
         self.assertEqual(profile.settings, {**legacy, "contrast": "cream"})
-        response = self.client.get(self.url, {**{key: value for key, value in legacy.items()
-                                                 if value is not False},
-                                              "contrast": "high", "style_action": "apply"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["reading_style"]["contrast"], "high")
 
     def test_anonymous_preset_apply_and_pdf_share_exact_settings_without_mutating_prose(self):
         response = self.client.get(self.url)
-        self.assertContains(response, "Marxist")
         self.assertEqual(response.context["reading_style"], DEFAULTS)
         self.assertIn("font-src 'self'", response["Content-Security-Policy"])
-        applied = self.client.get(self.url, {**self.custom, "style_action": "apply"})
+        from library.services.reading_styles import style_presentation_token, token_presentation
+
+        presentation = style_presentation_token(self.custom, "", work_type="other", origins={})
+        applied = self.client.get(self.url, {"presentation": presentation})
         self.assertEqual(applied.status_code, 200)
         soup = BeautifulSoup(applied.content, "html.parser")
         self.assertEqual(soup.select_one("article").decode_contents(), self.version.html)
         self.assertEqual(applied.context["reading_style"], self.custom)
-        self.assertNotIn("csrfmiddlewaretoken", [
-            node.get("name") for node in soup.select("form[method=get] input")
-        ])
+        self.assertIsNone(soup.select_one('form[method="get"] input[name="csrfmiddlewaretoken"]'))
         token = applied.context["reading_style_token"]
         stylesheet = self.client.get(applied.context["reading_style_url"])
         self.assertEqual(stylesheet.content.decode(), style_css(self.custom))
         pdf_link = soup.find("a", string="Download PDF")["href"]
-        self.assertEqual(token_style(parse_qs(urlsplit(pdf_link).query)["style"][0]), self.custom)
+        snapshot = token_presentation(parse_qs(urlsplit(pdf_link).query)["presentation"][0])
+        self.assertEqual(snapshot["settings"], self.custom)
         path = Path(self.temp.name) / "download.pdf"
         path.write_bytes(b"%PDF-test")
         with patch("library.views.cached_pdf", return_value=path) as exporter:
@@ -228,61 +212,35 @@ class ReadingStyleTests(TestCase):
         self.assertEqual(token_style(token), self.custom)
         self.assertFalse(ReadingStyleProfile.objects.exists())
 
-    def test_personal_profile_creation_reuse_replacement_default_and_ownership(self):
+    def test_legacy_profiles_remain_private_and_global_flags_are_not_implicitly_applied(self):
+        from library.models import ReadingStyleAccountDefault
+
+        profile = ReadingStyleProfile.objects.create(
+            owner=self.user, name="Comfort", settings=self.custom, is_default=True,
+        )
         self.client.force_login(self.user)
-        saved = self.client.post(self.save_url, {
-            "profile_name": "Comfort", "style": style_token(self.custom), "make_default": "on",
-        })
-        self.assertEqual(saved.status_code, 302)
-        profile = ReadingStyleProfile.objects.get(owner=self.user)
-        self.assertTrue(profile.is_default)
         response = self.client.get(self.url)
-        self.assertEqual(response.context["reading_style"], self.custom)
-        second = deepcopy(self.version)
-        second.pk = None
-        second.identity = "d" * 64
-        second.save()
-        reused = self.client.get(reverse("reader", args=[second.pk]),
-                                 {"style_profile": profile.pk})
-        self.assertEqual(reused.context["reading_style"], self.custom)
-        # Snapshot URLs remain exact even when the named profile is later replaced.
-        old_token = reused.context["reading_style_token"]
-        self.client.post(self.save_url, {"profile_name": "Comfort", "style": style_token(DEFAULTS)})
-        profile.refresh_from_db()
-        self.assertEqual(profile.settings, DEFAULTS)
-        self.assertTrue(profile.is_default)
-        self.assertEqual(token_style(old_token), self.custom)
-        self.assertEqual(ReadingStyleProfile.objects.count(), 1)
-        self.client.post(self.default_url, {"style_profile": "marxist"})
-        profile.refresh_from_db()
-        self.assertFalse(profile.is_default)
-        self.assertEqual(self.client.get(self.url).context["reading_style"], DEFAULTS)
-        self.client.post(self.default_url, {"style_profile": profile.pk})
+        self.assertEqual(response.context["reading_style"], DEFAULTS)
+        imported = self.client.post(
+            reverse("reading-style-import-profile"),
+            json.dumps({"profile_id": profile.pk, "work_type": "other"}),
+            content_type="application/json",
+        )
+        self.assertEqual(imported.status_code, 200)
+        self.assertEqual(self.client.get(self.url).context["reading_style"], self.custom)
+        default_attempt = self.client.post(self.default_url, {"style_profile": profile.pk})
+        self.assertEqual(default_attempt.status_code, 410)
         profile.refresh_from_db()
         self.assertTrue(profile.is_default)
+        self.assertEqual(profile.settings, self.custom)
+        self.assertEqual(ReadingStyleAccountDefault.objects.filter(owner=self.user).count(), 1)
         self.client.force_login(self.other)
-        self.assertNotContains(self.client.get(self.url), "Comfort")
-        self.assertEqual(self.client.get(self.url, {"style_profile": profile.pk}).status_code, 400)
-        self.assertEqual(self.client.post(self.default_url,
-                                          {"style_profile": profile.pk}).status_code, 404)
-        for invalid in ("", "0", "9999999999999999999999", "Ⅳ"):
-            self.assertEqual(self.client.post(self.default_url,
-                                              {"style_profile": invalid}).status_code, 400)
-        self.assertEqual(self.client.get(self.url, {"style_profile": "9" * 100}).status_code, 400)
-        self.assertEqual(self.client.get(self.url, {"style_profile": "marxist"})
-                         .context["reading_style"], DEFAULTS)
+        self.assertEqual(self.client.get(self.url).context["reading_style"], DEFAULTS)
+        self.assertNotContains(self.client.get(reverse("user-settings")), "Comfort")
         self.assertEqual(self.client.post(self.save_url, {
             "profile_name": "marxist", "style": style_token(self.custom),
         }).status_code, 400)
         self.assertEqual(ReadingStyleProfile.objects.count(), 1)
-        self.client.logout()
-        self.assertEqual(self.client.post(self.save_url, {}).status_code, 302)
-        protected = Client(enforce_csrf_checks=True)
-        protected.force_login(self.user)
-        with self.assertLogs("library", level="WARNING"):
-            self.assertEqual(protected.post(self.save_url, {
-                "profile_name": "Other", "style": style_token(DEFAULTS),
-            }).status_code, 403)
 
     def test_style_digest_cache_binding_and_subprocess_transport(self):
         def build(command, **kwargs):
@@ -302,7 +260,14 @@ class ReadingStyleTests(TestCase):
     def test_live_snapshot_endpoint_and_theme_following_styles_are_read_only(self):
         url = reverse("reading-style-preview")
         settings = {**self.custom, "palette": "theme"}
-        response = self.client.get(url, {**settings, "style_action": "apply"})
+        response = self.client.post(
+            url,
+            json.dumps({
+                "scope": "output", "rendition_id": self.version.pk, "work_type": "other",
+                "changes": settings,
+            }),
+            content_type="application/json",
+        )
         self.assertEqual(response.status_code, 200)
         snapshot = response.json()
         self.assertEqual(snapshot["settings"], settings)
@@ -317,9 +282,9 @@ class ReadingStyleTests(TestCase):
         self.assertIn("background: #faf5ef", css.content.decode())
         self.assertIn("[data-reading-marker]::before", css.content.decode())
         self.assertFalse(ReadingStyleProfile.objects.exists())
-        self.assertEqual(self.client.get(url, {"style_action": "apply"}).status_code, 400)
-        self.assertEqual(self.client.get(url, {"style_profile": 999}).status_code, 400)
-        self.assertEqual(self.client.post(url).status_code, 405)
+        self.assertFalse(ReadingStyleOutputOverride.objects.exists())
+        self.assertEqual(self.client.get(url, {"scope": "output"}).status_code, 400)
+        self.assertEqual(self.client.post(url).status_code, 400)
 
     def test_explicit_profile_update_create_conflicts_and_foreign_update_refusal(self):
         self.client.force_login(self.user)
@@ -330,15 +295,13 @@ class ReadingStyleTests(TestCase):
         self.assertEqual(response.status_code, 200)
         profile = ReadingStyleProfile.objects.get(owner=self.user)
         self.assertEqual(response.json()["id"], profile.pk)
-        self.assertEqual(response.json()["default"], "marxist")
-        self.client.post(self.default_url, {"style_profile": profile.pk}, **headers)
+        self.assertEqual(response.json()["default"], "")
         conflict = self.client.post(self.save_url, {
             "operation": "create", "profile_name": "Comfort", "style": style_token(self.custom),
-            "make_default": "on",
         }, **headers)
         self.assertEqual(conflict.status_code, 409)
         profile.refresh_from_db()
-        self.assertTrue(profile.is_default)
+        self.assertFalse(profile.is_default)
         self.assertEqual(profile.settings, DEFAULTS)
         changed = self.client.post(self.save_url, {
             "operation": "update", "profile_id": profile.pk, "style": style_token(self.custom),
@@ -347,8 +310,9 @@ class ReadingStyleTests(TestCase):
         profile.refresh_from_db()
         self.assertEqual(profile.settings, self.custom)
         self.assertEqual(profile.name, "Comfort")
-        self.assertTrue(profile.is_default)
+        self.assertFalse(profile.is_default)
         self.assertEqual(ReadingStyleProfile.objects.count(), 1)
+        self.assertEqual(self.client.post(self.default_url, {"style_profile": profile.pk}).status_code, 410)
         self.client.force_login(self.other)
         self.assertEqual(self.client.post(self.save_url, {
             "operation": "update", "profile_id": profile.pk, "style": style_token(DEFAULTS),

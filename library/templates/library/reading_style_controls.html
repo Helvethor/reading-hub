@@ -1,73 +1,78 @@
 {% load static %}
-<details class="reading-style-controls" data-preview-url="{% url 'reading-style-preview' %}" data-default="{{ reading_default_profile }}"{% if style_defaults_only %} data-defaults-only open{% endif %}>
-  <summary>Reading &amp; PDF style <span class="reading-style-summary">Fonts · spacing · profiles</span></summary>
+<details class="reading-style-controls"
+  data-preview-url="{% url 'reading-style-preview' %}"
+  data-scope="{% if reading_style_account_settings %}account{% else %}output{% endif %}"
+  data-work-type="{{ reading_style_work_type }}"
+  data-rendition-id="{{ reading_style_rendition_id }}"
+  data-output-id="{{ reading_style_output_id|default:'' }}"
+  data-authenticated="{{ reading_style_authenticated|yesno:'true,false' }}"
+  data-import-guest-url="{% url 'reading-style-import-guest' %}"
+  {% if reading_style_account_settings %}data-account-settings{% endif %}>
+  <summary>Reading &amp; PDF style <span class="reading-style-summary">Personal presentation only</span></summary>
   <div class="reading-style-panel">
-    {% if style_defaults_only %}<p class="reading-style-intro">Defaults for publication &amp; PDF only. The editor always follows the site theme. Save or update a personal profile, then Set default to reuse it on publication pages. This does not change document content or publish it.</p>
-    {% else %}<p class="reading-style-intro">Presentation only. PDF follows the displayed style; page wrapping may differ.</p>{% endif %}
-    <form method="get" class="reading-style-settings">
-      {% if style_preview %}<input type="hidden" name="draft" value="{{ request.GET.draft }}"><input type="hidden" name="revision" value="{{ candidate.revision.revision }}">{% endif %}
-      <div class="reading-style-profile-bar">
-        <label>Profile
-          <select name="style_profile">
-            <option value=""{% if not reading_style_profile %} selected{% endif %}>Custom settings</option>
-            <option value="__default__">Reset to account default</option>
-            <option value="marxist"{% if reading_style_profile == 'marxist' %} selected{% endif %}>{{ reading_preset_name }}</option>
-            {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}"{% if reading_style_profile == profile.pk|stringformat:'s' %} selected{% endif %}>{{ profile.name }}</option>{% endfor %}
-          </select>
-        </label>
-        <button type="submit" name="style_action" value="load" class="secondary reading-style-fallback">Load profile</button>
-      </div>
+    {% if reading_style_account_settings %}
+    <p class="reading-style-intro">My defaults are private to your account, follow you across devices, and apply per setting to this work type. Exact-version overrides take precedence. No preferences are copied to another edition.</p>
+    <label class="reading-style-type">My defaults for
+      <select data-style-type>
+        {% for key, label in style_work_types %}<option value="{{ key }}"{% if reading_style_work_type == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    {% else %}
+    <p class="reading-style-intro">Presentation only; it does not change content, editorial layout or publication state.</p>
+    <p class="reading-style-scope">
+      Apply changes to
+      <select data-style-scope aria-label="Reading style scope">
+        <option value="output" selected>This version</option>
+        {% if reading_style_authenticated %}<option value="account">My defaults · {{ reading_style_work_type|title }}</option>{% endif %}
+      </select>
+      <span data-style-type-label>Work type: {{ reading_style_work_type|title }}</span>
+    </p>
+    {% endif %}
+    <form method="post" class="reading-style-settings">
+      {% csrf_token %}
       <div class="reading-style-groups">
         {% for title, fields in reading_style_groups %}
         <details{% if forloop.first %} open{% endif %} class="reading-style-group">
           <summary>{{ title }}</summary>
           {% if forloop.counter == 2 %}<p class="reading-style-note">Choosing a font here switches to Mixed.</p>{% endif %}
           <div class="reading-style-fields">
-            {% for field in fields %}<div class="reading-style-field{% if field.field.widget.input_type == 'checkbox' %} reading-style-switch{% endif %}">{{ field.as_field_group }}</div>{% endfor %}
+            {% for field in fields %}
+            <div class="reading-style-field{% if field.field.widget.input_type == 'checkbox' %} reading-style-switch{% endif %}">
+              {{ field.as_field_group }}
+              <span class="reading-style-origin" data-style-origin-for="{{ field.name }}"></span>
+              <button type="button" class="reading-style-reset secondary" data-reset-setting="{{ field.name }}" aria-label="Reset {{ field.label }}">Reset</button>
+            </div>
+            {% endfor %}
           </div>
         </details>
         {% endfor %}
       </div>
-      <button type="submit" name="style_action" value="apply" class="reading-style-fallback">Apply to publication &amp; PDF</button>
     </form>
-    <p class="reading-style-status" role="status" aria-live="polite">Live updates when JavaScript is available.</p>
-    <p class="reading-style-error" role="alert" hidden></p>
-    {% if user.is_authenticated and not style_preview %}
-    <div class="reading-style-profiles">
-      <form method="post" action="{% url 'reading-style-save' version.pk %}" class="reading-style-save">
-        {% csrf_token %}<input type="hidden" name="style" value="{{ reading_style_token }}">
-        <div class="reading-style-profile-bar">
-          <label>Update saved profile
-            <select name="profile_id">
-              <option value="">Choose your profile</option>
-              {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}"{% if reading_style_profile == profile.pk|stringformat:'s' %} selected{% endif %}>{{ profile.name }}</option>{% endfor %}
-            </select>
-          </label>
-          <button type="submit" name="operation" value="update" class="secondary">Update profile</button>
-        </div>
-        <details class="reading-style-new">
-          <summary>Save as new profile</summary>
-          <div class="reading-style-profile-bar">
-            <label>New profile name <input name="profile_name" maxlength="100" placeholder="e.g. Evening reading"></label>
-            <button type="submit" name="operation" value="create">Save as new</button>
-          </div>
-        </details>
-      </form>
-      <form method="post" action="{% url 'reading-style-default' version.pk %}" class="reading-style-default">
-        {% csrf_token %}
-        <div class="reading-style-profile-bar">
-          <label>Default for other publications
-            <select name="style_profile">
-              <option value="marxist"{% if reading_default_profile == 'marxist' %} selected{% endif %}>{{ reading_preset_name }}</option>
-              {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}"{% if profile.is_default %} selected{% endif %}>{{ profile.name }}</option>{% endfor %}
-            </select>
-          </label>
-          <button type="submit" class="secondary">Set default</button>
-        </div>
-      </form>
+    {% if not reading_style_account_settings and reading_style_authenticated %}
+    <div class="reading-style-import" hidden>
+      <p>A guest style is stored in this browser for this exact version. It has not changed your account settings.</p>
+      <button type="button" data-import-guest>Import guest style for this version</button>
     </div>
-    {% elif not user.is_authenticated %}<p class="reading-style-note">Sign in to save, update and reuse personal profiles.</p>{% endif %}
-    <p class="reading-style-note">Marxist is shared and read-only. OpenDyslexic is an optional preference, not a guarantee of easier reading. Fonts are locally bundled under the SIL OFL; missing glyphs may use fallback fonts.</p>
+    {% elif not reading_style_account_settings %}
+    <p class="reading-style-note" data-guest-storage-note>Guest choices are stored in this browser for this exact version. Clearing browser storage loses them; they are not synced across devices.</p>
+    <button type="button" class="secondary" data-clear-guest>Clear this version’s guest style</button>
+    {% endif %}
+    {% if reading_style_account_settings and reading_style_authenticated %}
+    <details class="reading-style-legacy">
+      <summary>Import a legacy reading profile</summary>
+      <p>Existing profiles and ownership remain unchanged. Import copies one validated profile into My defaults for the selected type; it does not apply the old global default or change other types.</p>
+      <label>Legacy profile
+        <select data-legacy-profile>
+          <option value="">Choose a profile</option>
+          {% for profile in reading_style_profiles %}<option value="{{ profile.pk }}">{{ profile.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <button type="button" data-import-profile-url="{% url 'reading-style-import-profile' %}">Import into My defaults</button>
+    </details>
+    {% endif %}
+    <p class="reading-style-status" role="status" aria-live="polite"></p>
+    <p class="reading-style-error" role="alert" hidden></p>
+    <p class="reading-style-note">Defaults currently use the standard baseline for every supported type. “Other” is the documented fallback when a type is missing or unknown.</p>
   </div>
 </details>
 <script type="module" src="{% static 'library/reading-styles.js' %}?v={{ reading_style_version }}"></script>

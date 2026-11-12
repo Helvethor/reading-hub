@@ -176,6 +176,64 @@ export function mountWorkspaceShell({
   const tabPositions = new Map();
   let pendingPosition = null;
 
+  async function applyReadAppearance(appearance) {
+    if (!appearance?.stylesheet || !appearance.presentation) {
+      throw new Error("Read did not return a complete appearance snapshot.");
+    }
+    workspace.dataset.readingStyleUrl = appearance.stylesheet;
+    workspace.dataset.readingPresentation = appearance.presentation;
+    workspace.dataset.readingStyleType = appearance.work_type;
+    const current = document.querySelector("link[data-workspace-reading-style]");
+    if (!current || current.href !== new URL(appearance.stylesheet, location.href).href) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.media = "not all";
+      link.href = appearance.stylesheet;
+      link.dataset.readingStyle = "";
+      link.dataset.workspaceReadingStyle = "";
+      await new Promise((resolve, reject) => {
+        const fail = () => {
+          link.remove();
+          reject(new Error("The resolved reading style could not load; PDF is unavailable."));
+        };
+        link.onerror = fail;
+        link.onload = () => {
+          current?.remove();
+          link.media = "all";
+          resolve();
+        };
+        document.head.append(link);
+      });
+    }
+    workspace.dispatchEvent(new CustomEvent("reading-style-snapshot", {detail: appearance}));
+  }
+
+  async function resolveStyleForType(workType, requestId) {
+    const url = new URL(workspace.dataset.readingStylePreviewUrl, location.href);
+    const guest = workspace.dataset.readingStyleGuest
+      ? JSON.parse(workspace.dataset.readingStyleGuest) : {};
+    const response = await fetch(url.href, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-CSRFToken": csrfToken(form),
+      },
+      body: JSON.stringify({
+        scope: "output",
+        rendition_id: Number(workspace.dataset.versionId),
+        work_type: workType,
+        guest_overrides: guest,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Style resolution failed (${response.status}).`);
+    if (requestId !== readRequest) return;
+    await applyReadAppearance(result);
+  }
+
   function updateState({draft, revision, dirty}) {
     compactState.textContent = `Edition ${workspace.dataset.versionId}` +
       (draft ? ` · rev ${revision || "0"}` : " · source") +
@@ -303,10 +361,20 @@ export function mountWorkspaceShell({
   }
 
   async function loadRead(force = false) {
+    const requestId = ++readRequest;
     let payload;
     let body;
     try {
       payload = getSnapshot();
+      const rawType = payload.document?.metadata?.work_type;
+      const supportedTypes = new Set(
+        [...document.querySelectorAll('[name="work_type"] option')].map(option => option.value),
+      );
+      const workType = supportedTypes.has(rawType) ? rawType : "other";
+      if (workType !== workspace.dataset.readingStyleType) {
+        await resolveStyleForType(workType, requestId);
+      }
+      if (requestId !== readRequest) return;
       body = JSON.stringify(payload);
     } catch (error) {
       readSignature = "";
@@ -317,11 +385,14 @@ export function mountWorkspaceShell({
     if (!force && body === readSignature) return;
     readSignature = body;
     showPdfState(null);
-    const requestId = ++readRequest;
     status.textContent = "Rendering the current draft for reading; no content is being saved.";
     readContent.setAttribute("aria-busy", "true");
     try {
-      const response = await fetch(workspace.dataset.readUrl, {
+      const readUrl = new URL(workspace.dataset.readUrl, location.href);
+      if (workspace.dataset.readingPresentation) {
+        readUrl.searchParams.set("presentation", workspace.dataset.readingPresentation);
+      }
+      const response = await fetch(readUrl.href, {
         method: "POST",
         credentials: "same-origin",
         cache: "no-store",
@@ -337,6 +408,7 @@ export function mountWorkspaceShell({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || `Read preview failed (${response.status}).`);
       if (requestId !== readRequest) return;
+      await applyReadAppearance(result.appearance);
       keepActivePosition("read", () => { readContent.innerHTML = result.html; });
       showPdfState(result.state);
       status.textContent = "";
@@ -555,10 +627,8 @@ export function mountWorkspaceShell({
     try {
       const pdfUrl = new URL(workspace.dataset.pdfUrl, location.href);
       const currentUrl = new URL(location.href);
-      for (const name of ["style", "style_profile"]) {
-        if (currentUrl.searchParams.has(name)) {
-          pdfUrl.searchParams.set(name, currentUrl.searchParams.get(name));
-        }
+      if (workspace.dataset.readingPresentation) {
+        pdfUrl.searchParams.set("presentation", workspace.dataset.readingPresentation);
       }
       const response = await fetch(pdfUrl.href, {
         method: "POST",

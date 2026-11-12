@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
@@ -134,6 +135,68 @@ class ReadingStyleProfile(models.Model):
             models.UniqueConstraint(fields=["owner"], condition=Q(is_default=True),
                                     name="one_default_reading_style"),
         ]
+
+
+class ReadingStyleAdminDefault(models.Model):
+    work_type = models.CharField(max_length=32, unique=True)
+    settings = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        from library.services.reading_styles import validate_style_layer, work_type_keys
+
+        if self.work_type not in work_type_keys():
+            raise ValidationError({"work_type": "Choose a supported work type."})
+        try:
+            validate_style_layer(self.settings)
+        except ValueError as exc:
+            raise ValidationError({"settings": str(exc)}) from exc
+
+
+class ReadingStyleAccountDefault(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    work_type = models.CharField(max_length=32)
+    settings = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "work_type"], name="unique_reading_style_account_type",
+            ),
+        ]
+
+    def clean(self):
+        from library.services.reading_styles import validate_style_layer, work_type_keys
+
+        if self.work_type not in work_type_keys():
+            raise ValidationError({"work_type": "Choose a supported work type."})
+        try:
+            validate_style_layer(self.settings)
+        except ValueError as exc:
+            raise ValidationError({"settings": str(exc)}) from exc
+
+
+class ReadingStyleOutputOverride(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    rendition = models.ForeignKey(Rendition, on_delete=models.PROTECT)
+    settings = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "rendition"], name="unique_reading_style_output",
+            ),
+        ]
+
+    def clean(self):
+        from library.services.reading_styles import validate_style_layer
+
+        try:
+            validate_style_layer(self.settings)
+        except ValueError as exc:
+            raise ValidationError({"settings": str(exc)}) from exc
 
 
 class ImmutableDocumentEvidenceQuerySet(models.QuerySet):

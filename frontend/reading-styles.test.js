@@ -2,277 +2,209 @@ import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
 import {mountReadingStyles} from "../library/static/library/reading-styles.js";
-import {applyTheme} from "../library/static/library/themes.js";
 
 let dom;
 afterEach(() => dom?.window.close());
-function fixture({defaultsOnly = false} = {}) {
-  dom = new JSDOM(`<!doctype html><head>${defaultsOnly ? "" : '<link rel="stylesheet" href="/old.css" data-reading-style>'}</head>
-    <body><a href="/versions/2/download.pdf?style=old" data-reading-pdf>Download PDF</a>
-    <article><h2 data-reading-marker="I. ">Exact title</h2><p>Unchanged prose.</p></article>
-    <details class="reading-style-controls" data-preview-url="/reading-style/preview/" data-default="1"${defaultsOnly ? " data-defaults-only" : ""}>
-    <form class="reading-style-settings"><select name="style_profile">
-    <option value="">Custom</option><option value="__default__">Reset</option><option value="marxist" selected>Marxist</option>
-    <option value="1">Comfort</option></select>
-    <input type="number" name="font_size" value="14" min="9" max="28" required>
-    <input type="checkbox" name="italic_to_bold"><button value="apply">Apply</button></form>
-    <p class="reading-style-status"></p><p class="reading-style-error" hidden></p>
-    <form class="reading-style-save" action="/save/">
-    <input name="csrfmiddlewaretoken" value="csrf-fixture">
-    <input name="style" value="old"><select name="profile_id"><option value="">Choose</option>
-    <option value="1">Comfort</option></select><input name="profile_name">
-    <button name="operation" value="update">Update</button>
-    <button name="operation" value="create">Save as new</button></form>
-    <form class="reading-style-default" action="/default/"><select name="style_profile">
-    <option value="marxist">Marxist</option><option value="1">Comfort</option></select>
-    <button>Default</button></form></details></body>`, {url: "http://localhost/versions/2/"});
+
+function fixture({authenticated = false, guest = {}, accountSettings = false} = {}) {
+  const scope = accountSettings
+    ? 'data-account-settings data-scope="account"'
+    : 'data-scope="output"';
+  const scopeControl = authenticated && !accountSettings
+    ? '<select data-style-scope><option value="output">This version</option><option value="account">My defaults</option></select>'
+    : "";
+  const type = accountSettings
+    ? '<select data-style-type><option value="article" selected>Article</option><option value="other">Other</option></select>'
+    : '<span data-style-type-label>Work type: Article</span>';
+  const guestActions = authenticated
+    ? '<div class="reading-style-import" hidden><button data-import-guest>Import guest style</button></div>'
+    : '<button data-clear-guest>Clear guest style</button>';
+  dom = new JSDOM(`<!doctype html><head>
+      <link rel="stylesheet" href="/old.css" data-reading-style>
+    </head><body>
+      <a href="/versions/101/pdf/" data-reading-pdf>Download PDF</a>
+      <details class="reading-style-controls" data-preview-url="/reading-style/preview/"
+        data-work-type="article" data-rendition-id="101" data-output-id="immutable-101"
+        data-authenticated="${authenticated}" data-import-guest-url="/reading-style/import-guest/"
+        ${scope}>
+        ${scopeControl}
+        ${type}
+        <form class="reading-style-settings"><input type="hidden" name="csrfmiddlewaretoken" value="csrf">
+          <label><input type="number" name="font_size" value="14"></label>
+          <label><input type="number" name="letter_spacing" value="0"></label>
+          <label><input type="checkbox" name="italic_to_bold"></label>
+          <button type="button" data-reset-setting="font_size"></button>
+          <button type="button" data-reset-setting="letter_spacing"></button>
+          <button type="button" data-reset-setting="italic_to_bold"></button>
+        </form>
+        <span data-style-origin-for="font_size"></span>
+        <span data-style-origin-for="letter_spacing"></span>
+        <span data-style-origin-for="italic_to_bold"></span>
+        ${guestActions}
+        <p class="reading-style-status"></p><p class="reading-style-error" hidden></p>
+      </details>
+    </body>`, {url: "http://localhost/versions/101/"});
   const {window: view} = dom;
-  const panel = view.document.querySelector("details");
+  if (Object.keys(guest).length) {
+    view.localStorage.setItem("reading-hub:reading-style:v1:immutable-101", JSON.stringify(guest));
+  }
+  const append = view.document.head.append.bind(view.document.head);
+  view.document.head.append = (...nodes) => {
+    append(...nodes);
+    for (const node of nodes) {
+      if (node.tagName === "LINK" && node.media === "not all") {
+        queueMicrotask(() => node.dispatchEvent(new view.Event("load")));
+      }
+    }
+  };
+  const calls = [];
+  view.fetch = async (url, options = {}) => {
+    calls.push({url, options});
+    const body = options.body ? JSON.parse(options.body) : {};
+    if (url === "/reading-style/import-guest/") {
+      return json({imported: true, message: "Guest style was imported."});
+    }
+    const layer = {...(body.guest_overrides || {})};
+    Object.assign(layer, body.changes || {});
+    for (const key of body.reset || []) delete layer[key];
+    for (const key of ["font_size", "letter_spacing"]) {
+      if (typeof layer[key] === "string") layer[key] = Number(layer[key]);
+    }
+    const settings = {font_size: 14, letter_spacing: 0, italic_to_bold: false, ...layer};
+    const origins = Object.fromEntries(Object.keys(settings).map(key => [
+      key, {source: Object.hasOwn(layer, key) ? body.scope || "output" : "built-in",
+        label: Object.hasOwn(layer, key) ? "This version" : "Built-in · Article"},
+    ]));
+    const activeLayers = body.scope === "account"
+      ? {output: {}, account: layer} : {output: layer, account: {}};
+    return json({
+      settings, origins, layers: activeLayers, layer, overridden: Object.keys(layer),
+      work_type: body.work_type || "article", output_id: "immutable-101", rendition_id: 101,
+      scope: body.scope || "output", token: "style-token",
+      presentation: "signed-appearance-token", theme: "", persisted: authenticated,
+      stylesheet: "/reading-style.css?style=style-token&theme=&v=7",
+    });
+  };
+  const panel = view.document.querySelector(".reading-style-controls");
   mountReadingStyles(panel);
-  return {view, panel, form: panel.querySelector(".reading-style-settings"),
-    pdf: view.document.querySelector("[data-reading-pdf]")};
+  return {
+    view, panel, calls,
+    form: panel.querySelector(".reading-style-settings"),
+    pdf: view.document.querySelector("[data-reading-pdf]"),
+    key: "reading-hub:reading-style:v1:immutable-101",
+  };
 }
-const json = (data, status = 200) => ({ok: status === 200, status,
-  headers: new Map([["content-type", "application/json"]]), json: async () => data});
-const tick = () => new Promise(resolve => setTimeout(resolve, 5));
+
+function json(data, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Map([["content-type", "application/json"]]),
+    json: async () => data,
+  };
+}
+
+const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+async function settle(view) {
+  await tick();
+  await tick();
+}
+
 function change(view, input, value) {
-  input.value = value;
+  if (input.type === "checkbox") input.checked = value;
+  else input.value = value;
   input.dispatchEvent(new view.Event("change", {bubbles: true}));
 }
-function snapshot(token, size = 18) {
-  return {token, stylesheet: `/reading-style.css?style=${token}`,
-    settings: {font_size: size, italic_to_bold: true}};
-}
-async function load(view) {
-  await tick();
-  const sheet = view.document.querySelector('link[media="not all"]');
-  assert(sheet, "New CSS must be loaded before replacing the old display.");
-  sheet.dispatchEvent(new view.Event("load"));
-  await tick();
-}
 
-test("a reading style changed after a theme refresh removes the current sheet", async () => {
-  const {view, form} = fixture();
-  const site = view.document.createElement("link");
-  site.rel = "stylesheet";
-  site.href = "/paper.css";
-  site.dataset.siteTheme = "";
-  view.document.head.append(site);
-  const changing = applyTheme(view.document, {theme: "dark", stylesheet: "/dark.css"});
-  for (const sheet of view.document.querySelectorAll('link[media="not all"]')) {
-    sheet.dispatchEvent(new view.Event("load"));
-  }
-  await changing;
-  view.fetch = async () => json(snapshot("after-theme"));
-  change(view, form.elements.font_size, "18");
-  await load(view);
-  assert.equal(view.document.querySelectorAll("link[data-reading-style]").length, 1);
-  assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"),
-    "/reading-style.css?style=after-theme");
-});
-
-test("editor defaults update and save exact profiles without loading publication CSS or changing content", async () => {
-  const {view, panel, form} = fixture({defaultsOnly: true});
-  const original = view.document.querySelector("article").innerHTML;
-  const theme = view.document.createElement("link");
-  theme.rel = "stylesheet";
-  theme.href = "/dark.css";
-  theme.dataset.siteTheme = "";
-  view.document.head.append(theme);
-  view.fetch = async () => json(snapshot("editor-default", 22));
-  change(view, form.elements.style_profile, "1");
-  await tick();
-  assert.equal(form.elements.font_size.value, "22");
-  assert.equal(form.elements.italic_to_bold.checked, true);
-  assert.equal(panel.querySelector('input[name=style]').value, "editor-default");
-  assert.equal(view.document.querySelectorAll("link").length, 1);
-  assert.equal(view.document.querySelector("[data-site-theme]"), theme);
-  assert.match(panel.querySelector(".reading-style-status").textContent, /Editor appearance is unchanged/);
-  const save = panel.querySelector(".reading-style-save");
-  let posted;
-  view.fetch = async (url, options) => {
-    posted = options.body;
-    return json({id: 1, name: "Comfort", default: "marxist"});
-  };
-  save.requestSubmit(save.querySelector("[value=update]"));
-  await tick();
-  assert.equal(posted.get("style"), "editor-default");
-  assert.equal(posted.get("csrfmiddlewaretoken"), "csrf-fixture");
-  const defaults = panel.querySelector(".reading-style-default");
-  defaults.elements.style_profile.value = "1";
-  view.fetch = async (url, options) => {
-    posted = options.body;
-    return json({default: "1"});
-  };
-  defaults.requestSubmit();
-  await tick();
-  assert.equal(posted.get("style_profile"), "1");
-  assert.equal(panel.dataset.default, "1");
-  assert.equal(view.document.querySelector("article").innerHTML, original);
-  assert.equal(view.document.querySelectorAll("link").length, 1);
-});
-
-test("reset restores inherited account default without saving a profile", async () => {
-  const {view, panel, form} = fixture({defaultsOnly: true});
-  view.history.replaceState({workspaceTab: "edit"}, "", "?tab=edit&style=old&style_profile=marxist");
-  let url;
-  view.fetch = async request => { url = request; return json(snapshot("default", 22)); };
-  change(view, form.elements.style_profile, "__default__");
-  await tick();
-  assert.equal(new URL(url, view.location.href).searchParams.get("style_action"), "default");
-  assert.equal(form.elements.font_size.value, "22");
-  assert.equal(form.elements.style_profile.value, "1");
-  assert.equal(panel.querySelector('input[name=style]').value, "default");
-  assert.equal(new URL(view.location).searchParams.has("style"), false);
-  assert.equal(new URL(view.location).searchParams.has("style_profile"), false);
-  assert.equal(view.history.state.workspaceTab, "edit");
-  assert.match(panel.querySelector(".reading-style-status").textContent, /saved default was not changed/);
-});
-
-test("failed editor default settings preserve the previous token and expose the error", async () => {
-  const {view, panel, form} = fixture({defaultsOnly: true});
-  view.fetch = async () => json({error: "Invalid style"}, 400);
-  change(view, form.elements.font_size, "18");
-  await tick();
-  assert.equal(panel.querySelector('input[name=style]').value, "old");
-  assert.match(panel.querySelector(".reading-style-error").textContent, /Invalid style.*settings are unchanged/);
-  assert.equal(view.document.querySelectorAll("link").length, 0);
-});
-
-test("live settings atomically bind CSS, PDF, saved snapshot and history without changing prose", async () => {
-  const {view, panel, form, pdf} = fixture();
-  const original = view.document.querySelector("article").innerHTML;
-  let url;
-  view.fetch = async request => { url = request; return json(snapshot("new")); };
-  change(view, form.elements.font_size, "18");
-  assert.equal(pdf.hasAttribute("href"), false);
-  assert.equal(panel.querySelector("[value=create]").disabled, true);
-  await tick();
-  assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"), "/old.css");
-  assert.equal(new URL(url, view.location.href).searchParams.get("style_action"), "apply");
-  await load(view);
-  assert(pdf.href.endsWith("?style=new"));
-  assert(view.document.querySelector("[data-reading-style]").href.endsWith("style=new"));
-  assert.equal(panel.querySelector('input[name=style]').value, "new");
-  assert.equal(form.elements.style_profile.value, "");
-  assert.equal(new URL(view.location).searchParams.get("style"), "new");
-  assert.equal(view.document.querySelector("article").innerHTML, original);
+test("guest output choices persist sparsely, including false and zero, and reset one key", async () => {
+  const {view, panel, form, calls, pdf, key} = fixture();
+  await settle(view);
   assert.equal(panel.querySelector(".reading-style-error").hidden, true);
+
+  change(view, form.elements.italic_to_bold, false);
+  await settle(view);
+  change(view, form.elements.letter_spacing, "0");
+  await settle(view);
+  assert.deepEqual(JSON.parse(view.localStorage.getItem(key)), {
+    italic_to_bold: false, letter_spacing: 0,
+  });
+  const update = calls.at(-1);
+  assert.equal(update.options.method, "POST");
+  assert.equal(update.options.headers["X-CSRFToken"], "csrf");
+  assert.equal(JSON.parse(update.options.body).changes.letter_spacing, "0");
+  assert.equal(JSON.parse(update.options.body).scope, "output");
+  assert.equal(new URL(pdf.href).searchParams.get("presentation"), "signed-appearance-token");
+  assert.equal(new URL(pdf.href).searchParams.has("style"), false);
+
+  panel.querySelector('[data-reset-setting="letter_spacing"]').click();
+  await settle(view);
+  assert.deepEqual(JSON.parse(view.localStorage.getItem(key)), {italic_to_bold: false});
+  assert.equal(panel.querySelector('[data-reset-setting="letter_spacing"]').disabled, true);
+  assert.equal(panel.querySelector('[data-reset-setting="italic_to_bold"]').disabled, false);
+  assert.match(panel.querySelector('[data-style-origin-for="italic_to_bold"]').textContent,
+    /This version/);
 });
 
-test("newer selections win even if an older server response arrives last", async () => {
-  const {view, form, pdf} = fixture();
-  const responses = [];
-  view.fetch = () => new Promise(resolve => responses.push(resolve));
-  change(view, form.elements.font_size, "16");
-  change(view, form.elements.font_size, "20");
-  responses[1](json(snapshot("latest", 20)));
-  await load(view);
-  responses[0](json(snapshot("stale", 16)));
-  await tick();
-  assert(pdf.href.endsWith("style=latest"));
-  assert.equal(view.document.querySelectorAll("link").length, 1);
-});
-
-test("stylesheet or server failure preserves previous display and PDF and surfaces an error", async () => {
-  const {view, panel, form, pdf} = fixture();
-  view.fetch = async () => json(snapshot("failed"));
+test("signed-in controls persist only changed fields in the selected private layer", async () => {
+  const {view, panel, form, calls} = fixture({authenticated: true});
+  await settle(view);
+  const scope = panel.querySelector("[data-style-scope]");
+  change(view, scope, "account");
+  await settle(view);
   change(view, form.elements.font_size, "18");
-  await tick();
-  view.document.querySelector('link[media="not all"]').dispatchEvent(new view.Event("error"));
-  await tick();
-  assert(pdf.href.endsWith("style=old"));
-  assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"), "/old.css");
-  assert.match(panel.querySelector(".reading-style-error").textContent, /could not load/);
-  view.fetch = async () => json({error: "Invalid style"}, 400);
-  change(view, form.elements.font_size, "19");
-  await tick();
-  assert.match(panel.querySelector(".reading-style-error").textContent, /Invalid style/);
-  assert(pdf.href.endsWith("style=old"));
+  await settle(view);
+  const request = JSON.parse(calls.at(-1).options.body);
+  assert.equal(request.scope, "account");
+  assert.equal(request.rendition_id, 101);
+  assert.deepEqual(request.changes, {font_size: "18"});
+  assert.deepEqual(request.reset, []);
+  assert.equal(panel.querySelector(".reading-style-status").textContent,
+    "My defaults are saved privately to your account.");
+  panel.querySelector('[data-reset-setting="font_size"]').click();
+  await settle(view);
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body).reset, ["font_size"]);
 });
 
-test("loading a profile fills controls and explicit update/create posts bind exact snapshot and CSRF", async () => {
+test("storage failure remains visible while the in-memory style is applied", async () => {
   const {view, panel, form} = fixture();
-  view.fetch = async () => json(snapshot("profile", 22));
-  change(view, form.elements.style_profile, "1");
-  await load(view);
-  assert.equal(form.elements.font_size.value, "22");
-  assert.equal(form.elements.italic_to_bold.checked, true);
-  const save = panel.querySelector(".reading-style-save");
-  assert.equal(save.elements.profile_id.value, "1");
-  let posted;
+  Object.defineProperty(view, "localStorage", {
+    configurable: true,
+    get() { throw new Error("storage denied"); },
+  });
+  await settle(view);
+  change(view, form.elements.italic_to_bold, true);
+  await settle(view);
+  assert.match(panel.querySelector(".reading-style-error").textContent, /browser storage failed/);
+  assert.match(panel.querySelector(".reading-style-status").textContent, /Applied in this tab/);
+  assert.equal(view.document.querySelector("link[data-reading-style]").href
+    .includes("style-token"), true);
+});
+
+test("guest settings are imported only on explicit action and errors retain local data", async () => {
+  const {view, panel, calls, key} = fixture({
+    authenticated: true, guest: {font_size: 18, italic_to_bold: true},
+  });
+  await settle(view);
+  const importBox = panel.querySelector(".reading-style-import");
+  assert.equal(importBox.hidden, false);
+  let rejectImport = true;
+  const originalFetch = view.fetch;
   view.fetch = async (url, options) => {
-    posted = options.body;
-    return json({id: 1, name: "Comfort", default: "marxist"});
+    if (url === "/reading-style/import-guest/" && rejectImport) {
+      calls.push({url, options});
+      return json({error: "Import rejected."}, 400);
+    }
+    return originalFetch(url, options);
   };
-  save.requestSubmit(save.querySelector("[value=update]"));
-  await tick();
-  assert.equal(posted.get("operation"), "update");
-  assert.equal(posted.get("profile_id"), "1");
-  assert.equal(posted.get("style"), "profile");
-  assert.equal(posted.get("csrfmiddlewaretoken"), "csrf-fixture");
-  save.elements.profile_name.value = "New name";
-  view.fetch = async (url, options) => {
-    posted = options.body;
-    return json({id: 2, name: "New name", default: "marxist"});
-  };
-  save.requestSubmit(save.querySelector("[value=create]"));
-  await tick();
-  assert.equal(posted.get("operation"), "create");
-  assert.equal(posted.get("profile_name"), "New name");
-  assert.equal(form.elements.style_profile.value, "2");
-  assert.equal(save.elements.profile_id.value, "2");
-  assert.equal(new URL(view.location).searchParams.get("style_profile"), "2");
-});
+  importBox.querySelector("[data-import-guest]").click();
+  await settle(view);
+  assert.match(panel.querySelector(".reading-style-error").textContent, /Import rejected/);
+  assert.notEqual(view.localStorage.getItem(key), null);
 
-test("choosing a per-purpose font switches to Mixed and invalid input keeps the applied PDF", async () => {
-  const {view, form, pdf, panel} = fixture();
-  form.insertAdjacentHTML("beforeend", '<select name="font_mode"><option value="dyslexic">All</option>' +
-    '<option value="mixed">Mixed</option></select><select name="body_font">' +
-    '<option value="serif">Serif</option><option value="sans">Sans</option></select>');
-  let requests = 0;
-  view.fetch = async url => {
-    requests++;
-    assert.equal(new URL(url, view.location).searchParams.get("font_mode"), "mixed");
-    return json(snapshot("mixed"));
-  };
-  change(view, form.elements.body_font, "sans");
-  await load(view);
-  assert.equal(form.elements.font_mode.value, "mixed");
-  change(view, form.elements.font_size, "100");
-  await tick();
-  assert.equal(requests, 1);
-  assert(pdf.href.endsWith("style=mixed"));
-  assert.match(panel.querySelector(".reading-style-error").textContent, /highlighted settings/);
-});
-
-test("failure to bind the snapshot URL leaves the old stylesheet and PDF intact", async () => {
-  const {view, form, pdf, panel} = fixture();
-  view.fetch = async () => json(snapshot("new"));
-  view.history.replaceState = () => { throw new Error("History update refused"); };
-  change(view, form.elements.font_size, "18");
-  await load(view);
-  assert.equal(view.document.querySelector("[data-reading-style]").getAttribute("href"), "/old.css");
-  assert(pdf.href.endsWith("style=old"));
-  assert.match(panel.querySelector(".reading-style-error").textContent, /History update refused/);
-});
-
-test("a delayed profile save cannot relabel a newer live style as the saved profile", async () => {
-  const {view, form, panel, pdf} = fixture();
-  const save = panel.querySelector(".reading-style-save");
-  let finishSave;
-  view.fetch = (url, options) => options.method === "POST"
-    ? new Promise(resolve => { finishSave = resolve; })
-    : Promise.resolve(json(snapshot("newer")));
-  save.elements.profile_name.value = "Saved earlier";
-  save.requestSubmit(save.querySelector("[value=create]"));
-  change(view, form.elements.font_size, "18");
-  await load(view);
-  assert.equal(save.querySelector("[value=create]").disabled, true);
-  finishSave(json({id: 2, name: "Saved earlier", default: "marxist"}));
-  await tick();
-  assert.equal(form.elements.style_profile.value, "");
-  assert.equal(save.elements.profile_id.value, "2");
-  assert(pdf.href.endsWith("style=newer"));
-  assert.match(panel.querySelector(".reading-style-status").textContent, /newer unsaved/);
+  rejectImport = false;
+  importBox.querySelector("[data-import-guest]").click();
+  await settle(view);
+  assert.equal(view.localStorage.getItem(key), null);
+  assert.equal(importBox.hidden, true);
+  assert.match(panel.querySelector(".reading-style-status").textContent, /explicitly imported|imported/i);
 });

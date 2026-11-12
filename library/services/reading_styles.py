@@ -7,7 +7,12 @@ from django import forms
 from django.core import signing
 from django.urls import reverse
 
-from library.models import ReadingStyleProfile
+from library.models import (
+    ReadingStyleAccountDefault,
+    ReadingStyleAdminDefault,
+    ReadingStyleOutputOverride,
+    ReadingStyleProfile,
+)
 
 FONTS = {
     "serif": ('"Liberation Serif", Georgia, serif', "Liberation Serif (serif)"),
@@ -39,7 +44,9 @@ DEFAULTS = {
 }
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
-STYLE_VERSION = 6
+PRESENTATION_SALT = "reading-hub-presentation-snapshot-v1"
+STYLE_VERSION = 7
+STYLE_SCOPES = ("output", "account")
 
 # (ink, paper, accent) per palette, light/dark mode and contrast level. Accents colour headings
 # and links; None keeps them in the ink colour. Every combination is checked in tests: low
@@ -181,6 +188,12 @@ def validate_style(value):
     for key in ("italic_to_bold", "underline_to_bold", "hyphenation"):
         if type(value[key]) is not bool:
             raise ValueError("Accessibility switches must be boolean.")
+    if any(
+        isinstance(value[key], bool)
+        for key in ("font_size", "line_height", "letter_spacing", "word_spacing",
+                    "paragraph_spacing", "line_width")
+    ):
+        raise ValueError("Numeric reading style settings must be numbers.")
     form = ReadingStyleForm(value)
     if not form.is_valid():
         raise ValueError("Invalid reading style: " + form.errors.as_text())
@@ -201,6 +214,159 @@ def token_style(token):
     return validate_style(value)
 
 
+def work_type_keys():
+    from library.services.document_metadata import WORK_TYPES
+
+    return tuple(key for key, _label in WORK_TYPES)
+
+
+def normalize_work_type(value):
+    return value if isinstance(value, str) and value in work_type_keys() else "other"
+
+
+def validate_style_layer(value):
+    """Validate a sparse override without losing explicit false, zero or reset state."""
+    if not isinstance(value, dict) or set(value) - set(DEFAULTS):
+        raise ValueError("A reading style layer contains an unknown setting.")
+    if not value:
+        return {}
+    return {
+        key: validate_style({**DEFAULTS, **value})[key]
+        for key in value
+    }
+
+
+def style_presentation_token(settings, theme, *, work_type="other", origins=None):
+    from library.themes import THEMES
+
+    if theme not in ("", *THEMES):
+        raise ValueError("Choose an available theme.")
+    kind = normalize_work_type(work_type)
+    origins = origins or {}
+    if not isinstance(origins, dict) or set(origins) - set(DEFAULTS):
+        raise ValueError("Appearance origins are invalid.")
+    safe_origins = {}
+    for key, origin in origins.items():
+        if (
+            not isinstance(origin, dict)
+            or set(origin) != {"source", "label"}
+            or not all(isinstance(value, str) for value in origin.values())
+        ):
+            raise ValueError("Appearance origins are invalid.")
+        safe_origins[key] = dict(origin)
+    return signing.dumps({
+        "version": 1, "settings": validate_style(settings), "theme": theme,
+        "work_type": kind, "origins": safe_origins,
+    }, salt=PRESENTATION_SALT, compress=True)
+
+
+def token_presentation(token):
+    if not isinstance(token, str) or len(token) > 8192:
+        raise ValueError("Invalid appearance snapshot.")
+    try:
+        value = signing.loads(token, salt=PRESENTATION_SALT)
+    except signing.BadSignature as exc:
+        raise ValueError("Appearance snapshot is invalid. Refresh Read and retry.") from exc
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"version", "settings", "theme", "work_type", "origins"}
+        or value["version"] != 1
+    ):
+        raise ValueError("Appearance snapshot is invalid. Refresh Read and retry.")
+    from library.themes import THEMES
+
+    if value["theme"] not in ("", *THEMES):
+        raise ValueError("Appearance snapshot contains an unavailable theme.")
+    if value["work_type"] not in work_type_keys():
+        raise ValueError("Appearance snapshot contains an unavailable work type.")
+    settings = validate_style(value["settings"])
+    origins = value["origins"]
+    if not isinstance(origins, dict) or set(origins) - set(settings):
+        raise ValueError("Appearance snapshot contains invalid origins.")
+    for origin in origins.values():
+        if (
+            not isinstance(origin, dict)
+            or set(origin) != {"source", "label"}
+            or not all(isinstance(item, str) for item in origin.values())
+        ):
+            raise ValueError("Appearance snapshot contains invalid origins.")
+    return {
+        "settings": settings, "theme": value["theme"], "work_type": value["work_type"],
+        "origins": origins,
+    }
+
+
+def resolve_style(work_type="other", *, user=None, rendition=None, guest_overrides=None):
+    """Resolve each setting independently and retain the layer that supplied it."""
+    kind = normalize_work_type(work_type)
+    layers = [
+        ("built-in", f"Built-in · {kind.title()}", dict(DEFAULTS)),
+        (
+            "administrator", f"Administrator · {kind.title()}",
+            (ReadingStyleAdminDefault.objects.filter(work_type=kind)
+             .values_list("settings", flat=True).first() or {}),
+        ),
+    ]
+    if user is not None and getattr(user, "is_authenticated", False):
+        layers.append((
+            "account", f"My defaults · {kind.title()}",
+            (ReadingStyleAccountDefault.objects.filter(owner=user, work_type=kind)
+             .values_list("settings", flat=True).first() or {}),
+        ))
+    if rendition is not None:
+        output = {}
+        if user is not None and getattr(user, "is_authenticated", False):
+            output = (ReadingStyleOutputOverride.objects.filter(
+                owner=user, rendition=rendition,
+            ).values_list("settings", flat=True).first() or {})
+        elif guest_overrides is not None:
+            output = guest_overrides
+        layers.append(("output", "This version", validate_style_layer(output)))
+
+    effective = {}
+    origins = {}
+    layer_values = {}
+    for source, label, values in layers:
+        validated = dict(values) if source == "built-in" else validate_style_layer(values)
+        layer_values[source] = validated
+        for key, value in validated.items():
+            effective[key] = value
+            origins[key] = {"source": source, "label": label}
+    complete = validate_style(effective)
+    return {
+        "settings": complete, "origins": origins, "work_type": kind,
+        "layers": layer_values,
+        "output_id": rendition.identity if rendition is not None else None,
+        "rendition_id": rendition.pk if rendition is not None else None,
+    }
+
+
+def rendition_work_type(rendition):
+    metadata = getattr(rendition, "metadata", None)
+    return normalize_work_type(metadata.get("work_type") if isinstance(metadata, dict) else None)
+
+
+def apply_layer_changes(current, changes, reset=()):
+    values = validate_style_layer(current)
+    patch = validate_style_layer(changes)
+    if not isinstance(reset, (tuple, list)) or any(
+        not isinstance(key, str) or key not in DEFAULTS for key in reset
+    ):
+        raise ValueError("Choose supported reading style settings to reset.")
+    values.update(patch)
+    for key in reset:
+        values.pop(key, None)
+    return values
+
+
+def stylesheet_url(token, theme=""):
+    from urllib.parse import urlencode
+
+    return reverse("reading-style-css") + "?" + urlencode({
+        "style": token, "theme": theme, "v": STYLE_VERSION,
+    })
+
+
 def style_digest(settings):
     return hashlib.sha256(json.dumps(
         [STYLE_VERSION, validate_style(settings)], sort_keys=True,
@@ -216,62 +382,81 @@ def profile_key(value):
     return key
 
 
-def stylesheet_url(token):
-    return reverse("reading-style-css") + f"?style={token}&v={STYLE_VERSION}"
+def selected_style(request, rendition=None, *, work_type=None, guest_overrides=None):
+    presentation = request.GET.get("presentation")
+    if presentation:
+        return token_presentation(presentation)["settings"]
+    token = request.GET.get("style")
+    if token:
+        return token_style(token)
+    kind = work_type or rendition_work_type(rendition)
+    return resolve_style(
+        kind, user=request.user, rendition=rendition, guest_overrides=guest_overrides,
+    )["settings"]
 
 
-def selected_style(request):
-    use_default = (
-        request.GET.get("style_action") == "default"
-        or (
-            request.GET.get("style_action") == "load"
-            and request.GET.get("style_profile") == "__default__"
-        )
+def selected_theme(request):
+    presentation = request.GET.get("presentation")
+    if presentation:
+        return token_presentation(presentation)["theme"]
+    from library.themes import selected_theme as current_theme
+
+    return current_theme(request)
+
+
+def style_context(
+    request, rendition=None, *, work_type=None, guest_overrides=None, include_profiles=False,
+):
+    from library.themes import selected_theme
+
+    kind = work_type or rendition_work_type(rendition)
+    resolved = resolve_style(
+        kind, user=request.user, rendition=rendition, guest_overrides=guest_overrides,
     )
-    if request.GET.get("style") and not use_default:
-        return token_style(request.GET["style"])
-    if request.GET.get("style_action") == "apply":
-        form = ReadingStyleForm(upgrade_style(request.GET.dict()))
-        if not form.is_valid():
-            raise ValueError("Invalid reading style: " + form.errors.as_text())
-        return form.cleaned_data
-    selected = None if use_default else request.GET.get("style_profile")
-    if request.GET.get("style_action") == "load" and not selected and not use_default:
-        raise ValueError("Choose a profile to load.")
-    if selected == "marxist":
-        return dict(DEFAULTS)
-    profiles = ReadingStyleProfile.objects.filter(owner=request.user) \
-        if request.user.is_authenticated else ReadingStyleProfile.objects.none()
-    if selected:
-        profile = profiles.filter(pk=profile_key(selected)).first()
-        if profile is None:
-            raise ValueError("This reading style profile is not available to your account.")
-        return validate_style(profile.settings)
-    profile = profiles.filter(is_default=True).first()
-    return validate_style(profile.settings) if profile else dict(DEFAULTS)
-
-
-def style_context(request):
-    settings = selected_style(request)
+    theme = selected_theme(request)
+    if request.GET.get("style"):
+        token_style(request.GET["style"])
+    presentation = request.GET.get("presentation")
+    if presentation:
+        snapshot = token_presentation(presentation)
+        if snapshot["work_type"] == resolved["work_type"]:
+            resolved["settings"] = snapshot["settings"]
+            theme = snapshot["theme"]
+            resolved["origins"] = snapshot["origins"]
+    settings = resolved["settings"]
     token = style_token(settings)
     profiles = list(ReadingStyleProfile.objects.filter(owner=request.user)) \
-        if request.user.is_authenticated else []
-    default = next((str(profile.pk) for profile in profiles if profile.is_default), "marxist")
-    selected = request.GET.get("style_profile", default)
-    if selected == "__default__" and request.GET.get("style_action") == "load":
-        selected = default
-    if (request.GET.get("style") or request.GET.get("style_action") == "apply") \
-            and not request.GET.get("style_profile"):
-        selected = ""
+        if include_profiles and request.user.is_authenticated else []
+    default = next((str(profile.pk) for profile in profiles if profile.is_default), "")
     form = ReadingStyleForm(initial=settings)
     return {
         "reading_style": settings, "reading_style_token": token,
-        "reading_style_url": stylesheet_url(token),
+        "reading_presentation_token": style_presentation_token(
+            settings, theme, work_type=resolved["work_type"], origins=resolved["origins"],
+        ),
+        "reading_theme": theme,
+        "reading_style_url": stylesheet_url(token, theme),
         "reading_style_form": form,
-        "reading_style_profiles": profiles, "reading_style_profile": selected,
+        "reading_style_profiles": profiles, "reading_style_profile": "",
         "reading_default_profile": default,
         "reading_preset_name": PRESET_NAME,
         "reading_style_version": STYLE_VERSION,
+        "reading_style_origins": resolved["origins"],
+        "reading_style_layers": resolved["layers"],
+        "reading_style_origin_labels": {
+            key: value["label"] for key, value in resolved["origins"].items()
+        },
+        "reading_style_output_override_keys": list(
+            resolved["layers"].get("output", {}),
+        ),
+        "reading_style_account_override_keys": list(
+            resolved["layers"].get("account", {}),
+        ),
+        "reading_style_work_type": resolved["work_type"],
+        "reading_style_output_id": resolved["output_id"],
+        "reading_style_rendition_id": rendition.pk if rendition is not None else "",
+        "reading_style_authenticated": request.user.is_authenticated,
+        "reading_style_account_settings": rendition is None,
         "reading_style_groups": [
             ("Typography", [form[key] for key in (
                 "font_mode", "font_size", "paragraph_align", "title_align",
