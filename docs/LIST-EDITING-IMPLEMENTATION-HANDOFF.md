@@ -1,11 +1,50 @@
 # Milestone L: semantic list authoring and editing
 
-Requested 2026-11-12. Status: planned; implementation and acceptance not started.
-This handoff authorizes documentation only, not implementation, deployment,
-publication or mutation of live drafts.
+Requested 2026-11-12. Status: implemented and locally validated on isolated
+article/book fixtures after the explicit "Implement Q and L" authorization.
+No live draft, publication or reader default was changed for validation.
 Implementation-readiness refinement 2026-11-12: the decisions below resolve
-selection, numbering, structural-edit and keyboard ambiguities. Status remains
-planned; code inspection is not authoring acceptance.
+selection, numbering, structural-edit and keyboard ambiguities. These decisions
+remain binding; code inspection is not authoring acceptance.
+
+## Implementation and evidence (2026-11-12)
+
+`frontend/lists.js` adapts the retained inline/block item schema without stock
+list extensions or numbering-schema changes. Existing toolbar and Selection tools
+provide named type, indent/outdent and move controls. A first-priority keyboard
+plugin handles item Enter/Shift+Enter and guarded deletion without trapping Tab
+or replacing ordinary quotation Enter. Candidate validation precedes dispatch.
+
+- L1-L6: focused Node/jsdom cases cover all mandatory success fixtures, backward
+  selections, next-unselected-block endpoints, unique list/item/paragraph targets,
+  mixed descendants, depth-first outdent order, ordinal-preserving refusals,
+  whole-document size/depth limits and protected notes. Deletion guards include
+  Unicode graphemes and modified deletion; rejected edits create no history.
+- L2-L4/L8: native headless Chromium at 1280px (article) and 375px (book) created
+  numbered lists, refused partial ordinal resets, converted whole lists, split
+  and undid/redid an item with descendants, indented/outdented by keyboard, moved
+  a whole descendant-bearing item, typed a fourth item and exited the final empty
+  item. Tab left the editor. Pointer controls and Shift+F10/arrow/Enter menu
+  controls worked; DOM Range was used to set up text selections.
+- L7/L9: both fixtures recovered tab-local edits, explicitly saved/reopened partial
+  revision 2 and displayed the intended 1/2/3/4 sequence in Read and actual
+  browser/draft/published PDFs. Article had 15 unique original targets; book had
+  17, including the unchanged neighboring chapter. All internal references
+  resolved. Before explicit fixture publication, only the two requested saves
+  added revisions; publication/default counts were unchanged. Subsequent
+  publication was explicit and confined to the copied database; defaults stayed
+  unchanged. Source editions were not rewritten.
+- L10: 314 frontend tests, 77 focused semantic/editor/printing backend tests,
+  build and the isolated one-edition fidelity checker passed. PDF extraction
+  checked actual numbered markers and item order, not merely list tags.
+
+Evidence includes native screenshots and actual 3-page article/5-page book PDFs.
+This is bounded automated/browser evidence, not independent human usability,
+accessibility or arbitrary imported-list certification. The Q evidence records
+the installed-font emoji limitation and PDF text-extraction caveat.
+The owned local web server was restarted at `http://127.0.0.1:8765/`; HTTP access
+guards and byte-identical rebuilt JS/CSS were verified. No worker, migration or
+live editorial-data change was part of deployment.
 
 ## Outcome and boundaries
 

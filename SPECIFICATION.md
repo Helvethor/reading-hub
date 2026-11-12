@@ -1699,15 +1699,18 @@ Inline-only and block-bodied list items, definition bodies and quotations retain
 their distinct shapes. Block-level anchors, images and line breaks do not acquire
 implicit paragraphs. Whitespace-only block separators do not create empty
 paragraphs; prose and preformatted whitespace remains significant.
-Planned [milestone L](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) adds safe
+[Milestone L](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) implements safe
 creation and editing of bulleted/numbered lists, including item splitting,
 nesting and reordering, with semantic identity and existing list shapes preserved.
 The refined contract defines innermost-item selection, guarded list keyboard
 behavior and required success fixtures. Partial ordered-list conversions must
 not reset unselected ordinals; refuse operations needing unsupported numbering
 attributes rather than extending the schema implicitly.
-It is a documentation-only handoff, not a claim that list authoring is implemented
-or that live drafts or deployment may be changed.
+Named toolbar/menu controls and guarded item keyboard editing are implemented.
+Isolated article/book fixtures passed native editing, recovery, explicit
+save/reopen, Read and actual browser/draft/published PDF checks (2026-11-12).
+The handoff distinguishes unit/browser/output evidence and remaining limits;
+no live draft/default mutation or independent accessibility acceptance is implied.
 Bare prose and inline wrappers interleaved with blocks are represented by
 internal editable text runs in sections, lists, definitions, quotations,
 containers, table cells and captions. These runs use transparent editor-only
@@ -1944,7 +1947,7 @@ An explicit advanced choice removes cite while preserving identity-bearing spans
 Caption association and source marking happen in one atomic Apply, preceded by a
 read-only preview. Cancel/Escape is a no-op. Existing text remains directly editable.
 Image alternative-text editing and link URL editing remain dedicated tools.
-Milestone Q (specified only) adds an explicit Insert quotation workflow for
+Milestone Q implements an explicit Insert quotation workflow for
 new quoted text at a prose caret, without first selecting existing paragraphs.
 The [citation authoring handoff](docs/CITATION-AUTHORING-IMPLEMENTATION-HANDOFF.md)
 owns Q1-Q5. Reuse Figure & caption, optional attribution and exact source-title
@@ -1957,6 +1960,11 @@ The refined Q contract defines caret/start/end/mid-paragraph insertion,
 deterministic ID ownership, bounded plain multiline input and exact semantic
 fixtures. Preview and Apply share a candidate, Cancel/stale-target errors do not
 mutate content, and existing image/quotation repair remains unchanged.
+Isolated article/book checks (2026-11-12) covered native insertion/repair,
+recovery, explicit save/reopen and Read/browser-print/draft/published PDFs.
+Browser print excludes workspace chrome. Supplementary Unicode survives semantic
+storage and draft PDF logical text; installed-font emoji glyph coverage remains
+limited. The handoff records exact automated/browser bounds, not human acceptance.
 Standalone block images and image-only paragraphs can gain a figure/caption;
 mixed prose/image paragraphs and multi-image figures are not automatically split.
 

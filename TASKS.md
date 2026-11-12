@@ -242,37 +242,43 @@ was performed.
 
 ## Editor milestone L: semantic list editing (2026-11-12)
 
-**Status:** handoff prepared; implementation and acceptance not started.
-Documentation only is authorized. This future feature does not reorder current
-V/P/M work or authorize deployment or live-draft changes.
+**Status:** implemented and locally validated on isolated article/book fixtures;
+see the handoff's dated evidence and limits. No live drafts/defaults were changed.
 
 The [list-editing handoff](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) owns
 L1-L10 acceptance.
 The 2026-11-12 readiness refinement fixes selection/item-shape rules, exact Enter
 and nesting behavior, ordinal-preserving refusals and mandatory success fixtures.
 
-- [ ] Create, convert and remove bulleted/numbered lists safely; preserve
+- [x] Create, convert and remove bulleted/numbered lists safely; preserve
   retained inline/block list shapes, targets, links, notes and assets.
-- [ ] Support item splitting, nesting, outdenting and reordering with named
+- [x] Support item splitting, nesting, outdenting and reordering with named
   keyboard-accessible controls, undo/redo and explicit refusal of unsafe edits.
-- [ ] Validate isolated article/book editing through save/reopen, Read and PDF;
+- [x] Validate isolated article/book editing through save/reopen, Read and PDF;
   record browser, rendering and accessibility evidence separately.
 
 ## Editor milestone Q: quotation/citation authoring (2026-11-12)
 
-**Status:** specified only. The
+**Status:** implemented and locally validated on isolated article/book fixtures. The
 [citation authoring handoff](docs/CITATION-AUTHORING-IMPLEMENTATION-HANDOFF.md)
 owns Q1-Q5 acceptance.
 The 2026-11-12 readiness refinement fixes insertion boundaries/ID ownership,
 multiline input limits, dialog/focus behavior and exact semantic fixture outcomes.
 
-- [ ] Add discoverable Insert quotation at a prose caret, without existing
+- [x] Add discoverable Insert quotation at a prose caret, without existing
   selected text; reuse Figure & caption for new body, attribution and optional
   exact source-title marking, preview and atomic insertion.
-- [ ] Preserve safe paragraph splitting, undo/redo, focus, recovery and semantic
+- [x] Preserve safe paragraph splitting, undo/redo, focus, recovery and semantic
   validation; reject unsupported/stale targets without overwriting content.
-- [ ] Validate create/edit/save/reopen/Read/print/PDF on isolated article/book
+- [x] Validate create/edit/save/reopen/Read/print/PDF on isolated article/book
   fixtures. Bibliography management and automatic footnotes are out of scope.
+
+Q/L evidence: 314 frontend tests, 77 focused backend tests, build and isolated
+editor fidelity passed; native Chromium exercised 1280px article/375px book,
+recovery and explicit revision-2 save/reopen. Actual browser/draft/published
+PDFs retained numbering and semantic content on the copy only. Installed fonts
+lack emoji glyphs despite preserved Unicode semantics; this is not independent
+accessibility or reviewer acceptance.
 
 ## Operations milestone W: worker reliability and bounded recovery (2026-11-12)
 

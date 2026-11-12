@@ -644,12 +644,49 @@ links, formatting and credits are preserved. Image alternative text retains its
 separate dedicated dialog. Standalone images/image-only paragraphs can be grouped
 too; mixed prose/image paragraphs are not silently split.
 
-To create a quotation, select adjacent whole paragraphs within a section/div and
+To create a quotation from scratch, place a caret in an ordinary prose paragraph
+and choose **Selection tools → Insert quotation** (right-click or Shift+F10 also
+opens the menu). Enter literal quoted text; blank lines separate paragraphs and
+single line breaks remain line breaks. Attribution is optional. A source title
+must match one exact, unique caption passage. Preview is inert; Insert is one
+undo step. Cancel/Escape changes nothing. A changed/hidden location requires
+closing and reopening the dialog; entered fields remain available for copying.
+Insertion inside lists, quotations, captions, tables and notes is refused.
+Existing paragraph IDs stay on the appropriate surviving fragment.
+
+Alternatively, select adjacent whole paragraphs within a section/div and
 open Figure & caption. Choose which, if any, belongs in the caption. Text is
 never classified automatically. Edit quote/caption wording directly afterward;
 use existing link tools for a source URL. The source-title field must match one
 unique existing caption passage, without splitting nested wrappers. Invalid or
 ambiguous choices disable Apply with a visible explanation.
+
+**Bulleted list** and **Numbered list** are in the common formatting toolbar and
+Selection tools. Use a paragraph caret or select complete consecutive paragraphs
+or sibling items; clicking the active type removes formatting. Selection tools
+also offers **Indent item**, **Outdent item** and **Move item up/down**. Enter
+splits the owning item and carries its following blocks/children with the suffix;
+Shift+Enter adds a line break. Enter in a simple final empty item exits one level.
+Tab remains focus navigation. Unsupported boundary joins, target deletion and
+partial numbered-list changes that would reset surviving ordinals are explicitly
+refused; select the whole numbered list to change its type. Commands do not save,
+publish or certify review. Save explicitly; browser-local recovery covers applied
+semantic edits, not unfinished quotation-dialog fields.
+
+For browser print, open **Read** first. Its reader print stylesheet excludes
+workspace headings, controls and editor labels. Use Download PDF for the actual
+server-rendered output. The local font installation lacks emoji glyphs even when
+Unicode is retained; inspect required scripts/fonts rather than assuming glyph
+coverage from semantic validation.
+
+Q/L local deployment (2026-11-12): the owned web process runs the checkpointed
+implementation at `http://127.0.0.1:8765/`, with editor JS/CSS cache suffixes
+`unified-workspace-v19` / `unified-workspace-v9`. Home and both assets returned
+200; assets matched the local build exactly and anonymous editor access still
+redirected to sign-in. No migration or worker restart was needed. Validation
+used copied article/book records only; live corrections, publication/default
+records and other workers were not changed. Save unsaved work before reloading
+an existing tab to receive the new runtime.
 
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose

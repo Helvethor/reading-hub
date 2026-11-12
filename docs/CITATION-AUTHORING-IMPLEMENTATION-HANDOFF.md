@@ -1,10 +1,52 @@
 # Milestone Q: create a quotation/citation from scratch
 
-Requested 2026-11-12. Status: specified only; implementation and acceptance
-have not started. Documentation does not authorize implementation, deployment,
-publication or mutation of live drafts.
+Requested 2026-11-12. Status: implemented and locally validated on isolated
+article/book fixtures after the explicit "Implement Q and L" authorization.
+No live draft, publication or reader default was changed for validation.
 Implementation-readiness refinement 2026-11-12: the decisions and fixture
-outcomes below are binding; implementation status remains unchanged.
+outcomes below remain binding.
+
+## Implementation and evidence (2026-11-12)
+
+`quotation-insertion.js` prepares a captured location, builds an inert candidate,
+preflights the complete semantic document and dispatches one isolated undoable
+insertion. The existing Figure & caption panel has an insertion mode with
+required literal body, optional attribution and unique exact source-title marking.
+Repair mode still retains/appends existing captions and needs no body field.
+
+- Q1/Q2: native headless Chromium at 1280px (article) and 375px (two-chapter book)
+  opened insertion through pointer and Shift+F10/arrow/Enter controls. Literal
+  markup-like text, supplementary Unicode, paragraph/line breaks, invalid repeated
+  source title, preview, insertion and returned focus were observed.
+- Q3: focused Node/jsdom tests cover empty/start/middle/end and ID-bearing
+  paragraphs, exact undo/redo, protected inline splits, hidden/stale targets,
+  Cancel and preserved dialog fields. Native insertion undo/redo also passed.
+- Q4: both fixtures were repaired through the existing panel, edited directly,
+  recovered from tab storage, explicitly saved as partial revision 2 and reopened.
+  Existing image-caption repair retained the asset/alt text and original caption.
+  Saved IDs/references remained valid; the neighboring book chapter was exact.
+  Read, actual Chromium browser print, draft PDF and explicitly published PDF
+  **in the copied database only** retained quote/caption/cite and list content.
+  Workspace print now uses the reader's print stylesheet and excludes editor
+  headings, style controls and other workspace chrome.
+- Q5: 314 frontend tests, 77 focused semantic/editor/printing backend tests,
+  asset build and the one-fixture semantic/editor fidelity pipeline passed.
+  Browser selection setup used DOM Range; command pointer/key input was native
+  CDP. This is not independent reviewer or accessibility certification.
+
+PDFs were rendered, text-extracted with Ghostscript and raster-inspected; article
+outputs had 3 pages and book outputs 5. The installed fonts lack an emoji glyph:
+Unicode remains in saved semantics and draft PDF logical text, but visual emoji
+coverage is not validated (browser/browser-print show a missing glyph). No font
+package or unrelated renderer change was added. Ghostscript's surrogate-pair
+text output was normalized for inspection; pypdf alone added NUL bytes for these
+installed fonts and was not used as the text-fidelity oracle.
+
+Local deployment: restarted the owned web process at `http://127.0.0.1:8765/`
+after checkpoint `b9e988b`. Home returned 200, the unauthenticated editor retained
+its sign-in redirect, and served JS/CSS matched the rebuilt files byte-for-byte
+(cache suffixes v19/v9). No migration, worker restart or live-record mutation
+was required. Synthetic user/work/draft identifiers were absent from live data.
 
 ## Outcome and terminology
 
