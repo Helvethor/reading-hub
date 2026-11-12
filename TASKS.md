@@ -256,6 +256,12 @@ and nesting behavior, ordinal-preserving refusals and mandatory success fixtures
   keyboard-accessible controls, undo/redo and explicit refusal of unsafe edits.
 - [x] Validate isolated article/book editing through save/reopen, Read and PDF;
   record browser, rendering and accessibility evidence separately.
+- [x] Follow-up (2026-11-12): reverse compatible list splits with Backspace/Delete,
+  remove interior empty items with Return, preserve styled/targeted empty exits,
+  show UL/OL and pre-marker LI gutters, and add visible/manual HR. Passed 319
+  frontend and 52 focused backend tests, build/fidelity, native 1280px article /
+  375px book save/reopen/Read and actual draft PDF rule/numbering checks on copied
+  records; live corrections/defaults were not edited.
 
 ## Editor milestone Q: quotation/citation authoring (2026-11-12)
 

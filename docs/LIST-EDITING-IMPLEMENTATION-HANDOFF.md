@@ -5,7 +5,40 @@ article/book fixtures after the explicit "Implement Q and L" authorization.
 No live draft, publication or reader default was changed for validation.
 Implementation-readiness refinement 2026-11-12: the decisions below resolve
 selection, numbering, structural-edit and keyboard ambiguities. These decisions
-remain binding; code inspection is not authoring acceptance.
+remain binding except where the dated user-requested refinement below supersedes
+the original keyboard boundary; code inspection is not authoring acceptance.
+
+## List removal and structural-cue refinement (2026-11-12)
+
+Following the report from edition 101, safe sibling Backspace/Delete joins and
+empty interior-item Return removal are now implemented rather than blanket
+refusals. Styled/targeted final empty items exit using identity-preserving
+paragraphs/wrappers. Distinct right-side targets/styles, protected notes and
+unsupported internal joins still refuse explicitly. Existing inline/block shapes,
+links and descendants survive; each accepted gesture has isolated undo/redo.
+
+UL/OL containers now have an independent view-only label and vertical bar. LI
+labels/bars precede native bullets/numbers, including multi-digit numbering.
+HR has a visible vertical bar and manual toolbar/Selection tools insertion at a
+safe ordinary paragraph caret. No semantic schema expansion or numbering
+attribute support was added.
+
+Current follow-up evidence: 319 frontend tests, 52 editor-view/semantic-import
+backend tests, build and an isolated edition fidelity check passed. Native
+Chromium used linked inline items and styled block items in an article at 1280px
+and a book at 375px: Enter/undo/redo/Backspace and Enter/Delete reversed splits;
+Return removed an interior empty item and exited a styled final empty item.
+Pointer and keyboard-menu HR insertion, actual gutter geometry, narrow overflow
+(at most 2px), explicit revision-2 save/reopen and Read passed. DOM Range set up
+carets; the key events and layout were native, not jsdom.
+
+The copied records retained exact original lists, all 7 article/8 book targets,
+links and the untouched neighboring chapter. Actual draft PDFs retained numbered
+markers 1-12 and contained three horizontal-rule rectangles versus one before
+insertion (3 article/5 book pages). Source editions, publication/default counts
+and live corrections were unchanged. This is bounded automated evidence, not
+independent human usability/accessibility acceptance or reproduction of every
+live-draft state. Earlier Q/L evidence below remains historical.
 
 ## Implementation and evidence (2026-11-12)
 
@@ -224,16 +257,24 @@ These rules refine the interaction contract; they are not optional alternatives.
 - A non-empty inline selection within one item is replaced by the split only
   under existing safe-deletion/target rules. A selection spanning items must
   not fall through to generic Enter and merge/delete structures.
-- An empty final item means a single empty text body with no descendants,
-  protected targets or media. Enter exits a top-level list to a paragraph
-  after it (removing the list if now empty); in a nested list it lifts the empty
-  item one level and leaves the caret there. An empty-looking item with children
-  is not an exit command and must not drop those children.
+- An empty item means a single empty text body with no descendants or media.
+  Enter removes an attribute-free interior empty item and moves to the next item.
+  An attribute-bearing interior empty item uses the safe preceding-join rules
+  or refuses without losing identity. In a final empty item, Enter exits a
+  top-level list to a paragraph after it (removing the list if now empty),
+  preserving IDs/classes through paragraphs/neutral wrappers. In a nested list
+  it lifts the empty item one level and leaves the caret there. Protected notes
+  refuse. An empty-looking item with children is not an exit command and must
+  not drop those children.
 - Shift+Enter inserts the existing semantic `br` within the item. Existing
   generic Enter/Backspace/Delete handlers must not bypass refused list
-  operations: within text they behave normally; at a structural boundary,
-  refuse unsupported joins rather than merging across items/sections or losing
-  targets. New automatic cross-item join commands are not required.
+  operations: within text they behave normally. Backspace at an item's outer
+  start joins its preceding sibling; Delete at its outer end joins the following
+  sibling. Preserve the left item's identity and all descendants in reading
+  order, merging adjoining compatible prose bodies when possible. Refuse distinct
+  right-side targets/styles, protected notes, unsupported internal boundaries or
+  missing adjacent items, with explicit list-formatting/outdent guidance.
+  Never merge across sections or silently drop targets.
 - Indent moves selected siblings under the preceding sibling. Reuse its last
   child list only if the type matches; otherwise add a child list of the
   selected source type. First-item indent and top-level Outdent are disabled.

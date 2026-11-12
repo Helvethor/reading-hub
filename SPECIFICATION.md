@@ -1707,6 +1707,15 @@ behavior and required success fixtures. Partial ordered-list conversions must
 not reset unselected ordinals; refuse operations needing unsupported numbering
 attributes rather than extending the schema implicitly.
 Named toolbar/menu controls and guarded item keyboard editing are implemented.
+The 2026-11-12 removal refinement adds safe sibling joins with Backspace at an
+item's start or Delete at its end, Return removal of empty interior items and
+identity-preserving exit from styled/targeted final empty items. Unsafe
+target/style loss and unsupported internal joins remain explicit refusals.
+UL/OL container labels/bars and LI labels/bars before native markers are
+view-only. HR has a visible vertical bar and manual toolbar/menu insertion at a
+safe ordinary paragraph caret outside lists, figures, tables and notes; it
+preserves prose/targets and is one undo step. Structural cues never enter
+semantic HTML/JSON, Read or PDF.
 Isolated article/book fixtures passed native editing, recovery, explicit
 save/reopen, Read and actual browser/draft/published PDF checks (2026-11-12).
 The handoff distinguishes unit/browser/output evidence and remaining limits;

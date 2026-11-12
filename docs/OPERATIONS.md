@@ -666,12 +666,26 @@ Selection tools. Use a paragraph caret or select complete consecutive paragraphs
 or sibling items; clicking the active type removes formatting. Selection tools
 also offers **Indent item**, **Outdent item** and **Move item up/down**. Enter
 splits the owning item and carries its following blocks/children with the suffix;
-Shift+Enter adds a line break. Enter in a simple final empty item exits one level.
-Tab remains focus navigation. Unsupported boundary joins, target deletion and
-partial numbered-list changes that would reset surviving ordinals are explicitly
-refused; select the whole numbered list to change its type. Commands do not save,
+Shift+Enter adds a line break. Enter removes an empty interior item, or exits a
+final empty item one level while retaining IDs/styles in paragraphs or neutral
+wrappers. Backspace at an item's start joins the preceding item; Delete at its end
+joins the following one. Compatible inline/block prose rejoins without dropping
+following blocks or child lists. A distinct right-side target/style or unsupported
+internal structural boundary is visibly refused; use list formatting instead.
+Tab remains focus navigation. Target deletion and partial numbered-list changes
+that would reset surviving ordinals are explicitly refused; select the whole
+numbered list to change its type. Commands do not save,
 publish or certify review. Save explicitly; browser-local recovery covers applied
 semantic edits, not unfinished quotation-dialog fields.
+
+**HR / Insert horizontal rule** is in the toolbar and Selection tools. Use a
+collapsed ordinary paragraph caret outside lists, figures, tables and notes.
+It splits prose around a semantic `hr`, retaining the original target once and
+putting the caret in the following paragraph; unsafe target splits are refused.
+Each insertion is one undo step. With Block labels enabled, UL/OL containers have
+their own label/bar; each LI label and bar precedes its native bullet/number.
+HR has a visible vertical bar too. These cues never enter saved HTML/JSON, Read
+or PDF.
 
 For browser print, open **Read** first. Its reader print stylesheet excludes
 workspace headings, controls and editor labels. Use Download PDF for the actual
@@ -687,6 +701,16 @@ redirected to sign-in. No migration or worker restart was needed. Validation
 used copied article/book records only; live corrections, publication/default
 records and other workers were not changed. Save unsaved work before reloading
 an existing tab to receive the new runtime.
+
+List-removal/structural-cue follow-up deployed locally (2026-11-12): JS/CSS
+suffixes are now `unified-workspace-v20` / `unified-workspace-v10`. The restarted
+owned web process, home HTTP 200, byte-identical built assets and anonymous
+sign-in guard were verified. Current evidence: 319 frontend tests, 52 focused
+editor-view/semantic-import backend tests, build/fidelity, native Chromium
+1280px article / 375px book edit/save/reopen/Read and actual draft PDFs with
+three rules versus one before insertion. Fixtures ran on a copied database;
+no live corrections, publication/default records, migrations or other workers
+were changed. Save unsaved work before reloading the editor.
 
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
