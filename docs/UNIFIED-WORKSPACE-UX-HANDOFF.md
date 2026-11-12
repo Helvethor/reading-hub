@@ -3,7 +3,7 @@
 Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
 The V.a-V.d follow-up below is specified only; V17-V22 are not implemented or
-validated. The latest user instruction is "don't implement", followed by a request
+validated. The V.e Metadata-page placement bugfix (V23) is specified only. The latest user instruction is "don't implement", followed by a request
 to store this handoff. It authorizes documentation only for this follow-up,
 superseding any inference of implementation/deployment permission from older work.
 The later user instruction to implement R, A, V, then P supersedes this
@@ -394,6 +394,38 @@ On validation, authorization, revision or render failure, show an explicit error
 never silently export an older version. No save, publication, review event,
 default selection or shared-cache draft artifact is authorized by download.
 
+### V.e: generated Metadata page inside the editor canvas (bugfix)
+
+User-observed 2026-11-12 on edition 101's working copy
+(`/versions/101/editor/?draft=40ac3bd1-…&tab=edit`): "Metadata block appears
+after the editor rather than inside it." Not reproduced by the specification
+agent: the shared browser required sign-in and no live draft was opened.
+
+Code reading at `035e907`: the Edit Metadata subtab (`#editor-panel-metadata`)
+is a sibling panel hidden by `.editor-tab-panel[hidden]`, so the complete
+metadata sheet is not expected to render below Content. The generated
+end-of-book Metadata page is created in `frontend/book-views.js` and inserted
+with `editor.view.dom.after(...)`: a child of `#editor-surface`, but outside the
+editable ProseMirror root and outside the paper/content styling and section
+structure that the Title and ToC pages share. After V.b removed the canvas
+viewport clamp (`7407b4a`), it can read as a separate block trailing the editor.
+Hypotheses to confirm first, in this order: visual detachment of the generated
+page from the canvas document; wrong placement when a section/part view or
+outline filter is active; the full metadata sheet leaking into Content after
+tab switches, recovery or `editor-show-tab` events.
+
+Required behavior: the generated Metadata page is presented as the last part of
+the edited book within the same canvas document flow and visual treatment as the
+generated Title and ToC pages, before `#editor-selection-path` and any
+canvas-external controls. It appears in Whole book/"Metadata page" views only,
+follows the configured include/omit state and work-type presets, and remains
+generated, non-editable, keyboard-reachable and excluded from saved content. Its
+"Edit complete metadata…" action still opens the Metadata subtab. The full
+metadata sheet appears only in that subtab. Preserve metadata edits, unsaved
+state, recovery, undo history, focus/tab state, outline/ToC navigation, page-flow
+footer ownership, sticky-stack offsets and print exclusions. Read/PDF placement
+is unchanged here; M owns generated-page breaks and ordering in output.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -402,7 +434,8 @@ validated slices rather than deploying automatically. Use isolated article and
 long, media-rich book fixtures, not live corrections. Preserve R annotation
 retirement, A hierarchy, P publication/default contracts and M's planned style
 placement. No new framework, personal-style system, publication model or live-data
-mutation belongs to this follow-up. Stop only after V17-V22 and relevant V1-V16
+mutation belongs to this follow-up. V.e is independent and may land first as a
+focused fix after reproduction. Stop only after V17-V23 and relevant V1-V16
 preservation checks are evidenced; report browser limitations rather than claiming
 full acceptance from jsdom tests.
 
@@ -462,7 +495,9 @@ unsaved edits. Track implementation and validation independently.
 | V21 | Exercise immutable output, unchanged working copy, saved revised copy, unsaved edits, undo-to-baseline and review-only states. PDF action/status/file identity and extracted output content agree with the effective state; changing/saving content during export does not alter captured output or its identity. |
 | V22 | V17-V21 introduce no implicit persistence, publication, review, default selection, permission/asset bypass, cache leakage or annotation access. Test export failures explicitly; verify retained exact PDFs and screen/print exclusions, and report synthetic, mocked and observed evidence separately. |
 
-Stop when V1-V22 are implemented and validated, not when tabs merely look alike.
+| V23 | Reproduce the reported placement on an isolated book fixture with a copied working copy (never the live edition 101 draft), recording a screenshot and DOM position. After the fix, in Whole book view the generated Metadata page is the last part of the canvas document, styled like the Title/ToC pages and before the selection path; it is absent from section views, follows include/omit and presets, and the full metadata sheet appears only in the Metadata subtab across tab switches, recovery and "Edit complete metadata…". Saved content, metadata values, undo history and print output are unchanged. |
+
+Stop when V1-V23 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend

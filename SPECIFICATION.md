@@ -235,7 +235,10 @@ saved working-copy baseline and unsaved draft content. Preserve per-view positio
 editor state, navigation/focus offsets and exact-output semantics. The
 [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
 owns V17-V22 acceptance and supersedes older independent-main-panel scroll
-guidance. The follow-up has not been deployed.
+guidance. The follow-up has not been deployed. Bugfix V.e (specified only,
+acceptance V23): the generated end-of-book Metadata page is part of the editor
+canvas document, presented like the Title and ToC pages, not a block after the
+editor; the full metadata sheet appears only in the Metadata subtab.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

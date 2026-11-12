@@ -143,6 +143,10 @@ for scope, dependencies and V17-V22 acceptance.
   structure into an evidence-only Edit tab without duplicating navigation.
 - [ ] V.d: make PDF labels, status, file identity and exported content agree
   across immutable, saved-working-copy and unsaved states.
+- [ ] V.e (bugfix, specified only): user reports the generated Metadata page
+  appearing after the editor instead of inside it. Reproduce on an isolated
+  fixture; render it as the last canvas part like Title/ToC pages; keep the full
+  sheet only in the Metadata subtab. Acceptance V23.
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 
