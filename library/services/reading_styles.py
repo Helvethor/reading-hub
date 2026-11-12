@@ -214,10 +214,17 @@ def token_style(token):
     return validate_style(value)
 
 
-def work_type_keys():
+def work_type_choices():
     from library.services.document_metadata import WORK_TYPES
 
-    return tuple(key for key, _label in WORK_TYPES)
+    choices = list(WORK_TYPES)
+    if "anthology" not in dict(choices):
+        choices.insert(1, ("anthology", "Anthology"))
+    return tuple(choices)
+
+
+def work_type_keys():
+    return tuple(key for key, _label in work_type_choices())
 
 
 def normalize_work_type(value):

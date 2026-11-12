@@ -20,6 +20,8 @@ from library.services.reading_styles import (
     resolve_style,
     style_presentation_token,
     token_presentation,
+    work_type_choices,
+    work_type_keys,
 )
 
 
@@ -136,6 +138,40 @@ class ReadingStyleCascadeTests(TestCase):
         self.assertEqual(result["work_type"], "other")
         self.assertEqual(result["settings"]["font_size"], DEFAULTS["font_size"])
         self.assertEqual(result["origins"]["font_size"]["label"], "Built-in · Other")
+
+    def test_anthology_is_available_to_style_layers_and_account_controls(self):
+        from library.admin import ReadingStyleAdminDefaultForm
+
+        self.assertIn("anthology", work_type_keys())
+        self.assertIn(("anthology", "Anthology"), work_type_choices())
+        form = ReadingStyleAdminDefaultForm(data={
+            "work_type": "anthology",
+            "settings": '{"font_size": 15}',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+
+        ReadingStyleAdminDefault.objects.create(
+            work_type="anthology", settings={"font_size": 15},
+        )
+        self.client.force_login(self.owner)
+        updated = self.post_style(
+            self.client,
+            scope="account",
+            work_type="anthology",
+            changes={"font_size": 16},
+        )
+        self.assertEqual(updated.status_code, 200, updated.content)
+        self.assertEqual(updated.json()["origins"]["font_size"]["source"], "account")
+        self.assertEqual(
+            resolve_style("anthology", user=self.owner)["settings"]["font_size"], 16,
+        )
+
+        settings = self.client.get(
+            reverse("user-settings"), {"style_type": "anthology"},
+        )
+        self.assertEqual(settings.status_code, 200)
+        self.assertEqual(settings.context["reading_style_work_type"], "anthology")
+        self.assertIn(("anthology", "Anthology"), settings.context["style_work_types"])
 
     def test_account_and_exact_output_preferences_are_private_and_not_propagated(self):
         ReadingStyleAccountDefault.objects.create(

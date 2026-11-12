@@ -61,18 +61,18 @@ def user_settings(request):
         save_theme(request, choice)
         messages.success(request, "Your theme preference has been saved.")
         return theme_cookie(request, redirect("user-settings"), choice)
-    from library.services.document_metadata import WORK_TYPES
-    from library.services.reading_styles import style_context
+    from library.services.reading_styles import style_context, work_type_choices
 
     style_type = request.GET.get("style_type", "other")
-    if style_type not in dict(WORK_TYPES):
+    style_work_types = work_type_choices()
+    if style_type not in dict(style_work_types):
         style_type = "other"
     return render(request, "registration/settings.html", {
         **style_context(
             request, work_type=style_type, include_profiles=True,
         ),
         "form": form,
-        "style_work_types": WORK_TYPES,
+        "style_work_types": style_work_types,
     },
                   status=400 if request.method == "POST" else 200)
 

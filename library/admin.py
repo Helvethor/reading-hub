@@ -2,12 +2,11 @@ from django import forms
 from django.contrib import admin
 
 from library.models import ReadingStyleAdminDefault
-from library.services.document_metadata import WORK_TYPES
-from library.services.reading_styles import validate_style_layer
+from library.services.reading_styles import validate_style_layer, work_type_choices
 
 
 class ReadingStyleAdminDefaultForm(forms.ModelForm):
-    work_type = forms.ChoiceField(choices=WORK_TYPES)
+    work_type = forms.ChoiceField(choices=work_type_choices())
     settings = forms.JSONField(
         help_text="Sparse JSON overrides. Omit a setting to inherit; false and zero remain explicit.",
     )
