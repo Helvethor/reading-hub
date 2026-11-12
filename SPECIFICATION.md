@@ -153,7 +153,7 @@ defines milestone M and M1-M18 acceptance, scheduled after R -> A -> V -> P.
 Follow-up M.h (specified only, M19) makes PDF download filenames readable:
 unsafe-character runs become spaced ` - ` separators (for example,
 `Title: Subtitle` -> `Title - Subtitle.pdf`). Preserve original legal hyphens,
-Unicode, filename safety/length limits and draft qualifiers. Stored titles,
+Unicode, filename safety/length limits and M.k title-only naming. Stored titles,
 PDF title metadata, content and retained output identity are unchanged.
 Follow-up M.i (specified only, M20-M21) unifies Metadata and Edition/review
 status with shared end-matter typography, spacing and width, subtly distinguished
@@ -167,6 +167,12 @@ running headers. Full/compact title composition and part separation remain
 independent. Preserve comfortable edge/footer clearance, long-title fit,
 continuation-page furniture, content, themes and historical outputs; compare
 rendered candidates and verify PDF geometry and browser-print behavior.
+Follow-up M.k (specified only, M24) names PDF downloads with only the exact
+exported title plus `.pdf`, sanitized under M.h, without generated edition,
+revision or draft qualifiers. Literal title text is preserved. Exact state and
+draft qualifications remain in UI/output provenance, not the filename.
+Header/client names agree; cache keys, retained files and PDF metadata/content
+are unchanged.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;

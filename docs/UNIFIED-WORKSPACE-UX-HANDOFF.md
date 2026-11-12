@@ -409,6 +409,12 @@ inspection URLs, keyboard behavior and contextual workflow dialogs.
 
 ### V.d: truthful PDF scope and identity
 
+Naming follow-up: M.k in the
+[presentation/PDF handoff](PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
+requires title-only download filenames, superseding generated state/version
+qualifiers in basenames. Preserve the exact identity and state contracts below
+through the UI and output provenance; filename alone is not an identity key.
+
 Derive label, accessible name, status messages and downloaded-file identity from
 effective content state, not the selected tab or mere existence of a draft ID:
 

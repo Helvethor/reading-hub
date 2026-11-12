@@ -8,6 +8,7 @@ Follow-up M.h (M19) is specified only, not implemented or validated. This
 Follow-up M.i (M20-M21), shared end-matter styling, is also specified only.
 Its recording does not authorize implementation or deployment.
 Follow-up M.j (M22-M23), coherent PDF title-page top spacing, is specified only.
+Follow-up M.k (M24), title-only PDF download filenames, is specified only.
 
 ## Outcome, authority and sequencing
 
@@ -364,7 +365,8 @@ trim boundary whitespace and trailing periods as before, never introduce
 leading/trailing padding just to surround an edge separator.
 
 Apply the shared policy to saved, publication and draft PDF download names,
-preserving existing draft identity qualifiers. Keep extension, length bound,
+using M.k's title-only naming policy rather than generated draft/version
+qualifiers. Keep extension, length bound,
 empty-title fallback, reserved-device-name protection and header/path safety.
 Do not change stored titles, PDF Title/XMP properties, visible document titles,
 PDF bytes, cache identity or retained historical files. Add focused filename
@@ -471,6 +473,49 @@ inline negative margins or changing all page margins. Coordinate with M.d/M.f
 and generated Reading/PDF style rules. Validate with rendered page images and
 PDF text geometry; a visual screenshot alone cannot establish the exact inset.
 
+### M.k Title-only PDF download filenames
+
+User request 2026-11-12: the PDF filename should contain only the publication's
+title, not its version. This is a download-name change, not a document-title or
+PDF metadata change.
+
+Code inspection at `f08b738`: exact saved exports use `pdf_filename(source.title)`.
+Workspace exports construct names with "Draft preview", "Saved revision N"
+or "Working copy start" before the snapshot title. The frontend normally uses
+the response Content-Disposition filename, with a snapshot-title fallback.
+No actual download was performed for this investigation.
+
+Required behavior:
+
+- Every PDF download uses the exact exported content's title, sanitized under
+  M.h, followed by `.pdf`. Do not add generated edition/version/revision IDs,
+  dates, draft/working-copy prefixes or status suffixes. For title `Example`,
+  both saved revision 7 and a draft export suggest `Example.pdf`.
+- Preserve literal words/numbers that belong to the title, including "Volume 2",
+  "Version 2" or "Draft" when actually part of its text. Remove generated
+  qualifiers at their construction site, not by stripping patterns from titles.
+- A draft uses its captured snapshot title; an immutable output uses its own
+  saved title, never the reader default or a later edited title. In-flight
+  edits must not rename an export already captured.
+- Keep M.h's spaced replacement separators, Unicode and filename safety,
+  extension, length bound, reserved-name protection and empty-title fallback.
+  Keep server Content-Disposition and frontend suggested filenames consistent.
+- Exact edition/revision and draft qualifications remain explicit in the
+  download UI, request/output identity and applicable PDF provenance/review
+  statements. Title-only naming must not imply a draft is published or verified.
+  This supersedes M.h's original requirement to keep draft qualifiers in
+  filenames and any interpretation of V.d requiring state in the basename;
+  it does not weaken exact-output or privacy guarantees.
+- Let the browser/OS handle duplicate local filenames normally (for example
+  `Example (1).pdf`). Do not overwrite local files programmatically, add
+  application version suffixes to avoid collisions, rename retained PDFs or
+  change cache/storage keys.
+
+Add focused response-header and client download tests for immutable, saved
+working-copy and unsaved draft states, reusing existing export tests. No PDF
+regeneration, content/metadata rewrite or live-data changes are needed solely
+for this naming policy.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -513,7 +558,7 @@ saved versus changed-draft exports.
 | M17 | Version-page style controls appear only in Read, with explicit This version versus My defaults for type scopes. Admin/account controls retain proper authority. Read/PDF and request-time guest/draft exports agree on resolved settings/theme; cache identities prevent stale or cross-user presentation mixing. |
 | M18 | Personal style changes preserve editorial layout, mandatory evidence, content and editor state. Legacy profile/default compatibility is explicit and tested with ownership/data preserved; no competing implicit resolver or silent broad-scope preference migration remains. |
 
-| M19 | Shared PDF download filename generation yields `Why - Now.pdf`, `Title - Subtitle.pdf` and `A - B.pdf` for the specified inputs. Test adjacent unsafe-character runs, existing surrounding whitespace, literal hyphens/dashes, Unicode, edge punctuation, control/path characters, reserved device names, empty titles and maximum length. Interior replacement separators have exactly one space per side, without unsafe boundary whitespace. Verify saved/publication/draft download headers and browser filenames, preserving draft qualifiers, stored titles, PDF metadata/content and cache/history identity. Report any browser-specific filename normalization separately. |
+| M19 | Shared PDF download filename generation yields `Why - Now.pdf`, `Title - Subtitle.pdf` and `A - B.pdf` for the specified inputs. Test adjacent unsafe-character runs, existing surrounding whitespace, literal hyphens/dashes, Unicode, edge punctuation, control/path characters, reserved device names, empty titles and maximum length. Interior replacement separators have exactly one space per side, without unsafe boundary whitespace. Verify saved/publication/draft download headers and browser filenames under M.k's title-only policy, preserving stored titles, PDF metadata/content and cache/history identity. Report any browser-specific filename normalization separately. |
 
 | M20 | In isolated article/book saved and draft Read/preview fixtures, Metadata and Edition/review status share heading typography, spacing rhythm and available width. Both use a subtle divider/opening space distinct from main prose, with readable body contrast and scaling under supported themes. Check narrow widths, enlarged text, long metadata values and links; preserve table/prose layouts, exact warnings and navigation. Hiding Metadata leaves status visible once. Record before/after browser screenshots and measured styles, not just selector presence. |
 | M21 | Actual PDF and browser-print output use the same end-matter hierarchy without shaded-card dependence, clipped tables, faint qualifications or duplicated boundary rules. Exercise continuous/new-page separation and metadata on/off independently; styling does not change configured boundary decisions. Verify unchanged prose/order, review facts, PDF metadata and historical records, and explicit cache-policy preservation under M6. Report intentional reflow and visual evidence separately from automated correctness checks. |
@@ -521,7 +566,9 @@ saved versus changed-draft exports.
 | M22 | Reproduce and measure the reported opening gap on isolated title-bearing PDFs. Record paper edge, page/content frame, first title glyph bounds and inherited wrapper offsets before/after. Compare candidate insets and document the chosen target/tolerance for full and compact modes. Actual rendered title placement meets that target, without unused accidental header reservation, clipping or text-size workarounds. Report whether the proposed header-reservation cause was confirmed or another cause fixed. |
 | M23 | Exercise article/book/anthology full/compact and continuous/new-page title combinations, plus no-title output, long titles, enlarged fonts and dense bibliographic rows in saved/draft PDF and browser print. Preserve configured separation, header suppression, footer clearance, continuation-page M.d geometry, page numbering, content order/targets and theme settings. No unintended blank pages or screen Read gaps arise. Record reflow and print-engine differences; preserve historical output and cache identity under M6. |
 
-Stop when M1-M23 are implemented and validated with actual rendered output and
+| M24 | Immutable/publication, saved-working-copy and unsaved-draft exports of title `Example` all suggest `Example.pdf`, with no generated state/version prefix or suffix. Preserve literal title numbers/words, Unicode and M.h sanitization. Header and frontend names agree and use the exact captured title even if content changes mid-export. Inspect real saved/draft browser downloads; duplicate-name suffixes are browser-controlled. UI/PDF provenance still identifies state honestly; stored titles, PDF bytes/metadata, cache keys and retained files are unchanged. |
+
+Stop when M1-M24 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.

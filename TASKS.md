@@ -299,10 +299,11 @@ owns M1-M18 acceptance.
 The M.h filename follow-up (M19) is specified only, not part of that completion.
 The M.i shared end-matter follow-up (M20-M21) is likewise specified only.
 The M.j title-page top-spacing follow-up (M22-M23) is also specified only.
+The M.k title-only download-name follow-up (M24) is specified only.
 
 - [ ] M.h: surround replacement hyphens in PDF download filenames with spaces,
   coalesce unsafe-character runs and preserve original hyphens, Unicode,
-  filename safety and draft qualifiers. Validate M19; leave stored titles,
+  filename safety and M.k title-only naming. Validate M19; leave stored titles,
   PDF metadata/content and retained files unchanged.
 
 - [ ] M.i: unify Metadata and Edition/review status under a shared, subtly
@@ -317,6 +318,11 @@ The M.j title-page top-spacing follow-up (M22-M23) is also specified only.
   Preserve independent page-break settings, continuation-page furniture,
   long-title/metadata fit and historical output. Validate M22-M23 with
   candidate comparison, rendered PDF geometry and browser-print checks.
+
+- [ ] M.k: name every PDF download using only its exact exported title plus
+  `.pdf`, sanitized under M.h. Remove generated version/revision/draft qualifiers,
+  not literal title text. Preserve state/provenance in UI/PDF and leave
+  retained files/cache keys unchanged. Validate M24.
 
 - [x] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.
