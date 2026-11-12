@@ -250,6 +250,23 @@ L1-L10 acceptance.
 - [ ] Validate isolated article/book editing through save/reopen, Read and PDF;
   record browser, rendering and accessibility evidence separately.
 
+## Operations milestone W: worker reliability and bounded recovery (2026-11-12)
+
+**Status:** specified only; read-only investigation found five failed/dead slots
+with clustered last heartbeats and one recently started live slot. The latest
+common exit cause is unproven; older SQLite lock tracebacks are not a diagnosis.
+The [worker reliability handoff](docs/WORKER-RELIABILITY-IMPLEMENTATION-HANDOFF.md)
+owns W1-W6 acceptance.
+
+- [ ] W.a: correlate exit evidence, reproduce the actual cause on isolated data
+  and fix it with a focused regression; leave diagnosis open if unproven.
+- [ ] W.b/W.d: add independent single-owner monitoring and durable per-attempt
+  diagnostics, preserving intent, PID identity and job/lease ownership.
+- [ ] W.c: add opt-in staff auto-restart, default three attempts with bounded
+  backoff, persistent exhaustion, visible status and explicit reset/stop.
+- [ ] Validate W1-W6 with isolated real process failures and recovery/exhaustion
+  journeys. Do not restart live workers, retry jobs or enable crawls implicitly.
+
 ## Presentation/PDF milestone M: edition provenance and embedded metadata (2026-11-11)
 
 **Status (2026-11-12):** implemented under the later implementation instruction.

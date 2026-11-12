@@ -1504,6 +1504,15 @@ failures are implemented. Private highlights/underlines were implemented but
 are retired by the 2026-11-11 decision; removal of their reachable surfaces is
 pending, not established by this historical capability listing. Managed workers run
 independently of ordinary web restarts; they are not installed boot services.
+Milestone W is specified, not implemented: the
+[worker reliability handoff](docs/WORKER-RELIABILITY-IMPLEMENTATION-HANDOFF.md)
+owns W1-W6. Diagnose and fix correlated process exits using supported evidence;
+older handled errors are not proof of the latest cause. Add independent
+single-owner supervision and opt-in bounded automatic recovery (three attempts
+by default), with persistent budgets/backoff, explicit exhaustion and staff
+controls. Preserve intentional Stop, PID identity, resource limits and job/lease
+ownership. Process recovery must not implicitly retry failed jobs or alter
+correction validation. Live activation/deployment is separate authorization.
 Do not enable/resume crawls or change resource limits as an implementation side
 effect.
 
