@@ -255,6 +255,7 @@
         <button type="button" role="menuitemcheckbox" aria-label="Justify" title="Justify; click again to inherit" aria-checked="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
       </div>
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
+      <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
       <button type="button" role="menuitem" data-quotation="edit" disabled>Figure &amp; caption…</button>
       <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
       <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
@@ -441,6 +442,10 @@
   <dialog id="editor-quotation" aria-labelledby="editor-quotation-heading">
     <h2 id="editor-quotation-heading">Figure &amp; caption</h2>
     <p id="editor-quotation-target"></p>
+    <div id="editor-quotation-body-field" hidden>
+      <label for="editor-quotation-body">Quoted text (required)</label>
+      <textarea id="editor-quotation-body" rows="7" aria-required="true" aria-describedby="editor-quotation-help"></textarea>
+    </div>
     <label for="editor-figure-caption">Caption / attribution belongs to this figure</label>
     <select id="editor-figure-caption" aria-describedby="editor-quotation-help"></select>
     <div id="editor-figure-new" hidden>

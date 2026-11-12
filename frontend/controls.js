@@ -12,6 +12,10 @@ import {
   canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure,
 } from "./figures.js";
 import {
+  prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion, checkQuotationInsertion,
+} from "./quotation-insertion.js";
+import {semanticDOM} from "./semantic-structure.js";
+import {
   documentParts, foldedDocumentParts, showDocumentPart, showBlockLabels, visiblePart,
   workspaceContext, setWorkspaceContext,
 } from "./workspace.js";
@@ -53,6 +57,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const linkDialog = owner.querySelector("#editor-link");
   const quotationDialog = owner.querySelector("#editor-quotation");
   let quotationProposal = null;
+  let quotationApplied = false;
+  const figureHelp = quotationDialog?.querySelector("#editor-quotation-help").textContent;
   let linkProposal = null;
   let linkTargets = [];
   let imageProposal = null;
@@ -72,7 +78,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   function figureOptions() {
     return {
       caption: quotationDialog.querySelector("#editor-figure-caption").value,
-      text: quotationDialog.querySelector("textarea").value,
+      text: quotationDialog.querySelector("#editor-quotation-attribution").value,
+      body: quotationDialog.querySelector("#editor-quotation-body").value,
       title: quotationDialog.querySelector("#editor-figure-title").value,
       removeCites: quotationDialog.querySelector("#editor-figure-uncite").checked,
     };
@@ -83,6 +90,15 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     const preview = quotationDialog.querySelector("#editor-figure-preview");
     preview.replaceChildren();
     try {
+      if (quotationProposal?.insertion) {
+        const built = buildQuotationInsertion(editor, quotationProposal, {
+          ...options, text: options.caption === "new" ? options.text : "",
+        });
+        preview.append(semanticDOM(editor.schema.nodes.doc.create(null, built.figure), owner));
+        quotationDialog.querySelector('[role="alert"]').textContent = "";
+        quotationDialog.querySelector("#editor-quotation-apply").disabled = false;
+        return;
+      }
       const built = buildFigure(editor, quotationProposal, options);
       const quote = built.figure.firstChild;
       const caption = built.figure.lastChild;
@@ -321,7 +337,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     if (excerpt) available(excerpt, (blockSelection || completeTextBlocks) &&
       excerptParent?.type.name === "section");
     for (const button of form.querySelectorAll("[data-quotation]")) {
-      available(button, canEditFigure(editor));
+      available(button, button.dataset.quotation === "insert" || canEditFigure(editor));
     }
     for (const button of form.querySelectorAll("[data-mark]")) {
       available(button, textSelection);
@@ -467,27 +483,43 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         editor.view.dispatch(editor.state.tr.setSelection(menuTarget.bookmark.resolve(editor.state.doc)));
       }
       closeMenu();
-      if (button.dataset.quotation === "edit") {
-        quotationProposal = prepareFigure(editor);
+      if (button.dataset.quotation) {
+        const insertion = button.dataset.quotation === "insert";
+        quotationProposal = insertion ? prepareQuotationInsertion(editor, readDocument) : prepareFigure(editor);
+        quotationApplied = false;
+        quotationDialog.querySelector("#editor-quotation-heading").textContent =
+          insertion ? "Insert quotation" : "Figure & caption";
+        quotationDialog.querySelector("#editor-quotation-body-field").hidden = !insertion;
+        quotationDialog.querySelector("#editor-quotation-body").value = "";
+        quotationDialog.querySelector('label[for="editor-quotation-attribution"]').textContent =
+          insertion ? "Attribution / caption (optional)" : "New caption text";
+        quotationDialog.querySelector("#editor-quotation-apply").textContent =
+          insertion ? "Insert quotation" : "Apply figure changes";
+        quotationDialog.querySelector("#editor-quotation-help").textContent = insertion
+          ? "Enter literal quoted text; blank lines separate paragraphs and single line breaks are kept. Attribution is optional. No source facts are inferred. Preview and field edits do not change the document."
+          : figureHelp;
         quotationDialog.querySelector("#editor-quotation-target").textContent =
-          `${quotationProposal.kind === "quotation" ? "Quotation" : "Image"} figure. Choose the caption below; Apply changes the whole group once.`;
+          insertion ? `Insert at the captured paragraph caret (${quotationProposal.offset} of ${quotationProposal.paragraph.content.size}). Surrounding text and targets are preserved.`
+          : `${quotationProposal.kind === "quotation" ? "Quotation" : "Image"} figure. Choose the caption below; Apply changes the whole group once.`;
         const choices = quotationDialog.querySelector("#editor-figure-caption");
-        choices.replaceChildren(new Option(quotationProposal.caption ? "Keep existing caption" : "No caption yet", "keep"));
-        for (const candidate of quotationProposal.candidates) choices.add(new Option(candidate.label, candidate.value));
+        choices.replaceChildren(new Option(insertion ? "No attribution" :
+          quotationProposal.caption ? "Keep existing caption" : "No caption yet", insertion ? "none" : "keep"));
+        for (const candidate of quotationProposal.candidates || []) choices.add(new Option(candidate.label, candidate.value));
         choices.add(new Option("Write a new caption", "new"));
         if (quotationProposal.caption) choices.add(new Option("Detach caption (keep as ordinary text)", "none"));
-        choices.value = "keep";
-        const input = quotationDialog.querySelector("textarea");
+        choices.value = insertion ? "new" : "keep";
+        const input = quotationDialog.querySelector("#editor-quotation-attribution");
         input.value = "";
         input.disabled = false;
         quotationDialog.querySelector("#editor-figure-title").value = "";
         quotationDialog.querySelector("#editor-figure-uncite").checked = false;
-        quotationDialog.querySelector("#editor-figure-remove").hidden = !quotationProposal.figure &&
+        quotationDialog.querySelector("#editor-figure-remove").hidden = insertion || !quotationProposal.figure &&
           !quotationProposal.quote;
+        quotationDialog.querySelector("#editor-figure-uncite").closest("details").hidden = insertion;
         quotationDialog.querySelector('[role="alert"]').textContent = "";
         previewFigure();
         quotationDialog.showModal();
-        choices.focus();
+        (insertion ? quotationDialog.querySelector("#editor-quotation-body") : choices).focus();
         return;
       } else if ("image" in button.dataset) {
         imageProposal = prepareImageEdit(editor);
@@ -590,10 +622,16 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     quotationDialog.querySelector("#editor-quotation-cancel").addEventListener("click",
       () => quotationDialog.close());
     quotationDialog.addEventListener("close", () => {
+      if (quotationProposal?.insertion && !quotationApplied) {
+        try {
+          checkQuotationInsertion(editor, quotationProposal);
+          editor.view.dispatch(editor.state.tr.setSelection(quotationProposal.bookmark.resolve(editor.state.doc)));
+        } catch (failure) { showError(failure.message); }
+      }
       quotationProposal = null;
-      quotationDialog.querySelector("textarea").value = "";
+      for (const input of quotationDialog.querySelectorAll("textarea")) input.value = "";
       quotationDialog.querySelector("#editor-figure-preview").replaceChildren();
-      editor.commands.focus();
+      editor.view.focus();
     });
     for (const control of quotationDialog.querySelectorAll("select, textarea, input")) {
       control.addEventListener("input", previewFigure);
@@ -609,7 +647,15 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     });
     quotationDialog.querySelector("#editor-quotation-apply").addEventListener("click", () => {
       try {
-        applyFigure(editor, quotationProposal, figureOptions());
+        if (!quotationProposal) return;
+        const options = figureOptions();
+        if (quotationProposal.insertion) {
+          applyQuotationInsertion(editor, quotationProposal, {
+            ...options, text: options.caption === "new" ? options.text : "",
+          });
+        } else applyFigure(editor, quotationProposal, options);
+        quotationApplied = true;
+        quotationDialog.querySelector("#editor-quotation-apply").disabled = true;
         quotationDialog.close();
       } catch (failure) {
         quotationDialog.querySelector('[role="alert"]').textContent = failure.message;

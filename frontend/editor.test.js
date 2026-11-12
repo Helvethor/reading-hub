@@ -3643,6 +3643,60 @@ test("citation wrappers preserve full nested links and IDs and refuse partial wr
   assert.equal(editor.getHTML(), '<p><span id="work" class="text-align-left">Work <em>title</em></span></p>');
 });
 
+test("Insert quotation is available at an empty caret and shares exact preview and repair semantics", () => {
+  const form = mountSectionWorkspace("<p></p>");
+  const insert = form.querySelector('[data-quotation="insert"]');
+  assert(!insert.hidden && !insert.disabled);
+  const dialog = document.querySelector("#editor-quotation"), body = dialog.querySelector("#editor-quotation-body");
+  let updates = 0;
+  editor.on("update", () => updates++);
+  insert.click();
+  assert(dialog.open && !dialog.querySelector("#editor-quotation-body-field").hidden);
+  assert.equal(document.activeElement, body);
+  body.value = "Discard";
+  body.dispatchEvent(new dom.window.Event("input"));
+  dialog.querySelector("#editor-quotation-cancel").click();
+  assert.equal(editor.getHTML(), "<p></p>");
+  assert.equal(updates, 0);
+  assert(!undo(editor.state));
+  insert.click();
+  body.value = "First\nline\n\nSecond <literal> 😀";
+  dialog.querySelector("#editor-quotation-attribution").value = "Author, Work";
+  dialog.querySelector("#editor-figure-title").value = "Work";
+  body.dispatchEvent(new dom.window.Event("input"));
+  const proposed = dialog.querySelector("#editor-figure-preview figure").outerHTML;
+  const apply = dialog.querySelector("#editor-quotation-apply");
+  apply.click(); apply.click();
+  assert(!dialog.open);
+  assert.equal(editor.getHTML(), proposed);
+  assert.equal(updates, 1);
+  form.querySelector('[data-quotation="edit"]').click();
+  assert(dialog.open && dialog.querySelector("#editor-quotation-body-field").hidden);
+  assert.equal(dialog.querySelector("#editor-figure-caption").value, "keep");
+  dialog.querySelector("#editor-quotation-cancel").click();
+  assert.equal(editor.getHTML(), proposed);
+});
+
+test("stale new-quotation dialogs keep fields and refuse Apply and obsolete Cancel selection", () => {
+  const errors = [];
+  const form = mountSectionWorkspace("<p>Original.</p>", {}, {showError: message => { if (message) errors.push(message); }});
+  selectText("Original");
+  form.querySelector('[data-quotation="insert"]').click();
+  const dialog = document.querySelector("#editor-quotation"), body = dialog.querySelector("#editor-quotation-body");
+  body.value = "Keep for copying";
+  body.dispatchEvent(new dom.window.Event("input"));
+  editor.commands.insertContent("Changed");
+  const changed = editor.getHTML(), selection = editor.state.selection;
+  dialog.querySelector("#editor-quotation-apply").click();
+  assert(dialog.open);
+  assert.equal(body.value, "Keep for copying");
+  assert.match(dialog.querySelector('[role="alert"]').textContent, /Close and reopen/);
+  dialog.querySelector("#editor-quotation-cancel").click();
+  assert.equal(editor.getHTML(), changed);
+  assert(editor.state.selection.eq(selection));
+  assert.match(errors.at(-1), /Close and reopen/);
+});
+
 test("unified figure panel previews caption choices, cancels and applies once", () => {
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
   document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
@@ -3663,17 +3717,17 @@ test("unified figure panel previews caption choices, cancels and applies once", 
   form.querySelector('[data-quotation="edit"]').click();
   assert(dialog.open);
   assert(dialog.querySelector("#editor-quotation-target").textContent.includes("Quotation figure"));
-  dialog.querySelector("textarea").value = "discard";
+  dialog.querySelector("#editor-quotation-attribution").value = "discard";
   dialog.querySelector("#editor-quotation-cancel").click();
   assert.equal(editor.getHTML(), '<p id="text">Quotation text.</p><p>Following.</p>');
   form.querySelector('[data-quotation="edit"]').click();
   const choice = dialog.querySelector("#editor-figure-caption");
   choice.value = "new";
-  dialog.querySelector("textarea").value = "bad\nattribution";
+  dialog.querySelector("#editor-quotation-attribution").value = "bad\nattribution";
   choice.dispatchEvent(new dom.window.Event("change"));
   assert(dialog.open);
   assert(dialog.querySelector('[role="alert"]').textContent.includes("line breaks"));
-  dialog.querySelector("textarea").value = "From Work, 1852.";
+  dialog.querySelector("#editor-quotation-attribution").value = "From Work, 1852.";
   dialog.querySelector("#editor-figure-title").value = "Work";
   choice.dispatchEvent(new dom.window.Event("change"));
   assert(dialog.querySelector("#editor-figure-preview").textContent.includes("CAPTION / ATTRIBUTION: From Work"));
