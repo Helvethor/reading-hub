@@ -47,11 +47,8 @@ export function contentSeparation(node, part, metadata, book) {
   origin: modern ? "default" : "legacy", reason: modern ? preset.reason : "preserved legacy pagination"};
 }
 
-export function setDocumentLayout(editor, layout, {history = true} = {}) {
-  const tr = editor.state.tr.setDocAttribute("layout", layout);
-  if (!history) tr.setMeta("addToHistory", false);
-  else closeHistory(tr);
-  editor.view.dispatch(tr);
+export function setDocumentLayout(editor, layout) {
+  editor.view.dispatch(closeHistory(editor.state.tr.setDocAttribute("layout", layout)));
 }
 
 export function setPartSeparation(editor, position, value) {

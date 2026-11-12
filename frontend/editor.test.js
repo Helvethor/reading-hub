@@ -5358,6 +5358,17 @@ test("layout changes use editor history and per-part attributes survive roundtri
     {kind: "Section", depth: 0}, {work_type: "article", layout: metadata}, false).value, "new-page");
 });
 
+test("moving a section carries its deliberate separation without reassigning it to a neighbour", () => {
+  open('<section id="one" data-layout-before="continuous"><h2>One</h2><p>First.</p></section>' +
+    '<section id="two" data-layout-before="new-page"><h2>Two</h2><p>Second.</p></section>');
+  moveSection(editor, {doc: editor.state.doc}, 1, "before", 0);
+  const sections = [...editor.view.dom.querySelectorAll("section")];
+  assert.deepEqual(sections.map(section => [section.id, section.getAttribute("data-layout-before")]),
+    [["two", "new-page"], ["one", "continuous"]]);
+  undo(editor.state, editor.view.dispatch);
+  assert.deepEqual([...editor.view.dom.querySelectorAll("section")].map(section => section.id), ["one", "two"]);
+});
+
 test("outline Layout and separation edits generated boundaries and resets by removing the override", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
   const dialog = form.querySelector("#editor-layout-separation");
@@ -5375,7 +5386,10 @@ test("outline Layout and separation edits generated boundaries and resets by rem
   assert.equal(editor.state.doc.attrs.layout.defaults, "legacy",
     "Changing one boundary must not silently apply new defaults to the other parts.");
   assert.equal(editor.getHTML(), '<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
-  undo(editor.state, editor.view.dispatch);
+  form.querySelector('[data-book-view="toc"]').dispatchEvent(
+    new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
+  [...menu.querySelectorAll("button")].find(button => /Layout and separation/.test(button.textContent)).click();
+  [...dialog.querySelectorAll("button")].find(button => button.textContent === "Reset to default").click();
   assert.equal(editor.state.doc.attrs.layout, null);
   form.querySelector(".editor-layout-summary button").click();
   assert.deepEqual(editor.state.doc.attrs.layout, {version: 1, defaults: "type", overrides: {}});
@@ -5498,15 +5512,15 @@ test("editor widget tabs switch panels by click, arrow keys and events while sha
   assert(!panel("structure").hidden && form.hidden, "Pinned structure replaces the editing form.");
   assert.match(panel("structure").textContent, /unchanged source structure, not the current edited order/);
   assert(!form.contains(panel("structure")));
-  document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
-  assert.equal(tabs.current, "style");
-  assert.equal(document.activeElement.id, "editor-tab-style");
-  assert(!panel("style").hidden && form.hidden);
-  assert(!form.contains(panel("style")), "Style forms must not nest inside the document-save form.");
-  const original = editor.getHTML(), selection = editor.state.selection.toJSON();
+  assert(!workspace.querySelector("#editor-tab-style"));
+  assert(!workspace.querySelector("#editor-panel-style"));
   document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
   assert.equal(tabs.current, "editor");
-  assert(!form.hidden && panel("style").hidden);
+  assert(!form.hidden, "Reading style controls are not an Edit tab.");
+  const original = editor.getHTML(), selection = editor.state.selection.toJSON();
+  workspace.querySelector("#editor-tab-editor").dispatchEvent(new dom.window.KeyboardEvent("keydown",
+    {key: "ArrowRight", bubbles: true, cancelable: true}));
+  assert.equal(tabs.current, "metadata");
   assert.equal(editor.getHTML(), original);
   assert.deepEqual(editor.state.selection.toJSON(), selection);
   form.dispatchEvent(new dom.window.CustomEvent("editor-show-tab", {detail: {tab: "metadata"}}));

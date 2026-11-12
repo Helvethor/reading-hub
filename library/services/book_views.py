@@ -268,24 +268,28 @@ def apply_part_layout(soup, metadata, book):
         work_type and work_type != "other"
     ) else bool(book)
     parts = book_entries(soup, book=book)
-    body_start = next((node for node in soup.children if isinstance(node, Tag)), None)
     body_separation = part_layout(metadata, book)["body"]["value"]
+
+    def first_in_body(node):
+        while node is not soup:
+            if any(isinstance(item, Tag) or str(item).strip() for item in node.previous_siblings):
+                return False
+            node = node.parent
+        return True
+
     for part in parts:
         node = part["node"]
         explicit = node.get("data-layout-before")
         role = node.get("data-section-role")
         default = "new-page" if (
-            modern and book_like and node.name == "section" and part["depth"] == 0
+            modern and book_like and node.name == "section" and node.find_parent("section") is None
             and (not role or role in {"chapter", "article", "appendix"})
         ) else "continuous"
         if layout or explicit:
             node["data-layout-before"] = explicit or default
             # The body wrapper already applies this coincident first boundary.
-            if node is body_start or (
-                node.name in HEADINGS and node.parent is body_start
-                and not any(isinstance(item, Tag) for item in node.previous_siblings)
-            ):
-                if node["data-layout-before"] == "new-page":
+            if first_in_body(node):
+                if explicit == "new-page":
                     body_separation = "new-page"
                 node["data-layout-before"] = "continuous"
     return body_separation

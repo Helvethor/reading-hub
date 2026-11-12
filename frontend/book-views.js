@@ -316,20 +316,29 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   separation.id = "editor-layout-before";
   separationLabel.append(separation);
   const applySeparation = element("button", "Apply");
+  const resetSeparation = element("button", "Reset to default");
   const cancelSeparation = element("button", "Cancel");
-  applySeparation.type = cancelSeparation.type = "button";
+  applySeparation.type = resetSeparation.type = cancelSeparation.type = "button";
   const layoutError = element("p", "");
   layoutError.setAttribute("role", "alert");
   layoutDialog.append(layoutHeading, layoutReason, separationLabel, layoutError,
-    applySeparation, cancelSeparation);
+    applySeparation, resetSeparation, cancelSeparation);
   form.append(layoutDialog);
   let layoutProposal;
+  function sectionDepth(position) {
+    const resolved = editor.state.doc.resolve(position);
+    let depth = 0;
+    for (let index = 1; index <= resolved.depth; index++) {
+      if (resolved.node(index).type.name === "section") depth++;
+    }
+    return depth;
+  }
   function openSeparation(part, contentPart = null) {
     const metadata = layoutMetadata();
     const position = contentPart ? tocEntryPosition(contentPart) : null;
     const node = position === null ? null : editor.state.doc.nodeAt(position);
     const info = contentPart ? contentSeparation(node, {...contentPart,
-      depth: editor.state.doc.resolve(position).depth},
+      depth: sectionDepth(position)},
     metadata, isBook()) : partLayout(metadata, isBook())[part];
     layoutProposal = {doc: editor.state.doc, part, position};
     layoutHeading.textContent = `Layout and separation - ${contentPart?.label || part}`;
@@ -337,7 +346,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       "Visibility and title presentation are independent. Screen reading uses spacing instead of physical pages.";
     const inherited = contentPart ? contentSeparation(
       {attrs: {...node.attrs, "data-layout-before": null}},
-      {...contentPart, depth: editor.state.doc.resolve(position).depth},
+      {...contentPart, depth: sectionDepth(position)},
       metadata, isBook()) : partLayout({...metadata, layout: {...metadata.layout,
       overrides: Object.fromEntries(Object.entries(metadata.layout?.overrides || {})
         .filter(([key]) => key !== part))}}, isBook())[part];
@@ -368,6 +377,10 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       }
       layoutDialog.close();
     } catch (failure) { layoutError.textContent = failure.message; }
+  });
+  resetSeparation.addEventListener("click", () => {
+    separation.value = "";
+    applySeparation.click();
   });
   cancelSeparation.addEventListener("click", () => layoutDialog.close());
   form.addEventListener("editor-layout-part", event => openSeparation(null, event.detail.part));
@@ -545,21 +558,27 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       Object.entries(boundaries).map(([key, info]) => `${key}: ${info.value} (${info.origin})`).join("; ") +
       ". Each outline part offers Layout and separation; Reset to default removes only its override.";
     title.dataset.layoutBefore = boundaries.title.value;
+    title.dataset.layoutAfter = boundaries[layout.contents_page ? "toc" : "body"].value;
     toc.dataset.layoutBefore = boundaries.toc.value;
     metadataPage.dataset.layoutBefore = boundaries.metadata.value;
     editor.view.dom.dataset.layoutBefore = boundaries.body.value;
-    const layoutHierarchy = outlineHierarchy(parts);
-    parts.forEach((part, index) => {
+    parts.forEach(part => {
       const position = tocEntryPosition(part);
       const node = editor.state.doc.nodeAt(position);
       const dom = editor.view.nodeDOM(position);
       if (node && dom instanceof owner.defaultView.HTMLElement) {
-        const info = contentSeparation(node, {...part, depth: layoutHierarchy[index].depth},
+        const resolved = editor.state.doc.resolve(position);
+        const first = Array.from({length: resolved.depth + 1},
+          (_, depth) => resolved.index(depth)).every(index => index === 0);
+        const info = contentSeparation(node, {...part, depth: sectionDepth(position)},
           currentMetadata, currentBook);
-        dom.classList.toggle("editor-layout-new-page", info.value === "new-page" &&
-          position > 1);
+        if (first && node.attrs["data-layout-before"] === "new-page") {
+          editor.view.dom.dataset.layoutBefore = "new-page";
+        }
+        dom.classList.toggle("editor-layout-new-page", info.value === "new-page" && !first);
       }
     });
+    if (!layout.contents_page) title.dataset.layoutAfter = editor.view.dom.dataset.layoutBefore;
     if (!layout.contents_page) {
       toc.classList.add("editor-page-disabled");
       const stub = element("p", "Not included in this book: navigation and the PDF outline still list every section. Right-click to include the table of contents page.");

@@ -46,6 +46,38 @@ class BookViewTests(SimpleTestCase):
         self.assertEqual(soup.get_text(), BeautifulSoup(html, "html.parser").get_text())
         self.assertEqual(document["html"], html)
 
+    def test_rendered_title_size_and_body_separation_are_independent_without_blank_pages(self):
+        from weasyprint import CSS, HTML
+
+        stylesheet = CSS(filename=str(
+            Path(settings.BASE_DIR) / "library/static/library/print.css"
+        ))
+        content = '<section id="one" data-section-role="chapter"><h2>Chapter</h2><p>Body sentinel.</p></section>'
+        for title_size in ("full", "compact"):
+            for separation in ("continuous", "new-page"):
+                with self.subTest(title=title_size, separation=separation):
+                    metadata = {
+                        "work_type": "book", "title_layout": title_size, "contents_page": False,
+                        "metadata_page": False,
+                        "layout": {"version": 1, "overrides": {"body": separation}},
+                    }
+                    projection = publication_view(content, book=True, metadata=metadata)
+                    self.assertEqual(projection["body_separation"], separation)
+                    rendered = HTML(string=(
+                        '<html><body class="pdf-document layout-policy">'
+                        f'<header class="document-header title-layout-{title_size}" data-layout-before="continuous">'
+                        '<h1>Title sentinel</h1></header>'
+                        f'<article data-layout-before="{projection["body_separation"]}">'
+                        f'{projection["content_html"]}</article></body></html>'
+                    )).render(stylesheets=[stylesheet])
+                    texts = [" ".join(box.text for box in page._page_box.descendants()
+                                      if hasattr(box, "text")) for page in rendered.pages]
+                    title_page = next(index for index, text in enumerate(texts) if "Title sentinel" in text)
+                    body_page = next(index for index, text in enumerate(texts) if "Body sentinel" in text)
+                    self.assertEqual(title_page, 0)
+                    self.assertEqual(body_page, 1 if separation == "new-page" else 0)
+                    self.assertEqual(len(texts), 2 if separation == "new-page" else 1)
+
     def test_standalone_article_title_is_navigation_root_not_a_duplicate_contents_entry(self):
         html = (
             '<section id="article" data-section-role="article">'
