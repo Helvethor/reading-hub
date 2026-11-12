@@ -250,6 +250,20 @@ L1-L10 acceptance.
 - [ ] Validate isolated article/book editing through save/reopen, Read and PDF;
   record browser, rendering and accessibility evidence separately.
 
+## Editor milestone Q: quotation/citation authoring (2026-11-12)
+
+**Status:** specified only. The
+[citation authoring handoff](docs/CITATION-AUTHORING-IMPLEMENTATION-HANDOFF.md)
+owns Q1-Q5 acceptance.
+
+- [ ] Add discoverable Insert quotation at a prose caret, without existing
+  selected text; reuse Figure & caption for new body, attribution and optional
+  exact source-title marking, preview and atomic insertion.
+- [ ] Preserve safe paragraph splitting, undo/redo, focus, recovery and semantic
+  validation; reject unsupported/stale targets without overwriting content.
+- [ ] Validate create/edit/save/reopen/Read/print/PDF on isolated article/book
+  fixtures. Bibliography management and automatic footnotes are out of scope.
+
 ## Operations milestone W: worker reliability and bounded recovery (2026-11-12)
 
 **Status:** specified only; read-only investigation found five failed/dead slots

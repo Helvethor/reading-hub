@@ -1917,6 +1917,15 @@ An explicit advanced choice removes cite while preserving identity-bearing spans
 Caption association and source marking happen in one atomic Apply, preceded by a
 read-only preview. Cancel/Escape is a no-op. Existing text remains directly editable.
 Image alternative-text editing and link URL editing remain dedicated tools.
+Milestone Q (specified only) adds an explicit Insert quotation workflow for
+new quoted text at a prose caret, without first selecting existing paragraphs.
+The [citation authoring handoff](docs/CITATION-AUTHORING-IMPLEMENTATION-HANDOFF.md)
+owns Q1-Q5. Reuse Figure & caption, optional attribution and exact source-title
+marking, with preview, safe paragraph splitting and one undoable insertion.
+Preserve semantic validation, focus, recovery and save/Read/print/PDF fidelity;
+Cancel and unsupported/stale locations must not alter content. Here citation
+means a quotation with attribution, not bibliography management or automatic
+footnote generation.
 Standalone block images and image-only paragraphs can gain a figure/caption;
 mixed prose/image paragraphs and multi-image figures are not automatically split.
 
