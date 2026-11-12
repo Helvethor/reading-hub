@@ -9,6 +9,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from pathlib import Path
 
 from django.conf import settings
@@ -18,7 +20,156 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 13
+PDF_PRESENTATION_VERSION = 14
+PDF_XMP_NAMESPACE = "urn:reading-hub:pdf:1.0"
+
+
+def pdf_metadata_mapping(version, edition_status=None):
+    """Whitelist the public, exact rendition evidence suitable for PDF properties."""
+    metadata = version.metadata
+    authors = []
+    if metadata.get("author") and not metadata.get("author_is_fallback"):
+        authors.append(metadata["author"])
+    contributors = [
+        {"name": item["name"], "role": item["role"]}
+        for item in metadata.get("contributors", [])
+        if isinstance(item, dict)
+        and item.get("role") in {"author", "editor", "translator", "unknown"}
+        and isinstance(item.get("name"), str)
+        and item["name"].strip()
+    ]
+    for item in contributors:
+        if item["role"] == "author" and item["name"] not in authors:
+            authors.append(item["name"])
+
+    custom = {
+        "sourceURL": getattr(getattr(version, "document", None), "url", None),
+        "renditionIdentity": getattr(version, "identity", None),
+        "outputDigest": getattr(version, "output_digest", None),
+        "sourceTitle": getattr(version, "title", None),
+        "workType": metadata.get("work_type"),
+        "originalTitle": metadata.get("original_title"),
+        "publisher": metadata.get("publisher"),
+        "series": metadata.get("series"),
+        "sourceEdition": metadata.get("source_edition"),
+        "rights": metadata.get("rights"),
+        "appVersion": getattr(version, "app_version", None),
+        "adapterVersion": getattr(version, "adapter_version", None),
+        "formatVersion": getattr(version, "format_version", None),
+    }
+    snapshot = getattr(version, "snapshot", None)
+    if snapshot is not None:
+        captured_at = getattr(snapshot, "fetched_at", None)
+        if captured_at is not None:
+            custom["sourceCaptureDate"] = captured_at.isoformat()
+
+    publication = getattr(version, "document_publication", None)
+    if publication is not None:
+        revision = publication.revision
+        custom.update({
+            "editionOrigin": "published",
+            "reviewScope": revision.review,
+            "reviewEditorialChanges": str(bool(revision.editorial)).lower(),
+            "editionRevision": str(revision.revision),
+            "publicationRuleVersion": str(publication.publication_version),
+            "sourceRenditionIdentity": getattr(revision.draft.rendition, "identity", None),
+        })
+        if revision.review == "sections":
+            custom["verifiedSection"] = list(revision.verified_sections)
+    else:
+        custom["editionOrigin"] = "source-generated"
+
+    if edition_status:
+        if edition_status.get("draft_snapshot"):
+            custom["editionOrigin"] = "draft-snapshot"
+            custom["draftContentState"] = (
+                "changed-unsaved" if edition_status.get("changed_unsaved")
+                else "matches-saved-content"
+            )
+            historical = edition_status.get("historical_review")
+            if historical:
+                custom["historicalReview"] = historical
+                custom["historicalReviewRevision"] = str(
+                    edition_status.get("historical_review_revision") or ""
+                )
+                custom["historicalSourceRenditionIdentity"] = edition_status.get(
+                    "source_rendition_identity"
+                )
+    date_facts = [
+        {
+            "type": item["type"],
+            "value": item["value"],
+            "end_value": item.get("end_value", ""),
+        }
+        for item in metadata.get("date_facts", [])
+        if isinstance(item, dict)
+        and item.get("type") in {"written", "delivered", "publication", "online_edition", "unknown"}
+        and isinstance(item.get("value"), str)
+    ]
+    if metadata.get("published") and not any(
+        item["type"] == "publication" for item in date_facts
+    ):
+        date_facts.append({"type": "publication", "value": metadata["published"], "end_value": ""})
+    return {
+        "title": version.title,
+        "authors": authors,
+        "language": metadata.get("language"),
+        "subjects": list(metadata.get("topics", [])),
+        "pdf_creation_date": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "contributors": contributors,
+        "date_facts": date_facts,
+        "custom": {
+            key: value for key, value in custom.items()
+            if value is not None and value != "" and value != []
+        },
+    }
+
+
+def xmp_metadata_rdf(mapping):
+    """Build the documented Reading Hub XMP extension without serializing raw metadata."""
+    rdf_ns = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    dc_ns = "http://purl.org/dc/elements/1.1/"
+    ET.register_namespace("rdf", rdf_ns)
+    ET.register_namespace("dc", dc_ns)
+    ET.register_namespace("rh", PDF_XMP_NAMESPACE)
+    rdf = ET.Element(f"{{{rdf_ns}}}RDF")
+    description = ET.SubElement(rdf, f"{{{rdf_ns}}}Description", {f"{{{rdf_ns}}}about": ""})
+    contributors = [
+        item["name"] for item in mapping["contributors"] if item["role"] != "author"
+    ]
+    if contributors:
+        contributor = ET.SubElement(description, f"{{{dc_ns}}}contributor")
+        seq = ET.SubElement(contributor, f"{{{rdf_ns}}}Seq")
+        for name in contributors:
+            ET.SubElement(seq, f"{{{rdf_ns}}}li").text = name
+    if mapping["language"]:
+        ET.SubElement(description, f"{{{dc_ns}}}language").text = mapping["language"]
+    for key, value in mapping["custom"].items():
+        if isinstance(value, list):
+            parent = ET.SubElement(description, f"{{{PDF_XMP_NAMESPACE}}}{key}")
+            seq = ET.SubElement(parent, f"{{{rdf_ns}}}Seq")
+            for item in value:
+                ET.SubElement(seq, f"{{{rdf_ns}}}li").text = str(item)
+        else:
+            ET.SubElement(description, f"{{{PDF_XMP_NAMESPACE}}}{key}").text = str(value)
+    for key in ("editor", "translator", "unknown"):
+        values = [item["name"] for item in mapping["contributors"] if item["role"] == key]
+        if values:
+            field = ET.SubElement(description, f"{{{PDF_XMP_NAMESPACE}}}{key}")
+            seq = ET.SubElement(field, f"{{{rdf_ns}}}Seq")
+            for value in values:
+                ET.SubElement(seq, f"{{{rdf_ns}}}li").text = value
+    if mapping["date_facts"]:
+        facts = ET.SubElement(description, f"{{{PDF_XMP_NAMESPACE}}}dateFact")
+        seq = ET.SubElement(facts, f"{{{rdf_ns}}}Seq")
+        for fact in mapping["date_facts"]:
+            resource = ET.SubElement(
+                seq, f"{{{rdf_ns}}}li", {f"{{{rdf_ns}}}parseType": "Resource"},
+            )
+            for key, value in fact.items():
+                if value:
+                    ET.SubElement(resource, f"{{{PDF_XMP_NAMESPACE}}}{key}").text = value
+    return ET.tostring(rdf, encoding="utf-8")
 
 
 def split_pdf_paragraph(paragraph, fraction):
@@ -232,20 +383,30 @@ def running_sections(markup):
     return str(soup)
 
 
-def render_pdf(version, destination, reading_style=None, theme="", *, approved_assets=None):
+def render_pdf(
+    version,
+    destination,
+    reading_style=None,
+    theme="",
+    *,
+    approved_assets=None,
+    edition_status=None,
+):
     from django.template.loader import render_to_string
     from weasyprint import CSS, HTML
     from weasyprint.text.fonts import FontConfiguration
 
     from library.profile import source_name
-    from library.services.book_views import publication_view
+    from library.services.book_views import layout_context, publication_view
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import DEFAULTS, FONT_FILES, style_css, validate_style
     from library.services.storage import read_blob
     from library.themes import profile_for_theme
-    from library.views import contents_tree, toc_tree
+    from library.views import contents_tree, endmatter_ids, toc_tree, with_edition_status
 
     reading_style = validate_style(DEFAULTS if reading_style is None else reading_style)
+    metadata = version.metadata
+    book = version.structure.get("book")
     assets = (
         {
             f"https://reading-hub.invalid/assets/{asset.blob_id}/": asset.blob
@@ -282,24 +443,53 @@ def render_pdf(version, destination, reading_style=None, theme="", *, approved_a
             raise
         return {"string": data, "mime_type": blob.media_type}
 
-    generated_book = bool(version.structure.get("book"))
-    projection = publication_view(
-        version.html, version.structure["toc"], version.title, book=generated_book,
-    ) if generated_book else {
-        "content_html": version.html, "entries": version.structure.get("toc", []),
-    }
+    generated_book = bool(book)
+    projection = (
+        publication_view(
+            version.html,
+            version.structure.get("toc", []),
+            version.title,
+            book=generated_book,
+            metadata=metadata,
+        )
+        if (
+            generated_book
+            or getattr(version, "document_publication", None)
+            or metadata.get("layout")
+        )
+        else {"content_html": version.html, "entries": version.structure.get("toc", [])}
+    )
+    identifiers = endmatter_ids(projection["content_html"])
+    metadata_values = metadata_context(
+        metadata,
+        version.title,
+        metadata.get("author", "").strip() or source_name(version.document.url),
+        book,
+        version.document.url,
+    )
+    metadata_values["metadata_page_id"] = identifiers["metadata_page_id"]
+    navigation = with_metadata_page(projection["entries"], metadata, book)
+    for entry in navigation:
+        if entry["id"] == "document-metadata":
+            entry["id"] = identifiers["metadata_page_id"]
+    navigation = with_edition_status(navigation, identifiers["edition_status_id"])
+    page_layout = layout_context(metadata, bool(book))
+    if metadata.get("layout") and "body_separation" in projection:
+        page_layout["layout_policy"] = True
+        page_layout["layout_boundaries"]["body"]["value"] = projection["body_separation"]
     markup = render_to_string(
         "library/pdf.html",
         {
             "version": version,
             "display_author": version.metadata.get("author", "").strip()
             or source_name(version.document.url),
-            **metadata_context(version.metadata, version.title, version.metadata.get(
-                "author", "").strip() or source_name(version.document.url),
-                version.structure.get("book"), version.document.url),
+            **metadata_values,
+            **page_layout,
             "content_html": projection["content_html"],
-            "toc": toc_tree(with_metadata_page(
-                projection["entries"], version.metadata, version.structure.get("book"))),
+            "toc": toc_tree(navigation),
+            "edition_status_id": identifiers["edition_status_id"],
+            "edition_status": edition_status or {},
+            "preview_is_unsaved": bool((edition_status or {}).get("changed_unsaved")),
             "generated_book": generated_book,
             "contents_toc": contents_tree(projection["entries"]),
         },
@@ -335,7 +525,35 @@ def render_pdf(version, destination, reading_style=None, theme="", *, approved_a
             markup = mark_pdf_flow(updated)
         if failures or errors.messages:
             raise PDFExportError("; ".join(failures + errors.messages))
-        document.write_pdf(destination)
+        mapping = pdf_metadata_mapping(version, edition_status)
+        document.metadata.title = mapping["title"]
+        document.metadata.authors = mapping["authors"]
+        document.metadata.keywords = mapping["subjects"]
+        document.metadata.description = (
+            ", ".join(mapping["subjects"]) if mapping["subjects"] else None
+        )
+        document.metadata.lang = mapping["language"]
+        document.metadata.generator = "Reading Hub"
+        document.metadata.created = mapping["pdf_creation_date"]
+        generate_rdf_metadata = document.metadata.generate_rdf_metadata
+
+        def generate_with_reading_hub_xmp(variant, pdf_version, conformance):
+            rdf = ET.fromstring(
+                generate_rdf_metadata(variant, pdf_version, conformance)
+            )
+            extension = ET.fromstring(xmp_metadata_rdf(mapping))
+            for description in extension:
+                rdf.append(description)
+            return ET.tostring(rdf, encoding="utf-8")
+
+        document.metadata.generate_rdf_metadata = generate_with_reading_hub_xmp
+
+        def finish_pdf(rendered, pdf):
+            rendered.metadata.include_in_pdf(
+                pdf, variant=None, version=None, conformance=None, compress=True,
+            )
+
+        document.write_pdf(destination, finisher=finish_pdf)
         if failures or errors.messages:
             raise PDFExportError("; ".join(failures + errors.messages))
     finally:

@@ -27,7 +27,8 @@ DATE_FIELDS = {
 }
 # Ordered keys a reviewer can show on or hide from the generated title page.
 TITLE_PAGE_FIELDS = (
-    "work_type", "original_title", "author", "editor", "translator", "contributor", "publisher", "series",
+    "work_type", "original_title", "author", "editor", "translator", "contributor", "publisher",
+    "series",
     "written", "delivered", "publication", "online_edition", "date", "publication_note",
     "source_edition", "translation_note", "online_version", "transcription", "proofreading",
     "rights", "notes", "language", "original_language", "subjects", "source_url",
@@ -38,13 +39,14 @@ DEFAULT_SHOWN = frozenset({
 })
 TITLE_LAYOUTS = ("full", "compact")
 WORK_TYPES = (
-    ("book", "Book"), ("pamphlet", "Pamphlet"), ("article", "Article"), ("essay", "Essay"),
+    ("book", "Book"), ("anthology", "Anthology"), ("pamphlet", "Pamphlet"),
+    ("article", "Article"), ("essay", "Essay"),
     ("letter", "Letter"), ("speech", "Speech"), ("interview", "Interview"),
     ("report", "Report"), ("resolution", "Resolution"), ("other", "Other"),
 )
 # Book-like works open with a full title page and a contents page; shorter works start
 # their text right below a compact title block. Explicit choices override these presets.
-BOOK_LIKE = frozenset({"book", "pamphlet", "report"})
+BOOK_LIKE = frozenset({"book", "anthology", "pamphlet", "report"})
 
 
 def page_preset(work_type, book):
@@ -67,7 +69,16 @@ def title_page_selection(metadata):
 
 def book_pages(metadata, book=False):
     """Title layout and ToC/metadata page inclusion: explicit values, else the type preset."""
-    pages = page_preset(metadata.get("work_type"), book)
+    layout = metadata.get("layout", {})
+    modern_other = (
+        metadata.get("work_type") == "other"
+        and layout.get("version") == 1
+        and layout.get("defaults") != "legacy"
+    )
+    pages = page_preset(
+        None if modern_other else metadata.get("work_type"),
+        book,
+    )
     if metadata.get("title_layout") in TITLE_LAYOUTS:
         pages["title_layout"] = metadata["title_layout"]
     for key in ("contents_page", "metadata_page"):

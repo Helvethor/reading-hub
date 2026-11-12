@@ -160,6 +160,21 @@ class EditorMetadataTests(TestCase):
         self.assertEqual(book_pages(value), {"title_layout": "full", "contents_page": True, "metadata_page": False})
         self.assertEqual(metadata_entries(value)[0], ("work_type", "Type", "Speech"))
         self.assertEqual(validate_editor_metadata(original, value), value)
+        anthology = validate_editor_metadata(original, {**original, "work_type": "anthology"})
+        self.assertEqual(metadata_entries(anthology)[0], ("work_type", "Type", "Anthology"))
+        self.assertEqual(book_pages(anthology)["title_layout"], "full")
+        self.assertTrue(book_pages(anthology)["contents_page"])
+        self.assertEqual(
+            book_pages({"work_type": "other", "layout": {"version": 1, "defaults": "type"}}, True),
+            {"title_layout": "full", "contents_page": True, "metadata_page": True},
+        )
+        self.assertEqual(
+            book_pages(
+                {"work_type": "other", "layout": {"version": 1, "defaults": "legacy"}},
+                True,
+            ),
+            {"title_layout": "compact", "contents_page": False, "metadata_page": True},
+        )
         for key, invalid in (
             ("work_type", "novel"), ("title_layout", "tiny"), ("contents_page", "yes"), ("metadata_page", 1),
         ):

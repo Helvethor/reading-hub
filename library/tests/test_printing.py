@@ -2,6 +2,7 @@ import fcntl
 import io
 import subprocess
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 
@@ -89,6 +90,12 @@ class PrintingTests(TestCase):
         self.assertIn("Author", header.get_text())
         self.assertIn("Test author", header.get_text())
         self.assertNotIn("Hidden Person", header.get_text())
+        self.assertNotIn("review status", header.get_text().lower())
+        self.assertNotIn("Cached", header.get_text())
+        self.assertEqual(
+            len(BeautifulSoup(response.content, "html.parser").select("#document-edition-status")),
+            1,
+        )
         pdf = self.pdf()
         self.assertEqual(len(pdf.pages), 3, "Full title page, body, then the metadata page.")
         cover = pdf.pages[0].extract_text()
@@ -104,10 +111,95 @@ class PrintingTests(TestCase):
         self.assertEqual(pdf.get_destination_page_number(pdf.outline[1][0]), 1)
         final = pdf.pages[2].extract_text()
         for text in ("Metadata", "Online edition", "1999", "Contributor (role unconfirmed)",
-                     "Unconfirmed Person", "History", self.version.document.url):
+                     "Unconfirmed Person", "History", self.version.document.url,
+                     "Edition and review status", "Source-generated edition"):
             self.assertIn(text, final)
+        all_text = "\n".join(page.extract_text() for page in pdf.pages)
+        self.assertEqual(all_text.count("Edition and review status"), 1)
+        outline_titles = []
+
+        def collect_titles(items):
+            for item in items:
+                if isinstance(item, list):
+                    collect_titles(item)
+                else:
+                    outline_titles.append(item.title)
+
+        collect_titles(pdf.outline)
+        self.assertIn("Edition and review status", outline_titles)
+        for internal in (
+            "Cached ", "Source adapter", "Formatting rules", "Document publication rules",
+        ):
+            self.assertNotIn(internal, all_text)
         self.assertNotIn("Hidden Person", final)
         self.assertNotIn("Original prose", final)
+
+    def test_pdf_metadata_round_trips_bounded_unicode_dates_and_review_evidence(self):
+        self.version.metadata = {
+            "author": "Zoë 雪",
+            "contributors": [
+                {"name": "Éditrice", "role": "editor"},
+                {"name": "مترجم", "role": "translator"},
+                {"name": "Rôle inconnu", "role": "unknown"},
+                {"name": "PRIVATE_EXCLUDED_SENTINEL", "role": "exclude"},
+            ],
+            "language": "fr-CA",
+            "topics": ["Histoire", "雪"],
+            "work_type": "book",
+            "original_title": "L'œuvre",
+            "publisher": "出版社",
+            "date_facts": [
+                {"type": "written", "value": "1901-09", "end_value": "1902-02"},
+                {"type": "publication", "value": "1903-04"},
+                {"type": "online_edition", "value": "2001"},
+                {"type": "unknown", "value": "c. 1920"},
+            ],
+            "published": "1903-04",
+            "reviewer_account": "PRIVATE_ACCOUNT_SENTINEL",
+            "private_annotation": "PRIVATE_ANNOTATION_SENTINEL",
+            "workspace_path": "/PRIVATE_PATH_SENTINEL",
+            "credential": "PRIVATE_CREDENTIAL_SENTINEL",
+        }
+        self.version.snapshot.manifest = {
+            "account": "PRIVATE_MANIFEST_SENTINEL",
+            "path": "/PRIVATE_MANIFEST_PATH_SENTINEL",
+        }
+        self.version.snapshot.save(update_fields=["manifest"])
+        self.version.save(update_fields=["metadata"])
+
+        reader = self.pdf()
+        info = reader.metadata
+        self.assertEqual(info.title, self.version.title)
+        self.assertEqual(info.author, "Zoë 雪")
+        self.assertEqual(reader.trailer["/Root"]["/Lang"], "fr-CA")
+        self.assertIn("Histoire", info.keywords)
+        self.assertEqual(info.subject, info.keywords)
+        self.assertIsNotNone(info.creation_date)
+        packet = reader.trailer["/Root"]["/Metadata"].get_object().get_data()
+        root = ET.fromstring(packet)
+        namespace = "{urn:reading-hub:pdf:1.0}"
+        xmp_namespace = "{http://ns.adobe.com/xap/1.0/}"
+        joined = "\n".join(root.itertext())
+        xmp_tags = {node.tag for node in root.iter()}
+        self.assertIn(namespace + "dateFact", xmp_tags)
+        for role in ("editor", "translator", "unknown"):
+            self.assertIn(namespace + role, xmp_tags)
+        for expected in (
+            "Éditrice", "مترجم", "Rôle inconnu", "1901-09", "1902-02",
+            "1903-04", "2001", "c. 1920", "source-generated",
+        ):
+            self.assertIn(expected, joined)
+        pdf_created = root.find(f".//{xmp_namespace}CreateDate")
+        self.assertIsNotNone(pdf_created)
+        self.assertNotEqual(pdf_created.text, "1903-04")
+        self.assertIn("+00:00", pdf_created.text)
+        for private in (
+            "PRIVATE_EXCLUDED_SENTINEL", "PRIVATE_ACCOUNT_SENTINEL",
+            "PRIVATE_ANNOTATION_SENTINEL", "PRIVATE_PATH_SENTINEL",
+            "PRIVATE_CREDENTIAL_SENTINEL", "PRIVATE_MANIFEST_SENTINEL",
+            "PRIVATE_MANIFEST_PATH_SENTINEL",
+        ):
+            self.assertNotIn(private, packet.decode("utf-8"))
 
     def test_article_preset_uses_compact_title_and_page_settings_override_it(self):
         self.version.metadata.update(contributors=[{"name": "Translation Person", "role": "translator"}])
@@ -129,6 +221,10 @@ class PrintingTests(TestCase):
                          "The first page shows the title once, without a running header.")
         self.assertIn("Metadata", pdf.pages[1].extract_text())
         self.assertIn("Print test", pdf.pages[1].extract_text(), "Later pages keep running headers.")
+        self.assertEqual(
+            "\n".join(page.extract_text() for page in pdf.pages).count("Edition and review status"),
+            1,
+        )
         self.version.metadata.update(work_type="book", metadata_page=False)
         self.version.save(update_fields=["metadata"])
         soup = BeautifulSoup(self.client.get(f"/versions/{self.version.pk}/").content, "html.parser")
@@ -139,6 +235,87 @@ class PrintingTests(TestCase):
         self.assertEqual(len(pdf.pages), 2, "Full title page then body; no metadata page.")
         self.assertNotIn("Original prose", pdf.pages[0].extract_text())
         self.assertNotIn("Metadata", pdf.pages[1].extract_text())
+        self.assertIn("Edition and review status", pdf.pages[1].extract_text())
+
+    def test_pdf_renders_modern_title_size_and_body_separation_independently(self):
+        self.version.structure = {"book": True, "toc": []}
+        self.version.html = (
+            '<section id="first" data-section-role="chapter">'
+            '<h2>First chapter</h2><p>Body sentinel.</p></section>'
+        )
+        for title_size, separation, expected_body_page in (
+            ("full", "continuous", 0),
+            ("compact", "new-page", 1),
+        ):
+            with self.subTest(title=title_size, separation=separation):
+                self.version.metadata.update({
+                    "work_type": "book",
+                    "title_layout": title_size,
+                    "contents_page": False,
+                    "metadata_page": False,
+                    "layout": {
+                        "version": 1,
+                        "overrides": {"body": separation, "edition": "continuous"},
+                    },
+                })
+                self.version.save(update_fields=["html", "metadata", "structure"])
+                pdf = self.pdf()
+                pages = [page.extract_text() for page in pdf.pages]
+                title_page = next(i for i, text in enumerate(pages) if "Print test" in text)
+                body_page = next(i for i, text in enumerate(pages) if "Body sentinel" in text)
+                self.assertEqual(title_page, 0)
+                self.assertEqual(body_page, expected_body_page, pages)
+                self.assertEqual(len(pdf.pages), expected_body_page + 1, pages)
+
+    def test_two_line_widow_orphan_policy_allows_controlled_paragraph_and_list_splits(self):
+        examples = (
+            (
+                "paragraph",
+                '<p style="margin:0">P1 first line<br>P2 second line<br>'
+                'P3 third line<br>P4 fourth line</p>',
+                ("P1 first line", "P2 second line", "P3 third line", "P4 fourth line"),
+            ),
+            (
+                "list item",
+                '<ul style="margin:0;padding:0"><li style="margin:0">L1 first line<br>'
+                'L2 second line<br>L3 third line<br>L4 fourth line</li></ul>',
+                ("L1 first line", "L2 second line", "L3 third line", "L4 fourth line"),
+            ),
+        )
+        original_stylesheet = self.version.stylesheet
+        for label, content, lines in examples:
+            with self.subTest(kind=label):
+                self.version.html = (
+                    '<div style="height:585pt"></div>' + content
+                )
+                self.version.metadata.update(
+                    work_type="article", title_layout="compact", metadata_page=False,
+                )
+                self.version.save(update_fields=["html", "metadata"])
+                pages = [page.extract_text() for page in self.pdf().pages]
+                split = [
+                    sum(line in page for line in lines)
+                    for page in pages
+                ]
+                self.assertGreaterEqual(split[0], 2)
+                self.assertTrue(any(count >= 2 for count in split[1:]))
+                locations = [
+                    next(index for index, page in enumerate(pages) if line in page)
+                    for line in lines
+                ]
+                self.assertEqual(locations, sorted(locations))
+                self.version.stylesheet = (
+                    original_stylesheet
+                    + "\n@media print {.reader-content p, .reader-content li "
+                    "{orphans:3 !important; widows:3 !important;}}"
+                )
+                old_pages = [page.extract_text() for page in self.pdf().pages]
+                old_locations = [
+                    next(index for index, page in enumerate(old_pages) if line in page)
+                    for line in lines
+                ]
+                self.assertEqual(len(set(old_locations)), 1)
+                self.version.stylesheet = original_stylesheet
 
     def test_unconfirmed_attribution_is_not_silently_presented_as_author(self):
         self.version.metadata = {
@@ -155,6 +332,33 @@ class PrintingTests(TestCase):
         self.assertIn("Contributor (role unconfirmed)", page)
         self.assertIn("Unconfirmed Person", page)
         self.assertNotIn("Author", [row.get_text() for row in soup.select("#document-metadata th")])
+
+    def test_endmatter_navigation_uses_unique_targets_when_source_ids_collide(self):
+        self.version.metadata.update(metadata_page=False)
+        self.version.structure["toc"] = []
+        self.version.html = (
+            '<p id="document-metadata">Retained metadata anchor.</p>'
+            '<p id="document-edition-status">Retained edition anchor.</p>'
+            '<p id="document-edition-status-heading">Retained heading anchor.</p>'
+            '<p id="document-edition-status-2-heading">Second retained heading anchor.</p>'
+        )
+        self.version.save(update_fields=["metadata", "structure", "html"])
+        soup = BeautifulSoup(
+            self.client.get(f"/versions/{self.version.pk}/").content, "html.parser",
+        )
+        identifiers = [node["id"] for node in soup.select("[id]")]
+        self.assertEqual(
+            len(identifiers), len(set(identifiers)),
+            [identifier for identifier in set(identifiers) if identifiers.count(identifier) > 1],
+        )
+        self.assertIsNone(soup.select_one("#document-metadata-2"))
+        edition = soup.select_one("#document-edition-status-3")
+        self.assertIsNotNone(edition)
+        self.assertIn("Source-generated edition", edition.get_text())
+        self.assertTrue(
+            soup.select_one('.toc-panel a[href="#document-edition-status-3"]')
+        )
+        self.assertEqual(len(soup.select("#document-edition-status-3")), 1)
 
     def test_nested_outline_internal_links_and_metadata(self):
         reader = self.pdf()
@@ -177,10 +381,141 @@ class PrintingTests(TestCase):
         self.assertNotIn("Contents", text)
         body_text = []
         for page in reader.pages:
-            page.extract_text(visitor_text=lambda text, cm, tm, font, size:
-                              body_text.append(text) if size * abs(cm[0]) > 9 else None)
+            page.extract_text(visitor_text=lambda value, cm, tm, font, size:
+                              body_text.append(value) if size * abs(cm[0]) > 9 else None)
         self.assertEqual("\n".join(body_text).count("A section"), 1)
         self.assertEqual(text.count("A subsection"), 1)
+
+    def test_running_furniture_bounds_balance_with_body_frame_on_continuation_pages(self):
+        self.version.metadata.update(
+            work_type="article", title_layout="compact", metadata_page=False,
+        )
+        self.version.structure["toc"] = [
+            {"id": "geometry-section", "level": 2, "title": "Geometry section"},
+        ]
+        self.version.html = (
+            '<section id="geometry-section"><h2 data-pdf-section="Geometry section">'
+            'Geometry section</h2>'
+            + '<p style="text-indent:0">Geometry body sentence. '
+            + "Readable continuation text. " * 800 + "</p>"
+            + "</section>"
+        )
+        self.version.save(update_fields=["metadata", "structure", "html"])
+        layouts = []
+        original_render = HTML.render
+
+        def capture_layout(renderer, *args, **kwargs):
+            document = original_render(renderer, *args, **kwargs)
+            layouts.append(document)
+            return document
+
+        with patch.object(HTML, "render", capture_layout):
+            pdf = self.pdf()
+        page = next(
+            page for page in pdf.pages[1:]
+            if "Print test" in page.extract_text()
+            and "Readable continuation text" in page.extract_text()
+        )
+        page_width = float(page.mediabox.width)
+        page_height = float(page.mediabox.height)
+        runs = []
+
+        def capture_text(text, cm, tm, font, size):
+            if not text.strip():
+                return
+            x = cm[0] * tm[4] + cm[2] * tm[5] + cm[4]
+            y = cm[1] * tm[4] + cm[3] * tm[5] + cm[5]
+            descriptor = font.get("/FontDescriptor", {}) if font else {}
+            if hasattr(descriptor, "get_object"):
+                descriptor = descriptor.get_object()
+            ascent = float(descriptor.get("/Ascent", 750)) * size / 1000
+            descent = float(descriptor.get("/Descent", -250)) * size / 1000
+            widths = font.get("/Widths") if font else None
+            first = int(font.get("/FirstChar", 0)) if font else 0
+            width = (
+                sum(float(widths[ord(char) - first]) for char in text
+                    if widths and first <= ord(char) < first + len(widths)) * size / 1000
+                if widths else len(text) * size * 0.5
+            )
+            runs.append((text, x, y, x + width, y + ascent, y + descent))
+
+        page.extract_text(visitor_text=capture_text)
+        page_index = next(index for index, candidate in enumerate(pdf.pages) if candidate is page)
+        rendered_page = layouts[-1].pages[page_index]._page_box
+        margin_boxes = {
+            box.at_keyword: box for box in rendered_page.children
+            if hasattr(box, "at_keyword")
+        }
+        margin_lines = {
+            key: next(box for box in margin_box.descendants()
+                      if type(box).__name__ == "LineBox")
+            for key, margin_box in margin_boxes.items()
+        }
+        top = margin_lines["@top-left"]
+        right = margin_lines["@top-right"]
+        footer = margin_lines["@bottom-center"]
+        body = [run for run in runs if .2 * page_height < run[2] < .8 * page_height]
+        body_frame = rendered_page
+        body_left = body_frame.content_box_x()
+        body_right = body_left + body_frame.width
+        scale = 25.4 / 72
+        css_scale = 25.4 / 96
+        page_height_css = page_height * 96 / 72
+        top_inset = top.position_y * css_scale
+        bottom_inset = (page_height_css - footer.position_y - footer.height) * css_scale
+        body_top = min((page_height - run[4]) * scale for run in body)
+        body_bottom = max((page_height - run[5]) * scale for run in body)
+        header_body_gap = body_top - (top.position_y + top.height) * css_scale
+        body_footer_gap = footer.position_y * css_scale - body_bottom
+        self.assertAlmostEqual(top.position_x * css_scale, 18, delta=1.5)
+        self.assertAlmostEqual(body_left * css_scale, 18, delta=1.5)
+        self.assertAlmostEqual(body_right * css_scale,
+                               page_width * scale - 18, delta=1.5)
+        self.assertAlmostEqual((right.position_x + right.width) * css_scale,
+                               page_width * scale - 18, delta=1.5)
+        self.assertAlmostEqual((footer.position_x + footer.width / 2) * css_scale,
+                               page_width * scale / 2, delta=1)
+        self.assertAlmostEqual(top_inset, 6, delta=0.25)
+        self.assertAlmostEqual(bottom_inset, 6, delta=0.25)
+        self.assertAlmostEqual(top_inset, bottom_inset, delta=1.5)
+        self.assertGreater(header_body_gap, 4)
+        self.assertGreater(body_footer_gap, 4)
+        stylesheet = self.version.stylesheet
+        self.version.stylesheet += (
+            "\n@media print {@page reading-content {"
+            "@top-left {vertical-align:middle!important;padding-top:0!important;}"
+            "@top-right {vertical-align:middle!important;padding-top:0!important;}"
+            "@bottom-center {vertical-align:middle!important;padding-bottom:0!important;}"
+            "}}"
+        )
+        self.version.save(update_fields=["stylesheet"])
+        try:
+            with patch.object(HTML, "render", capture_layout):
+                self.pdf()
+        finally:
+            self.version.stylesheet = stylesheet
+            self.version.save(update_fields=["stylesheet"])
+        centered_page = layouts[-1].pages[page_index]._page_box
+        centered_boxes = {
+            box.at_keyword: box for box in centered_page.children
+            if hasattr(box, "at_keyword")
+        }
+        centered_top = next(
+            box for box in centered_boxes["@top-left"].descendants()
+            if type(box).__name__ == "LineBox"
+        )
+        centered_footer = next(
+            box for box in centered_boxes["@bottom-center"].descendants()
+            if type(box).__name__ == "LineBox"
+        )
+        centered_top_inset = centered_top.position_y * css_scale
+        centered_bottom_inset = (
+            page_height_css - centered_footer.position_y - centered_footer.height
+        ) * css_scale
+        self.assertEqual(centered_boxes["@top-left"].style["vertical_align"], "middle")
+        self.assertGreater(abs(centered_top_inset - centered_bottom_inset), 2)
+        self.assertLess(abs(top_inset - bottom_inset),
+                        abs(centered_top_inset - centered_bottom_inset))
 
     def test_title_based_filename_preserves_unicode_and_is_filesystem_safe(self):
         for title, expected in [
@@ -304,8 +639,13 @@ class PrintingTests(TestCase):
 
         directory = Path(self.temp.name) / "pdf"
         directory.mkdir()
-        old = directory / f"{self.version.pk}-{self.version.identity}-{APP_VERSION}.pdf"
-        old.write_bytes(b"%PDF-old-presentation")
+        archived = directory / f"{self.version.pk}-{self.version.identity}-{APP_VERSION}.pdf"
+        previous_policy = directory / (
+            f"{self.version.pk}-{self.version.identity}-{APP_VERSION}-"
+            f"p{PDF_PRESENTATION_VERSION - 1}.pdf"
+        )
+        archived.write_bytes(b"%PDF-archived")
+        previous_policy.write_bytes(b"%PDF-old-presentation")
         with patch("library.services.pdf.subprocess.run", side_effect=build) as run:
             path = cached_pdf(self.version)
             self.assertTrue(path.name.endswith(f"-p{PDF_PRESENTATION_VERSION}.pdf"))
@@ -313,8 +653,10 @@ class PrintingTests(TestCase):
             self.assertEqual(cached_pdf(self.version), path)
             run.assert_called_once()
             self.assertEqual(run.call_args.kwargs["timeout"], 120)
-        self.assertEqual(old.read_bytes(), b"%PDF-old-presentation")
-        old.unlink()
+        self.assertEqual(archived.read_bytes(), b"%PDF-archived")
+        self.assertEqual(previous_policy.read_bytes(), b"%PDF-old-presentation")
+        archived.unlink()
+        previous_policy.unlink()
         path.unlink()
         for result in [
             subprocess.TimeoutExpired("pdf", 120),
@@ -553,11 +895,27 @@ class PrintingTests(TestCase):
         pages = [page.extract_text() for page in result.pages]
         complete = "\n".join(pages)
         for i in range(5):
-            heading_page = next(text for text in pages if f"Chapter marker {i}" in text)
-            self.assertIn(f"Paragraph {i}-0.", heading_page)
+            heading_page_index = next(
+                index for index, text in enumerate(pages) if f"Chapter marker {i}" in text
+            )
+            heading_page = pages[heading_page_index]
+            self.assertTrue(
+                f"Caption {i}." in heading_page
+                or any(f"Paragraph {i}-{j}." in heading_page for j in range(6))
+            )
             self.assertEqual(complete.count(f"Caption {i}."), 1)
             for j in range(6):
                 self.assertEqual(complete.count(f"Paragraph {i}-{j}."), 1)
+                if j:
+                    self.assertLess(
+                        complete.index(f"Paragraph {i}-{j - 1}."),
+                        complete.index(f"Paragraph {i}-{j}."),
+                    )
+            if i:
+                self.assertLess(
+                    complete.index(f"Paragraph {i - 1}-5."),
+                    complete.index(f"Paragraph {i}-0."),
+                )
         image_calls = []
         for index, page in enumerate(result.pages):
             calls = []

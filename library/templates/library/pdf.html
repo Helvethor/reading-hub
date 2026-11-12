@@ -1,17 +1,15 @@
 <!doctype html>
 <html lang="{{ version.metadata.language|default:'en' }}">
 <head><meta charset="utf-8"><title>{{ version.title }}</title><meta name="author" content="{{ display_author }}"></head>
-<body class="publication-content">
-<header class="document-header document-header-{{ book_pages.title_layout }}">
+<body class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
+<header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
   <h1>{{ version.title }}</h1>
   {% include 'library/document_metadata.html' %}
-  {% include 'library/document_review_status.html' with revision=version.document_publication.revision %}
-  <p>Cached {{ version.created_at|date:"Y-m-d H:i T" }} &middot; app {{ version.app_version }}, adapter {{ version.adapter_version }}, rules {{ version.format_version }}</p>
-  {% if version.document_publication %}<p>Document publication rules {{ version.document_publication.publication_version }}.</p>{% endif %}
 </header>
 {% if version.warnings %}<section><p>Import warnings:</p><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
 {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
-<article class="reader-content">{{ content_html|safe }}</article>
+<article class="reader-content"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
 {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
+{% include 'library/document_edition_status.html' %}
 </body>
 </html>

@@ -16,9 +16,9 @@
   @page reading-content {
     @top-left { content: string(book-title); width: 48%; text-align: left; vertical-align: top; padding-top: 6mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
     @top-right { content: string(section-title); width: 48%; text-align: right; vertical-align: top; padding-top: 6mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
-    @bottom-center { content: counter(page) " / " counter(pages); font: 9pt "Liberation Sans", sans-serif; }
+    @bottom-center { content: counter(page) " / " counter(pages); vertical-align: bottom; padding-bottom: 6mm; font: 9pt "Liberation Sans", sans-serif; }
   }
-  .reader-content, .document-metadata-page { page: reading-content; }
+  .reader-content, .document-metadata-page, .document-edition-status { page: reading-content; }
   /* A compact title starts the first content page; its running headers would repeat it. */
   @page reading-content:first { @top-left { content: none; } @top-right { content: none; } }
   .document-header h1 { string-set: book-title content(); }
@@ -34,6 +34,15 @@
   .document-header-compact { break-after: auto; page-break-after: auto; border: 0; }
   /* Sharing the content's named page keeps a compact title on the body's first page. */
   .document-header-compact, .document-header-compact ~ section { page: reading-content; }
+  .publication-content.has-layout-policy > .document-header,
+  .publication-content.has-layout-policy > .document-contents,
+  .layout-policy > .document-header,
+  .layout-policy > .document-contents {
+    break-after: auto;
+    page-break-after: auto;
+    page: reading-content;
+  }
+  [data-layout-before="new-page"] { break-before: page; page-break-before: always; }
   /* WeasyPrint over-sizes grid rows holding wrapped text, so print packs the same rows with flex widths. */
   .document-facts { display: flex; flex-wrap: wrap; gap: 1.6mm 6mm; max-width: none; margin: 0; font: 10.5pt/1.45 Georgia, serif; }
   .document-fact { flex: none; width: 100%; display: flex; gap: 1.5mm; align-items: baseline; min-width: 0; }
@@ -42,7 +51,7 @@
   .document-fact-label { flex: none; font-weight: bold; }
   .document-fact-value { min-width: 0; overflow-wrap: anywhere; text-align: start; hyphens: manual; }
   .document-metadata-page { break-before: page; page-break-before: always; margin: 0; padding: 0; border: 0; }
-  .document-metadata-page > h2 { string-set: section-title content(); }
+  .document-metadata-page > h2, .document-edition-status > h2 { string-set: section-title content(); }
   .document-metadata-table th, .document-metadata-table td { padding: 1.5mm 2mm; border-bottom: .5pt solid #999; }
   .document-metadata-table { width: 100%; border-collapse: collapse; }
   .document-metadata-table th { text-align: start; vertical-align: top; overflow-wrap: normal; }
@@ -60,7 +69,7 @@
   .reader-content h2, .reader-content h3, .reader-content h4,
   .reader-content h5, .reader-content h6, .document-metadata-page > h2,
   .document-contents > h2 { break-inside: avoid; break-after: avoid; page-break-after: avoid; margin-top: 7mm; }
-  .reader-content p, .reader-content li { orphans: 3; widows: 3; }
+  .reader-content p, .reader-content li { orphans: 2; widows: 2; }
   .reader-content img { max-width: 100%; max-height: 210mm; width: auto; height: auto; object-fit: contain; break-inside: avoid; margin: 3mm auto; }
   .reader-content figure { break-inside: avoid; page-break-inside: avoid; margin: 5mm 0; }
   .reader-content figcaption { margin: 2mm 0; color: #333; }
@@ -76,6 +85,17 @@
   .reader-content figure.quotation { break-inside: auto; }
   .reader-content .quotation blockquote { break-after: avoid; }
   .reader-content .quotation figcaption { break-before: avoid; }
+  .document-edition-status { break-inside: avoid-page; page-break-inside: avoid; }
+  .has-layout-policy [data-layout-before="continuous"],
+  .layout-policy [data-layout-before="continuous"] {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+  .has-layout-policy [data-layout-before="new-page"],
+  .layout-policy [data-layout-before="new-page"] {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
   .print-toc { display: block; margin: 6mm 0; }
   .print-toc h2 { font: bold 13pt/1.3 Georgia, serif; bookmark-level: none; break-after: avoid; }
   .print-toc ul { list-style: none; padding-left: 5mm; }

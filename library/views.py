@@ -159,9 +159,43 @@ def contents_tree(entries):
     return toc_tree([entry for entry in entries if entry.get("in_toc", True)])
 
 
+def endmatter_ids(markup):
+    """Choose stable end-matter IDs without shadowing IDs retained in source HTML."""
+    from bs4 import BeautifulSoup
+
+    used = {node["id"] for node in BeautifulSoup(markup, "html.parser").select("[id]")}
+    result = {}
+    for key, base in (
+        ("metadata_page_id", "document-metadata"),
+        ("edition_status_id", "document-edition-status"),
+    ):
+        identifier = base
+        suffix = 2
+        while identifier in used or f"{identifier}-heading" in used:
+            identifier = f"{base}-{suffix}"
+            suffix += 1
+        used.update((identifier, f"{identifier}-heading"))
+        result[key] = identifier
+    return result
+
+
+def with_edition_status(entries, edition_status_id):
+    """Add the mandatory end section to navigation, never to the printed contents list."""
+    return [*entries, {
+        "id": edition_status_id,
+        "title": "Edition and review status",
+        "level": 2,
+        "in_toc": False,
+        "editor_entry": False,
+        "style": "none",
+        "number": 1,
+        "marker": "",
+    }]
+
+
 @require_GET
 def reader(request, pk):
-    from library.services.book_views import publication_view
+    from library.services.book_views import layout_context, publication_view
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
 

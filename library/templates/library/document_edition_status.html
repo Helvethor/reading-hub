@@ -1,0 +1,20 @@
+<section class="document-edition-status" id="{{ edition_status_id|default:'document-edition-status' }}" aria-labelledby="{{ edition_status_id|default:'document-edition-status' }}-heading"{% if layout_policy %} data-layout-before="{{ layout_boundaries.edition.value }}"{% endif %}>
+  <h2 id="{{ edition_status_id|default:'document-edition-status' }}-heading">Edition and review status</h2>
+  {% if edition_status.draft_snapshot or preview_is_unsaved %}
+  <p><strong>Draft snapshot.</strong> This section describes the request-time draft content, not a saved or published edition.</p>
+  {% if edition_status.changed_unsaved or preview_is_unsaved %}
+  <p>Changed unsaved content has not been verified.</p>
+  {% else %}
+  <p>This snapshot matches saved content; any review evidence below applies only to that saved revision.</p>
+  {% endif %}
+  {% if edition_status.historical_review %}
+  <p>Historical base review only: {{ edition_status.historical_review }}. It applies to revision {{ edition_status.historical_review_revision }} of source edition {{ edition_status.source_rendition_id }}, not this draft snapshot.</p>
+  {% endif %}
+  {% elif edition_status.revision %}
+  {% include 'library/document_edition_review.html' with revision=edition_status.revision %}
+  {% elif version.document_publication %}
+  {% include 'library/document_edition_review.html' with revision=version.document_publication.revision %}
+  {% else %}
+  <p><strong>Source-generated edition.</strong> No document-review evidence is recorded for this edition.</p>
+  {% endif %}
+</section>
