@@ -44,6 +44,7 @@ function selectionRange(editor) {
   if (selection instanceof NodeSelection && isList(selection.node)) {
     const list = selection.node, from = selection.from;
     assertVisible(editor, from, selection.to);
+    if (protectedNote(doc, doc.resolve(from + 1))) throw new Error("Note structures are protected. Select ordinary list items instead.");
     return {list, from, to: selection.to, listDepth: selection.$from.depth + 1,
       start: 0, end: list.childCount, items: children(list), itemFrom: from + 1};
   }
@@ -77,8 +78,12 @@ function selectionRange(editor) {
     if (selection instanceof NodeSelection && !isItem(selection.node) && !isList(selection.node) &&
         selection.node.type.name !== "p") throw new Error("Select list text or whole items, not a structural object.");
     assertVisible(editor, from, from + list.nodeSize);
-    if (protectedNote(doc, doc.resolve(textExtent(items[start], itemFrom).from))) {
-      throw new Error("Note structures are protected. Use ordinary list items instead.");
+    let position = itemFrom;
+    for (const item of items.slice(start, end)) {
+      if (protectedNote(doc, doc.resolve(position + 1))) {
+        throw new Error("Note structures are protected. Use ordinary list items instead.");
+      }
+      position += item.nodeSize;
     }
     return {list, from, to: from + list.nodeSize, listDepth, start, end, items, itemFrom};
   }
@@ -266,7 +271,8 @@ function protectedDeletion(doc, from, to) {
 }
 
 export function handleListKey(editor, event, readDocument = () => ({})) {
-  if (!["Enter", "Backspace", "Delete"].includes(event.key) || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (!["Enter", "Backspace", "Delete"].includes(event.key) ||
+      event.key === "Enter" && (event.ctrlKey || event.metaKey || event.altKey)) return false;
   const {selection, doc} = editor.state, first = owner(selection.$from);
   if (!first) {
     let includesList = false;
@@ -284,8 +290,24 @@ export function handleListKey(editor, event, readDocument = () => ({})) {
   const body = selection.$from.parent, bodyDepth = selection.$from.depth;
   assertVisible(editor, first.from, first.from + first.node.nodeSize);
   if (event.key !== "Enter") {
-    protectedDeletion(doc, selection.empty ? Math.max(selection.from - (event.key === "Backspace" ? 1 : 0), 0) : selection.from,
-      selection.empty ? Math.min(selection.to + (event.key === "Delete" ? 1 : 0), doc.content.size) : selection.to);
+    let from = selection.from, to = selection.to;
+    if (selection.empty) {
+      const start = selection.$from.start(), offset = selection.$from.parentOffset;
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        if (event.key === "Backspace") from = start;
+        else to = start + body.content.size;
+      } else {
+        const text = body.textBetween(0, body.content.size, "", "\ufffc");
+        for (const segment of new Intl.Segmenter(undefined, {granularity: "grapheme"}).segment(text)) {
+          if (event.key === "Backspace" && segment.index < offset) from = start + segment.index;
+          if (event.key === "Delete" && segment.index + segment.segment.length > offset) {
+            to = start + segment.index + segment.segment.length;
+            break;
+          }
+        }
+      }
+    }
+    protectedDeletion(doc, from, to);
     if (selection.empty && (event.key === "Backspace" && !selection.$from.parentOffset ||
         event.key === "Delete" && selection.$from.parentOffset === body.content.size)) {
       throw new Error("Joining at a list boundary is not supported. Use list formatting, item moves or outdent instead.");

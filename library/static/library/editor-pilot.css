@@ -446,6 +446,8 @@ body.workspace-page .review-navigation {
   .workspace-actions > * { padding-block: .3rem; }
 }
 @media print {
+  .workspace-page .editor-page > :not(#unified-workspace),
+  #workspace-panel-edit, #workspace-panel-versions, #workspace-panel-sources,
   .workspace-page .site-header, .workspace-page .review-navigation,
   .workspace-chrome, .workspace-back-to-top, .editor-pilot-toolbar,
   .editor-tabs, .editor-outline, .editor-diff-controls, .workspace-action-status,
@@ -453,4 +455,6 @@ body.workspace-page .review-navigation {
   .workspace-sticky-marker, .workspace-sticky-slot {
     display: none !important;
   }
+  .workspace-page .editor-page { max-width: none; margin: 0; padding: 0; }
+  .workspace-read-preview { padding: 0; }
 }

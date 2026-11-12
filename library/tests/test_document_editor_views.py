@@ -558,7 +558,7 @@ class DocumentEditorViewTests(TestCase):
         page = BeautifulSoup(response.content, "html.parser")
         self.assertIsNone(page.select_one("link[data-reading-style]"))
         self.assertIsNone(page.select_one(".editor-canvas.publication-content"))
-        self.assertIsNone(page.select_one('link[href*="print.css"]'))
+        self.assertEqual(page.select_one('link[href*="print.css"]')["media"], "print")
         self.assertIsNone(page.select_one("#editor-tab-style"))
         self.assertIsNone(page.select_one("#editor-panel-style"))
         panel = page.select_one("#workspace-panel-read .reading-style-controls")

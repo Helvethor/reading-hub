@@ -3657,6 +3657,10 @@ test("list and quotation candidates reject whole-document complexity limits and 
   selectParagraphs("First", "Note Back");
   assert.throws(() => applyList(editor, "ul"), /Note structures/);
   assert(!undo(editor.state));
+  editor.destroy(); open('<ul><li>First</li><li id="note">Note <a class="note-backlink" href="#ref">Back</a></li></ul><p><a id="ref" href="#note">1</a></p>');
+  editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
+  assert.throws(() => applyList(editor, "ol"), /Note structures/);
+  assert(!undo(editor.state));
 });
 
 test("item moves carry grouped descendants and selected inline deletion cannot bypass target protection", () => {
@@ -3674,6 +3678,20 @@ test("item moves carry grouped descendants and selected inline deletion cannot b
   editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
   assert.throws(() => handleListKey(editor, {key: "Delete"}), /list boundaries/);
   assert(!undo(editor.state));
+});
+
+test("list deletion guards whole graphemes and modified deletion without losing target wrappers", () => {
+  for (const text of ["😀", "a\u0301", "Target"]) {
+    editor?.destroy();
+    open(`<ul><li><span id="t">${text}</span></li></ul><p><a href="#t">Return</a></p>`);
+    selectText(text); editor.commands.setTextSelection(editor.state.selection.from + text.length);
+    const original = editor.getHTML();
+    assert.throws(() => handleListKey(editor, {key: "Backspace", ctrlKey: text === "Target"}), /remove a target/);
+    selectText(text);
+    assert.throws(() => handleListKey(editor, {key: "Delete", metaKey: text === "Target"}), /remove a target/);
+    assert.equal(editor.getHTML(), original);
+    assert(!undo(editor.state));
+  }
 });
 
 test("new quotation proposals insert at empty, beginning, middle and end carets without duplicating targets", () => {
