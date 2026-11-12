@@ -24,6 +24,7 @@ import {
 } from "./quotations.js";
 import {canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure} from "./figures.js";
 import {prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion} from "./quotation-insertion.js";
+import {applyList, handleListKey, listState} from "./lists.js";
 import {
   documentParts, showDocumentPart, visiblePart, showBlockLabels, workspaceContext,
 } from "./workspace.js";
@@ -1468,7 +1469,8 @@ test("compact selection tools expose only applicable actions and toggle alignmen
   ctrlClickBlock("#f img");
   assert(!form.querySelector("#editor-section-excerpt-open").hidden);
   assert(form.querySelector("[data-image]").hidden);
-  assert(form.querySelector("[data-quotation]").hidden);
+  assert(form.querySelector('[data-quotation="edit"]').hidden);
+  assert(!form.querySelector('[data-quotation="insert"]').hidden);
   assert(form.querySelector("[data-mark]").hidden);
 });
 
@@ -3460,6 +3462,178 @@ test("Preface quotation moves explicit attribution into caption preserving text,
   open(original);
   editor.commands.setContent(json);
   assert.equal(editor.getHTML(), cited);
+});
+
+test("list creation retains paragraph attributes, direction, semantic inline content and isolated history", () => {
+  const original = '<section id="a"><p id="one"><em>First</em> <a href="#two">link</a></p>' +
+    '<p id="two">Second</p><p>Third</p></section><section id="hidden"><p>Untouched</p></section>';
+  open(original);
+  selectParagraphs("First link", "Third");
+  const selection = editor.state.selection;
+  editor.commands.setTextSelection({from: selection.head, to: selection.anchor});
+  applyList(editor, "ol");
+  const html = editor.getHTML();
+  assert(html.includes('<ol><li><p id="one"><em>First</em> <a href="#two">link</a></p></li>' +
+    '<li><p id="two">Second</p></li><li><p>Third</p></li></ol>'));
+  assert(html.endsWith('<section id="hidden"><p>Untouched</p></section>'));
+  assert(editor.state.selection.anchor > editor.state.selection.head);
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  assert(!undo(editor.state));
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), html);
+});
+
+test("partial bullet conversion and unlist preserve item extent while ordered suffixes cannot restart", () => {
+  open('<ul><li>A</li><li id="b">B</li><li>C</li></ul>');
+  selectText("B");
+  applyList(editor, "ol");
+  assert.equal(editor.getHTML(), '<ul><li>A</li></ul><ol><li id="b">B</li></ol><ul><li>C</li></ul>');
+  applyList(editor, "ol");
+  assert.equal(editor.getHTML(), '<ul><li>A</li></ul><div id="b"><p>B</p></div><ul><li>C</li></ul>');
+  editor.destroy(); open("<ol><li>A</li><li>B</li><li>C</li></ol>");
+  selectText("B");
+  assert.throws(() => applyList(editor, "ul"), /restart numbering/);
+  assert.equal(editor.getHTML(), "<ol><li>A</li><li>B</li><li>C</li></ol>");
+  selectText("A"); const from = editor.state.selection.from;
+  selectText("C", 1); editor.commands.setTextSelection({from, to: editor.state.selection.to});
+  applyList(editor, "ul");
+  assert.equal(editor.getHTML(), "<ul><li>A</li><li>B</li><li>C</li></ul>");
+});
+
+test("list nesting, outdent and sibling moves retain descendants and depth-first reading order", () => {
+  open('<ul><li id="a">A</li><li id="b">B</li><li id="c">C</li></ul>');
+  selectText("B");
+  applyList(editor, "indent");
+  assert.equal(editor.getHTML(), '<ul><li id="a"><p>A</p><ul><li id="b">B</li></ul></li><li id="c">C</li></ul>');
+  applyList(editor, "outdent");
+  assert.equal(editor.getHTML(), '<ul><li id="a"><p>A</p></li><li id="b">B</li><li id="c">C</li></ul>');
+  applyList(editor, "down");
+  assert.equal(editor.getHTML(), '<ul><li id="a"><p>A</p></li><li id="c">C</li><li id="b">B</li></ul>');
+  editor.destroy();
+  open('<ul><li><p>A</p><ol><li>B</li><li id="c">C<ul><li>X</li></ul></li><li id="d">D</li></ol><p>Tail</p></li><li>E</li></ul>');
+  selectText("C");
+  applyList(editor, "outdent");
+  assert.equal(editor.getHTML(), '<ul><li><p>A</p><ol><li>B</li></ol></li>' +
+    '<li id="c">C<ul><li>X</li></ul><ol><li id="d">D</li></ol><p>Tail</p></li><li>E</li></ul>');
+  assert.equal(editor.state.selection.$from.parent.textContent, "C");
+  applyList(editor, "down");
+  assert(editor.getHTML().includes('<li>E</li><li id="c">C<ul>'));
+});
+
+test("Enter splits inline and block items with their suffix descendants and unique targets", () => {
+  for (const [html, expected] of [
+    ['<ul><li id="a">ab</li></ul>', '<ul><li id="a">a</li><li>b</li></ul>'],
+    ['<ul><li id="a"><p id="p"><em>ab</em></p><ol id="nested"><li id="child">Child</li></ol></li></ul>',
+      '<ul><li id="a"><p id="p"><em>a</em></p></li><li><p><em>b</em></p><ol id="nested"><li id="child">Child</li></ol></li></ul>'],
+  ]) {
+    editor?.destroy(); open(html); selectText("ab"); editor.commands.setTextSelection(editor.state.selection.from + 1);
+    assert(handleListKey(editor, {key: "Enter"}));
+    assert.equal(editor.getHTML(), expected);
+    assert.equal(editor.state.selection.$from.parentOffset, 0);
+    assert(undo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), html);
+    assert(redo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), expected);
+  }
+});
+
+test("empty lists are editable, Shift+Enter is semantic and final empty items exit at their level", () => {
+  open("<p></p>");
+  applyList(editor, "ul");
+  assert.equal(editor.getHTML(), "<ul><li><p></p></li></ul>");
+  assert(handleListKey(editor, {key: "Enter"}));
+  assert.equal(editor.getHTML(), "<p></p>");
+  editor.destroy(); open("<ul><li><p>Text</p><ul><li></li></ul></li></ul>");
+  let at;
+  editor.state.doc.descendants((node, pos) => { if (node.type.name === "liText" && !node.content.size) at = pos + 1; });
+  editor.commands.setTextSelection(at);
+  assert(handleListKey(editor, {key: "Enter"}));
+  assert.equal(editor.getHTML(), "<ul><li><p>Text</p></li><li></li></ul>");
+  editor.commands.insertContent("New");
+  assert(handleListKey(editor, {key: "Enter", shiftKey: true}));
+  assert(editor.getHTML().includes("<li>New<br></li>"));
+  assert.equal(handleListKey(editor, {key: "Tab"}), false);
+});
+
+test("list commands reject cross-container, partial-item, target splits and boundary deletion without mutation", () => {
+  open("<p>First</p><p>Second</p><p>Third</p>");
+  selectText("First"); const start = editor.state.selection.from + 1;
+  selectText("Third"); editor.commands.setTextSelection({from: start, to: editor.state.selection.from + 2});
+  assert.throws(() => applyList(editor, "ul"), /complete paragraph/);
+  assert(!undo(editor.state));
+  editor.destroy(); open('<ul id="list"><li>A</li><li>B</li></ul>');
+  selectText("B");
+  assert.throws(() => applyList(editor, "ol"), /whole attribute/);
+  assert.throws(() => applyList(editor, "outdent"), /top-level/);
+  assert.throws(() => handleListKey(editor, {key: "Backspace"}), /boundary/);
+  editor.destroy(); open('<ul><li><span id="target">Text</span></li><li>Second</li></ul><p><a href="#target">Go</a></p>');
+  selectText("Text"); editor.commands.setTextSelection(editor.state.selection.from + 1);
+  assert.throws(() => handleListKey(editor, {key: "Enter"}), /target-bearing/);
+  selectText("Text", 2);
+  const from = editor.state.selection.from;
+  selectText("Second"); editor.commands.setTextSelection({from, to: editor.state.selection.from + 2});
+  const original = editor.getHTML();
+  assert.throws(() => applyList(editor, "ol"), /complete content/);
+  assert.throws(() => handleListKey(editor, {key: "Enter"}), /boundaries/);
+  assert.equal(editor.getHTML(), original);
+  assert.equal(listState(editor).type, "ul");
+});
+
+test("list operations leave Enter in quotations untouched and refuse new quotation insertion inside items", () => {
+  open('<ul><li><figure class="quotation"><blockquote><p>Quote</p></blockquote></figure></li></ul>');
+  selectText("Quote");
+  assert.equal(handleListKey(editor, {key: "Enter"}), false);
+  assert.throws(() => prepareQuotationInsertion(editor), /ordinary prose/);
+  applyList(editor, "ol");
+  assert.equal(editor.getHTML(), '<ol><li><figure class="quotation"><blockquote><p>Quote</p></blockquote></figure></li></ol>');
+});
+
+test("list ranges exclude the next untouched block and retain whole-list and item identities on unlist", () => {
+  open("<p>First</p><p>Second</p><p>Third</p>");
+  selectText("First"); const from = editor.state.selection.from;
+  selectText("Third"); editor.commands.setTextSelection({from, to: editor.state.selection.from});
+  applyList(editor, "ul");
+  assert.equal(editor.getHTML(), "<ul><li><p>First</p></li><li><p>Second</p></li></ul><p>Third</p>");
+  editor.destroy(); open('<ul id="list"><li id="a"><p>A</p><ol><li>Nested</li></ol></li><li>B</li></ul>');
+  selectText("A"); const start = editor.state.selection.from;
+  selectText("B", 1); editor.commands.setTextSelection({from: start, to: editor.state.selection.to});
+  applyList(editor, "ul");
+  assert.equal(editor.getHTML(), '<div id="list"><div id="a"><p>A</p><ol><li>Nested</li></ol></div><p>B</p></div>');
+});
+
+test("list and quotation candidates reject whole-document complexity limits and protected-note conversion", () => {
+  open("<div>".repeat(98) + "<p>Text</p>" + "</div>".repeat(98));
+  selectText("Text");
+  const original = editor.getHTML();
+  assert.throws(() => applyList(editor, "ul"), /100-level/);
+  assert.throws(() => buildQuotationInsertion(editor, prepareQuotationInsertion(editor), {body: "Quote"}), /100-level/);
+  assert.equal(editor.getHTML(), original);
+  editor.destroy(); open("<p>Text</p>");
+  const readDocument = () => ({metadata: {description: "x".repeat(2 * 1024 * 1024)}});
+  assert.throws(() => applyList(editor, "ul", readDocument), /2 MiB/);
+  assert.throws(() => buildQuotationInsertion(editor, prepareQuotationInsertion(editor, readDocument), {body: "Quote"}), /2 MiB/);
+  editor.destroy(); open('<p>First</p><p id="note">Note <a href="#ref" class="note-backlink">Back</a></p>');
+  selectParagraphs("First", "Note Back");
+  assert.throws(() => applyList(editor, "ul"), /Note structures/);
+  assert(!undo(editor.state));
+});
+
+test("item moves carry grouped descendants and selected inline deletion cannot bypass target protection", () => {
+  open('<ol><li>A</li><li id="b"><p>B</p><ul><li>Nested</li></ul></li><li>C</li><li>D</li></ol>');
+  selectText("B"); const from = editor.state.selection.from;
+  selectText("C", 1); editor.commands.setTextSelection({from, to: editor.state.selection.to});
+  const original = editor.getHTML();
+  applyList(editor, "down");
+  assert.equal(editor.getHTML(), '<ol><li>A</li><li>D</li><li id="b"><p>B</p><ul><li>Nested</li></ul></li><li>C</li></ol>');
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), original);
+  editor.destroy(); open('<ul><li><span id="t">Target</span></li></ul><p><a href="#t">Return</a></p>');
+  selectText("Target", 6);
+  assert.throws(() => handleListKey(editor, {key: "Backspace"}), /remove a target/);
+  editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
+  assert.throws(() => handleListKey(editor, {key: "Delete"}), /list boundaries/);
+  assert(!undo(editor.state));
 });
 
 test("new quotation proposals insert at empty, beginning, middle and end carets without duplicating targets", () => {
