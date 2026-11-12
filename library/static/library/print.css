@@ -1,4 +1,4 @@
-@page { size: A4; margin: 18mm; }
+@page { size: A4; margin: 30mm 18mm; }
 .print-toc { display: none; }
 .editor-document-toc { list-style: none; padding-inline-start: 1.5rem; }
 /* WeasyPrint ignores padding-inline-start, so ToC indentation uses physical padding. */
@@ -14,9 +14,10 @@
     @bottom-center { content: none; }
   }
   @page reading-content {
-    @top-left { content: string(book-title); width: 48%; text-align: left; vertical-align: top; padding-top: 6mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
-    @top-right { content: string(section-title); width: 48%; text-align: right; vertical-align: top; padding-top: 6mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
-    @bottom-center { content: counter(page) " / " counter(pages); vertical-align: bottom; padding-bottom: 6mm; font: 9pt "Liberation Sans", sans-serif; }
+    margin: 30mm 18mm;
+    @top-left { content: string(book-title); width: 48%; text-align: left; vertical-align: top; padding-top: 18mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @top-right { content: string(section-title); width: 48%; text-align: right; vertical-align: top; padding-top: 18mm; font: 9pt/1.2 "Liberation Sans", sans-serif; max-height: 12mm; overflow: hidden; }
+    @bottom-center { content: counter(page) " / " counter(pages); vertical-align: bottom; padding-bottom: 18mm; font: 9pt "Liberation Sans", sans-serif; }
   }
   .reader-content, .document-metadata-page, .document-edition-status { page: reading-content; }
   /* A compact title starts the first content page; its running headers would repeat it. */
@@ -24,7 +25,7 @@
   .document-header h1 { string-set: book-title content(); }
   .document-contents h2 { string-set: section-title content(); }
   [data-pdf-section] { string-set: section-title attr(data-pdf-section); }
-  html, body { background: white !important; color: black; }
+  html, body { margin: 0; background: white !important; color: black; }
   .site-header, .site-footer, .reader-toolbar, .reader-review-entry, .review-navigation, .toc-panel, .version-details, .reading-style-controls,
   .site-messages, .skip-link, .print-options, .reading-column > noscript { display: none !important; }
   .reader-layout, .reading-column { display: block; max-width: none; margin: 0; padding: 0; }

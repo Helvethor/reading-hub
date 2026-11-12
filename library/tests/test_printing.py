@@ -286,7 +286,7 @@ class PrintingTests(TestCase):
         for label, content, lines in examples:
             with self.subTest(kind=label):
                 self.version.html = (
-                    '<div style="height:585pt"></div>' + content
+                    '<div style="height:517pt"></div>' + content
                 )
                 self.version.metadata.update(
                     work_type="article", title_layout="compact", metadata_page=False,
@@ -468,6 +468,7 @@ class PrintingTests(TestCase):
         header_body_gap = body_top - (top.position_y + top.height) * css_scale
         body_footer_gap = footer.position_y * css_scale - body_bottom
         self.assertAlmostEqual(top.position_x * css_scale, 18, delta=1.5)
+        self.assertAlmostEqual(min(run[1] for run in body) * scale, 18, delta=1.5)
         self.assertAlmostEqual(body_left * css_scale, 18, delta=1.5)
         self.assertAlmostEqual(body_right * css_scale,
                                page_width * scale - 18, delta=1.5)
@@ -475,17 +476,21 @@ class PrintingTests(TestCase):
                                page_width * scale - 18, delta=1.5)
         self.assertAlmostEqual((footer.position_x + footer.width / 2) * css_scale,
                                page_width * scale / 2, delta=1)
-        self.assertAlmostEqual(top_inset, 6, delta=0.25)
-        self.assertAlmostEqual(bottom_inset, 6, delta=0.25)
+        self.assertAlmostEqual(top_inset, 18, delta=0.25)
+        self.assertAlmostEqual(bottom_inset, 18, delta=0.25)
         self.assertAlmostEqual(top_inset, bottom_inset, delta=1.5)
+        self.assertAlmostEqual(body_frame.content_box_y() * css_scale, 30, delta=0.25)
+        self.assertGreater(
+            (body_frame.content_box_y() - top.position_y - top.height) * css_scale, 4,
+        )
         self.assertGreater(header_body_gap, 4)
         self.assertGreater(body_footer_gap, 4)
         stylesheet = self.version.stylesheet
         self.version.stylesheet += (
             "\n@media print {@page reading-content {"
-            "@top-left {vertical-align:middle!important;padding-top:0!important;}"
-            "@top-right {vertical-align:middle!important;padding-top:0!important;}"
-            "@bottom-center {vertical-align:middle!important;padding-bottom:0!important;}"
+            "@top-left {padding-top:6mm!important;}"
+            "@top-right {padding-top:6mm!important;}"
+            "@bottom-center {padding-bottom:6mm!important;}"
             "}}"
         )
         self.version.save(update_fields=["stylesheet"])
@@ -512,10 +517,10 @@ class PrintingTests(TestCase):
         centered_bottom_inset = (
             page_height_css - centered_footer.position_y - centered_footer.height
         ) * css_scale
-        self.assertEqual(centered_boxes["@top-left"].style["vertical_align"], "middle")
-        self.assertGreater(abs(centered_top_inset - centered_bottom_inset), 2)
-        self.assertLess(abs(top_inset - bottom_inset),
-                        abs(centered_top_inset - centered_bottom_inset))
+        self.assertAlmostEqual(centered_top_inset, 6, delta=0.25)
+        self.assertAlmostEqual(centered_bottom_inset, 6, delta=0.25)
+        self.assertLess(abs(top_inset - 18), abs(centered_top_inset - 18))
+        self.assertLess(abs(bottom_inset - 18), abs(centered_bottom_inset - 18))
 
     def test_title_based_filename_preserves_unicode_and_is_filesystem_safe(self):
         for title, expected in [
@@ -717,7 +722,8 @@ class PrintingTests(TestCase):
             stylesheets=[
                 CSS(filename=str(STYLES / "reader.css")),
                 CSS(filename=str(STYLES / "print.css")),
-                CSS(string="@page {size: 100mm 100mm; margin: 10mm}"),
+                CSS(string="@page {size: 100mm 100mm; margin: 10mm} "
+                           "@page reading-content {margin: 10mm}"),
             ]
         )
         locations = {}

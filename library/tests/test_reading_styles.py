@@ -385,10 +385,13 @@ class ReadingStyleTests(TestCase):
             book = next(item for item in running if item[0] == self.version.title
                         and abs(item[1] - 9) < .1)
             self.assertLess(book[2], 60)
-            self.assertGreater(book[3], float(page.mediabox.height) - 40)
+            header_baseline_mm = (float(page.mediabox.height) - book[3]) * 25.4 / 72
+            self.assertGreaterEqual(header_baseline_mm, 18)
+            self.assertLessEqual(header_baseline_mm, 24)
             footer = next(item for item in running if item[0] == f"{index} / {total}")
             self.assertAlmostEqual(footer[1], book[1], delta=.1)
-            self.assertLess(footer[3], 40)
+            self.assertGreaterEqual(footer[3] * 25.4 / 72, 18)
+            self.assertLessEqual(footer[3] * 25.4 / 72, 24)
             self.assertLess(abs(footer[2] - float(page.mediabox.width) / 2), 25)
             section = next(item for item in running if "Section Sentinel" in item[0]
                            and abs(item[1] - 9) < .1)
@@ -484,9 +487,9 @@ class ReadingStyleTests(TestCase):
                 first_lines.append(positions)
             for short, wrapped in zip(first_lines[0], first_lines[1], strict=True):
                 self.assertAlmostEqual(short, wrapped, delta=.1)
-                self.assertAlmostEqual(short, 6 * 96 / 25.4, delta=.1)
+                self.assertAlmostEqual(short, 18 * 96 / 25.4, delta=.1)
             self.assertAlmostEqual(body_tops[0], body_tops[1], delta=.1)
-            self.assertAlmostEqual(body_tops[0], 18 * 96 / 25.4, delta=.1)
+            self.assertAlmostEqual(body_tops[0], 30 * 96 / 25.4, delta=.1)
 
     def test_multipage_title_and_contents_have_no_running_matter_but_all_prose_pages_do(self):
         markup = (
