@@ -292,7 +292,11 @@ export function handleListKey(editor, event, readDocument = () => ({})) {
     }
     return false;
   }
-  if (bodyDepth > first.depth + 1) return false;
+  for (let depth = first.depth + 1; depth <= bodyDepth; depth++) {
+    if (["blockquote", "blockquoteText", "figure", "figcaption", "figcaptionText"]
+      .includes(selection.$from.node(depth).type.name)) return false;
+  }
+  if (bodyDepth > first.depth + 1) throw new Error("Split a direct item paragraph, not a nested structural container.");
   if (!body.inlineContent || !["liText", "p", "inlineRun"].includes(body.type.name)) {
     throw new Error("Split an item's direct prose paragraph, not a structural object.");
   }

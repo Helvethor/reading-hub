@@ -15,6 +15,7 @@ import {
   prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion, checkQuotationInsertion,
 } from "./quotation-insertion.js";
 import {semanticDOM} from "./semantic-structure.js";
+import {applyList, listState, mountListEditing} from "./lists.js";
 import {
   documentParts, foldedDocumentParts, showDocumentPart, showBlockLabels, visiblePart,
   workspaceContext, setWorkspaceContext,
@@ -74,6 +75,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   mountTargets(form, editor, showError);
   const noteRepairs = form.ownerDocument.querySelector("#editor-note-repair")
     ? mountNoteRepairs(form, editor, showError) : null;
+  mountListEditing(editor, showError, readDocument);
 
   function figureOptions() {
     return {
@@ -339,6 +341,21 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     for (const button of form.querySelectorAll("[data-quotation]")) {
       available(button, button.dataset.quotation === "insert" || canEditFigure(editor));
     }
+    const lists = listState(editor);
+    const listHelp = {
+      indent: "Indent item: requires a preceding sibling.",
+      outdent: "Outdent item: available only in a nested list.",
+      up: "Move item up: requires a preceding sibling.",
+      down: "Move item down: requires a following sibling.",
+    };
+    for (const button of form.querySelectorAll("[data-list]")) {
+      const action = button.dataset.list, format = ["ul", "ol"].includes(action);
+      available(button, true, format || lists[action]);
+      if (format) {
+        button.setAttribute("aria-checked", String(lists.type === action));
+        if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(lists.type === action));
+      } else button.title = listHelp[action];
+    }
     for (const button of form.querySelectorAll("[data-mark]")) {
       available(button, textSelection);
       const active = isInlineStyleActive(editor, button.dataset.mark);
@@ -552,6 +569,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         linkDialog.querySelector("#editor-link-href").focus();
         return;
       } else if ("linkRemove" in button.dataset) applyLinkRemoval(editor, prepareLinkEdit(editor));
+      else if (button.dataset.list) applyList(editor, button.dataset.list, readDocument);
       else if (button.dataset.mark) toggleInlineStyle(editor, button.dataset.mark);
       else if (button.dataset.block) {
         const {selection} = editor.state;
@@ -568,7 +586,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showError(failure.message);
     }
   }
-  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation]")) {
+  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-list]")) {
     button.addEventListener("click", () => perform(button));
   }
   for (const button of form.querySelectorAll(".editor-format-toolbar button")) {

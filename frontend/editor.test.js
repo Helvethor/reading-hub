@@ -3589,6 +3589,46 @@ test("list operations leave Enter in quotations untouched and refuse new quotati
   assert.equal(editor.getHTML(), '<ol><li><figure class="quotation"><blockquote><p>Quote</p></blockquote></figure></li></ol>');
 });
 
+test("list controls retain menu selection, owning active state, disabled boundaries and keyboard refusal", () => {
+  const errors = [];
+  const form = mountSectionWorkspace("<p>First</p><p>Second</p><p>Third</p>", {},
+    {showError: message => { if (message) errors.push(message); }});
+  selectParagraphs("First", "Third");
+  form.querySelector('#editor-context-menu [data-list="ol"]').click();
+  assert.equal(editor.getHTML(), "<ol><li><p>First</p></li><li><p>Second</p></li><li><p>Third</p></li></ol>");
+  assert.equal(form.querySelector('.editor-format-toolbar [data-list="ol"]').getAttribute("aria-pressed"), "true");
+  selectText("Second");
+  assert(!form.querySelector('[data-list="indent"]').disabled);
+  assert(form.querySelector('[data-list="outdent"]').disabled);
+  form.querySelector("#editor-tools").click();
+  form.querySelector('[data-list="indent"]').click();
+  assert.equal(editor.state.selection.$from.parent.textContent, "Second");
+  assert.equal(editor.state.selection.$from.node(editor.state.selection.$from.depth - 2).type.name, "ol");
+  assert(!form.querySelector('[data-list="outdent"]').disabled);
+  form.querySelector('[data-list="outdent"]').click();
+  assert.equal(editor.getHTML(), "<ol><li><p>First</p></li><li><p>Second</p></li><li><p>Third</p></li></ol>");
+  form.querySelector('.editor-format-toolbar [data-list="ul"]').click();
+  assert.match(errors.at(-1), /restart numbering/);
+  const before = editor.getHTML();
+  const key = name => {
+    const event = new dom.window.KeyboardEvent("keydown", {key: name, bubbles: true, cancelable: true});
+    editor.view.dom.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  assert(key("Backspace"));
+  assert.match(errors.at(-1), /list boundary/);
+  assert.equal(editor.getHTML(), before);
+  selectText("Second"); editor.commands.setTextSelection(editor.state.selection.from + 3);
+  assert(key("Enter"));
+  assert.match(editor.getHTML(), /<li><p>Sec<\/p><\/li><li><p>ond<\/p><\/li>/);
+  assert(!key("Tab"));
+  selectText("First");
+  assert(form.querySelector('[data-list="indent"]').disabled);
+  assert(form.querySelector('[data-list="up"]').disabled);
+  selectText("Third", 5);
+  assert(form.querySelector('[data-list="down"]').disabled);
+});
+
 test("list ranges exclude the next untouched block and retain whole-list and item identities on unlist", () => {
   open("<p>First</p><p>Second</p><p>Third</p>");
   selectText("First"); const from = editor.state.selection.from;

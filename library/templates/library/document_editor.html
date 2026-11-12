@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v7">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v8">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -96,6 +96,8 @@
           <button type="button" aria-label="Paragraph" title="Paragraph" aria-pressed="false" data-block="p" disabled>¶</button>
           <button type="button" aria-label="Heading 2" title="Heading 2" aria-pressed="false" data-block="h2" disabled>H2</button>
           <button type="button" aria-label="Heading 3" title="Heading 3" aria-pressed="false" data-block="h3" disabled>H3</button>
+          <button type="button" aria-label="Bulleted list" title="Bulleted list" aria-pressed="false" data-list="ul" disabled>• List</button>
+          <button type="button" aria-label="Numbered list" title="Numbered list" aria-pressed="false" data-list="ol" disabled>1. List</button>
           <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled>Link</button>
         </div>
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
@@ -224,6 +226,7 @@
       <summary id="editor-help">Editing help and keyboard shortcuts</summary>
       <p>Ctrl/Cmd-click toggles whole-block selection within a section. Right-click or Shift+F10 opens selection and section tools; selected blocks must be contiguous to become an excerpt section. Click within a list, table or figure to select that whole block.</p>
       <p>Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy semantic content, preserving formatting, links and retained images; external paste opens a preview. Ctrl/Cmd+Z and outline Undo restore edits.</p>
+      <p>Bulleted list and Numbered list act on a paragraph or complete sibling items; click the active type to remove list formatting. Selection tools includes Indent item, Outdent item and Move item up/down. Enter splits an item; Shift+Enter adds a line break. Enter in a simple final empty item exits one level. Tab moves focus normally. Unsupported boundary joins or numbering resets are refused without changing content.</p>
       <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The canvas scrolls with the page; the outline stays beside it and scrolls on its own.</p>
       <p>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a>.</p>
     </details>
@@ -253,6 +256,15 @@
         <button type="button" role="menuitemcheckbox" aria-label="Align center" title="Align center; click again to inherit" aria-checked="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
         <button type="button" role="menuitemcheckbox" aria-label="Align right" title="Align right; click again to inherit" aria-checked="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
         <button type="button" role="menuitemcheckbox" aria-label="Justify" title="Justify; click again to inherit" aria-checked="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
+      </div>
+      <div role="group" aria-label="Lists" class="editor-menu-group editor-list-tools">
+        <span class="editor-menu-heading">Lists · active type removes formatting</span>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-list="ul" disabled>Bulleted list</button>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" data-list="ol" disabled>Numbered list</button>
+        <button type="button" role="menuitem" data-list="indent" disabled>Indent item</button>
+        <button type="button" role="menuitem" data-list="outdent" disabled>Outdent item</button>
+        <button type="button" role="menuitem" data-list="up" disabled>Move item up</button>
+        <button type="button" role="menuitem" data-list="down" disabled>Move item down</button>
       </div>
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
@@ -538,4 +550,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v17"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v18"></script>{% endif %}{% endblock %}

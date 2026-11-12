@@ -239,6 +239,8 @@
 .editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; border-bottom: 1px solid #cbd1c4; }
 .editor-menu-heading { grid-column: 1 / -1; font-weight: 600; font-size: .7rem; }
 #editor-context-menu .editor-menu-group button { height: 1.9rem; padding: .2rem; text-align: center; }
+.editor-list-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#editor-context-menu .editor-list-tools button { height: auto; min-height: 2rem; }
 #editor-context-menu [data-mark] { font-family: Georgia, serif; font-size: 1rem; }
 #editor-context-menu [data-mark] :is(b, i, u, s) { font-family: inherit; }
 #editor-context-menu svg { width: 1.2rem; height: 1.2rem; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.6; }
