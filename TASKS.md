@@ -297,11 +297,19 @@ font/media/engine acceptance are not claimed.
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
 owns M1-M18 acceptance.
 The M.h filename follow-up (M19) is specified only, not part of that completion.
+The M.i shared end-matter follow-up (M20-M21) is likewise specified only.
 
 - [ ] M.h: surround replacement hyphens in PDF download filenames with spaces,
   coalesce unsafe-character runs and preserve original hyphens, Unicode,
   filename safety and draft qualifiers. Validate M19; leave stored titles,
   PDF metadata/content and retained files unchanged.
+
+- [ ] M.i: unify Metadata and Edition/review status under a shared, subtly
+  distinct end-matter style across Read/preview/print/PDF. Match headings,
+  spacing and width; use a fine divider and readable body text, preserving
+  themes, warnings, independent visibility and M.f page-break choices.
+  Validate M20-M21 with actual browser/print/PDF output and historical-output
+  preservation.
 
 - [x] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.

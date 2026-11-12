@@ -155,6 +155,12 @@ unsafe-character runs become spaced ` - ` separators (for example,
 `Title: Subtitle` -> `Title - Subtitle.pdf`). Preserve original legal hyphens,
 Unicode, filename safety/length limits and draft qualifiers. Stored titles,
 PDF title metadata, content and retained output identity are unchanged.
+Follow-up M.i (specified only, M20-M21) unifies Metadata and Edition/review
+status with shared end-matter typography, spacing and width, subtly distinguished
+from main prose by a fine divider and opening space. Preserve readable contrast,
+selected themes, the metadata table and status prose across Read, preview, print
+and PDF. Metadata stays optional; review qualifications remain visible. Styling
+does not determine page breaks or change review facts or historical outputs.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;

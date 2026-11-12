@@ -5,6 +5,8 @@ Status: implemented with bounded automated, rendered-PDF and copied-browser
 validation below; no independent usability/accessibility certification.
 Follow-up M.h (M19) is specified only, not implemented or validated. This
 2026-11-12 request authorizes recording the filename change, not deploying it.
+Follow-up M.i (M20-M21), shared end-matter styling, is also specified only.
+Its recording does not authorize implementation or deployment.
 
 ## Outcome, authority and sequencing
 
@@ -368,6 +370,54 @@ PDF bytes, cache identity or retained historical files. Add focused filename
 cases to the existing printing tests and inspect actual download headers and
 browser filenames for representative saved/draft exports on isolated fixtures.
 
+### M.i Shared, subtly distinct end-matter styling
+
+Recommendation accepted for recording 2026-11-12. On edition 102's draft Read
+view, the user reports that "Edition and review status" differs in style from
+"Metadata". Unify their visual treatment and distinguish both subtly from the
+work's main prose, without merging their meanings or visibility settings.
+
+Code inspection at `387a564` found that `reader.css` and the generated
+reading-style rules in `library/services/reading_styles.py` explicitly include
+`.document-metadata-page` in typography/heading rules but omit
+`.document-edition-status`. `app.css` gives the status section its own divider
+and spacing. This supports a styling-path mismatch; the specific live draft
+was not independently inspected in the browser or altered.
+
+Required treatment:
+
+- Use one shared end-matter style for Metadata and Edition and review status:
+  the same heading font/size, spacing rhythm and available text width.
+- Distinguish both from main prose with a fine divider and generous opening
+  space. Body text may be modestly smaller than main prose, but must retain
+  normal readable contrast and comfortable line spacing; do not make review
+  qualifications faint small print.
+- Preserve the metadata table and the status section's explanatory paragraphs.
+  Shared hierarchy does not require identical internal layouts or fabricated
+  table fields for prose.
+- Inherit the selected Reading/PDF theme, font choices and scale through the
+  shared style resolver. Do not hard-code a conflicting font, colour or theme.
+  Prefer typography and rules, not shaded cards, in PDF/browser print.
+- Keep both sections distinct and correctly labelled in navigation. Metadata
+  remains optional; edition/review qualifications remain present even when it
+  is hidden. Preserve prominent draft/unverified warnings and exact review
+  scope, including the publication-not-verification caveat.
+- Apply consistently to workspace Read, saved reader, preview, browser print
+  and PDF. Do not fix only static CSS while personal/generated style rules or
+  exported PDFs retain the mismatch.
+- Keep M.f's visibility, compactness and separation/page-break controls
+  independent. Styling must neither force a new page nor merge adjacent parts
+  or add duplicate dividers at a boundary. Do not modify semantic content,
+  stored titles, review facts or historical records.
+
+Reuse shared selectors/tokens rather than parallel near-identical declarations.
+Coordinate with M.a/M.g and V.h's shared Read shell. Add focused style/output
+regressions and compare actual rendered article/book end matter under the
+supported themes at normal and enlarged text sizes. Record dimensions and
+screenshots before/after; do not claim visual acceptance from selector tests.
+Any required presentation cache-policy change must follow M6, preserving
+protected historical output rather than bulk overwriting cached PDFs.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -412,7 +462,10 @@ saved versus changed-draft exports.
 
 | M19 | Shared PDF download filename generation yields `Why - Now.pdf`, `Title - Subtitle.pdf` and `A - B.pdf` for the specified inputs. Test adjacent unsafe-character runs, existing surrounding whitespace, literal hyphens/dashes, Unicode, edge punctuation, control/path characters, reserved device names, empty titles and maximum length. Interior replacement separators have exactly one space per side, without unsafe boundary whitespace. Verify saved/publication/draft download headers and browser filenames, preserving draft qualifiers, stored titles, PDF metadata/content and cache/history identity. Report any browser-specific filename normalization separately. |
 
-Stop when M1-M19 are implemented and validated with actual rendered output and
+| M20 | In isolated article/book saved and draft Read/preview fixtures, Metadata and Edition/review status share heading typography, spacing rhythm and available width. Both use a subtle divider/opening space distinct from main prose, with readable body contrast and scaling under supported themes. Check narrow widths, enlarged text, long metadata values and links; preserve table/prose layouts, exact warnings and navigation. Hiding Metadata leaves status visible once. Record before/after browser screenshots and measured styles, not just selector presence. |
+| M21 | Actual PDF and browser-print output use the same end-matter hierarchy without shaded-card dependence, clipped tables, faint qualifications or duplicated boundary rules. Exercise continuous/new-page separation and metadata on/off independently; styling does not change configured boundary decisions. Verify unchanged prose/order, review facts, PDF metadata and historical records, and explicit cache-policy preservation under M6. Report intentional reflow and visual evidence separately from automated correctness checks. |
+
+Stop when M1-M21 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.
