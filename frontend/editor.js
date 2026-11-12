@@ -9,6 +9,7 @@ import {mountSemanticClipboard} from "./semantic-clipboard.js";
 import {BlockSelection, blockSelectionExtension} from "./block-selection.js";
 import {differenceExtension} from "./document-diffs.js";
 import {scrollElementIntoView, stackOffset} from "./page-scroll.js";
+import {semanticDOM} from "./semantic-structure.js";
 
 const inlineTags = new Set([
   "strong", "b", "em", "i", "u", "s", "small", "sup", "sub", "a", "span",
@@ -36,21 +37,7 @@ const flowContainers = ["section", "figure", "div", "li", "dd", "blockquote", "t
 
 class BoundedEditor extends Editor {
   getHTML() {
-    const owner = this.view.dom.ownerDocument;
-    const standard = DOMSerializer.fromSchema(this.schema);
-    const runs = [];
-    const serializer = new DOMSerializer({
-      ...standard.nodes,
-      inlineRun: () => {
-        const run = owner.createElement("span");
-        runs.push(run);
-        return {dom: run, contentDOM: run};
-      },
-    }, standard.marks);
-    const target = owner.createElement("div");
-    target.append(serializer.serializeFragment(this.state.doc.content, {document: owner}));
-    for (const run of runs) run.replaceWith(...run.childNodes);
-    return target.innerHTML;
+    return semanticDOM(this.state.doc, this.view.dom.ownerDocument).innerHTML;
   }
 }
 

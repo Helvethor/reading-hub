@@ -23,6 +23,7 @@ import {
   canMoveAttribution, moveAttribution, removeQuotation,
 } from "./quotations.js";
 import {canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure} from "./figures.js";
+import {prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion} from "./quotation-insertion.js";
 import {
   documentParts, showDocumentPart, visiblePart, showBlockLabels, workspaceContext,
 } from "./workspace.js";
@@ -3459,6 +3460,89 @@ test("Preface quotation moves explicit attribution into caption preserving text,
   open(original);
   editor.commands.setContent(json);
   assert.equal(editor.getHTML(), cited);
+});
+
+test("new quotation proposals insert at empty, beginning, middle and end carets without duplicating targets", () => {
+  for (const [html, offset, expected] of [
+    ["<p></p>", 0, ""],
+    ['<p id="a"></p>', 0, '<p id="a"></p>'],
+    ['<p id="a">LeftRight</p>', 0, '|<p id="a">LeftRight</p>'],
+    ['<p id="a">LeftRight</p>', 4, '<p id="a">Left</p>|<p>Right</p>'],
+    ['<p id="a">LeftRight</p>', 9, '<p id="a">LeftRight</p>|'],
+  ]) {
+    editor?.destroy();
+    open(html);
+    editor.commands.setTextSelection(1 + offset);
+    const target = prepareQuotationInsertion(editor), original = editor.getHTML();
+    const built = buildQuotationInsertion(editor, target, {body: "Quote"});
+    assert.equal(editor.getHTML(), original, "Preview is inert.");
+    applyQuotationInsertion(editor, target, {body: "Quote"});
+    const figure = '<figure class="quotation"><blockquote><p>Quote</p></blockquote></figure>';
+    assert.equal(editor.getHTML(), expected.includes("|") ? expected.replace("|", figure) : expected + figure);
+    assert.equal(editor.state.selection.$from.parent.type.name, "p");
+    assert.equal(editor.state.selection.$from.parent.textContent, "Quote");
+    assert.equal(editor.state.selection.$from.parentOffset, 5);
+    assert.deepEqual(editor.state.doc.toJSON(), built.tr.doc.toJSON());
+    assert.throws(() => applyQuotationInsertion(editor, target, {body: "Duplicate"}), /changed/);
+    assert(undo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), original);
+    assert(!undo(editor.state));
+    assert(redo(editor.state, editor.view.dispatch));
+    assert.deepEqual(editor.state.doc.toJSON(), built.tr.doc.toJSON());
+  }
+});
+
+test("new quotations preserve multiline literal Unicode, caption cite and surrounding linked formatting", () => {
+  open('<p id="p"><a href="https://example.org/"><em>LeftRight</em></a></p><p><a href="#p">Return</a></p>');
+  selectText("Right");
+  const target = prepareQuotationInsertion(editor);
+  applyQuotationInsertion(editor, target, {body: " \tFirst😀\r\nline <b>literal</b>\r\n \t\r\nSecond",
+    text: "Author, Work😀", title: "Work😀"});
+  const html = editor.getHTML();
+  assert(html.startsWith('<p id="p"><a href="https://example.org/"><em>Left</em></a></p>'));
+  assert(html.includes('<p> \tFirst😀<br>line &lt;b&gt;literal&lt;/b&gt;</p><p>Second</p>'));
+  assert(html.includes('<figcaption><p>Author, <cite>Work😀</cite></p></figcaption>'));
+  assert(html.includes('<p><a href="https://example.org/"><em>Right</em></a></p>'));
+  assert.equal((html.match(/id="p"/g) || []).length, 1);
+  assert(html.endsWith('<p><a href="#p">Return</a></p>'));
+});
+
+test("new quotation validation enforces body and exact caption limits before any mutation", () => {
+  open("<p></p>");
+  const target = prepareQuotationInsertion(editor), json = editor.getJSON();
+  for (const body of [" \n\t", "x".repeat(MAX_PASTE_BYTES + 1), "x\n".repeat(1001),
+    Array(101).fill("x").join("\n\n"), "\u0000", "\ud800", "\udfff"]) {
+    assert.throws(() => buildQuotationInsertion(editor, target, {body}));
+  }
+  for (const options of [{text: "Work and Work", title: "Work"}, {title: "Work"},
+    {text: "Author", title: " "}, {text: "a\nb"}, {text: "x".repeat(4001)}]) {
+    assert.throws(() => buildQuotationInsertion(editor, target, {body: "Quote", ...options}));
+  }
+  buildQuotationInsertion(editor, target, {body: "😀".repeat(MAX_PASTE_BYTES / 4)});
+  buildQuotationInsertion(editor, target, {body: Array(100).fill("x").join("\n\n")});
+  buildQuotationInsertion(editor, target, {body: "x\n".repeat(1000) + "x"});
+  assert.deepEqual(editor.getJSON(), json);
+  assert(!undo(editor.state));
+});
+
+test("new quotation insertion refuses unsafe identity splits, notes, unsupported and stale locations", () => {
+  for (const html of ['<ul><li><div><p>Text</p></div></li></ul>',
+    '<figure><blockquote><p>Text</p></blockquote></figure>',
+    '<p id="note">Text <a href="#ref" class="note-backlink">Back</a></p>',
+    '<p><span id="target">Text</span></p>']) {
+    editor?.destroy(); open(html); selectText("Text"); editor.commands.setTextSelection(editor.state.selection.from + 1);
+    assert.throws(() => prepareQuotationInsertion(editor), /paragraph|target/);
+  }
+  editor.destroy(); open('<section id="a"><p>Text</p></section><section id="b"><p>Other</p></section>');
+  selectText("Text", 2);
+  assert.throws(() => prepareQuotationInsertion(editor), /caret/);
+  selectText("Text");
+  const target = prepareQuotationInsertion(editor);
+  showDocumentPart(editor, documentParts(editor.state.doc)[1]);
+  assert.throws(() => buildQuotationInsertion(editor, target, {body: "Quote"}), /changed|hidden/);
+  showDocumentPart(editor, null);
+  editor.commands.insertContent("Edit");
+  assert.throws(() => buildQuotationInsertion(editor, target, {body: "Quote"}), /changed/);
 });
 
 test("quotation creation uses whole adjacent paragraphs and optional literal attribution", () => {
