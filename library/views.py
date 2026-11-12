@@ -204,19 +204,37 @@ def reader(request, pk):
     if destination:
         return destination
     try:
-        reading_style = style_context(request)
+        reading_style = style_context(request, rendition)
     except ValueError as exc:
         return HttpResponse(str(exc), status=400, content_type="text/plain")
     book = rendition.structure.get("book")
     projection = (
         publication_view(
-            rendition.html, rendition.structure["toc"], rendition.title, book=bool(book),
+            rendition.html, rendition.structure["toc"], rendition.title,
+            book=bool(book), metadata=rendition.metadata,
         )
-        if getattr(rendition, "document_publication", None)
+        if (
+            getattr(rendition, "document_publication", None)
+            or rendition.metadata.get("layout")
+        )
         else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
     )
     display_author = rendition.metadata.get("author", "").strip() or source_name(
         rendition.document.url)
+    identifiers = endmatter_ids(projection["content_html"])
+    metadata_values = metadata_context(
+        rendition.metadata, rendition.title, display_author, book, rendition.document.url,
+    )
+    metadata_values["metadata_page_id"] = identifiers["metadata_page_id"]
+    navigation = with_metadata_page(projection["entries"], rendition.metadata, book)
+    for entry in navigation:
+        if entry["id"] == "document-metadata":
+            entry["id"] = identifiers["metadata_page_id"]
+    navigation = with_edition_status(navigation, identifiers["edition_status_id"])
+    page_layout = layout_context(rendition.metadata, bool(book))
+    if "body_separation" in projection:
+        page_layout["layout_policy"] = True
+        page_layout["layout_boundaries"]["body"]["value"] = projection["body_separation"]
     return render(
         request,
         "library/reader.html",
@@ -231,9 +249,10 @@ def reader(request, pk):
                 )
             ),
             "display_author": display_author,
-            **metadata_context(rendition.metadata, rendition.title, display_author, book,
-                                rendition.document.url),
-            "toc": toc_tree(with_metadata_page(projection["entries"], rendition.metadata, book)),
+            **metadata_values,
+            **page_layout,
+            "toc": toc_tree(navigation),
+            "edition_status_id": identifiers["edition_status_id"],
             "contents_toc": contents_tree(projection["entries"]),
             "content_html": projection["content_html"],
             "generated_book": bool(getattr(rendition, "document_publication", None)),
@@ -304,14 +323,13 @@ def reader_stylesheet(request, pk):
 
 @require_GET
 def reader_pdf(request, pk):
-    from library.services.reading_styles import selected_style
-    from library.themes import selected_theme
+    from library.services.reading_styles import selected_style, selected_theme
     rendition = get_object_or_404(Rendition.objects.select_related("document"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition, pdf=True)
     if destination:
         return destination
     try:
-        reading_style = selected_style(request)
+        reading_style = selected_style(request, rendition)
     except ValueError as exc:
         return HttpResponse(str(exc), status=400, content_type="text/plain")
     try:

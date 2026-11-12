@@ -146,7 +146,7 @@ output and dataset export. The change is deployed to the documented localhost
 service. No authenticated browser/network trace or human accessibility review
 was performed.
 
-### Presentation and PDF metadata enhancement (handoff 2026-11-11; planned)
+### Presentation and PDF metadata enhancement (implemented 2026-11-12)
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
 defines milestone M and M1-M18 acceptance, scheduled after R -> A -> V -> P.
@@ -196,7 +196,11 @@ validated snapshots and correctly scoped caches. Personal appearance cannot
 override editorial part policy or mandatory evidence; theme remains separate.
 M15-M18 supersede older single-default/profile-panel direction once implemented,
 with an explicit compatibility plan rather than silent preference migration.
-This handoff authorizes documentation only, not implementation or deployment.
+The later implementation instruction authorizes M and validated local development
+deployment. Implementation and bounded rendered/copied-browser evidence are
+recorded in the handoff, including intentional reflow and remaining human,
+font/media and browser-engine limits. No live publication/default changes or
+remote deployment are authorized by this milestone.
 
 ### Unified version workspace (handoff 2026-11-11; implementation present; acceptance partial)
 

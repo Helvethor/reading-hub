@@ -1,5 +1,6 @@
 import io
 import json
+import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 from bs4 import BeautifulSoup
@@ -9,7 +10,13 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from pypdf import PdfReader
 
-from library.models import DocumentDraftBase, DocumentEditRevision, Rendition, Snapshot
+from library.models import (
+    DocumentDraftBase,
+    DocumentEditRevision,
+    ReadingStyleOutputOverride,
+    Rendition,
+    Snapshot,
+)
 from library.services.document_edits import create_draft
 from library.services.pdf import STYLES, PDFExportError
 from library.services.semantic_documents import canonical_document
@@ -185,10 +192,13 @@ class DocumentEditorViewTests(TestCase):
             self.rendition.html, self.rendition.document.reader_rendition_id,
         )
 
-        def render(version, destination, reading_style, *, theme, approved_assets):
+        def render(
+            version, destination, reading_style, *, theme, approved_assets, edition_status=None,
+        ):
             self.assertEqual(version.title, "Unsaved PDF title")
             self.assertIn("Captured PDF text.", version.html)
             self.assertEqual(approved_assets, {})
+            self.assertTrue(edition_status["changed_unsaved"])
             destination.write(b"%PDF-1.7\\nworkspace")
 
         with patch("library.services.pdf.render_pdf", side_effect=render) as renderer:
@@ -235,13 +245,23 @@ class DocumentEditorViewTests(TestCase):
                       response["Content-Disposition"])
         content = b"".join(response.streaming_content)
         self.assertTrue(content.startswith(b"%PDF-"))
-        extracted = "\n".join(
-            page.extract_text() for page in PdfReader(io.BytesIO(content)).pages
-        )
+        reader = PdfReader(io.BytesIO(content))
+        extracted = "\n".join(page.extract_text() for page in reader.pages)
         self.assertIn("Captured workspace edition", extracted)
         self.assertIn("Real workspace PDF content", extracted)
+        self.assertIn("Draft snapshot", extracted)
+        self.assertIn("Changed unsaved content has not been verified", extracted)
         self.assertNotIn("Back to top", extracted)
         self.assertNotIn("Download current draft PDF", extracted)
+        packet = reader.trailer["/Root"]["/Metadata"].get_object().get_data()
+        root = ET.fromstring(packet)
+        values = {
+            node.tag.removeprefix("{urn:reading-hub:pdf:1.0}"): node.text
+            for node in root.iter()
+            if node.tag.startswith("{urn:reading-hub:pdf:1.0}") and node.text
+        }
+        self.assertEqual(values["editionOrigin"], "draft-snapshot")
+        self.assertEqual(values["draftContentState"], "changed-unsaved")
         self.rendition.refresh_from_db()
         self.assertEqual(before, (
             DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
@@ -331,8 +351,11 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(saved["revision"], 1)
         rendered = []
 
-        def render(version, destination, reading_style, *, theme, approved_assets):
+        def render(
+            version, destination, reading_style, *, theme, approved_assets, edition_status=None,
+        ):
             rendered.append(version.html)
+            rendered.append(edition_status)
             destination.write(b"%PDF-1.7\\nworkspace")
 
         def export(value):
@@ -348,7 +371,8 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(unchanged["X-Reading-Hub-PDF-State"], "saved")
         self.assertEqual(unchanged["X-Reading-Hub-PDF-Revision"], "1")
         self.assertIn("Saved revision 1 - Saved copy title.pdf", unchanged["Content-Disposition"])
-        self.assertIn("Saved revision text.", rendered[-1])
+        self.assertIn("Saved revision text.", rendered[-2])
+        self.assertFalse(rendered[-1]["changed_unsaved"])
         read = self.client.post(
             reverse("document-editor-read-preview", args=[self.rendition.pk]),
             json.dumps(self.workspace_payload(saved["document"], draft=self.draft, revision=1)),
@@ -362,7 +386,8 @@ class DocumentEditorViewTests(TestCase):
         })
         self.assertEqual(changed["X-Reading-Hub-PDF-State"], "draft")
         self.assertIn("Draft preview - Saved copy title.pdf", changed["Content-Disposition"])
-        self.assertIn("Unsaved later text.", rendered[-1])
+        self.assertIn("Unsaved later text.", rendered[-2])
+        self.assertTrue(rendered[-1]["changed_unsaved"])
         self.assertEqual(DocumentEditRevision.objects.count(), 1)
 
     def test_get_does_not_create_evidence_or_publish(self):
@@ -525,28 +550,94 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Choose a working copy")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
 
-    def test_style_defaults_are_in_a_separate_tab_without_editor_stylesheet(self):
+    def test_reading_style_controls_are_in_read_not_edit_and_never_style_editor(self):
         from bs4 import BeautifulSoup
 
-        from library.services.reading_styles import DEFAULTS, style_token
-
-        response = self.client.get(self.url, {"style": style_token({**DEFAULTS, "font_size": 28})})
+        response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         page = BeautifulSoup(response.content, "html.parser")
         self.assertIsNone(page.select_one("link[data-reading-style]"))
         self.assertIsNone(page.select_one(".editor-canvas.publication-content"))
         self.assertIsNone(page.select_one('link[href*="print.css"]'))
-        panel = page.select_one("#editor-panel-style")
-        self.assertTrue(panel.has_attr("hidden"))
-        self.assertEqual(panel["aria-labelledby"], "editor-tab-style")
-        self.assertEqual(page.select_one("#editor-tab-style")["aria-controls"], panel["id"])
-        self.assertTrue(panel.select_one(".reading-style-controls").has_attr("data-defaults-only"))
+        self.assertIsNone(page.select_one("#editor-tab-style"))
+        self.assertIsNone(page.select_one("#editor-panel-style"))
+        panel = page.select_one("#workspace-panel-read .reading-style-controls")
+        self.assertIsNotNone(panel)
+        self.assertEqual(panel["data-scope"], "output")
+        self.assertIsNone(page.select_one("#workspace-panel-edit .reading-style-controls"))
         for form in panel.select("form"):
             self.assertIsNone(form.find_parent("form"))
-        self.assertEqual(len(panel.select("form")), 3)
-        self.assertEqual(response.context["reading_style"]["font_size"], 28)
-        self.assertContains(response, "The editor always follows the site theme.")
+        self.assertEqual(len(panel.select("form")), 1)
+        self.assertEqual(response.context["reading_style"]["font_size"], 14)
+        self.assertContains(response, "Personal presentation only")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
+
+    def test_exact_and_working_copy_read_and_pdf_share_the_output_style_snapshot(self):
+        ReadingStyleOutputOverride.objects.create(
+            owner=self.reviewer,
+            rendition=self.rendition,
+            settings={"font_size": 22, "italic_to_bold": True},
+        )
+        editor = self.client.get(self.url + "?start=source")
+        initial = editor.context["initial"]
+        self.assertEqual(editor.context["reading_style"]["font_size"], 22)
+        read_url = reverse("document-editor-read-preview", args=[self.rendition.pk])
+        exact_payload = self.workspace_payload(initial["document"])
+        exact_read = self.client.post(
+            read_url, json.dumps(exact_payload), content_type="application/json",
+        )
+        self.assertEqual(exact_read.status_code, 200, exact_read.content)
+        appearance = exact_read.json()["appearance"]
+        self.assertEqual(appearance["settings"]["font_size"], 22)
+        self.assertEqual(appearance["origins"]["font_size"]["source"], "output")
+
+        class MemoryPdf:
+            def open(self, _mode):
+                return io.BytesIO(b"%PDF exact workspace style")
+
+        pdf_url = reverse("document-editor-draft-pdf", args=[self.rendition.pk])
+        with patch("library.services.pdf.cached_pdf", return_value=MemoryPdf()) as export:
+            exact_pdf = self.client.post(
+                f"{pdf_url}?presentation={appearance['presentation']}",
+                json.dumps(exact_payload), content_type="application/json",
+            )
+        self.assertEqual(exact_pdf.status_code, 200)
+        self.assertEqual(exact_pdf["X-Reading-Hub-PDF-State"], "exact")
+        export.assert_called_once()
+        self.assertEqual(export.call_args.args[1]["font_size"], 22)
+        self.assertTrue(export.call_args.args[1]["italic_to_bold"])
+        exact_pdf.close()
+
+        saved_payload = self.workspace_payload(
+            initial["document"], draft=self.draft, revision=0,
+        )
+        saved_read = self.client.post(
+            read_url, json.dumps(saved_payload), content_type="application/json",
+        )
+        self.assertEqual(saved_read.status_code, 200, saved_read.content)
+        saved_appearance = saved_read.json()["appearance"]
+        self.assertEqual(saved_appearance["settings"]["font_size"], 22)
+        rendered = {}
+
+        def capture_render(
+            _version, destination, style, *, theme, approved_assets, edition_status=None,
+        ):
+            rendered.update(
+                style=style, theme=theme, assets=approved_assets, edition_status=edition_status,
+            )
+            destination.write(b"%PDF saved workspace style")
+
+        with patch("library.services.pdf.render_pdf", side_effect=capture_render):
+            saved_pdf = self.client.post(
+                f"{pdf_url}?presentation={saved_appearance['presentation']}",
+                json.dumps(saved_payload), content_type="application/json",
+            )
+        self.assertEqual(saved_pdf.status_code, 200)
+        self.assertEqual(saved_pdf["X-Reading-Hub-PDF-State"], "saved")
+        self.assertEqual(rendered["style"], saved_appearance["settings"])
+        self.assertEqual(rendered["theme"], saved_appearance["theme"])
+        self.assertTrue(rendered["edition_status"]["draft_snapshot"])
+        saved_pdf.close()
 
     def test_link_repairs_save_and_reopen_preserving_note_targets_and_original(self):
         initial = self.client.get(self.url).context["initial"]

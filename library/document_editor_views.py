@@ -24,7 +24,7 @@ from library.models import (
     ReviewerRun,
 )
 from library.profile import get_profile, source_name
-from library.services.book_views import publication_view
+from library.services.book_views import layout_context, publication_view
 from library.services.document_comparison import compare_documents
 from library.services.document_edits import (
     DocumentEditConflict,
@@ -199,7 +199,7 @@ def workspace(request, pk):
             "book": bool((initial.get("structure") or {}).get("book")),
         }
     try:
-        reading_style = style_context(request)
+        reading_style = style_context(request, version)
     except ValueError as exc:
         error, reading_style = str(exc), {}
     response = render(request, "library/document_editor.html", {
@@ -301,12 +301,36 @@ def _workspace_snapshot(request, source):
     }
 
 
+def _workspace_edition_status(source, snapshot):
+    base_publication = getattr(source, "document_publication", None)
+    base_revision = getattr(base_publication, "revision", None)
+    historical_review = None
+    if base_revision:
+        historical_review = base_revision.get_review_display()
+        if base_revision.review == "sections":
+            historical_review += ": " + ", ".join(base_revision.verified_sections)
+        if base_revision.editorial:
+            historical_review += "; contains editorial changes"
+    return {
+        "draft_snapshot": True,
+        "changed_unsaved": snapshot["is_unsaved"],
+        "saved_revision": snapshot["saved_revision"],
+        "historical_review": historical_review,
+        "historical_review_revision": base_revision.revision if base_revision else None,
+        "source_rendition_id": base_revision.draft.rendition_id if base_revision else None,
+        "source_rendition_identity": (
+            base_revision.draft.rendition.identity if base_revision else None
+        ),
+    }
+
+
 def _workspace_preview_context(request, source, snapshot):
     from bs4 import BeautifulSoup
 
+    from library.services.book_views import layout_context
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
-    from library.views import contents_tree, toc_tree
+    from library.views import contents_tree, toc_tree, with_edition_status
 
     document = snapshot["output_document"]
     structure = snapshot["structure"]
@@ -344,15 +368,25 @@ def _workspace_preview_context(request, source, snapshot):
     metadata_page_id = f"{identifier_prefix}metadata-page"
     while metadata_page_id in identifiers.values():
         metadata_page_id += "-workspace"
+    edition_status_id = f"{identifier_prefix}edition-status"
+    while edition_status_id in identifiers.values() or edition_status_id == metadata_page_id:
+        edition_status_id += "-workspace"
     for entry in navigation:
         entry["id"] = (
             metadata_page_id if entry["id"] == "document-metadata"
             else identifiers.get(entry["id"], f"{identifier_prefix}{entry['id']}")
         )
+    navigation = with_edition_status(navigation, edition_status_id)
     metadata_values = metadata_context(
         metadata, document["title"], display_author, book, source.document.url,
     )
     metadata_values["metadata_page_id"] = metadata_page_id
+    page_layout = layout_context(metadata, bool(book))
+    if "body_separation" in snapshot["projection"]:
+        page_layout["layout_policy"] = True
+        page_layout["layout_boundaries"]["body"]["value"] = (
+            snapshot["projection"]["body_separation"]
+        )
     version = SimpleNamespace(
         document=source.document, title=document["title"], metadata=metadata,
         structure=structure, warnings=snapshot["warnings"], document_publication=None,
@@ -360,10 +394,13 @@ def _workspace_preview_context(request, source, snapshot):
         adapter_version=source.adapter_version, format_version=source.format_version,
     )
     return {
-        **style_context(request),
+        **style_context(request, source, work_type=metadata.get("work_type")),
         "version": version,
         "display_author": display_author,
         **metadata_values,
+        **page_layout,
+        "edition_status_id": edition_status_id,
+        "edition_status": _workspace_edition_status(source, snapshot),
         "content_html": str(soup),
         "toc": toc_tree(navigation),
         "contents_toc": contents_tree(entries),
@@ -392,6 +429,7 @@ def workspace_preview(request, pk):
     source = get_version(pk)
     try:
         snapshot = _workspace_snapshot(request, source)
+        from library.services.reading_styles import style_context
         from django.template.loader import render_to_string
 
         markup = render_to_string(
@@ -405,10 +443,25 @@ def workspace_preview(request, pk):
         return _workspace_error(exc, 403)
     except (ValueError, ImportFailure, RecursionError, OSError) as exc:
         return _workspace_error(exc, 422)
+    style = style_context(
+        request, source, work_type=snapshot["output_document"]["metadata"].get("work_type"),
+    )
     response = JsonResponse({
         "html": markup,
         "state": _workspace_content_state(snapshot),
         "revision": snapshot["saved_revision"],
+        "appearance": {
+            "settings": style["reading_style"],
+            "origins": style["reading_style_origins"],
+            "token": style["reading_style_token"],
+            "presentation": style["reading_presentation_token"],
+            "stylesheet": style["reading_style_url"],
+            "theme": style["reading_theme"],
+            "work_type": style["reading_style_work_type"],
+            "output_id": style["reading_style_output_id"],
+            "rendition_id": style["reading_style_rendition_id"],
+            "layers": style["reading_style_layers"],
+        },
     })
     response["Cache-Control"] = "private, no-store"
     return response
@@ -418,7 +471,9 @@ def _exact_workspace_pdf(request, source, selected_style, selected_theme):
     from library.services.pdf import PDFExportError, cached_pdf, pdf_filename
 
     try:
-        path = cached_pdf(source, selected_style(request), theme=selected_theme(request))
+        path = cached_pdf(
+            source, selected_style(request, source), theme=selected_theme(request),
+        )
         handle = path.open("rb")
     except (PDFExportError, OSError):
         logger.exception("Unable to export exact rendition %s as PDF", source.pk)
@@ -450,8 +505,7 @@ def workspace_pdf(request, pk):
 
     try:
         snapshot = _workspace_snapshot(request, source)
-        from library.services.reading_styles import selected_style
-        from library.themes import selected_theme
+        from library.services.reading_styles import selected_style, selected_theme
 
         state = _workspace_content_state(snapshot)
         if state == "exact":
@@ -467,8 +521,10 @@ def workspace_pdf(request, pk):
         )
         destination = BytesIO()
         render_pdf(
-            version, destination, selected_style(request), theme=selected_theme(request),
+            version, destination, selected_style(request, source),
+            theme=selected_theme(request),
             approved_assets=snapshot["assets"],
+            edition_status=_workspace_edition_status(source, snapshot),
         )
         destination.seek(0)
         response = FileResponse(
@@ -677,7 +733,7 @@ def fresh_draft(request, pk):
 def publication(request, pk):
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
-    from library.views import contents_tree, toc_tree
+    from library.views import contents_tree, endmatter_ids, toc_tree, with_edition_status
 
     source = get_version(pk)
     error, candidate, published, status = "", None, None, 200
@@ -687,7 +743,7 @@ def publication(request, pk):
         draft = get_draft(request.GET.get("draft"), source)
         values = request.POST if request.method == "POST" else request.GET
         revision = int(values.get("revision", ""))
-        reading_style = style_context(request)
+        reading_style = style_context(request, source)
         if request.method == "POST":
             if values.get("draft") and values["draft"] != str(draft.pk):
                 raise ValueError("The submitted draft does not match the preview.")
@@ -695,7 +751,15 @@ def publication(request, pk):
                 raise ValueError("Explicitly confirm publication of this saved revision.")
             select_as_default = values.get("make_default") == "yes"
             selection_reason = values.get("reason", "")
-            candidate = prepare_publication(draft, revision)
+        candidate = prepare_publication(draft, revision)
+        try:
+            reading_style = style_context(
+                request, source, work_type=candidate["output"]["metadata"].get("work_type"),
+            )
+        except ValueError:
+            candidate = None
+            raise
+        if request.method == "POST":
             if select_as_default:
                 expected_reader = values.get("expected_reader", "")
                 expected_explicit = values.get("expected_selection_explicit", "")
@@ -713,12 +777,10 @@ def publication(request, pk):
                     draft, request.user, revision, values.get("preview_digest"),
                 )
             candidate = None
-        else:
-            candidate = prepare_publication(draft, revision)
-            if request.GET.get("stylesheet") == "1":
-                return HttpResponse(
-                    candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
-                )
+        if candidate and request.GET.get("stylesheet") == "1":
+            return HttpResponse(
+                candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
+            )
     except DocumentEditConflict as exc:
         error, status, candidate = str(exc), 409, None
     except ReaderSelectionConflict as exc:
@@ -760,18 +822,36 @@ def publication(request, pk):
         projection = publication_view(
             version.html, version.structure["toc"], version.title,
             book=bool(version.structure.get("book")),
+            metadata=version.metadata,
         )
         display_author = version.metadata.get("author", "").strip() or source_name(
             source.document.url)
         book = version.structure.get("book")
+        identifiers = endmatter_ids(projection["content_html"])
+        navigation = with_metadata_page(projection["entries"], version.metadata, book)
+        for entry in navigation:
+            if entry["id"] == "document-metadata":
+                entry["id"] = identifiers["metadata_page_id"]
+        navigation = with_edition_status(navigation, identifiers["edition_status_id"])
+        metadata_values = metadata_context(
+            version.metadata, version.title, display_author, book, version.document.url,
+        )
+        metadata_values["metadata_page_id"] = identifiers["metadata_page_id"]
+        page_layout = layout_context(version.metadata, bool(book))
+        page_layout["layout_policy"] = True
+        page_layout["layout_boundaries"]["body"]["value"] = projection.get(
+            "body_separation", page_layout["layout_boundaries"]["body"]["value"],
+        )
         context.update({
             **reading_style, "style_preview": True,
             "version": version, "candidate": candidate,
-            "toc": toc_tree(with_metadata_page(projection["entries"], version.metadata, book)),
+            "edition_status": {"revision": candidate["revision"]} if candidate else {},
+            "toc": toc_tree(navigation),
+            "edition_status_id": identifiers["edition_status_id"],
             "contents_toc": contents_tree(projection["entries"]),
             "display_author": display_author,
-            **metadata_context(version.metadata, version.title, display_author, book,
-                               version.document.url),
+            **metadata_values,
+            **page_layout,
             "content_html": projection["content_html"],
         })
     return panel_response(request, "library/document_publication.html", context, status=status)

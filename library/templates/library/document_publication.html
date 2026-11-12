@@ -61,15 +61,15 @@
   </section>
   {% endif %}
   {% if candidate or published %}
-  {% if candidate %}{% include 'library/reading_style_controls.html' %}{% endif %}
   <div class="reader-layout">
     <aside class="toc-panel"><nav aria-label="Table of contents">{% include 'library/toc.html' with nodes=toc %}</nav></aside>
-    <div class="reading-column publication-content">
-      <header class="document-header document-header-{{ book_pages.title_layout }}"><h1>{{ version.title }}</h1>{% include 'library/document_metadata.html' %}</header>
+    <div class="reading-column publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
+      <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}><h1>{{ version.title }}</h1>{% include 'library/document_metadata.html' %}</header>
       {% if version.warnings %}<section class="notice"><h2>Retained source warnings</h2><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
       {% if contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
-      <article class="reader-content" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+      <article class="reader-content" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
       {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
+      {% include 'library/document_edition_status.html' %}
     </div>
   </div>
   {% endif %}

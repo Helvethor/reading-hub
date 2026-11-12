@@ -1,11 +1,11 @@
 {% extends 'library/base.html' %}
 {% load static %}
 {% block title %}{{ version.title }} | {{ site.name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-toc"><link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% url 'reader-css' version.pk %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-toc"><link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endblock %}
 {% block content %}
 {% include 'library/work_context.html' with active_work_tab="read" %}
 <div class="reader-toolbar">
-  <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?style={{ reading_style_token|urlencode }}" data-reading-pdf>Download PDF</a>
+  <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>Download PDF</a>
 </div>
 {% include 'library/reading_style_controls.html' %}
 <div class="reader-layout">
@@ -23,12 +23,11 @@
     </details>
   </aside>
   <div class="reading-column">
-    <div class="publication-content">
-    <header class="document-header document-header-{{ book_pages.title_layout }}">
+    <div class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
+    <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
       <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
       <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
       {% include 'library/document_metadata.html' %}
-      {% include 'library/document_review_status.html' with revision=version.document_publication.revision %}
     </header>
     {% if version.warnings %}
     <section class="notice warning" aria-label="Import warnings"><h2>Some images could not be saved</h2>
@@ -36,8 +35,9 @@
     </section>
     {% endif %}
     {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
-    <article id="reader-article" class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+    <article id="reader-article" class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
     {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
+    {% include 'library/document_edition_status.html' %}
     </div>
     <details class="version-details">
       <summary>Version and source details</summary>

@@ -245,33 +245,34 @@ L1-L10 acceptance.
 
 ## Presentation/PDF milestone M: edition provenance and embedded metadata (2026-11-11)
 
-**Status:** handoff prepared; implementation and acceptance not started.
-Documentation only is authorized for M. Schedule after the requested R -> A ->
-V -> P sequence; do not interrupt in-progress workspace/publication delivery.
+**Status (2026-11-12):** implemented under the later implementation instruction.
+Bounded automated, actual PDF/Chromium-print and copied-browser evidence is
+recorded in the handoff; independent usability/accessibility and exhaustive
+font/media/engine acceptance are not claimed.
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
 owns M1-M18 acceptance.
 
-- [ ] Move edition/review status to distinct readable end matter independent of
+- [x] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.
-- [ ] Map supported bibliographic fields to standard PDF/XMP metadata and bounded
+- [x] Map supported bibliographic fields to standard PDF/XMP metadata and bounded
   non-sensitive provenance to a documented custom namespace.
-- [ ] Align reader, preview, print and PDF, including V's exact draft snapshots
+- [x] Align reader, preview, print and PDF, including V's exact draft snapshots
   without inherited verification claims for changed content.
-- [ ] Balance running-header/footer outer insets and body-frame alignment with
+- [x] Balance running-header/footer outer insets and body-frame alignment with
   separate comfortable body gaps; compare rendered candidates and measure geometry.
-- [ ] Replace three-line widow/orphan protection with two-line protection for
+- [x] Replace three-line widow/orphan protection with two-line protection for
   print/PDF paragraphs and list items; verify actual splits and preservation.
-- [ ] Unify generated/content part separation with Default/Continuous/New page,
+- [x] Unify generated/content part separation with Default/Continuous/New page,
   independent visibility/title compactness, contextual presets and per-part reset.
-- [ ] Preserve legacy pagination and stable layout identities through live Read,
+- [x] Preserve legacy boundary policy and stable layout identities through live Read,
   draft PDF, undo/recovery/save/publication; prevent hidden/coincident blank pages.
-- [ ] Resolve personal appearance per field through built-in/admin/personal type
+- [x] Resolve personal appearance per field through built-in/admin/personal type
   defaults and exact-output preferences, with reset, private persistence, guest
   storage/import and explicit legacy compatibility.
-- [ ] Place version-page Reading/PDF style controls only in Read; preserve
+- [x] Place version-page Reading/PDF style controls only in Read; preserve
   editorial layout and align validated export snapshots/cache identities.
-- [ ] Validate M1-M18 through actual output/metadata extraction, privacy sentinels,
+- [x] Validate M1-M18 within documented bounds through actual output/metadata extraction, privacy sentinels,
   exact preservation and explicit derived-PDF cache-policy checks.
 
 Preserve existing title-page settings and actionable warnings. Defer metadata

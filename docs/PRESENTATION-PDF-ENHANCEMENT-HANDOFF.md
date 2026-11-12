@@ -1,7 +1,8 @@
 # Milestone M: presentation and PDF metadata enhancement
 
 Proposal accepted for handoff 2026-11-11.
-Status: specified; implementation and acceptance not started.
+Status: implemented with bounded automated, rendered-PDF and copied-browser
+validation below; no independent usability/accessibility certification.
 
 ## Outcome, authority and sequencing
 
@@ -10,9 +11,10 @@ details. Concise edition and review evidence appears in readable end matter;
 PDF properties carry useful bibliographic and provenance metadata without being
 the only place a reader can find essential qualifications.
 
-This request authorizes documentation only. It does not extend implementation
-or deployment authorization to M, change live content/defaults, publish anything,
-rewrite historical evidence or authorize bulk PDF regeneration.
+The later 2026-11-12 request authorizes implementation of M. Local development
+deployment follows the standing implementation workflow after validation.
+It does not authorize changing live content/defaults, publication, rewriting
+historical evidence, bulk PDF regeneration or remote deployment.
 
 Place M after the requested R -> A -> V -> P implementation sequence. Reuse
 [V's current-content export snapshot contract](UNIFIED-WORKSPACE-UX-HANDOFF.md)
@@ -243,6 +245,29 @@ existing editions. Applying new defaults to existing editable content must be
 explicit; defaults do not override a preserved legacy choice. Shared PDF cache
 versioning must distinguish old and new layout policy as required by M6.
 
+Implementation policy:
+
+- Generated boundaries are stored as `metadata.layout` with `version: 1`,
+  `overrides` keyed by title/contents (`toc`)/body/metadata/edition and an optional
+  `defaults` value (`type` or `legacy`). Only Continuous/New page overrides
+  persist. A missing layout retains legacy effective pagination.
+- A first isolated override on legacy content selects `defaults: legacy`, so it
+  cannot silently restyle unrelated boundaries. The outline's explicit
+  **Use work-type layout defaults** action opts into current type presets.
+  Removing the last legacy override returns to the absent policy.
+- Section/heading overrides live on their existing nodes as
+  `data-layout-before`, without introducing semantic sections or layout target
+  IDs. Moving/copying a node carries its policy; generated parts use reserved
+  keys rather than mutable titles or positions. The first visible chain of
+  nested wrappers coalesces into the body boundary; only an explicit first-node
+  request overrides an explicit body choice.
+- Document-level layout and generated-page inclusion/presentation use editor
+  document attributes in memory for native undo/redo. Save/recovery carries
+  them in metadata, never as extra semantic prose or generated HTML.
+- Explicit Anthology uses book-like presets. Unknown/Other layout defaults
+  disclose the existing book-classification fallback. Legacy Other title-page
+  choices remain unchanged until the user opts into current defaults.
+
 ### M.g Cascading personal Reading and PDF style
 
 Preference extension agreed 2026-11-11. Resolve each supported personal appearance
@@ -365,6 +390,83 @@ existing tests and validated local checkpoint commits under repository agreement
 
 No metadata editor, arbitrary custom-field support, digital signatures, PDF/A
 certification, private-annotation restoration, model changes to review/ancestry,
-bulk historical re-export, live publication/default changes or deployment.
+bulk historical re-export, live publication/default changes or remote deployment.
 Also defer recto/verso starts, deliberate blank pages and arbitrary inline
 page-break markers; this milestone manages part boundaries, not manual pagination.
+
+## Implementation and validation (2026-11-12)
+
+M.a-g are implemented. The [PDF mapping](PDF-METADATA-MAPPING.md) defines the
+standard and custom fields. Focused backend tests exercise exact and historical
+review qualifications, end matter with bibliographic metadata on/off, parsed
+Unicode/contributor/date metadata, privacy sentinels, draft snapshots, navigation,
+and preservation of archived PDFs under versioned derived-cache identities.
+Request-carried presentation snapshots are signed and bound to the exact source
+output; a snapshot for another output is refused.
+
+Personal defaults are sparse, account-private and per type; the current built-in
+base values are shared across types, while administrator and personal type
+overrides remain independent. Existing named profiles and ownership remain
+unchanged. Their old global-default flag is no longer an implicit layer; account
+settings offer explicit import into the chosen personal type defaults.
+Migration 0034 was rehearsed on copied data, retaining both existing named
+profiles exactly.
+
+### Observed workflow
+
+On a copied local database, an article working copy was exercised through Read,
+Edit, Layout and separation, draft PDF, undo/redo and save/reopen. Applying type
+defaults and a new-page body override reached the live Read projection and an
+actual 200 PDF response (4,705,800 bytes, `%PDF-` signature). Undo removed that
+boundary; redo and save/reopen retained it in revision 3. Editor text length
+remained 16,835 throughout. Keyboard undo in this embedded hidden browser required
+dispatching the editor keyboard event; native focused-window keyboard behavior
+was not independently established by this check.
+
+An exact-output 18 pt preference persisted across reload, then reset to the
+account's Article default of 16 pt, without changing editor content/save state.
+Guest 19 pt persisted locally; login used the account's 14 pt value instead of
+silently importing it, and explicit import then applied 19 pt to that output.
+There was one style panel, inside Read, and one edition section. Backend tests
+separately cover other-account isolation and no child/successor propagation.
+Guest storage/network error paths are synthetic tests, not induced browser faults.
+
+### Rendered frame and pagination
+
+The selected A4 frame retains 18 mm lateral body/header edges, places running
+header/footer line boxes 18 mm from the outer paper edges, and reserves 30 mm
+vertical body margins. Only the vertical body reserve grows; lateral margins are
+not uniformly enlarged. This leaves an approximately 8 mm one-line furniture/body
+gap, with less space for wrapped headers. Default body margins are reset to zero
+in print so actual paragraph edges align with the running frame.
+
+Actual page-10 raster inspection compared the previous 6 mm outer-inset candidate
+with the selected frame. At 1.5x raster scale, selected visible header ink began
+at 18.58 mm, footer ink ended 18.57 mm from the bottom, and both header/body left
+ink began at 18.11 mm. The prior candidate measured about 6.58/6.57 mm vertically
+and 18.11/20.46 mm at header/body left edges. Optical tolerance is 1.5 mm; line-box
+inset regression tolerance is 0.25 mm. First, continuation and final pages were
+visually inspected: wrapped running title, two-digit `10 / 14` numbering,
+first-page header suppression, notes/caption and distinct end matter were intact.
+All 140 synthetic paragraphs survived in order. The frame intentionally changed
+this fixture from 13 to 14 pages; identical pagination is not promised.
+
+Generated-PDF tests verify four-line paragraph/list splits and retained
+heading/caption relationships. Native headless Chromium 154 additionally printed
+five-line paragraph and list-item fixtures using the shared print CSS: two-line
+policy produced 2+3 lines; the prior three-line policy moved all five to the next
+page. Parsed markers retained exact order. The controlled browser fixture used
+100 mm square paper, 10 mm margins, 20 px line height and a 250 px spacer.
+Workspace print-media emulation independently confirmed two-line computed rules,
+hidden application chrome and one edition section.
+
+### Limits
+
+PDF metadata/cache/privacy checks and preference-failure cases include controlled
+and mocked fixtures; they are not claims about every retained work. Synthetic
+font/media tests include OpenDyslexic, figures, captions and notes, but not every
+font, image, title length or engine combination. Other browser engines, physical
+printers, independent accessibility/usability review and metadata survival through
+third-party re-export remain unverified. Previously established publication-flow
+baseline failures are not repaired or certified by M. No live correction,
+publication, reader default or historical evidence is changed for acceptance.

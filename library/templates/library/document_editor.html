@@ -3,10 +3,10 @@
 {% block title %}Work editor | {{ site.name }}{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}">
+<link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v5">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v6">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -27,6 +27,9 @@
     data-sources-url="{% url 'document-lineage' version.document_id %}?filter=sources&amp;selected=snapshot%3A{{ version.snapshot_id }}&amp;embedded=1"
     data-lineage-path="{% url 'document-lineage' version.document_id %}"
     data-reading-style-url="{{ reading_style_url }}"
+    data-reading-presentation="{{ reading_presentation_token }}"
+    data-reading-style-type="{{ reading_style_work_type }}"
+    data-reading-style-preview-url="{% url 'reading-style-preview' %}"
     data-version-id="{{ version.pk }}"
     data-reader-id="{{ reader_target.pk|default:'' }}">
     <div class="workspace-chrome">
@@ -64,6 +67,7 @@
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1" hidden>
       <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>Download PDF</button></div>
+      {% include "library/reading_style_controls.html" %}
       <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
         <p>Select Read to render the current editor content. This does not save or publish it.</p>
       </div>
@@ -75,7 +79,6 @@
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
       <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
       <button type="button" role="tab" id="editor-tab-structure" aria-controls="editor-panel-structure" aria-selected="false" tabindex="-1" data-editor-tab="structure">Pinned source structure</button>
-      {% if reading_style_url %}<button type="button" role="tab" id="editor-tab-style" aria-controls="editor-panel-style" aria-selected="false" tabindex="-1" data-editor-tab="style">Appearance</button>{% endif %}
     </div>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
     {% csrf_token %}
@@ -279,11 +282,6 @@
       </ol>
       <p>Source extraction preferences are historical evidence, not controls for this corrected edition. Edit actual headings and section containment in the Content tab. <a class="editor-structure-link" href="{% url 'document-editor-membership' version.pk %}" target="_blank" rel="noopener noreferrer">Catalogue book membership (separate page)</a> controls URL ownership only, not this draft's sections. Regenerated editions never replace pending or saved editor corrections.</p>
     </div>
-  {% if reading_style_url %}
-    <div class="editor-tab-panel" id="editor-panel-style" role="tabpanel" aria-labelledby="editor-tab-style" hidden>
-      {% include "library/reading_style_controls.html" with style_defaults_only=True %}
-    </div>
-  {% endif %}
   </div>
   <dialog id="editor-section-details" aria-labelledby="editor-section-details-heading">
     <h2 id="editor-section-details-heading">Section title, URL and role</h2>
@@ -535,4 +533,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v15"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v16"></script>{% endif %}{% endblock %}

@@ -18,8 +18,8 @@
       </details>
     </aside>
     <div class="reading-column">
-      <div class="publication-content">
-        <header class="document-header document-header-{{ book_pages.title_layout }}">
+      <div class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
+        <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
           <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %}{% if preview_is_unsaved %} · DRAFT PREVIEW{% endif %}</p>
           <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
           {% include 'library/document_metadata.html' %}
@@ -31,8 +31,9 @@
         </section>
         {% endif %}
         {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
-        <article class="reader-content" tabindex="0" aria-label="Draft text" lang="{{ version.metadata.language|default:'en' }}">{{ content_html|safe }}</article>
+        <article class="reader-content" tabindex="0" aria-label="Draft text" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
         {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
+        {% include 'library/document_edition_status.html' %}
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-<section class="document-contents" aria-label="Generated table of contents">
+<section class="document-contents" aria-label="Generated table of contents"{% if layout_policy %} data-layout-before="{{ layout_boundaries.toc.value }}"{% endif %}>
   <h2>Table of contents</h2>
   {% include 'library/toc.html' with nodes=contents_toc %}
 </section>

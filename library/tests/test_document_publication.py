@@ -1,5 +1,6 @@
 import io
 import tempfile
+import xml.etree.ElementTree as ET
 from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
@@ -53,6 +54,49 @@ class DocumentPublicationTests(TestCase):
         revision = revision or self.draft.revisions.first().revision
         candidate = prepare_publication(self.draft, revision)
         return publish_revision(self.draft, self.reviewer, revision, candidate["digest"])
+
+    def test_partial_review_status_is_readable_endmatter_not_an_opening_block(self):
+        reviewed = save_revision(
+            self.draft, self.reviewer, self.revision.document, 1,
+            review="sections", verified_sections=["c1"], editorial=True,
+        )
+        publication = self.publish(reviewed.revision)
+        response = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        soup = BeautifulSoup(response.content, "html.parser")
+        header = soup.select_one(".document-header")
+        endmatter = soup.select("#document-edition-status")
+        self.assertNotIn("Directly edited edition", header.get_text())
+        self.assertEqual(len(endmatter), 1)
+        status = endmatter[0].get_text(" ", strip=True)
+        self.assertIn("Only the explicitly recorded sections are verified: c1", status)
+        self.assertIn("Not verified as a whole document", status)
+        self.assertIn("Contains editorial changes", status)
+        self.assertIn("Publication does not add verification", status)
+        self.assertIn(f"Source edition {self.rendition.pk}", status)
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        reader = PdfReader(output)
+        pdf_text = "\n".join(page.extract_text() for page in reader.pages)
+        self.assertEqual(pdf_text.count("Edition and review status"), 1)
+        self.assertIn("c1", pdf_text)
+        self.assertIn("Not verified as a whole document", pdf_text)
+        self.assertIn("Publication does not add verification", pdf_text)
+        self.assertNotIn("Cached ", pdf_text)
+        packet = reader.trailer["/Root"]["/Metadata"].get_object().get_data()
+        root = ET.fromstring(packet)
+        rh = "{urn:reading-hub:pdf:1.0}"
+        values = {
+            node.tag.removeprefix(rh): node.text
+            for node in root.iter()
+            if node.tag.startswith(rh) and node.text
+        }
+        self.assertEqual(values["editionOrigin"], "published")
+        self.assertEqual(values["reviewScope"], "sections")
+        self.assertEqual(values["reviewEditorialChanges"], "true")
+        self.assertEqual(values["editionRevision"], str(reviewed.revision))
+        self.assertEqual(values["sourceRenditionIdentity"], self.rendition.identity)
+        self.assertIn("c1", list(root.itertext()))
+        self.assertNotIn(self.reviewer.username, packet.decode("utf-8"))
 
     def test_corrected_section_order_title_url_role_survive_publication_and_reopen(self):
         source_html = self.rendition.html
@@ -504,18 +548,24 @@ class DocumentPublicationTests(TestCase):
     def test_preview_styles_match_reader_and_invalid_styles_do_not_render_partial_candidate(self):
         from django.db import OperationalError
 
-        from library.services.reading_styles import DEFAULTS, style_token
+        from library.services.reading_styles import DEFAULTS, style_presentation_token
 
         settings = {**DEFAULTS, "font_mode": "dyslexic", "font_size": 18}
-        response = self.client.get(self.url + self.query + "&style=" + style_token(settings))
+        presentation = style_presentation_token(
+            settings, "", work_type="other", origins={},
+            output_id=self.rendition.identity,
+        )
+        response = self.client.get(
+            self.url + self.query + "&presentation=" + presentation,
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["reading_style"], settings)
-        self.assertContains(response, "Apply to publication &amp; PDF")
-        self.assertNotContains(response, "Save my profile")
+        self.assertIsNone(BeautifulSoup(response.content, "html.parser")
+                           .select_one(".reading-style-controls"))
         self.assertContains(response, 'name="revision" value="1"')
-        invalid = self.client.get(self.url + self.query + "&style=tampered")
+        invalid = self.client.get(self.url + self.query + "&presentation=tampered")
         self.assertEqual(invalid.status_code, 422)
-        self.assertContains(invalid, "Reading style link is invalid", status_code=422)
+        self.assertContains(invalid, "Appearance snapshot is invalid", status_code=422)
         self.assertFalse(invalid.context.get("candidate"))
         with patch("library.services.reading_styles.style_context",
                    side_effect=OperationalError("database is locked")):
@@ -523,6 +573,22 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(locked.status_code, 409)
         self.assertFalse(locked.context.get("candidate"))
         self.assertEqual(Rendition.objects.count(), 1)
+        self.assertFalse(DocumentPublication.objects.exists())
+
+    def test_preview_inherits_defaults_for_edited_work_type(self):
+        from library.models import ReadingStyleAccountDefault
+
+        ReadingStyleAccountDefault.objects.create(
+            owner=self.reviewer, work_type="article", settings={"font_size": 18},
+        )
+        revision = save_revision(self.draft, self.reviewer, {
+            **self.revision.document,
+            "metadata": {**self.revision.document["metadata"], "work_type": "article"},
+        }, 1)
+        response = self.client.get(self.url + f"?draft={self.draft.pk}&revision={revision.revision}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reading_style_work_type"], "article")
+        self.assertEqual(response.context["reading_style"]["font_size"], 18)
         self.assertFalse(DocumentPublication.objects.exists())
 
     def test_publish_is_idempotent_preserves_evidence_and_does_not_verify(self):
@@ -642,8 +708,9 @@ class DocumentPublicationTests(TestCase):
                 ["Opening", "Endnotes"],
             )
             self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
-                              if link["href"].startswith("#")], everything + ["Metadata"],
-                             "Navigation lists the generated metadata page last.")
+                              if link["href"].startswith("#")],
+                             everything + ["Metadata", "Edition and review status"],
+                             "Navigation lists both generated end sections last.")
             self.assertNotIn("Metadata", [link.get_text() for link in soup.select(".document-contents a")])
         output = io.BytesIO()
         render_pdf(publication.rendition, output)
@@ -677,7 +744,8 @@ class DocumentPublicationTests(TestCase):
         reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
         soup = BeautifulSoup(reader.content, "html.parser")
         self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
-                          if link["href"].startswith("#")], ["Appendix", "Group and Dyelo", "Metadata"])
+                          if link["href"].startswith("#")],
+                         ["Appendix", "Group and Dyelo", "Metadata", "Edition and review status"])
         self.assertEqual([link.get_text() for link in soup.select(".document-contents a")],
                          ["Appendix", "Group and Dyelo"])
         self.assertEqual(soup.select_one(".reader-content h2").get_text(), "Appendix[8]")
@@ -999,9 +1067,12 @@ class DocumentPublicationTests(TestCase):
         pdf = PdfReader(output)
         self.assertGreaterEqual(len(pdf.pages), 2)
         self.assertIn("Edited title", pdf.pages[0].extract_text())
-        self.assertIn("Not verified as a whole document", pdf.pages[0].extract_text())
+        self.assertNotIn("Not verified as a whole document", pdf.pages[0].extract_text())
         self.assertNotIn("Edited text.", pdf.pages[0].extract_text())
-        self.assertIn("Edited text.", "\n".join(page.extract_text() for page in pdf.pages[1:]))
+        pdf_text = "\n".join(page.extract_text() for page in pdf.pages[1:])
+        self.assertIn("Edited text.", pdf_text)
+        self.assertIn("Not verified as a whole document", pdf_text)
+        self.assertEqual(pdf_text.count("Edition and review status"), 1)
 
     def test_preview_output_does_not_mutate_pinned_structure(self):
         before = deepcopy(self.draft.evidence)
