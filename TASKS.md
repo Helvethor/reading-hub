@@ -205,6 +205,22 @@ passed. The browser observation remains guest-reader-only; no authenticated
 publish/default journey, live selection mutation or human accessibility review
 was performed.
 
+## Editor milestone L: semantic list editing (2026-11-12)
+
+**Status:** handoff prepared; implementation and acceptance not started.
+Documentation only is authorized. This future feature does not reorder current
+V/P/M work or authorize deployment or live-draft changes.
+
+The [list-editing handoff](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) owns
+L1-L10 acceptance.
+
+- [ ] Create, convert and remove bulleted/numbered lists safely; preserve
+  retained inline/block list shapes, targets, links, notes and assets.
+- [ ] Support item splitting, nesting, outdenting and reordering with named
+  keyboard-accessible controls, undo/redo and explicit refusal of unsafe edits.
+- [ ] Validate isolated article/book editing through save/reopen, Read and PDF;
+  record browser, rendering and accessibility evidence separately.
+
 ## Presentation/PDF milestone M: edition provenance and embedded metadata (2026-11-11)
 
 **Status:** handoff prepared; implementation and acceptance not started.

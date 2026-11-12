@@ -1620,6 +1620,11 @@ Inline-only and block-bodied list items, definition bodies and quotations retain
 their distinct shapes. Block-level anchors, images and line breaks do not acquire
 implicit paragraphs. Whitespace-only block separators do not create empty
 paragraphs; prose and preformatted whitespace remains significant.
+Planned [milestone L](docs/LIST-EDITING-IMPLEMENTATION-HANDOFF.md) adds safe
+creation and editing of bulleted/numbered lists, including item splitting,
+nesting and reordering, with semantic identity and existing list shapes preserved.
+It is a documentation-only handoff, not a claim that list authoring is implemented
+or that live drafts or deployment may be changed.
 Bare prose and inline wrappers interleaved with blocks are represented by
 internal editable text runs in sections, lists, definitions, quotations,
 containers, table cells and captions. These runs use transparent editor-only
