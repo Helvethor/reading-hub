@@ -194,6 +194,43 @@ class ReadingStyleCascadeTests(TestCase):
         self.assertEqual(other_style["settings"]["font_size"], DEFAULTS["font_size"])
         self.assertEqual(ReadingStyleOutputOverride.objects.count(), 1)
 
+    def test_presentation_is_bound_to_exact_output_and_account_preview_cannot_export(self):
+        preview = self.post_style(
+            self.client, scope="output", rendition_id=self.version.pk,
+            guest_overrides={"font_size": 19},
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        presentation = preview.json()["presentation"]
+        self.assertEqual(token_presentation(presentation)["output_id"], self.version.identity)
+        successor = self.copy_version("e" * 64)
+        with patch("library.views.cached_pdf") as export:
+            response = self.client.get(
+                reverse("reader-pdf", args=[successor.pk]), {"presentation": presentation},
+            )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("different output", response.content.decode())
+        export.assert_not_called()
+        reader = self.client.get(
+            reverse("reader", args=[successor.pk]), {"presentation": presentation},
+        )
+        self.assertEqual(reader.status_code, 400)
+
+        self.client.force_login(self.owner)
+        account = self.post_style(self.client, scope="account", work_type="article")
+        self.assertEqual(account.status_code, 200, account.content)
+        unbound = account.json()["presentation"]
+        self.assertIsNone(token_presentation(unbound)["output_id"])
+        account_page = self.client.get(
+            reverse("user-settings"), {"style_type": "article", "presentation": unbound},
+        )
+        self.assertEqual(account_page.status_code, 200)
+        with patch("library.views.cached_pdf") as export:
+            response = self.client.get(
+                reverse("reader-pdf", args=[self.version.pk]), {"presentation": unbound},
+            )
+        self.assertEqual(response.status_code, 400)
+        export.assert_not_called()
+
     def test_guest_output_override_is_ephemeral_until_explicit_login_import(self):
         guest = Client()
         guest.cookies["reading_hub_theme"] = "dark"

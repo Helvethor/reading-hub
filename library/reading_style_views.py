@@ -128,6 +128,7 @@ def _style_result(request, data, *, rendition=None, work_type=None, guest_overri
         "presentation": style_presentation_token(
             resolved["settings"], theme, work_type=resolved["work_type"],
             origins=resolved["origins"],
+            output_id=resolved["output_id"],
         ),
         "stylesheet": stylesheet_url(token, theme),
         "persisted": request.user.is_authenticated,
@@ -220,6 +221,7 @@ def import_guest(request):
         "presentation": style_presentation_token(
             resolved["settings"], theme, work_type=resolved["work_type"],
             origins=resolved["origins"],
+            output_id=resolved["output_id"],
         ),
         "stylesheet": stylesheet_url(token, theme),
         "message": "Guest style choices were explicitly imported for this exact version.",

@@ -240,11 +240,17 @@ def validate_style_layer(value):
     }
 
 
-def style_presentation_token(settings, theme, *, work_type="other", origins=None):
+def style_presentation_token(
+    settings, theme, *, work_type="other", origins=None, output_id=None,
+):
     from library.themes import THEMES
 
     if theme not in ("", *THEMES):
         raise ValueError("Choose an available theme.")
+    if output_id is not None and (
+        not isinstance(output_id, str) or not output_id or len(output_id) > 64
+    ):
+        raise ValueError("Choose an exact output for this appearance snapshot.")
     kind = normalize_work_type(work_type)
     origins = origins or {}
     if not isinstance(origins, dict) or set(origins) - set(DEFAULTS):
@@ -259,8 +265,8 @@ def style_presentation_token(settings, theme, *, work_type="other", origins=None
             raise ValueError("Appearance origins are invalid.")
         safe_origins[key] = dict(origin)
     return signing.dumps({
-        "version": 1, "settings": validate_style(settings), "theme": theme,
-        "work_type": kind, "origins": safe_origins,
+        "version": 2, "settings": validate_style(settings), "theme": theme,
+        "work_type": kind, "origins": safe_origins, "output_id": output_id,
     }, salt=PRESENTATION_SALT, compress=True)
 
 
@@ -273,8 +279,8 @@ def token_presentation(token):
         raise ValueError("Appearance snapshot is invalid. Refresh Read and retry.") from exc
     if (
         not isinstance(value, dict)
-        or set(value) != {"version", "settings", "theme", "work_type", "origins"}
-        or value["version"] != 1
+        or set(value) != {"version", "settings", "theme", "work_type", "origins", "output_id"}
+        or value["version"] != 2
     ):
         raise ValueError("Appearance snapshot is invalid. Refresh Read and retry.")
     from library.themes import THEMES
@@ -283,6 +289,12 @@ def token_presentation(token):
         raise ValueError("Appearance snapshot contains an unavailable theme.")
     if value["work_type"] not in work_type_keys():
         raise ValueError("Appearance snapshot contains an unavailable work type.")
+    if value["output_id"] is not None and (
+        not isinstance(value["output_id"], str)
+        or not value["output_id"]
+        or len(value["output_id"]) > 64
+    ):
+        raise ValueError("Appearance snapshot contains an invalid output identity.")
     settings = validate_style(value["settings"])
     origins = value["origins"]
     if not isinstance(origins, dict) or set(origins) - set(settings):
@@ -296,8 +308,15 @@ def token_presentation(token):
             raise ValueError("Appearance snapshot contains invalid origins.")
     return {
         "settings": settings, "theme": value["theme"], "work_type": value["work_type"],
-        "origins": origins,
+        "origins": origins, "output_id": value["output_id"],
     }
+
+
+def output_presentation(token, rendition):
+    snapshot = token_presentation(token)
+    if snapshot["output_id"] != getattr(rendition, "identity", None):
+        raise ValueError("Appearance snapshot belongs to a different output. Refresh Read and retry.")
+    return snapshot
 
 
 def resolve_style(work_type="other", *, user=None, rendition=None, guest_overrides=None):
@@ -389,7 +408,7 @@ def profile_key(value):
 def selected_style(request, rendition=None, *, work_type=None, guest_overrides=None):
     presentation = request.GET.get("presentation")
     if presentation:
-        return token_presentation(presentation)["settings"]
+        return output_presentation(presentation, rendition)["settings"]
     token = request.GET.get("style")
     if token:
         return token_style(token)
@@ -422,7 +441,7 @@ def style_context(
         token_style(request.GET["style"])
     presentation = request.GET.get("presentation")
     if presentation:
-        snapshot = token_presentation(presentation)
+        snapshot = output_presentation(presentation, rendition)
         if snapshot["work_type"] == resolved["work_type"]:
             resolved["settings"] = snapshot["settings"]
             theme = snapshot["theme"]
@@ -437,6 +456,7 @@ def style_context(
         "reading_style": settings, "reading_style_token": token,
         "reading_presentation_token": style_presentation_token(
             settings, theme, work_type=resolved["work_type"], origins=resolved["origins"],
+            output_id=resolved["output_id"],
         ),
         "reading_theme": theme,
         "reading_style_url": stylesheet_url(token, theme),

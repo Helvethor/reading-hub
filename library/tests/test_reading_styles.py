@@ -186,7 +186,9 @@ class ReadingStyleTests(TestCase):
         self.assertIn("font-src 'self'", response["Content-Security-Policy"])
         from library.services.reading_styles import style_presentation_token, token_presentation
 
-        presentation = style_presentation_token(self.custom, "", work_type="other", origins={})
+        presentation = style_presentation_token(
+            self.custom, "", work_type="other", origins={}, output_id=self.version.identity,
+        )
         applied = self.client.get(self.url, {"presentation": presentation})
         self.assertEqual(applied.status_code, 200)
         soup = BeautifulSoup(applied.content, "html.parser")
