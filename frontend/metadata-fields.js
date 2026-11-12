@@ -13,11 +13,11 @@ export const dateFields = {
   unknown: ["date", "Date (role unconfirmed)"],
 };
 export const workTypes = [
-  ["book", "Book"], ["pamphlet", "Pamphlet"], ["article", "Article"], ["essay", "Essay"],
+  ["book", "Book"], ["anthology", "Anthology"], ["pamphlet", "Pamphlet"], ["article", "Article"], ["essay", "Essay"],
   ["letter", "Letter"], ["speech", "Speech"], ["interview", "Interview"],
   ["report", "Report"], ["resolution", "Resolution"], ["other", "Other"],
 ];
-const bookLike = new Set(["book", "pamphlet", "report"]);
+const bookLike = new Set(["book", "anthology", "pamphlet", "report"]);
 export const titleLayouts = ["full", "compact"];
 export const titlePageFields = [
   "work_type", "original_title", "author", "editor", "translator", "contributor", "publisher", "series",

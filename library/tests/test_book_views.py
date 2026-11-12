@@ -5,10 +5,47 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from library.services.book_views import marker_text, publication_toc, publication_view
+from library.services.book_views import marker_text, part_layout, publication_toc, publication_view
+from library.services.document_edits import validate_editor_metadata
+from library.services.semantic_documents import canonical_document
 
 
 class BookViewTests(SimpleTestCase):
+    def test_layout_preserves_legacy_then_resolves_type_defaults_and_explicit_overrides(self):
+        legacy = {"work_type": "book", "title_layout": "compact", "contents_page": False}
+        self.assertEqual(part_layout(legacy)["body"]["value"], "continuous")
+        modern = {**legacy, "layout": {"version": 1, "overrides": {}}}
+        self.assertEqual(part_layout(modern)["body"]["value"], "new-page")
+        self.assertEqual(part_layout({**modern, "work_type": "article"})["body"]["value"], "continuous")
+        explicit = {**modern, "layout": {"version": 1, "overrides": {"body": "continuous"}}}
+        self.assertEqual(part_layout(explicit)["body"]["value"], "continuous")
+        self.assertEqual(part_layout({**modern, "metadata_page": False})["edition"]["value"], "new-page")
+        self.assertEqual(part_layout(modern)["edition"]["value"], "continuous")
+        self.assertEqual(validate_editor_metadata({}, modern), modern)
+        for value in ({"version": True, "overrides": {}}, {"version": 1, "overrides": {"body": []}},
+                      {"version": 1, "overrides": {"private": "continuous"}}):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validate_editor_metadata({}, {"layout": value})
+
+    def test_layout_projects_coincident_boundaries_without_rewriting_semantic_prose(self):
+        html = (
+            '<section id="one" data-section-role="chapter" data-layout-before="new-page">'
+            '<h2 id="h">First</h2><p>Opening.</p>'
+            '<h3 id="nested" data-layout-before="new-page">Nested</h3><p>Detail.</p>'
+            '</section><section id="two" data-section-role="chapter"><h2>Second</h2><p>End.</p></section>'
+        )
+        metadata = {"work_type": "book", "layout": {"version": 1, "overrides": {"body": "continuous"}}}
+        document = {"version": 1, "title": "Book", "metadata": metadata, "html": html}
+        canonical_document(document)
+        output = publication_view(html, document_title="Book", metadata=metadata, book=True)
+        soup = BeautifulSoup(output["content_html"], "html.parser")
+        self.assertEqual(output["body_separation"], "new-page")
+        self.assertEqual(soup.find(id="one")["data-layout-before"], "continuous")
+        self.assertEqual(soup.find(id="two")["data-layout-before"], "new-page")
+        self.assertEqual(soup.find(id="nested")["data-layout-before"], "new-page")
+        self.assertEqual(soup.get_text(), BeautifulSoup(html, "html.parser").get_text())
+        self.assertEqual(document["html"], html)
+
     def test_standalone_article_title_is_navigation_root_not_a_duplicate_contents_entry(self):
         html = (
             '<section id="article" data-section-role="article">'

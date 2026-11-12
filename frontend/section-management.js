@@ -546,6 +546,8 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     event.preventDefault();
     selected = selectedPart(button);
     menu.replaceChildren();
+    action("Layout and separation\u2026", () => form.dispatchEvent(
+      new owner.defaultView.CustomEvent("editor-layout-part", {detail: {part: selected.part}})));
     action("Edit title / URL / role…", () => edit(selected.index), selected.index >= 0);
     action("Remove section…", () => remove(selected.index), selected.index >= 0);
     action("Move section…", () => moves.open(selected.index), selected.index >= 0);

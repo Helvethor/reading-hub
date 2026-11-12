@@ -119,7 +119,7 @@ def validate_editor_metadata(original, submitted):
         "author", "author_is_fallback", "authors", "contributors", "subtitle",
         "language", "date_facts", "published", "topics", "topic",
         "content_organization", *TEXT_FIELDS, "original_language", "title_page_fields",
-        "work_type", "title_layout", "contents_page", "metadata_page",
+        "work_type", "title_layout", "contents_page", "metadata_page", "layout",
     }
     if (
         set(original) - editable != set(submitted) - editable
@@ -246,6 +246,20 @@ def validate_editor_metadata(original, submitted):
     for key in ("contents_page", "metadata_page"):
         if key in result and type(result[key]) is not bool:
             raise ValueError("Generated page inclusion must be true or false.")
+    if "layout" in result:
+        layout = result["layout"]
+        if (
+            not isinstance(layout, dict) or set(layout) - {"version", "overrides", "defaults"}
+            or not {"version", "overrides"} <= set(layout)
+            or type(layout["version"]) is not int or layout["version"] != 1
+            or not isinstance(layout["overrides"], dict)
+            or set(layout["overrides"]) - {"title", "toc", "body", "metadata", "edition"}
+            or not isinstance(layout.get("defaults", "type"), str)
+            or layout.get("defaults", "type") not in {"legacy", "type"}
+            or any(not isinstance(value, str) or value not in {"continuous", "new-page"}
+                   for value in layout["overrides"].values())
+        ):
+            raise ValueError("Layout requires version 1 and supported part separation overrides.")
     return result
 
 

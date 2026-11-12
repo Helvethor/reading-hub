@@ -305,6 +305,15 @@ body.workspace-page .site-header {
   position: relative;
 }
 .workspace-sticky-marker { display: block; height: 0; line-height: 0; overflow: hidden; }
+.editor-layout-summary { margin-block: .5rem; font-size: .8rem; }
+.editor-layout-summary p { overflow-wrap: anywhere; }
+.editor-layout-new-page,
+.editor-generated-page[data-layout-before="new-page"],
+.ProseMirror[data-layout-before="new-page"] {
+  margin-block-start: 2rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+}
 .workspace-sticky-slot { position: sticky; pointer-events: none; }
 .workspace-sticky-slot > * { pointer-events: auto; }
 .workspace-header-slot { top: 0; z-index: 30; }

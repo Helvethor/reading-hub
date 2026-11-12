@@ -213,7 +213,85 @@ def publication_toc(soup, document_title="", *, book=False):
     return toc
 
 
-def publication_view(html, saved_entries=(), document_title="", *, book=False):
+def part_layout(metadata, book=False):
+    from library.services.document_metadata import book_pages
+
+    pages = book_pages(metadata, book)
+    work_type = metadata.get("work_type")
+    book_like = (
+        work_type in {"book", "anthology", "pamphlet", "report"}
+        if work_type and work_type != "other" else bool(book)
+    )
+    reason = work_type if work_type and work_type != "other" else (
+        f"classification fallback ({'book' if book else 'article'})"
+    )
+    layout = metadata.get("layout", {})
+    modern = layout.get("version") == 1 and layout.get("defaults") != "legacy"
+    overrides = layout.get("overrides", {})
+    result = {}
+    for part in ("title", "toc", "body", "metadata", "edition"):
+        value = "continuous"
+        if modern:
+            if book_like and part in {"toc", "body", "metadata"}:
+                value = "new-page"
+            if part == "edition" and book_like and not pages["metadata_page"]:
+                value = "new-page"
+        elif (
+            part == "body" and (pages["contents_page"] or pages["title_layout"] == "full")
+            or part == "toc" and pages["title_layout"] == "full" or part == "metadata"
+        ):
+            value = "new-page"
+        result[part] = {
+            "value": overrides.get(part, value),
+            "reason": reason if modern else "preserved legacy pagination",
+            "origin": "override" if part in overrides else "default" if modern else "legacy",
+        }
+    result["title"]["value"] = "continuous"
+    return result
+
+
+def layout_context(metadata, book=False):
+    layout = metadata.get("layout", {})
+    return {
+        "layout_boundaries": part_layout(metadata, book),
+        "layout_policy": bool(layout),
+        "layout_policy_version": 1,
+    }
+
+
+def apply_part_layout(soup, metadata, book):
+    """Apply presentation attributes to a projection, never immutable semantic HTML."""
+    layout = metadata.get("layout", {})
+    modern = layout.get("version") == 1 and layout.get("defaults") != "legacy"
+    work_type = metadata.get("work_type")
+    book_like = work_type in {"book", "anthology", "pamphlet", "report"} if (
+        work_type and work_type != "other"
+    ) else bool(book)
+    parts = book_entries(soup, book=book)
+    body_start = next((node for node in soup.children if isinstance(node, Tag)), None)
+    body_separation = part_layout(metadata, book)["body"]["value"]
+    for part in parts:
+        node = part["node"]
+        explicit = node.get("data-layout-before")
+        role = node.get("data-section-role")
+        default = "new-page" if (
+            modern and book_like and node.name == "section" and part["depth"] == 0
+            and (not role or role in {"chapter", "article", "appendix"})
+        ) else "continuous"
+        if layout or explicit:
+            node["data-layout-before"] = explicit or default
+            # The body wrapper already applies this coincident first boundary.
+            if node is body_start or (
+                node.name in HEADINGS and node.parent is body_start
+                and not any(isinstance(item, Tag) for item in node.previous_siblings)
+            ):
+                if node["data-layout-before"] == "new-page":
+                    body_separation = "new-page"
+                node["data-layout-before"] = "continuous"
+    return body_separation
+
+
+def publication_view(html, saved_entries=(), document_title="", *, book=False, metadata=None):
     soup = BeautifulSoup(html, "html.parser")
     toc = publication_toc(soup, document_title, book=book)
     titles = {entry["id"]: entry["title"] for entry in saved_entries if entry.get("editor_entry")}
@@ -231,4 +309,7 @@ def publication_view(html, saved_entries=(), document_title="", *, book=False):
             heading["data-reading-marker"] = previous + part["marker"] + " "
         if part["title"] != part["raw_title"]:
             heading["data-reading-label"] = part["title"]
-    return {"content_html": str(soup), "entries": toc}
+    result = {"entries": toc}
+    if metadata is not None:
+        result["body_separation"] = apply_part_layout(soup, metadata, book)
+    return {**result, "content_html": str(soup)}

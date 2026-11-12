@@ -56,7 +56,18 @@ if (form) {
     else if (initial.document.metadata.author_is_fallback === true) {
       result.author_is_fallback = true;
     } else delete result.author_is_fallback;
-    return structuredMetadata ? structuredMetadata.read(result) : result;
+    const value = structuredMetadata ? structuredMetadata.read(result) : result;
+    const layout = editor?.state.doc.attrs.layout;
+    if (layout) value.layout = layout;
+    else delete value.layout;
+    const pages = editor?.state.doc.attrs.pages;
+    if (pages) {
+      for (const key of ["title_layout", "contents_page", "metadata_page"]) {
+        if (key in pages) value[key] = pages[key];
+        else delete value[key];
+      }
+    }
+    return value;
   };
   const documentValue = () => ({
     ...initial.document, title: title.value.trim(), metadata: metadata(), html: editor.getHTML(),
@@ -178,7 +189,7 @@ if (form) {
         refreshSections([]);
       }
       remember();
-    });
+    }, initial.document.metadata);
     for (const control of form.querySelectorAll("[disabled]")) control.disabled = false;
     differences = mountDifferenceControls(form, editor, initial, showError);
     mountWorkflowPanels({
@@ -298,7 +309,7 @@ if (form) {
       const target = document.createElement("div");
       let candidate;
       try {
-        candidate = createBoundedEditor(target, recoverable.document.html);
+        candidate = createBoundedEditor(target, recoverable.document.html, () => {}, recoverable.document.metadata);
         if (recoverable.source_tickets !== undefined &&
             (!Array.isArray(recoverable.source_tickets) ||
              recoverable.source_tickets.some(token => typeof token !== "string"))) {

@@ -45,6 +45,7 @@ import {
 import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
+import {partLayout, contentSeparation, setDocumentLayout, setPartSeparation} from "./part-layout.js";
 import {applyTocNumbering, automaticallyHidden, tocMarker, tocNumberingEntries, tocVisibilityEntries} from "./toc-numbering.js";
 import {prepareNoteRepair, applyNoteRepair} from "./note-repairs.js";
 
@@ -1054,12 +1055,12 @@ test("book, page and group rows follow the viewport like section rows and naviga
   const settle = () => new Promise(resolve => setTimeout(resolve, 10));
   surface.dispatchEvent(new dom.window.Event("scroll"));
   await settle();
-  assert.deepEqual(state(), {title: "active", toc: "visible", sections: "", metadata: ""});
+  assert.deepEqual(state(), {title: "active", toc: "visible", sections: "", metadata: "", edition: ""});
   assert.equal(outline.querySelector('[data-book-view="title"]').getAttribute("aria-current"), "location");
   offset = 150;
   surface.dispatchEvent(new dom.window.Event("scroll"));
   await settle();
-  assert.deepEqual(state(), {title: "", toc: "visible", sections: "active", metadata: ""});
+  assert.deepEqual(state(), {title: "", toc: "visible", sections: "active", metadata: "", edition: ""});
   const original = editor.getHTML();
   offset = 0;
   const pageScrolls = [];
@@ -2934,7 +2935,7 @@ test("title page preview right-click hides, shows and resets filled fields", () 
     new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
   const menu = form.querySelector("#editor-title-menu");
   assert(!menu.hidden);
-  const layout = ["Full title page (page break after)", "Compact title (content follows)"];
+  const layout = ["Full title presentation", "Compact title presentation", "Layout and separation\u2026"];
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent),
     ["Hide Rights", "Show Publisher", ...layout]);
   menu.querySelector('[data-title-hide="rights"]').click();
@@ -5313,6 +5314,73 @@ test("work type presets choose the page layout and explicit page settings overri
   assert.deepEqual(metadataEntries({work_type: "letter"})[0], ["work_type", "Type", "Letter"]);
 });
 
+test("part layout preserves legacy policy and resolves explicit type defaults without coupling title size", () => {
+  const legacy = {work_type: "book", title_layout: "compact", contents_page: false};
+  assert.equal(partLayout(legacy).body.value, "continuous");
+  assert.equal(partLayout(legacy).body.origin, "legacy");
+  const modern = {...legacy, layout: {version: 1, overrides: {}}};
+  assert.equal(partLayout(modern).body.value, "new-page");
+  assert.equal(partLayout({...modern, title_layout: "full"}).body.value, "new-page");
+  const continuous = {...modern, layout: {version: 1, overrides: {body: "continuous"}}};
+  assert.equal(partLayout(continuous).body.value, "continuous");
+  assert.equal(partLayout({...continuous, work_type: "article"}).body.origin, "override");
+  assert.equal(partLayout({...modern, work_type: "article"}).body.value, "continuous");
+  assert.equal(partLayout({...modern, work_type: "anthology"}).body.value, "new-page");
+  assert.equal(partLayout({...modern, metadata_page: false}).edition.value, "new-page");
+  assert.equal(partLayout(modern).edition.value, "continuous");
+});
+
+test("layout changes use editor history and per-part attributes survive roundtrip without changing prose", () => {
+  const html = '<section id="a"><h2 id="h">Chapter</h2><p>Body</p></section>';
+  open(html);
+  const metadata = {version: 1, defaults: "type", overrides: {body: "continuous"}};
+  setDocumentLayout(editor, metadata);
+  assert.deepEqual(editor.state.doc.attrs.layout, metadata);
+  assert.equal(editor.getHTML(), html);
+  setPartSeparation(editor, 0, "new-page");
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], "new-page");
+  undo(editor.state, editor.view.dispatch);
+  assert(!editor.state.doc.nodeAt(0).attrs["data-layout-before"]);
+  undo(editor.state, editor.view.dispatch);
+  assert.equal(editor.state.doc.attrs.layout, null);
+  redo(editor.state, editor.view.dispatch);
+  redo(editor.state, editor.view.dispatch);
+  const saved = editor.getHTML();
+  assert(saved.includes('data-layout-before="new-page"'));
+  const target = document.createElement("div");
+  document.body.append(target);
+  const reopened = createBoundedEditor(target, saved, () => {}, {layout: metadata});
+  assert.equal(reopened.getHTML(), saved);
+  assert.deepEqual(reopened.state.doc.attrs.layout, metadata);
+  assert.equal(reopened.state.doc.textContent, "ChapterBody");
+  reopened.destroy();
+  assert.equal(contentSeparation(editor.state.doc.nodeAt(0),
+    {kind: "Section", depth: 0}, {work_type: "article", layout: metadata}, false).value, "new-page");
+});
+
+test("outline Layout and separation edits generated boundaries and resets by removing the override", () => {
+  const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
+  const dialog = form.querySelector("#editor-layout-separation");
+  dialog.showModal = () => { dialog.open = true; };
+  dialog.close = () => { dialog.open = false; };
+  const menu = form.querySelector("#editor-page-menu");
+  form.querySelector('[data-book-view="toc"]').dispatchEvent(
+    new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
+  [...menu.querySelectorAll("button")].find(button => /Layout and separation/.test(button.textContent)).click();
+  assert(dialog.open);
+  const select = dialog.querySelector("select");
+  select.value = "new-page";
+  [...dialog.querySelectorAll("button")].find(button => button.textContent === "Apply").click();
+  assert.equal(editor.state.doc.attrs.layout.overrides.toc, "new-page");
+  assert.equal(editor.state.doc.attrs.layout.defaults, "legacy",
+    "Changing one boundary must not silently apply new defaults to the other parts.");
+  assert.equal(editor.getHTML(), '<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
+  undo(editor.state, editor.view.dispatch);
+  assert.equal(editor.state.doc.attrs.layout, null);
+  form.querySelector(".editor-layout-summary button").click();
+  assert.deepEqual(editor.state.doc.attrs.layout, {version: 1, defaults: "type", overrides: {}});
+});
+
 test("compact title facts pack into aligned rows of one, two or three columns", () => {
   assert.deepEqual(factSpans([14, 17, 7, 140, 66]), [2, 2, 2, 6, 6]);
   assert.deepEqual(factSpans([14, 30, 10]), [3, 3, 6], "A medium value limits its row to two columns.");
@@ -5341,7 +5409,7 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   assert(!toc.querySelector("[data-toc-part]"), "An omitted ToC page renders only a stub.");
   const outline = form.querySelector("#editor-outline-items");
   assert.deepEqual([...outline.querySelectorAll("[data-book-row] .editor-outline-title")].map(row => row.textContent),
-    ["Title (compact)", "ToC (not included)", "Sections", "Metadata"]);
+    ["Title (compact)", "ToC (not included)", "Sections", "Metadata", "Edition and review status"]);
   assert(outline.querySelector('[data-book-row="toc"]').classList.contains("editor-book-row-disabled"));
   const menu = form.querySelector("#editor-page-menu");
   const open = target => {
@@ -5352,13 +5420,14 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   };
   let items = open(outline.querySelector('[data-book-view="toc"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
-    [["Include table of contents page", "false"]]);
+    [["Include table of contents page", "false"], ["Layout and separation\u2026", null]]);
   items[0].click();
   assert(menu.hidden);
   assert.deepEqual(events.at(-1), {key: "contents_page", value: true});
   items = open(outline.querySelector('[data-book-view="title"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
-    [["Full title page (page break after)", "false"], ["Compact title (content follows)", "true"]]);
+    [["Full title presentation", "false"], ["Compact title presentation", "true"],
+      ["Layout and separation\u2026", null]]);
   items[0].click();
   assert.deepEqual(events.at(-1), {key: "title_layout", value: "full"});
   value = {...value, metadata: {...value.metadata, title_layout: "full", contents_page: true}};
@@ -5367,16 +5436,19 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   assert(toc.querySelector("[data-toc-part]"), "Including the ToC page restores the entries.");
   items = open(toc.querySelector("h2"));
   assert.deepEqual(items.map(item => item.textContent),
-    ["Include table of contents page", "Reset to article preset (omitted)"]);
+    ["Include table of contents page", "Reset to article preset (omitted)", "Layout and separation\u2026"]);
   items[1].click();
   assert.deepEqual(events.at(-1), {key: "contents_page", value: null});
   const page = form.querySelector(".editor-metadata-page");
   items = open(page.querySelector("h2"));
-  assert.deepEqual(items.map(item => item.textContent), ["Include metadata page at the end", "Edit complete metadata\u2026"]);
-  items[1].click();
+  assert.deepEqual(items.map(item => item.textContent), ["Include metadata page at the end",
+    "Layout and separation\u2026", "Edit complete metadata\u2026"]);
+  items[2].click();
   assert.deepEqual(tabs, ["metadata"]);
   page.querySelector(".editor-metadata-page-edit").click();
   assert.deepEqual(tabs, ["metadata", "metadata"]);
+  items = open(page.querySelector("h2"));
+  items[0].click();
   value = {...value, metadata: {...value.metadata, metadata_page: false}};
   workspace.refreshGenerated();
   assert(page.classList.contains("editor-page-disabled") && !page.querySelector("table"));

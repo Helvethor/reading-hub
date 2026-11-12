@@ -32,6 +32,7 @@ def prepare_workspace_document(value, original_metadata, original_structure, ass
     projection = publication_view(
         output_document["html"], structure["toc"], document["title"],
         book=structure["book"],
+        metadata=document["metadata"],
     )
 
     image_digests = {

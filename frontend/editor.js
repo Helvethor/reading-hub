@@ -20,10 +20,10 @@ const attrs = {
   class: {default: null},
 };
 const tagAttrs = {
-  ...Object.fromEntries(["h2", "h3", "h4", "h5", "h6"].map(tag => [tag, ["data-toc-style", "data-toc-entry"]])),
+  ...Object.fromEntries(["h2", "h3", "h4", "h5", "h6"].map(tag => [tag, ["data-toc-style", "data-toc-entry", "data-layout-before"]])),
   section: ["data-section-url", "data-section-role", "data-section-title",
     "data-section-label",
-    "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style", "data-toc-entry"],
+    "data-section-group", "data-excerpt-parent", "data-excerpt-url", "data-toc-style", "data-toc-entry", "data-layout-before"],
   a: ["href", "title", "aria-label", "rel"],
   img: ["src", "alt", "loading", "decoding"],
   td: ["colspan", "rowspan"],
@@ -109,7 +109,9 @@ function block(tag, content, extra = {}) {
 
 function extensions() {
   const nodes = [
-    Node.create({name: "doc", topNode: true, content: "block*"}),
+    Node.create({name: "doc", topNode: true, content: "block*",
+      addAttributes: () => ({layout: {default: null, rendered: false},
+        pages: {default: null, rendered: false}})}),
     Node.create({name: "text", group: "inline"}),
     block("p", "inline*"),
     Node.create({
@@ -276,7 +278,7 @@ function extensions() {
             }
             if (!/^h[2-6]$/.test($from.parent.type.name) || !$from.parentOffset) return false;
             return splitBlockAs((node, atEnd) => atEnd ? null : {
-              type: node.type, attrs: {...node.attrs, "data-toc-style": null, "data-toc-entry": null},
+              type: node.type, attrs: {...node.attrs, "data-toc-style": null, "data-toc-entry": null, "data-layout-before": null},
             })(state, dispatch);
           },
         }),
@@ -1090,7 +1092,7 @@ export function activateEditorLink(editor, anchor) {
   anchor.ownerDocument.defaultView.open(href, "_blank", "noopener,noreferrer");
 }
 
-export function createBoundedEditor(element, html, onUpdate = () => {}) {
+export function createBoundedEditor(element, html, onUpdate = () => {}, metadata = null) {
   const inert = element.ownerDocument.createElement("template");
   inert.innerHTML = html;
   const tags = new Set([...inlineTags, "p", "h2", "h3", "h4", "h5", "h6",
@@ -1152,7 +1154,9 @@ export function createBoundedEditor(element, html, onUpdate = () => {}) {
     extensions: [...editorExtensions, workspaceExtension(message => onUpdate({error: message})),
       differenceExtension(message => onUpdate({error: message})),
       blockSelectionExtension(message => onUpdate({error: message}))],
-    content: parsedFlow.toJSON(),
+    content: {...parsedFlow.toJSON(), attrs: {layout: metadata?.layout || null,
+      pages: metadata ? Object.fromEntries(["title_layout", "contents_page", "metadata_page"]
+        .filter(key => key in metadata).map(key => [key, metadata[key]])) : null}},
     parseOptions: {preserveWhitespace: "full"},
     injectCSS: false,
     enableContentCheck: true,
