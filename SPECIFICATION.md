@@ -1974,6 +1974,39 @@ Quotation operations are independently undoable and guard exact document identit
 and whole-target visibility. Hidden chapters remain in saves and JSON recovery.
 Edits reset review to partial and do not alter or publish the original rendition.
 
+### Independent image, figure, quotation and caption editing (planned 2026-11-12)
+
+Milestone G is specified only. The
+[independent element editing handoff](docs/FIGURE-QUOTE-CAPTION-IMPLEMENTATION-HANDOFF.md)
+owns G1-G10 and supersedes the unconditional quotation-figure shape and coupled
+structural removal described above once implemented. Earlier Q evidence does not
+validate this new behavior.
+
+IMG is image content; QUOTE is a standalone blockquote; FIG is optional explicit
+grouping; CAPTION belongs to FIG. Captionless figures are valid. Neither absent
+captions nor absent references trigger automatic conversion or cleanup.
+Opening/saving unchanged existing documents must preserve their structure.
+
+Convert to quote immediately wraps exactly the selected eligible prose in a
+standalone blockquote, without a dialog or figure, splitting partial paragraphs
+non-lossily. New quotation insertion also defaults to a standalone blockquote.
+Explicit caption authoring creates the required figure grouping with a preview.
+Wrap in figure is separately available without a caption.
+
+Remove figure grouping preserves a nested quotation and emits caption content
+as following prose. Remove quotation formatting preserves any enclosing figure
+and caption. Detach caption retains the figure and moves caption content after
+it as ordinary prose. Identity-bearing removed wrappers use the existing div
+fallback; no text, targets, citations, links or assets are silently discarded.
+Contextual handles and keyboard-accessible Selection tools target the named
+element independently, without a new permanent toolbar row.
+
+The handoff fixes selection boundaries/ID ownership, supported contexts, stale/
+hidden-target refusals, one-step undo, recovery, save/reopen and Read/print/PDF
+acceptance. Automatic cleanup, arbitrary grouping, new image insertion and live
+record changes are excluded. Recording this plan does not authorize implementation
+or deployment.
+
 Outline section drag/drop is available; arbitrary canvas drag/drop, new media or
 note insertion/renumbering remain unavailable. Each next revision can be explicitly marked partial, verified
 for selected identified sections, or whole-document verified. Verification requires

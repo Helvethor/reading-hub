@@ -6,6 +6,13 @@ No live draft, publication or reader default was changed for validation.
 Implementation-readiness refinement 2026-11-12: the decisions and fixture
 outcomes below remain binding.
 
+Planned follow-up (2026-11-12):
+[milestone G](FIGURE-QUOTE-CAPTION-IMPLEMENTATION-HANDOFF.md) specifies independent
+QUOTE/FIG/CAPTION controls. Once implemented, it supersedes this handoff's
+unconditional figure output and corresponding shape expectations for quotations
+without captions. Q's remaining input, preservation and transaction guarantees
+continue to apply. G is specified only; the evidence below validates Q, not G.
+
 ## Implementation and evidence (2026-11-12)
 
 `quotation-insertion.js` prepares a captured location, builds an inert candidate,

@@ -280,6 +280,32 @@ PDFs retained numbering and semantic content on the copy only. Installed fonts
 lack emoji glyphs despite preserved Unicode semantics; this is not independent
 accessibility or reviewer acceptance.
 
+## Editor milestone G: independent image/figure/quote/caption editing (2026-11-12)
+
+**Status:** specified only; no implementation or validation claimed. This is the
+next bounded follow-up to Q, not a reopening of Q's historical acceptance or
+authorization to implement/deploy. Unrelated milestone ordering is unchanged.
+
+The [independent element editing handoff](docs/FIGURE-QUOTE-CAPTION-IMPLEMENTATION-HANDOFF.md)
+owns G1-G10 acceptance and precise design. It supersedes Q's unconditional
+quotation-figure shape and coupled grouping/quotation removal, while retaining
+input, safety, recovery and fidelity guarantees.
+
+- [ ] G.a-G.c: expose exact selected-text conversion to standalone QUOTE, without
+  dialog/FIG; preserve partial-paragraph boundaries, formatting, IDs and links.
+- [ ] G.d-G.e: default new quotations without captions to standalone QUOTE;
+  independently wrap/unwrap FIG, remove QUOTE formatting and attach/detach
+  CAPTION without losing content or unrelated structure.
+- [ ] Validate G1-G6 with deterministic fixtures, legacy wrappers and focused
+  regressions; checkpoint each coherent validated implementation milestone.
+- [ ] Validate G7-G10 through contextual pointer/keyboard controls, undo/recovery,
+  save/reopen, Read, browser print and PDFs on isolated article/book copies.
+  Separate observed, synthetic, mocked and outstanding accessibility evidence.
+
+Keep captionless imported figures unchanged unless explicitly edited. The
+reported image-wrapper provenance is unverified; no automatic cleanup, new image
+upload, arbitrary grouping or live-content mutation is in scope.
+
 ## Operations milestone W: worker reliability and bounded recovery (2026-11-12)
 
 **Status:** specified only; read-only investigation found five failed/dead slots
