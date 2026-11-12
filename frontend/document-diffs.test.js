@@ -266,8 +266,9 @@ test("removed blocks render as the same labelled, aligned block types without ID
   assert.equal(heading.parentElement.parentElement.tagName, "SECTION", "Removed blocks stay inside their section.");
   const item = [...editor.view.dom.querySelectorAll("li")].find(node => node.textContent === "Removed item");
   assert.equal(item.parentElement.dataset.editorBlock, "UL");
-  assert.equal(item.dataset.editorBlock, "LI");
-  assert.equal(item.querySelector("p").dataset.editorLabelDepth, "2");
+  assert.equal(item.dataset.editorBlock, undefined);
+  assert(!item.classList.contains("editor-labelled-block"));
+  assert.equal(item.querySelector("p").dataset.editorLabelDepth, "1");
   const section = [...editor.view.dom.querySelectorAll("section")].find(node => node.textContent.includes("Old part"));
   assert(section.classList.contains("editor-section-boundary"));
   assert(!section.classList.contains("editor-diff-removed"), "Containers keep their border; text blocks carry the tint.");

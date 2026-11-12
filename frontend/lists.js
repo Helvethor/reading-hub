@@ -134,7 +134,12 @@ function unlistItem(editor, node, mappings) {
 function format(editor, target, type, mappings) {
   const {schema} = editor;
   if (target.paragraphs) return [schema.nodes[type].create(null,
-    target.paragraphs.map(paragraph => schema.nodes.li.create(null, paragraph)))];
+    target.paragraphs.map(paragraph => {
+      if (hasAttrs(paragraph)) return schema.nodes.li.create(null, paragraph);
+      const item = schema.nodes.liText.create(null, paragraph.content);
+      mappings.set(paragraph, item);
+      return item;
+    }))];
   const {list, items, start, end} = target;
   const remove = list.type.name === type;
   if (list.type.name === "ol" && end < items.length) {

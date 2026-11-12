@@ -222,15 +222,8 @@
 #editor-surface .editor-toc-marker { user-select: none; pointer-events: none; }
 #editor-surface .editor-outside-part { display: none !important; }
 #editor-surface .tiptap .editor-labelled-block { position: relative; margin-inline-start: var(--editor-label-gutter); border-inline-start: 1px solid var(--editor-border, #cbd1c4); padding-inline-start: .65rem; }
-#editor-surface .tiptap li.editor-labelled-block {
-  --editor-item-marker-gutter: calc(var(--editor-list-marker-width, 2ch) + .75rem);
-  margin-inline-start: calc(var(--editor-label-gutter) + var(--editor-item-marker-gutter));
-  border-inline-start: 0;
-}
-#editor-surface .tiptap li.editor-labelled-block::before { inset-inline-end: calc(100% + var(--editor-item-marker-gutter) + .35rem); }
-#editor-surface .tiptap li.editor-labelled-block::after {
-  content: ""; position: absolute; inset-inline-start: calc(-1 * var(--editor-item-marker-gutter));
-  inset-block: 0; border-inline-start: 1px solid var(--editor-border, #cbd1c4); pointer-events: none;
+#editor-surface .tiptap :is(ul, ol).editor-labelled-block {
+  padding-inline-start: calc(var(--editor-list-marker-width) + .75rem);
 }
 #editor-surface .tiptap hr.editor-labelled-block {
   min-block-size: 1.5rem; border-block: 0;

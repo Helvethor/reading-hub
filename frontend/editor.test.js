@@ -3475,7 +3475,7 @@ test("list creation retains paragraph attributes, direction, semantic inline con
   applyList(editor, "ol");
   const html = editor.getHTML();
   assert(html.includes('<ol><li><p id="one"><em>First</em> <a href="#two">link</a></p></li>' +
-    '<li><p id="two">Second</p></li><li><p>Third</p></li></ol>'));
+    '<li><p id="two">Second</p></li><li>Third</li></ol>'));
   assert(html.endsWith('<section id="hidden"><p>Untouched</p></section>'));
   assert(editor.state.selection.anchor > editor.state.selection.head);
   assert(undo(editor.state, editor.view.dispatch));
@@ -3483,6 +3483,30 @@ test("list creation retains paragraph attributes, direction, semantic inline con
   assert(!undo(editor.state));
   assert(redo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), html);
+});
+
+test("new plain lists stay inline-bodied through splitting, joining, undo and removing formatting", () => {
+  const original = '<p><em>First</em> <a href="#target">link</a></p><p>Second</p><p id="target">Target</p>';
+  for (const type of ["ul", "ol"]) {
+    editor?.destroy(); open(original);
+    selectParagraphs("First link", "Second");
+    applyList(editor, type);
+    const created = `<${type}><li><em>First</em> <a href="#target">link</a></li><li>Second</li></${type}><p id="target">Target</p>`;
+    assert.equal(editor.getHTML(), created);
+    assert(undo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), original);
+    assert(redo(editor.state, editor.view.dispatch));
+    assert.equal(editor.getHTML(), created);
+    selectText("Second");
+    editor.commands.setTextSelection(editor.state.selection.from + 3);
+    assert(handleListKey(editor, {key: "Enter"}));
+    assert(editor.getHTML().includes("<li>Sec</li><li>ond</li>"));
+    assert(handleListKey(editor, {key: "Backspace"}));
+    assert.equal(editor.getHTML(), created);
+    editor.commands.setNodeSelection(0);
+    applyList(editor, type);
+    assert.equal(editor.getHTML(), original);
+  }
 });
 
 test("partial bullet conversion and unlist preserve item extent while ordered suffixes cannot restart", () => {
@@ -3542,7 +3566,7 @@ test("Enter splits inline and block items with their suffix descendants and uniq
 test("empty lists are editable, Shift+Enter is semantic and final empty items exit at their level", () => {
   open("<p></p>");
   applyList(editor, "ul");
-  assert.equal(editor.getHTML(), "<ul><li><p></p></li></ul>");
+  assert.equal(editor.getHTML(), "<ul><li></li></ul>");
   assert(handleListKey(editor, {key: "Enter"}));
   assert.equal(editor.getHTML(), "<p></p>");
   editor.destroy(); open("<ul><li><p>Text</p><ul><li></li></ul></li></ul>");
@@ -3596,7 +3620,7 @@ test("list controls retain menu selection, owning active state, disabled boundar
     {showError: message => { if (message) errors.push(message); }});
   selectParagraphs("First", "Third");
   form.querySelector('#editor-context-menu [data-list="ol"]').click();
-  assert.equal(editor.getHTML(), "<ol><li><p>First</p></li><li><p>Second</p></li><li><p>Third</p></li></ol>");
+  assert.equal(editor.getHTML(), "<ol><li>First</li><li>Second</li><li>Third</li></ol>");
   assert.equal(form.querySelector('.editor-format-toolbar [data-list="ol"]').getAttribute("aria-pressed"), "true");
   selectText("Second");
   assert(!form.querySelector('[data-list="indent"]').disabled);
@@ -3604,10 +3628,10 @@ test("list controls retain menu selection, owning active state, disabled boundar
   form.querySelector("#editor-tools").click();
   form.querySelector('[data-list="indent"]').click();
   assert.equal(editor.state.selection.$from.parent.textContent, "Second");
-  assert.equal(editor.state.selection.$from.node(editor.state.selection.$from.depth - 2).type.name, "ol");
+  assert.equal(editor.state.selection.$from.node(editor.state.selection.$from.depth - 1).type.name, "ol");
   assert(!form.querySelector('[data-list="outdent"]').disabled);
   form.querySelector('[data-list="outdent"]').click();
-  assert.equal(editor.getHTML(), "<ol><li><p>First</p></li><li><p>Second</p></li><li><p>Third</p></li></ol>");
+  assert.equal(editor.getHTML(), "<ol><li><p>First</p></li><li>Second</li><li>Third</li></ol>");
   form.querySelector('.editor-format-toolbar [data-list="ul"]').click();
   assert.match(errors.at(-1), /restart numbering/);
   const before = editor.getHTML();
@@ -3617,12 +3641,12 @@ test("list controls retain menu selection, owning active state, disabled boundar
     return event.defaultPrevented;
   };
   assert(key("Backspace"));
-  assert.equal(editor.getHTML(), "<ol><li><p>FirstSecond</p></li><li><p>Third</p></li></ol>");
+  assert.equal(editor.getHTML(), "<ol><li><p>FirstSecond</p></li><li>Third</li></ol>");
   assert(undo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), before);
   selectText("Second"); editor.commands.setTextSelection(editor.state.selection.from + 3);
   assert(key("Enter"));
-  assert.match(editor.getHTML(), /<li><p>Sec<\/p><\/li><li><p>ond<\/p><\/li>/);
+  assert.match(editor.getHTML(), /<li>Sec<\/li><li>ond<\/li>/);
   assert(!key("Tab"));
   selectText("First");
   assert(form.querySelector('[data-list="indent"]').disabled);
@@ -3636,7 +3660,7 @@ test("list ranges exclude the next untouched block and retain whole-list and ite
   selectText("First"); const from = editor.state.selection.from;
   selectText("Third"); editor.commands.setTextSelection({from, to: editor.state.selection.from});
   applyList(editor, "ul");
-  assert.equal(editor.getHTML(), "<ul><li><p>First</p></li><li><p>Second</p></li></ul><p>Third</p>");
+  assert.equal(editor.getHTML(), "<ul><li>First</li><li>Second</li></ul><p>Third</p>");
   editor.destroy(); open('<ul id="list"><li id="a"><p>A</p><ol><li>Nested</li></ol></li><li>B</li></ul>');
   selectText("A"); const start = editor.state.selection.from;
   selectText("B", 1); editor.commands.setTextSelection({from: start, to: editor.state.selection.to});
@@ -3645,7 +3669,7 @@ test("list ranges exclude the next untouched block and retain whole-list and ite
 });
 
 test("list and quotation candidates reject whole-document complexity limits and protected-note conversion", () => {
-  open("<div>".repeat(98) + "<p>Text</p>" + "</div>".repeat(98));
+  open("<div>".repeat(99) + "<p>Text</p>" + "</div>".repeat(99));
   selectText("Text");
   const original = editor.getHTML();
   assert.throws(() => applyList(editor, "ul"), /100-level/);
@@ -4215,14 +4239,15 @@ test("image and table block labels have view-only anchors outside replaced or sc
   assert.equal(editor.getHTML(), original);
 });
 
-test("list containers have independent gutters above item and paragraph labels without changing semantics", () => {
+test("list containers have gutters but inline and block items do not, without changing semantics", () => {
   open('<ul id="bullets"><li id="a">Inline</li><li><p>Block</p><ol id="numbers"><li>Nested</li></ol></li></ul><hr>');
   const html = editor.getHTML(), json = editor.getJSON();
-  for (const [selector, label, depth] of [["#bullets","UL","0"], ["#a","LI","1"], ["li > p","P","2"], ["#numbers","OL","2"]]) {
+  for (const [selector, label, depth] of [["#bullets","UL","0"], ["li > p","P","1"], ["#numbers","OL","1"]]) {
     const node = editor.view.dom.querySelector(selector);
     assert.equal(node.dataset.editorBlock, label);
     assert.equal(node.dataset.editorLabelDepth, depth);
   }
+  assert(!editor.view.dom.querySelector("li.editor-labelled-block, li[data-editor-block]"));
   assert.equal(editor.view.dom.querySelector("hr").previousElementSibling.dataset.editorBlock, "HR");
   assert.equal(editor.getHTML(), html);
   assert.deepEqual(editor.getJSON(), json);
