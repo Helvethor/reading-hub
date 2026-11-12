@@ -248,7 +248,12 @@ canvas document, presented like the Title and ToC pages, not a block after the
 editor; the full metadata sheet appears only in the Metadata subtab. Bugfix V.f
 (specified only, acceptance V24): one row of Edit commands is a single command
 tall. Labels stay on the same line as their selects, and Preview publication
-matches the other secondary toolbar buttons rather than being larger.
+matches the other secondary toolbar buttons rather than being larger. V.g
+(specified only, acceptance V25): the workspace Read ToC stays reachable below
+the sticky stack while scrolling. A Contents switch beside Download PDF shows or
+hides it; when it is hidden, the text widens to a bounded measure, and the
+setting is never saved to the server or applied to PDF/print. Tab action and
+filter bars visually join the rounded tab card.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

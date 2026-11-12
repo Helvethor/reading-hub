@@ -3,8 +3,8 @@
 Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
 V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
-The V.e Metadata-page placement bugfix (V23) and V.f compact Edit command bar
-(V24) are specified only.
+The V.e Metadata-page placement bugfix (V23), V.f compact Edit command bar
+(V24) and V.g Read contents panel/toggle/bar (V25) are specified only.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
 Local deployment is authorized; remote publication, migrations and live content
@@ -494,6 +494,81 @@ Required behavior:
   must update to the smaller height. V.c may later move commands into a stacked
   menu, but this fix must not wait for it.
 
+### V.g: Read contents panel, ToC toggle and integrated action bar
+
+User request 2026-11-12, observed on the edition 80 working copy at
+`?tab=read`:
+1. "ToC panel disappears when I scroll. It should follow viewport to be always
+   accessible."
+2. Add a switch next to "Download PDF" in the Read bar to show or hide the ToC.
+   When the ToC is hidden, the book content takes the freed width.
+3. The bar holding the download button "does not visually fit well with the
+   round-bordered version page tabs above".
+
+Evidence and uncertainty at `12100be`, from reading the code; the browser check
+was blocked because the local server refused connections during the attempt:
+- `workspace_read_preview.html` renders `.reader-layout` with
+  `aside.toc-panel` beside `.reading-column`.
+- `app.css` styles `.toc-panel` for the standalone reader:
+  `position: sticky; top: 2rem; max-height: calc(100vh - 4rem)`.
+- Inside the workspace, the sticky site header, workspace chrome and
+  `.workspace-read-actions` bar (z-index 5–30) cover the top of the viewport.
+  Their combined height is published as `--workspace-full-stack` by
+  `workspace-shell.js`. A `top` of 2rem therefore probably slides the panel
+  under the stack. Its height also ignores the stack, so the panel's lower
+  entries can be cut off.
+- The Edit outline (`.editor-outline`) already uses `--workspace-full-stack`
+  for both `top` and `max-height`, so that is the established pattern to reuse.
+- Below the mobile breakpoint, `.toc-panel` becomes static at the top of the
+  page, with a maximum height of 350px.
+- Confirm the cause in a browser before fixing; another ancestor may also be
+  defeating `position: sticky`.
+
+Visual fit: `.workspace-chrome` is a rounded (`.5rem`), bordered card with a
+shadow and a paper background. `.workspace-read-actions` is a square,
+full-width strip with only a bottom border, on a different background. The two
+read as unrelated layers.
+
+Required behavior:
+- **Contents panel follows the viewport.** On wide viewports the Read ToC stays
+  visible and usable at every scroll position, directly below the full
+  measured sticky stack (`top`/`max-height` from `--workspace-full-stack`, or
+  its successor from V.a). It recalculates when the stack compacts or wraps,
+  and scrolls internally when long. The active entry stays visible, and
+  following a ToC link brings the target heading into view below the stack.
+  Do not change standalone reader/publication pages, which have no workspace
+  stack.
+- **ToC switch.** Add a toggle button, for example "Contents" with
+  `aria-pressed` and `aria-controls` pointing to the ToC panel, in the Read
+  action bar next to Download PDF, following the bar layout planned in V.c.
+  When hidden, the ToC is removed from layout and accessibility (no empty grid
+  column). The reading column expands into the freed width, up to a bounded
+  readable measure; do not stretch lines without limit. Showing it again
+  restores the two-column layout without moving the reading position. On
+  narrow viewports, the switch controls the collapsible ToC above the text
+  instead.
+- **Default and memory.** The ToC is shown by default on wide viewports. Keep
+  the chosen state for the current workspace session across tab switches and
+  Read re-renders. Optionally remember it per browser like other client-side
+  reading preferences. It must not save to the server, change publication
+  style, or alter M's Reading/PDF style cascade, and it never affects PDF or
+  print output.
+- **Integrated bar.** Restyle the Read action bar, and the matching
+  Versions/Sources filter bars from V.c, so they visibly belong to the tab card
+  above. For example, attach the bar to the tab strip as the card's lower
+  section, sharing its border colour, radius (lower corners), side alignment
+  and surface. Alternatively, use the same rounded, inset card language as a
+  secondary row. Pick one convention for all main tabs, including Edit's
+  secondary tabs and command bar (V.f).
+  - It must still stick under the measured stack, and the stack must not double
+    its borders or shadows.
+  - Contrast and focus outlines must remain visible.
+  - The ToC switch and Download PDF share one control height and secondary
+    style.
+- **Preservation.** Keep the per-view scroll position, the wording and states
+  of the PDF action (V.d), deep links and internal links. Print and PDF output
+  never include the bar, the switch or the ToC panel.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -502,8 +577,8 @@ validated slices rather than deploying automatically. Use isolated article and
 long, media-rich book fixtures, not live corrections. Preserve R annotation
 retirement, A hierarchy, P publication/default contracts and M's planned style
 placement. No new framework, personal-style system, publication model or live-data
-mutation belongs to this follow-up. V.e and V.f are independent and may land
-first as focused fixes after reproduction. Stop only after V17-V24 and relevant V1-V16
+mutation belongs to this follow-up. V.e, V.f and V.g are independent and may land
+first as focused fixes after reproduction. Stop only after V17-V25 and relevant V1-V16
 preservation checks are evidenced; report browser limitations rather than claiming
 full acceptance from jsdom tests.
 
@@ -565,8 +640,9 @@ unsaved edits. Track implementation and validation independently.
 
 | V23 | Reproduce the reported placement on an isolated book fixture with a copied working copy (never the live edition 101 draft), recording a screenshot and DOM position. After the fix, in Whole book view the generated Metadata page is the last part of the canvas document, styled like the Title/ToC pages and before the selection path; it is absent from section views, follows include/omit and presets, and the full metadata sheet appears only in the Metadata subtab across tab switches, recovery and "Edit complete metadata…". Saved content, metadata values, undo history and print output are unchanged. |
 | V24 | On an isolated working copy at 1280px, 768px and 375px wide, and after 200% zoom, record toolbar height, each command's box/margin and row count before and after the fix. A single row is one command tall plus bar padding (no taller "Show"/"Section" controls). Preview publication matches the secondary toolbar buttons in height, margin, font size and weight, and is not larger or more prominent than Save version. Selects keep visible, programmatically associated labels. Preview opens the same dialog, keyboard order and focus are unchanged, sticky offsets track the new height, and print excludes the bar. |
+| V25 | On an isolated long book working copy in Read at 1440px, 1024px and 375px wide, first reproduce the ToC disappearing on scroll, then record its position against the measured stack. After the fix, deep-scroll in both directions with the header expanded, compact and wrapped: the whole ToC panel stays below the stack, scrolls internally to its last entry, and its links land below the stack. The Contents switch next to Download PDF toggles `aria-pressed`. When the ToC is hidden it is absent from layout and accessibility, and the reading column widens to its bounded maximum without losing the reading position. The state survives tab switches and Read re-renders, saves nothing to the server and does not change PDF/print output. Screenshots show the Read, Versions and Sources bars attached to the tab card with consistent radius, borders and surface at every width. Keyboard, focus and contrast checks pass. |
 
-Stop when V1-V24 are implemented and validated, not when tabs merely look alike.
+Stop when V1-V25 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend

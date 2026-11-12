@@ -153,6 +153,11 @@ for scope, dependencies and V17-V22 acceptance.
   89px for one row). Keep the "Show"/"Section" labels on the same line as their
   selects, and make Preview publication the same size as the other secondary
   buttons, with no extra margin or bold text. Acceptance V24.
+- [ ] V.g (specified only): keep the Read ToC visible below the measured sticky
+  stack while scrolling. Add a Contents show/hide switch next to Download PDF;
+  when the ToC is hidden, the text takes the freed width up to a readable
+  maximum. Make the Read/Versions/Sources bars visually part of the rounded tab
+  card. Acceptance V25.
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 
