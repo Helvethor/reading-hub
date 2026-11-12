@@ -149,6 +149,10 @@ for scope, dependencies and V17-V22 acceptance.
   appearing after the editor instead of inside it. Reproduce on an isolated
   fixture; render it as the last canvas part like Title/ToC pages; keep the full
   sheet only in the Metadata subtab. Acceptance V23.
+- [ ] V.f (bugfix, specified only): compact the Edit command bar (measured at
+  89px for one row). Keep the "Show"/"Section" labels on the same line as their
+  selects, and make Preview publication the same size as the other secondary
+  buttons, with no extra margin or bold text. Acceptance V24.
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 

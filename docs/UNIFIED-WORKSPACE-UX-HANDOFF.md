@@ -3,7 +3,8 @@
 Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
 V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
-The V.e Metadata-page placement bugfix (V23) is specified only.
+The V.e Metadata-page placement bugfix (V23) and V.f compact Edit command bar
+(V24) are specified only.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
 Local deployment is authorized; remote publication, migrations and live content
@@ -457,6 +458,42 @@ state, recovery, undo history, focus/tab state, outline/ToC navigation, page-flo
 footer ownership, sticky-stack offsets and print exclusions. Read/PDF placement
 is unchanged here; M owns generated-page breaks and ordering in output.
 
+### V.f: compact Edit command bar (bugfix)
+
+User-observed 2026-11-12 on a working copy of edition 80 (`?tab=edit`, 1280px
+viewport): the editor pilot toolbar "wastes a lot of vertical space, probably
+due to 'Show' label", and "Preview publication" should not be bigger than the
+other commands. Measured in the shared browser at `34d19ad`, with one row of
+commands: the toolbar is 89px tall, while command buttons are 39px.
+- `#editor-publication` (an `a.button.secondary`) computes to a block with
+  12px vertical margin plus 12px padding and bold text (general
+  `#editor-publication { margin: .75rem 0; font-weight: 700 }` and `.button`
+  styling). It is 48px tall, or about 72px with its margins, and is the main
+  reason the row is tall.
+- `.editor-part-control` computes to `display: block`, so the "Show" text sits
+  above its select. This makes the control 64px tall. The hidden
+  `.editor-section-filter-control` ("Section") has the same structure and
+  probably stacks the same way when a section filter is visible.
+
+Required behavior:
+- One row of commands is only as tall as one command plus the bar padding,
+  about 2.45rem plus padding, not about 89px.
+- Every visible command, including Preview publication, Save version, Mark
+  reviewed, the view and section selects, and Block labels, shares one control
+  height, vertical alignment, font size and weight. Use the toolbar's secondary
+  styling: Preview publication must not get extra margin or bold text and must
+  not look like a primary action.
+- Selects keep a visible accessible name, either an inline "Show"/"Section"
+  label on the same line as the select or an equivalent compact label with the
+  same accessible name. No select should lose its label for compactness.
+- On narrow screens, wrapped rows each stay one command tall, and the existing
+  full-width view control (`flex-basis: 100%`) does not add a stacked label.
+- Keep the change scoped to the toolbar. Do not change the publication-preview
+  panel's link styling elsewhere, its behavior, `data-workflow-panel` dialog
+  opening, keyboard order or focus outlines. V.a's measured sticky-stack offsets
+  must update to the smaller height. V.c may later move commands into a stacked
+  menu, but this fix must not wait for it.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -465,8 +502,8 @@ validated slices rather than deploying automatically. Use isolated article and
 long, media-rich book fixtures, not live corrections. Preserve R annotation
 retirement, A hierarchy, P publication/default contracts and M's planned style
 placement. No new framework, personal-style system, publication model or live-data
-mutation belongs to this follow-up. V.e is independent and may land first as a
-focused fix after reproduction. Stop only after V17-V23 and relevant V1-V16
+mutation belongs to this follow-up. V.e and V.f are independent and may land
+first as focused fixes after reproduction. Stop only after V17-V24 and relevant V1-V16
 preservation checks are evidenced; report browser limitations rather than claiming
 full acceptance from jsdom tests.
 
@@ -527,8 +564,9 @@ unsaved edits. Track implementation and validation independently.
 | V22 | V17-V21 introduce no implicit persistence, publication, review, default selection, permission/asset bypass, cache leakage or annotation access. Test export failures explicitly; verify retained exact PDFs and screen/print exclusions, and report synthetic, mocked and observed evidence separately. |
 
 | V23 | Reproduce the reported placement on an isolated book fixture with a copied working copy (never the live edition 101 draft), recording a screenshot and DOM position. After the fix, in Whole book view the generated Metadata page is the last part of the canvas document, styled like the Title/ToC pages and before the selection path; it is absent from section views, follows include/omit and presets, and the full metadata sheet appears only in the Metadata subtab across tab switches, recovery and "Edit complete metadata…". Saved content, metadata values, undo history and print output are unchanged. |
+| V24 | On an isolated working copy at 1280px, 768px and 375px wide, and after 200% zoom, record toolbar height, each command's box/margin and row count before and after the fix. A single row is one command tall plus bar padding (no taller "Show"/"Section" controls). Preview publication matches the secondary toolbar buttons in height, margin, font size and weight, and is not larger or more prominent than Save version. Selects keep visible, programmatically associated labels. Preview opens the same dialog, keyboard order and focus are unchanged, sticky offsets track the new height, and print excludes the bar. |
 
-Stop when V1-V23 are implemented and validated, not when tabs merely look alike.
+Stop when V1-V24 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
