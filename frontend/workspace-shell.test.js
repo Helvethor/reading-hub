@@ -649,6 +649,48 @@ test("visible secondary bars stack below the shared navigation and hidden ones a
   assert.equal(readBar.style.getPropertyValue("--workspace-subbar-top"), "");
 });
 
+test("resizing command rows updates following sticky offsets without a window resize", () => {
+  const form = setup();
+  const edit = document.querySelector("#workspace-panel-edit");
+  const commands = document.createElement("div"), following = document.createElement("div");
+  let commandHeight = 89;
+  for (const bar of [commands, following]) {
+    bar.dataset.workspaceSubbar = "";
+    edit.append(bar);
+  }
+  commands.getBoundingClientRect = () => ({height: commandHeight});
+  following.getBoundingClientRect = () => ({height: 20});
+  document.querySelector(".workspace-chrome").getBoundingClientRect = () => ({height: 50});
+  const previous = globalThis.ResizeObserver;
+  let resize;
+  globalThis.ResizeObserver = class {
+    constructor(callback) {
+      const observed = new Set();
+      this.observe = element => observed.add(element);
+      resize = element => { if (observed.has(element)) callback(); };
+    }
+  };
+  try {
+    mount(form, {
+      draft: null, revision: 0,
+      document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+    });
+    const workspace = document.querySelector("#unified-workspace");
+    assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "159px");
+    commandHeight = 56;
+    resize(commands);
+    assert.equal(following.style.getPropertyValue("--workspace-subbar-top"), "106px");
+    assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "126px");
+    commandHeight = 102;
+    resize(commands);
+    assert.equal(following.style.getPropertyValue("--workspace-subbar-top"), "152px");
+    assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "172px");
+  } finally {
+    if (previous === undefined) delete globalThis.ResizeObserver;
+    else globalThis.ResizeObserver = previous;
+  }
+});
+
 test("unstuck secondary bars take no space in the sticky stack", () => {
   const form = setup();
   const edit = document.querySelector("#workspace-panel-edit");

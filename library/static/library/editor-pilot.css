@@ -29,10 +29,10 @@
 .editor-book-structure li { overflow-wrap: anywhere; }
 .editor-structure-link { font-weight: 700; }
 .editor-pilot-toolbar { position: sticky; top: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .5rem; border-bottom: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
-.editor-pilot-toolbar label { margin: 0; }
-.editor-pilot-toolbar button, .editor-pilot-toolbar label { font-size: .85rem; }
-.editor-pilot-toolbar button { min-height: 2.45rem; padding: .4rem .6rem; }
-.editor-pilot-toolbar select { font: inherit; padding: .25rem; max-width: 13rem; }
+.editor-pilot-toolbar button, .editor-pilot-toolbar label, .editor-pilot-toolbar #editor-publication { font: 400 .85rem/1.4 system-ui, sans-serif; }
+.editor-pilot-toolbar label { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.45rem; margin: 0; white-space: nowrap; }
+.editor-pilot-toolbar button, .editor-pilot-toolbar #editor-publication { display: inline-flex; align-items: center; justify-content: center; min-height: 2.45rem; padding: .4rem .6rem; }
+.editor-pilot-toolbar select { min-width: 0; min-height: 2.45rem; font: inherit; padding: .25rem; max-width: 13rem; }
 .editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding-inline-end: .45rem; border-inline-end: 1px solid var(--line); }
 .editor-format-toolbar button {
   min-width: 2.45rem;
@@ -44,7 +44,7 @@
 .editor-format-toolbar button:hover,
 .editor-format-toolbar button[aria-pressed="true"] { background: var(--paper); color: var(--accent); }
 .editor-pilot-toolbar .editor-save { background: var(--accent); color: var(--paper); }
-.editor-pilot-toolbar #editor-publication { font-size: .85rem; }
+.editor-pilot-toolbar #editor-publication { margin: 0; background: transparent; color: var(--accent); }
 #document-editor button:disabled { cursor: not-allowed; }
 /* No overflow clipping here: it would disable the sticky tabs and command row. */
 .editor-workspace { border: 1px solid #98a48e; border-radius: .4rem; }
@@ -211,7 +211,8 @@
 #editor-sections[hidden] { display: none; }
 #editor-publication { display: inline-block; margin: .75rem 0; font-weight: 700; }
 #editor-publication[hidden] { display: none; }
-#editor-surface .tiptap { position: relative; min-height: 100%; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
+/* A percentage minimum fills the canvas before generated pages, pushing them past its footer. */
+#editor-surface .tiptap { position: relative; min-height: 20rem; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
 /* Keep the editor root's caret policy, but render source HTML spacing like the reader. */
 #editor-surface .tiptap > * { white-space: normal; }
 #editor-surface .tiptap pre { white-space: pre-wrap; }

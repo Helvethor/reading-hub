@@ -130,7 +130,9 @@ function mountStickyStack(workspace, updateBackToTop) {
   const observer = typeof ResizeObserver === "undefined"
     ? null
     : new ResizeObserver(remeasure);
-  for (const element of [siteHeader, reviewNavigation, chrome]) {
+  for (const element of [
+    siteHeader, reviewNavigation, chrome, ...workspace.querySelectorAll("[data-workspace-subbar]"),
+  ]) {
     if (element) observer?.observe(element);
   }
   window.addEventListener("scroll", compact, {passive: true});
