@@ -217,10 +217,7 @@ def token_style(token):
 def work_type_choices():
     from library.services.document_metadata import WORK_TYPES
 
-    choices = list(WORK_TYPES)
-    if "anthology" not in dict(choices):
-        choices.insert(1, ("anthology", "Anthology"))
-    return tuple(choices)
+    return WORK_TYPES
 
 
 def work_type_keys():
