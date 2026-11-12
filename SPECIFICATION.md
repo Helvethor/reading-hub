@@ -150,6 +150,11 @@ was performed.
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
 defines milestone M and M1-M18 acceptance, scheduled after R -> A -> V -> P.
+Follow-up M.h (specified only, M19) makes PDF download filenames readable:
+unsafe-character runs become spaced ` - ` separators (for example,
+`Title: Subtitle` -> `Title - Subtitle.pdf`). Preserve original legal hyphens,
+Unicode, filename safety/length limits and draft qualifiers. Stored titles,
+PDF title metadata, content and retained output identity are unchanged.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;

@@ -3,6 +3,8 @@
 Proposal accepted for handoff 2026-11-11.
 Status: implemented with bounded automated, rendered-PDF and copied-browser
 validation below; no independent usability/accessibility certification.
+Follow-up M.h (M19) is specified only, not implemented or validated. This
+2026-11-12 request authorizes recording the filename change, not deploying it.
 
 ## Outcome, authority and sequencing
 
@@ -336,6 +338,36 @@ resolver. Named profiles may remain optional explicit presets, not another
 implicit precedence layer. Document migration/reset behavior and rehearse any
 schema/data migration on isolated data.
 
+### M.h Readable separators in PDF download filenames
+
+User request 2026-11-12: characters such as `?` and `:` currently become
+hyphens glued to adjacent text in the generated PDF filename. Replacement
+hyphens should have spaces around them.
+
+Code evidence at `1e99ec5`: `library/services/pdf.py::pdf_filename` replaces
+filesystem-unsafe punctuation/control characters with `-` and collapses
+whitespace. `test_title_based_filename_preserves_unicode_and_is_filesystem_safe`
+currently expects glued separators. Saved-output and draft PDF endpoints reuse
+this helper. This is code inspection, not an observed browser download.
+
+Replace unsafe-character runs with a readable ` - ` separator and normalize
+surrounding whitespace so interior replacement hyphens have exactly one space
+on each side. For example, `Why? Now` becomes `Why - Now.pdf`, `Title: Subtitle`
+becomes `Title - Subtitle.pdf`, and `A/B` becomes `A - B.pdf`. Consecutive unsafe
+characters form one replacement separator rather than a chain of hyphens.
+Preserve original legal hyphens/dashes and Unicode text; this is not a global
+hyphen-spacing rewrite. At filename edges, filesystem safety takes precedence:
+trim boundary whitespace and trailing periods as before, never introduce
+leading/trailing padding just to surround an edge separator.
+
+Apply the shared policy to saved, publication and draft PDF download names,
+preserving existing draft identity qualifiers. Keep extension, length bound,
+empty-title fallback, reserved-device-name protection and header/path safety.
+Do not change stored titles, PDF Title/XMP properties, visible document titles,
+PDF bytes, cache identity or retained historical files. Add focused filename
+cases to the existing printing tests and inspect actual download headers and
+browser filenames for representative saved/draft exports on isolated fixtures.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -378,7 +410,9 @@ saved versus changed-draft exports.
 | M17 | Version-page style controls appear only in Read, with explicit This version versus My defaults for type scopes. Admin/account controls retain proper authority. Read/PDF and request-time guest/draft exports agree on resolved settings/theme; cache identities prevent stale or cross-user presentation mixing. |
 | M18 | Personal style changes preserve editorial layout, mandatory evidence, content and editor state. Legacy profile/default compatibility is explicit and tested with ownership/data preserved; no competing implicit resolver or silent broad-scope preference migration remains. |
 
-Stop when M1-M18 are implemented and validated with actual rendered output and
+| M19 | Shared PDF download filename generation yields `Why - Now.pdf`, `Title - Subtitle.pdf` and `A - B.pdf` for the specified inputs. Test adjacent unsafe-character runs, existing surrounding whitespace, literal hyphens/dashes, Unicode, edge punctuation, control/path characters, reserved device names, empty titles and maximum length. Interior replacement separators have exactly one space per side, without unsafe boundary whitespace. Verify saved/publication/draft download headers and browser filenames, preserving draft qualifiers, stored titles, PDF metadata/content and cache/history identity. Report any browser-specific filename normalization separately. |
+
+Stop when M1-M19 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.
