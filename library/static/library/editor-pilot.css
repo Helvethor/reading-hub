@@ -302,11 +302,13 @@
 #editor-source-preview:empty { display: none; }
 
 body.workspace-page .site-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  position: relative;
 }
 .workspace-sticky-marker { display: block; height: 0; line-height: 0; overflow: hidden; }
+.workspace-sticky-slot { position: sticky; pointer-events: none; }
+.workspace-sticky-slot > * { pointer-events: auto; }
+.workspace-header-slot { top: 0; z-index: 30; }
+.workspace-chrome-slot { top: var(--workspace-chrome-top); z-index: 28; }
 body.workspace-page .review-navigation {
   position: sticky;
   top: var(--site-header-height, 0px);
@@ -315,8 +317,7 @@ body.workspace-page .review-navigation {
 }
 .unified-workspace { --workspace-chrome-top: 0px; }
 .workspace-chrome {
-  position: sticky;
-  top: var(--workspace-chrome-top);
+  position: relative;
   z-index: 28;
   border: 1px solid var(--line);
   border-radius: .5rem;
@@ -437,7 +438,7 @@ body.workspace-page .review-navigation {
   .workspace-chrome, .workspace-back-to-top, .editor-pilot-toolbar,
   .editor-tabs, .editor-outline, .editor-diff-controls, .workspace-action-status,
   .workspace-read-actions, .workspace-filter-bar,
-  .workspace-sticky-marker {
+  .workspace-sticky-marker, .workspace-sticky-slot {
     display: none !important;
   }
 }

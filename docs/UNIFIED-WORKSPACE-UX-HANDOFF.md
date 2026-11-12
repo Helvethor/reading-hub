@@ -2,13 +2,12 @@
 
 Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
-The V.a-V.d follow-up below is specified only; V17-V22 are not implemented or
-validated. The V.e Metadata-page placement bugfix (V23) is specified only. The latest user instruction is "don't implement", followed by a request
-to store this handoff. It authorizes documentation only for this follow-up,
-superseding any inference of implementation/deployment permission from older work.
-The later user instruction to implement R, A, V, then P supersedes this
-handoff's original documentation-only authorization. Local deployment is
-authorized; remote publication, migrations and live content mutation are not.
+V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
+The V.e Metadata-page placement bugfix (V23) is specified only.
+The later requests to continue implementation, deploy locally and implement the
+updated V.a supersede the original documentation-only instruction for V.a-V.d.
+Local deployment is authorized; remote publication, migrations and live content
+mutation are not.
 
 ## Outcome, authority and supersession
 
@@ -312,7 +311,8 @@ for V.b, not completion of document-flow scrolling.
 
 ### V.a: stable compaction and coordinated stack
 
-Reproduce the first-scroll defect before selecting a fix. Inspect marker
+Use the tester's reported geometry feedback to select a fix even when the
+original usage loop cannot be independently reproduced. Inspect marker
 positions, flow reservation, scroll anchoring, height measurement and observer
 feedback. Use stable thresholds and sufficient hysteresis where needed; changing
 a bar's height must not change its own threshold into immediate reversal.
@@ -334,6 +334,37 @@ and stack measurement, not duplicated controls or a second navigation system.
 Account for actual wrapping/heights, resize, zoom and short viewports. Consolidate
 secondary commands into labelled keyboard-accessible disclosures where necessary;
 preserve essential identity, unsaved state and primary commands.
+
+Implementation/evidence, 2026-11-12:
+
+- Replaced shrink-then-spacer compensation with persistent expanded-height
+  sticky slots. The actual controls remain single DOM instances; transparent
+  reserved space does not intercept pointer input and is excluded from print.
+  Layout reads after a bar shrinks cannot expose a shortened document flow.
+- Marker thresholds use expanded header height, not its compact height.
+  Entry requires 8px beyond the boundary; expansion occurs at the boundary.
+  Resize/observer refresh measures expanded bars within their existing slots,
+  then restores compact state and updates the shared stack.
+- Synthetic jsdom regression models scroll anchoring at every forced layout,
+  checking unchanged position/range over 1px steps in both directions, repeated
+  no-input events and remeasurement after changed expanded heights.
+- Visible Chromium, copied database: article 101 stayed at 6,133px scroll height
+  and book 80 at 193,268px through repeated small wheel input and held native
+  scrollbar-thumb movement in both directions. Each bar compacted once going
+  down, remained stable after input stopped, and expanded on return to the top.
+  Article transitions were observed at y=10 (header) and y=126 (workspace);
+  marker document positions remained 0 and 205.53125px.
+- Book resize checks at 400x800, 1280x480 and 1280x800 refreshed slot heights;
+  scroll ranges before/after compaction matched within each viewport, with no
+  horizontal overflow. Narrow/short toolbar remains non-sticky; desktop tabs
+  and commands remain stacked. Print-media emulation hides both reserved slots
+  and returning to screen restores their heights; a printed output was not
+  generated. These are automated input observations, not
+  independent tester acceptance. Original usage-loop reproduction, native
+  browser zoom and other engines remain unverified; V17 is only partially
+  validated.
+- Frontend tests: 297 passed; workspace Django view tests: 40 passed.
+  No live corrections, revisions, publications or reader defaults were changed.
 
 ### V.b: document scrolling and footer ownership
 
@@ -516,5 +547,5 @@ No automatic saves/publication, live content conversion, collaboration/autosync
 service, framework rewrite, new version ancestry model, draft annotation remapping,
 automatic branch merge, catalogue mutation, public exposure or remote deployment.
 Local deployment is authorized by the later implementation instruction.
-That historical permission does not authorize implementation/deployment of
-V.a-V.d: the latest request for this follow-up is documentation only.
+The later implementation/local-run requests authorize V.a-V.d implementation
+and local deployment, not remote publication or live-content mutation.

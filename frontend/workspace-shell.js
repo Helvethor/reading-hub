@@ -52,30 +52,26 @@ function mountStickyStack(workspace, updateBackToTop) {
   const chrome = workspace.querySelector(".workspace-chrome");
   const headerMarker = document.createElement("span");
   const chromeMarker = document.createElement("span");
-  const headerSpacer = document.createElement("span");
-  const chromeSpacer = document.createElement("span");
   for (const marker of [headerMarker, chromeMarker]) {
     marker.setAttribute("aria-hidden", "true");
     marker.className = "workspace-sticky-marker";
   }
-  for (const spacer of [headerSpacer, chromeSpacer]) {
-    spacer.setAttribute("aria-hidden", "true");
-    spacer.className = "workspace-sticky-marker";
+  function reserve(element, name, marker) {
+    if (!element) return null;
+    const slot = document.createElement("div");
+    slot.className = `workspace-sticky-slot workspace-${name}-slot`;
+    element.before(marker, slot);
+    slot.append(element);
+    return slot;
   }
-  siteHeader?.before(headerMarker);
-  siteHeader?.after(headerSpacer);
-  chrome.before(chromeMarker);
-  chrome.after(chromeSpacer);
+  const headerSlot = reserve(siteHeader, "header", headerMarker);
+  const chromeSlot = reserve(chrome, "chrome", chromeMarker);
   let expandedHeaderHeight = siteHeader?.getBoundingClientRect().height || 0;
   let expandedChromeHeight = chrome.getBoundingClientRect().height;
 
   function measure() {
     const headerHeight = siteHeader?.getBoundingClientRect().height || 0;
     const reviewHeight = reviewNavigation?.getBoundingClientRect().height || 0;
-    if (siteHeader?.dataset.compact !== "true") expandedHeaderHeight = headerHeight;
-    if (chrome.dataset.compact !== "true") {
-      expandedChromeHeight = chrome.getBoundingClientRect().height;
-    }
     const stackTop = headerHeight + reviewHeight;
     document.documentElement.style.setProperty("--site-header-height", `${headerHeight}px`);
     document.documentElement.style.setProperty(
@@ -102,46 +98,45 @@ function mountStickyStack(workspace, updateBackToTop) {
   }
 
   function compact() {
-    const headerPast = headerMarker.getBoundingClientRect().bottom < 0;
-    if (siteHeader) {
-      siteHeader.dataset.compact = String(headerPast);
-      headerSpacer.style.height = headerPast
-        ? `${Math.max(0, expandedHeaderHeight - siteHeader.getBoundingClientRect().height)}px`
-        : "0px";
-    }
-    const stackTop = (
-      siteHeader?.getBoundingClientRect().height || 0
-    ) + (
-      reviewNavigation?.getBoundingClientRect().height || 0
+    // Both markers precede fixed flow slots. Compact heights never enter a threshold.
+    const headerDistance = -headerMarker.getBoundingClientRect().bottom;
+    const reviewHeight = reviewNavigation?.getBoundingClientRect().height || 0;
+    const chromeDistance = expandedHeaderHeight + reviewHeight
+      - chromeMarker.getBoundingClientRect().bottom;
+    const past = (element, distance) => distance > (
+      element.dataset.compact === "true" ? 0 : 8
     );
-    const chromePast = chromeMarker.getBoundingClientRect().bottom < stackTop - 1;
-    chrome.dataset.compact = String(chromePast);
-    chromeSpacer.style.height = chromePast
-      ? `${Math.max(0, expandedChromeHeight - chrome.getBoundingClientRect().height)}px`
-      : "0px";
+    if (siteHeader) {
+      siteHeader.dataset.compact = String(past(siteHeader, headerDistance));
+    }
+    chrome.dataset.compact = String(past(chrome, chromeDistance));
     measure();
   }
 
   function remeasure() {
+    const headerCompact = siteHeader?.dataset.compact || "false";
+    const chromeCompact = chrome.dataset.compact || "false";
     if (siteHeader) siteHeader.dataset.compact = "false";
     chrome.dataset.compact = "false";
-    headerSpacer.style.height = "0px";
-    chromeSpacer.style.height = "0px";
     expandedHeaderHeight = siteHeader?.getBoundingClientRect().height || 0;
     expandedChromeHeight = chrome.getBoundingClientRect().height;
+    if (headerSlot) headerSlot.style.height = `${expandedHeaderHeight}px`;
+    chromeSlot.style.height = `${expandedChromeHeight}px`;
+    if (siteHeader) siteHeader.dataset.compact = headerCompact;
+    chrome.dataset.compact = chromeCompact;
     compact();
   }
 
   const observer = typeof ResizeObserver === "undefined"
     ? null
-    : new ResizeObserver(measure);
+    : new ResizeObserver(remeasure);
   for (const element of [siteHeader, reviewNavigation, chrome]) {
     if (element) observer?.observe(element);
   }
   window.addEventListener("scroll", compact, {passive: true});
   window.addEventListener("resize", remeasure);
-  compact();
-  return compact;
+  remeasure();
+  return remeasure;
 }
 
 export function mountWorkspaceShell({

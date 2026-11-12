@@ -225,7 +225,7 @@ Direct lineage URLs remain available. Full V1-V16 acceptance remains partial;
 local implementation/deployment is authorized, but remote deployment and live
 publication/default changes are not.
 
-Workspace refinement V.a-V.d (implementation requested, acceptance pending):
+Workspace refinement V.a-V.d (implemented, acceptance partial):
 all main tab content, including the editor canvas, uses
 document scrolling with the footer after active content. Compact navigation must
 not oscillate on initial scroll. Coordinate primary tabs, secondary tabs and
@@ -235,7 +235,14 @@ saved working-copy baseline and unsaved draft content. Preserve per-view positio
 editor state, navigation/focus offsets and exact-output semantics. The
 [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
 owns V17-V22 acceptance and supersedes older independent-main-panel scroll
-guidance. The follow-up has not been deployed. Bugfix V.e (specified only,
+guidance. V.a keeps expanded-height flow slots around the compacting bars;
+transitions never shrink those slots, and thresholds do not depend on compact
+heights. An 8px entry band prevents boundary chatter without compensating for
+lost flow space. Resize remeasures expanded heights inside the existing slots.
+Article/book Chromium checks cover tiny wheel increments and held scrollbar
+drags with invariant scroll ranges; original-tester confirmation and browser
+zoom remain pending. Local deployment is authorized; live content mutation is not.
+Bugfix V.e (specified only,
 acceptance V23): the generated end-of-book Metadata page is part of the editor
 canvas document, presented like the Title and ToC pages, not a block after the
 editor; the full metadata sheet appears only in the Metadata subtab.

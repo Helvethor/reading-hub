@@ -96,6 +96,78 @@ test("Back to top refreshes the sticky stack and button without a scroll event",
   assert.equal(shell.selectTab instanceof Function, true);
 });
 
+test("tiny scrolling preserves flow geometry through compaction, reversal and resize", () => {
+  const form = setup();
+  const header = document.querySelector(".site-header");
+  const chrome = document.querySelector(".workspace-chrome");
+  const review = document.querySelector(".review-navigation");
+  let y = 0;
+  let expandedHeader = 120;
+  let expandedChrome = 220;
+  const box = (top, height) => ({top, bottom: top + height, height});
+  const headerHeight = () => header.dataset.compact === "true" ? 56 : expandedHeader;
+  const chromeHeight = () => chrome.dataset.compact === "true" ? 72 : expandedChrome;
+  const reserved = (element, height) => {
+    const slot = element.parentElement;
+    return slot.classList.contains("workspace-sticky-slot")
+      ? parseFloat(slot.style.height) || height() : height();
+  };
+  const range = () => 5000 + reserved(header, headerHeight) + reserved(chrome, chromeHeight);
+  let lastRange = range();
+  // Model anchoring at each forced layout, not merely after the scroll handler.
+  const flushLayout = () => {
+    const next = range();
+    y += next - lastRange;
+    lastRange = next;
+  };
+  header.getBoundingClientRect = () => { flushLayout(); return box(0, headerHeight()); };
+  chrome.getBoundingClientRect = () => { flushLayout(); return box(0, chromeHeight()); };
+  review.getBoundingClientRect = () => box(0, 40);
+  const create = document.createElement.bind(document);
+  document.createElement = name => {
+    const element = create(name);
+    if (name === "span") {
+      element.getBoundingClientRect = () => {
+        flushLayout();
+        const origin = element.nextElementSibling?.contains(chrome)
+          ? reserved(header, headerHeight) + 160 : 0;
+        return box(origin - y, 0);
+      };
+    }
+    return element;
+  };
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  const scroll = target => {
+    y = target;
+    const before = range();
+    window.dispatchEvent(new window.Event("scroll"));
+    flushLayout();
+    assert.equal(y, target, "A transition must not move the scroll position.");
+    assert.equal(range(), before, "A transition must not change the scroll range.");
+    const state = [header.dataset.compact, chrome.dataset.compact];
+    for (let i = 0; i < 3; i++) window.dispatchEvent(new window.Event("scroll"));
+    assert.deepEqual([header.dataset.compact, chrome.dataset.compact], state,
+      "No further input must leave the state stable.");
+    return state;
+  };
+  for (let i = 0; i <= 150; i++) scroll(i);
+  assert.deepEqual(scroll(150), ["true", "true"]);
+  for (let i = 150; i >= 0; i--) scroll(i);
+  assert.deepEqual(scroll(0), ["false", "false"]);
+  assert.deepEqual(scroll(1000), ["true", "true"]);
+  expandedHeader = 180;
+  expandedChrome = 320;
+  window.dispatchEvent(new window.Event("resize"));
+  assert.equal(header.parentElement.style.height, "180px");
+  assert.equal(chrome.parentElement.style.height, "320px");
+  const resizedY = y;
+  assert.deepEqual(scroll(resizedY), ["true", "true"]);
+  assert.deepEqual(scroll(0), ["false", "false"]);
+});
+
 test("Read uses the current captured document and tab history keeps the editor mounted", async () => {
   const form = setup();
   const surface = document.querySelector("#editor-surface");

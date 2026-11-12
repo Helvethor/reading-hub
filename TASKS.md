@@ -125,23 +125,25 @@ The [unified workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md) owns
 V1-V16 acceptance and supersedes earlier separate-page requirements for the four
 work views. U1/U2 delivery/evidence above is historical, not proof of this outcome.
 
-**V.a-V.d follow-up:** implementation requested; milestones remain incomplete
-and V17-V22 acceptance is unvalidated. A narrow V.b preparation fixes a
-delayed evidence-inspection anchor race, covered by synthetic tests; this does
-not implement document-flow scrolling. See the
+**V.a-V.d follow-up:** V.b-V.d implementation landed in `818ac59`, `c21d0cd`,
+`7407b4a` and `89f5da6`; full V17-V22 acceptance remains partial.
+V.a now uses stable expanded-height sticky slots and independent thresholds
+instead of shrink-then-spacer compensation. See the
 [implementation-agent handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#follow-up-milestones-va-vd-stable-page-flow-workspace)
 for scope, dependencies and V17-V22 acceptance.
 
-- [ ] V.a: reproduce and fix first-scroll oscillation; stabilize measured
-  compaction and the ordered header/context/secondary-tabs/command stack.
-  The user's clarified trigger is tiny wheel increments or a held scrollbar
-  drag: header shrinkage changes scroll geometry and immediately re-expands it.
-  Validate stable flow reservation and thresholds, not just large scroll steps.
-- [ ] V.b: put all main tab content, including the editor canvas, into document
-  flow; preserve per-view position, anchor/focus navigation and footer ownership.
-- [ ] V.c: coordinate secondary tabs/actions/filters; move pinned source
-  structure into an evidence-only Edit tab without duplicating navigation.
-- [ ] V.d: make PDF labels, status, file identity and exported content agree
+- [x] V.a implementation: preserve document-flow space throughout compaction;
+  derive thresholds from stable markers and expanded heights, with an 8px
+  entry band. Synthetic forced-layout tests cover scroll anchoring, tiny
+  increments, reversal and resize. Visible Chromium checks on article 101 and
+  book 80 preserve scroll range under wheel input and held scrollbar drags.
+  Tester confirmation and browser zoom remain pending; this is not full V17
+  acceptance or a claim that the original usage loop was independently reproduced.
+- [ ] V.b acceptance: validate document flow across all main tabs, per-view
+  position, anchor/focus navigation and footer ownership.
+- [ ] V.c acceptance: validate coordinated secondary tabs/actions/filters and
+  the evidence-only Pinned source structure tab without duplicate navigation.
+- [ ] V.d acceptance: validate PDF labels, status, file identity and exported content
   across immutable, saved-working-copy and unsaved states.
 - [ ] V.e (bugfix, specified only): user reports the generated Metadata page
   appearing after the editor instead of inside it. Reproduce on an isolated
