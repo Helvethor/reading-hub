@@ -266,6 +266,19 @@ heading or "Workspace" label. Its single h1 is the work title, with the type and
 edition above it, and the reader default is an explicit same-page action.
 Guests continue to receive the exact retained output and PDF.
 
+V.i (specified only, acceptance V27-V30 in the
+[workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vi-versionssources---inspect-compare-and-act)):
+Versions/Sources prioritizes selected identity, applicable guarded actions and
+inline differences from the verified content parent before provenance/audit.
+Review/publication events remain distinct records grouped with their content.
+Relationship scopes (anchored branch plus direct parent, exact source capture,
+whole work) are independent of record filters; inspection does not move the
+anchor or change active content. Compact lanes and optional nesting capped at
+three visual levels retain true depth and ancestry. Comparisons name exact
+inputs, include metadata and expose missing/unknown ancestry explicitly.
+Existing permission, immutable-output, recovery and publication/default guards
+remain authoritative; recording this milestone authorizes no live operations.
+
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires
 explicit working-copy selection before saving. Guests continue to the immutable

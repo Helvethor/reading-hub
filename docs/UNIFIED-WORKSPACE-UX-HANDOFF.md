@@ -5,7 +5,8 @@ Status: core implementation is present; V1-V16 acceptance remains partial.
 V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
 The V.e Metadata-page placement bugfix (V23), V.f compact Edit command bar
 (V24) and V.g Read contents panel/toggle/bar (V25) are specified only. V.h one
-work page for every role (V26) is specified only.
+work page for every role (V26) is specified only. V.i Versions/Sources redesign
+(V27-V30) is specified only; recording it does not authorize implementation.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
 Local deployment is authorized; remote publication, migrations and live content
@@ -642,6 +643,117 @@ Required behavior:
 - **Out of scope.** Publication pages (`document_publication.html`), catalogue
   pages, M's style cascade semantics, permission changes and live-data changes.
 
+### V.i: Versions/Sources - inspect, compare and act
+
+User direction accepted for milestone recording 2026-11-12: group information
+by importance, expose changes from the previous version inline, bring Read,
+Edit, Review, Publish and Make default actions above long details, and offer
+branch/source/work genealogy scopes without excessive nesting.
+
+Starting evidence (code inspection at `d6d2d3e`, not a browser reproduction):
+`document_lineage.html` places introductory text, selection audit and filters
+before the navigator. The inspection pane puts details/provenance before many
+actions. The timeline mixes content versions, histories, reviews and publication
+events. Revision comparison links open a workflow panel and specify `from=0`
+(the history base), not the preceding saved version. The comparison endpoint
+accepts revision pairs within a history; cross-history and retained-edition
+comparison compatibility must be established, not assumed.
+
+#### Information hierarchy and actions
+
+Use an action-led inspector with a compact version navigator alongside it on
+wide screens, stacked on narrow screens:
+
+1. Selected item's exact identity, date and review/publication/default status;
+   distinguish inspected content from the version or unsaved draft open in Edit.
+2. Applicable actions immediately below that identity, before lengthy details.
+3. Inline "Changes from parent", then Information and Evidence detail views.
+4. Parent, branch and source relationships.
+5. Collapsed technical provenance and audit.
+
+Normally attach review/publication events to their exact content version as
+badges or grouped events, rather than equal competing timeline entries. Preserve
+their separate identities, inspection URLs and immutable records. Review-only
+saved revisions remain identifiable even when their content is unchanged.
+
+Expose Read, Edit, Review, Publish and Make reader default where applicable.
+Labels must describe the actual operation: Continue latest, Start alternative
+or Preview publication when appropriate. Never substitute latest content for a
+selected historical revision. Unauthorized actions are absent; actions blocked
+by state explain why. Publication stays limited to eligible exact saved content.
+Review, publication and default selection remain separate guarded workflows;
+existing reasons, confirmation, stale-state checks and permissions still apply.
+Keep the selected identity/action header reachable below the measured stack
+without clipping short/narrow screens or putting the whole tab in a scroll box.
+
+Sources uses the same information hierarchy but source-specific actions:
+Inspect capture, View derived versions, Preview regeneration and Fetch latest
+source. Clearly distinguish offline retained-source regeneration from network
+fetching. Preserve existing permission and explicit-operation boundaries.
+
+#### Inline comparisons
+
+Default to Changes from parent for selected saved content. "Parent" means its
+verified content predecessor, not the preceding timestamp, review event or
+grouping/history node. Resolve branch starts through their exact recorded base.
+Show both comparison identities and direction. Include content and metadata
+changes; distinguish review-only changes with "No content changes".
+
+Unknown/corrupt ancestry or missing content produces an explicit unavailable
+reason, never a guessed parent, silent baseline substitution or empty success.
+Offer Compare with for another compatible version, preserving exact identities
+across branch and edition boundaries. Reuse the comparison service and add only
+the compatibility needed for these saved-content comparisons. Load results
+inline without navigation or editor replacement. Late results must not replace
+the comparison for a newer selection; loading and errors are explicit.
+
+Source-capture comparisons use source-specific evidence only where supported;
+otherwise explain the limitation and retain source inspection. Do not equate
+raw captured HTML changes with semantic version differences.
+
+#### Genealogy scope and presentation
+
+Separate relationship scope from record filters (Published, Working copies,
+Archived, etc.). Default the scope anchor to the exact opened version, or the
+opened working copy's saved baseline; show its identity beside the controls.
+
+| Scope | Included relationships |
+|---|---|
+| This branch (default) | Anchored version, all its descendants and its direct verified parent. |
+| This source | Genealogy derived from the anchor's exact retained source capture, not merely the same source URL. |
+| Whole work | Genealogy across all retained sources for this work. |
+
+Inspecting a row does not move the anchor. An explicit Focus on this version
+action changes it. Missing source/parent bindings are labelled unknown, not
+inferred. Preserve shared-source links separately from content ancestry.
+Filtering shows boundary/context markers for hidden ancestry, result counts and
+a Show whole work escape. Context-only elements remain inspection-only under
+existing rules. Retain the current lineage size guard with explicit errors;
+never silently truncate genealogy to make the view fit.
+
+Use compact branch lanes by default and optional Nested presentation. Cap visual
+indentation at three levels, then show actual depth and a parent breadcrumb.
+Branches can collapse with descendant counts; collapse does not discard nodes.
+Shared source evidence is linked, not duplicated into fictitious parentage.
+Keep controls usable by keyboard and at mobile widths. Scope, anchor, record
+filter, presentation and selected identity survive tab switches and browser
+Back/Forward/deep links without changing active content or saving preferences
+into the publication.
+
+#### Delivery and exclusions
+
+Deliver the information/action hierarchy first, verified inline comparisons
+second, then genealogy scopes and bounded nesting; checkpoint validated slices.
+Reuse V.c/V.g's contextual bar design and V.h's role-aware shell, coordinating
+rather than blocking independent lineage work on V.h completion. Preserve V.d
+exact-output semantics and P publication/default contracts.
+
+Use isolated article/book histories with branches, multiple captures, shared
+sources, archived and unknown ancestry, review-only revisions and deep histories.
+No live corrections, default selection or publication are authorized by this
+documentation request. Defer a full interactive graph, merging, ancestry
+rewriting and general-purpose comparison of arbitrary source formats.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -652,7 +764,8 @@ retirement, A hierarchy, P publication/default contracts and M's planned style
 placement. No new framework, personal-style system, publication model or live-data
 mutation belongs to this follow-up. V.e, V.f and V.g are independent and may land
 first as focused fixes after reproduction. V.h depends on V.d and V.g, and should
-follow M's style placement or coordinate with it. Stop only after V17-V26 and relevant V1-V16
+follow M's style placement or coordinate with it. V.i follows the delivery order
+in its section. Stop only after V17-V30 and relevant V1-V16
 preservation checks are evidenced; report browser limitations rather than claiming
 full acceptance from jsdom tests.
 
@@ -717,7 +830,12 @@ unsaved edits. Track implementation and validation independently.
 | V25 | On an isolated long book working copy in Read at 1440px, 1024px and 375px wide, first reproduce the ToC disappearing on scroll, then record its position against the measured stack. After the fix, deep-scroll in both directions with the header expanded, compact and wrapped: the whole ToC panel stays below the stack, scrolls internally to its last entry, and its links land below the stack. The Contents switch next to Download PDF toggles `aria-pressed`. When the ToC is hidden it is absent from layout and accessibility, and the reading column widens to its bounded maximum without losing the reading position. The state survives tab switches and Read re-renders, saves nothing to the server and does not change PDF/print output. Screenshots show the Read, Versions and Sources bars attached to the tab card with consistent radius, borders and surface at every width. Keyboard, focus and contrast checks pass. |
 | V26 | Using isolated copies of an article and a long book, capture screenshots of `/versions/<id>/` at 1440px and 375px wide as a guest, a signed-in non-reviewer and a reviewer. All show the same card, tab bar, Read layout, sticky behavior and footer. Edit appears only for reviewers, and guest network traces show no editor bundle, draft, recovery or reviewer-only lineage requests. Old `/versions/<id>/editor/?draft=…&start=source&tab=…` links redirect with their query and fragment kept; `reader-pdf`, `reader.css` and catalogue links still work. Without a working copy, Read and its PDF match the exact retained output (content and PDF comparison). Each page has one h1, the work title, which is not a link; no "Editor" heading or "Workspace" label remains. Opening the reader default stays on the same page design and the unsaved-edit guard fires. Reading-style settings appear only in Read (M), and V.g applies in both states. Print/PDF output, permissions and mutation counts are unchanged. Retire the old header templates only after their tests have been migrated.
 
-Stop when V1-V26 are implemented and validated, not when tabs merely look alike.
+| V27 | On isolated article/book fixtures at desktop and mobile widths, selected identity and applicable Read/Edit/Review/Publish/Make default actions precede long details and remain reachable. Test historical, latest, archived, context-only and unauthorized selections; actions target exactly the labelled content, explain state restrictions and retain guards/confirmations. Sources distinguishes retained inspection/regeneration from network fetch. Selecting items does not change Edit content. |
+| V28 | Inline parent comparisons show both exact identities and content/metadata changes for sequential revisions, branch starts and compatible retained editions. Review-only revisions report no content changes. Unknown/corrupt/missing parents give explicit reasons without substituted baselines. Compare with handles compatible alternatives; rapid selection cannot display stale results. Comparison/filtering produce no saves, reviews, publication or reader-default changes. |
+| V29 | Assert exact scope membership for This branch (anchor, descendants, direct parent), This source (exact capture) and Whole work on a multi-source branched fixture. Inspection leaves the anchor fixed; Focus on this version explicitly changes it. Combine each scope with archived/type filters; preserve context boundaries, shared-source links, unknown bindings and explicit size-limit failures. Tab switches, deep links and Back/Forward restore scope, anchor, filter and selection without losing editor state. |
+| V30 | Exercise compact lanes and Nested views on a deep-history fixture: indentation never exceeds three visual levels, while real depth, breadcrumbs, branch counts and all accessible nodes remain accurate. Grouped review/publication events retain exact records and inspection links. Record visible-browser evidence at 1440px and 375px and 200% zoom, including short viewports, keyboard/focus, stack offsets, inline diff errors and unsaved-edit recovery; print/PDF content and role permissions are preserved. Distinguish synthetic correctness checks from observed workflow evidence. |
+
+Stop when V1-V30 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend

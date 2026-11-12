@@ -165,6 +165,13 @@ for scope, dependencies and V17-V22 acceptance.
   work's type, edition and title (as h1). The reader default becomes an
   explicit same-page action rather than a title link. Retire the older reader
   header after parity. Acceptance V26.
+- [ ] V.i (specified only): redesign Versions/Sources around selected identity,
+  prominent guarded actions and inline verified-parent comparisons. Separate
+  branch/source/work genealogy scope from record filters; keep the anchor fixed
+  during inspection. Offer compact lanes and nesting capped at three visual
+  levels with depth/breadcrumbs, preserving exact ancestry and event records.
+  Deliver hierarchy/actions, comparison, then scope/nesting. Acceptance V27-V30
+  in the [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vi-versionssources---inspect-compare-and-act).
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 
