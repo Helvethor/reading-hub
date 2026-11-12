@@ -422,6 +422,7 @@ def format_rendition(manifest, asset_warnings, organization=None, *,
     reviewed_metadata = source.metadata.pop("_reviewed_metadata", None)
     if reviewed_metadata is not None:
         apply_expected(source, None, {"metadata": reviewed_metadata})
+    source.metadata.setdefault("layout", {"version": 1, "defaults": "type", "overrides": {}})
     asset_warnings = list(asset_warnings)
     for part, body in pages:
         for image in body.select("img"):

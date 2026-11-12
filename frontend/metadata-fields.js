@@ -48,7 +48,9 @@ export function pagePreset(workType, book) {
 }
 
 export function bookPages(metadata, book) {
-  const pages = pagePreset(metadata.work_type, book);
+  const modernFallback = metadata.layout?.version === 1 && metadata.layout.defaults !== "legacy"
+    && metadata.work_type === "other";
+  const pages = pagePreset(modernFallback ? undefined : metadata.work_type, book);
   if (titleLayouts.includes(metadata.title_layout)) pages.title_layout = metadata.title_layout;
   for (const key of ["contents_page", "metadata_page"]) {
     if (typeof metadata[key] === "boolean") pages[key] = metadata[key];

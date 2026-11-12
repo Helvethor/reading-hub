@@ -96,6 +96,11 @@ class FreshDraftTests(TestCase):
         self.assertEqual(evidence["kind"], "fresh-retained-source")
         self.assertEqual(evidence["anchor"]["identity"], "historical")
         self.assertNotEqual(proposal["document"]["html"], self.rendition.html)
+        self.assertEqual(proposal["document"]["metadata"]["layout"],
+                         {"version": 1, "defaults": "type", "overrides": {}})
+        self.rendition.refresh_from_db()
+        self.assertNotIn("layout", self.rendition.metadata,
+                         "Fresh generation must not restyle the historical edition.")
         self.assertEqual(evidence["manifest"], self.rendition.snapshot.manifest)
         self.assertEqual(evidence["profile_digest"], fingerprint(evidence["profile_configuration"]))
         self.assertEqual(evidence["assets"], [self.blob.pk])

@@ -48,8 +48,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const book = form.querySelector("#editor-organization-book");
     return bookPages(layoutMetadata(), book ? book.checked : Boolean(presentation.book));
   }
-  function layoutMetadata() {
-    const metadata = {...readDocument().metadata};
+  function layoutMetadata(source = readDocument().metadata) {
+    const metadata = {...source};
     if (editor.state.doc.attrs.pages) {
       for (const key of ["title_layout", "contents_page", "metadata_page"]) delete metadata[key];
       Object.assign(metadata, editor.state.doc.attrs.pages);
@@ -363,7 +363,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
         const overrides = {...layout.overrides};
         if (separation.value) overrides[part] = separation.value;
         else delete overrides[part];
-        setDocumentLayout(editor, {...layout, overrides});
+        setDocumentLayout(editor, layout.defaults === "legacy" && !Object.keys(overrides).length
+          ? null : {...layout, overrides});
       }
       layoutDialog.close();
     } catch (failure) { layoutError.textContent = failure.message; }
@@ -537,7 +538,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     }
     preview.append(rows);
     renderMetadataPage(document, metadata, layout.metadata_page);
-    const boundaries = partLayout(layoutMetadata(), isBook());
+    const currentMetadata = layoutMetadata(metadata);
+    const currentBook = isBook();
+    const boundaries = partLayout(currentMetadata, currentBook);
     layoutSummaryText.textContent = `${layoutPreset(metadata, isBook()).reason}. ` +
       Object.entries(boundaries).map(([key, info]) => `${key}: ${info.value} (${info.origin})`).join("; ") +
       ". Each outline part offers Layout and separation; Reset to default removes only its override.";
@@ -545,13 +548,14 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     toc.dataset.layoutBefore = boundaries.toc.value;
     metadataPage.dataset.layoutBefore = boundaries.metadata.value;
     editor.view.dom.dataset.layoutBefore = boundaries.body.value;
+    const layoutHierarchy = outlineHierarchy(parts);
     parts.forEach((part, index) => {
       const position = tocEntryPosition(part);
       const node = editor.state.doc.nodeAt(position);
       const dom = editor.view.nodeDOM(position);
       if (node && dom instanceof owner.defaultView.HTMLElement) {
-        const info = contentSeparation(node, {...part, depth: outlineHierarchy(parts)[index].depth},
-          layoutMetadata(), isBook());
+        const info = contentSeparation(node, {...part, depth: layoutHierarchy[index].depth},
+          currentMetadata, currentBook);
         dom.classList.toggle("editor-layout-new-page", info.value === "new-page" &&
           position > 1);
       }
