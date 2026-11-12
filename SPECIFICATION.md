@@ -253,7 +253,14 @@ matches the other secondary toolbar buttons rather than being larger. V.g
 the sticky stack while scrolling. A Contents switch beside Download PDF shows or
 hides it; when it is hidden, the text widens to a bounded measure, and the
 setting is never saved to the server or applied to PDF/print. Tab action and
-filter bars visually join the rounded tab card.
+filter bars visually join the rounded tab card. V.h (specified only, acceptance
+V26): `/versions/<id>/` becomes the single work page for every role, using the
+workspace design. Read, Versions and Sources are available as each role
+permits; Edit and its draft assets exist only for reviewers. `/versions/<id>/editor/`
+redirects to `?tab=edit` with its query kept. The page shows no "Editor"
+heading or "Workspace" label. Its single h1 is the work title, with the type and
+edition above it, and the reader default is an explicit same-page action.
+Guests continue to receive the exact retained output and PDF.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

@@ -158,6 +158,13 @@ for scope, dependencies and V17-V22 acceptance.
   when the ToC is hidden, the text takes the freed width up to a readable
   maximum. Make the Read/Versions/Sources bars visually part of the rounded tab
   card. Acceptance V25.
+- [ ] V.h (specified only): one work page for every role. `/versions/<id>/` uses
+  the workspace design with Read/Versions/Sources for everyone; Edit is shown
+  only to reviewers, and `/editor/` redirects to `?tab=edit` with its query
+  kept. Remove the "Editor" heading. Replace the "Workspace" label with the
+  work's type, edition and title (as h1). The reader default becomes an
+  explicit same-page action rather than a title link. Retire the older reader
+  header after parity. Acceptance V26.
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 

@@ -4,7 +4,8 @@ Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
 V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
 The V.e Metadata-page placement bugfix (V23), V.f compact Edit command bar
-(V24) and V.g Read contents panel/toggle/bar (V25) are specified only.
+(V24) and V.g Read contents panel/toggle/bar (V25) are specified only. V.h one
+work page for every role (V26) is specified only.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
 Local deployment is authorized; remote publication, migrations and live content
@@ -537,7 +538,8 @@ Required behavior:
   and scrolls internally when long. The active entry stays visible, and
   following a ToC link brings the target heading into view below the stack.
   Do not change standalone reader/publication pages, which have no workspace
-  stack.
+  stack (superseded for `/versions/<id>/` by V.h once that page uses the
+  workspace design).
 - **ToC switch.** Add a toggle button, for example "Contents" with
   `aria-pressed` and `aria-controls` pointing to the ToC panel, in the Read
   action bar next to Download PDF, following the bar layout planned in V.c.
@@ -569,6 +571,77 @@ Required behavior:
   of the PDF action (V.d), deep links and internal links. Print and PDF output
   never include the bar, the switch or the ToC panel.
 
+### V.h: one work page for every role
+
+User decision 2026-11-12: record option A of the consolidation proposal.
+User-observed: `/versions/101/` still uses a different layout from
+`/versions/101/editor/`. The user reached the former from the workspace title
+link. The editor page's "Editor" heading and scope sentence add little beside
+the workspace card. The "Workspace" label should use a term that fits both
+reviewers and other readers.
+
+Evidence at `03d928f`, from reading the code:
+- `views.reader` renders `reader.html` for everyone. It contains the older
+  `work_context.html` header, reviewer-only `work_navigation.html` link tabs
+  pointing to `/editor/?tab=…`, `.reader-toolbar` Download PDF, reading-style
+  controls and print options.
+- `document_editor_views.workspace` (`@metadata_reviewer_required`) renders
+  `document_editor.html`. It has an `<h1>Editor</h1>`, a scope paragraph, and
+  the `.workspace-chrome` card with a "WORKSPACE" eyebrow and the title as h2.
+  That title links to `reader` for the reader default, which leaves the
+  workspace for the other layout.
+- `document_lineage_views.workspace` has no reviewer decorator; what it reveals
+  to guests must be confirmed before it is reused.
+
+Required behavior:
+- **One route and one page design.** `/versions/<id>/` is the canonical work page
+  for every role. It renders the workspace card and Read/Versions/Sources tabs
+  with the page-flow, sticky-stack and footer behavior from V.a–V.g.
+  - The Edit tab, its assets and its draft endpoints exist only for
+    authorized reviewers. For other users the tab is absent, not disabled.
+  - `/versions/<id>/editor/` permanently redirects to `/versions/<id>/` with
+    `tab=edit` (default) and keeps `draft`, `start` and other query
+    parameters and fragments.
+  - Non-reviewers who request `tab=edit` get Read without an error that
+    reveals drafts.
+  - Existing bookmarks, `reader-pdf`, `reader.css` and catalogue links keep
+    working.
+- **Read semantics.** Without a working copy, Read shows the exact retained
+  output of the opened edition, matching today's `reader.html` content. This
+  includes the review status, generated title, contents and metadata pages,
+  reading-style controls (placed per M), print options, and Download PDF with
+  the exact retained PDF.
+  - With a reviewer working copy, Read uses the V.d draft or saved-baseline
+    preview.
+  - V.g's ToC behavior, switch and bar apply to both states, which supersedes
+    V.g's exclusion of standalone reader pages.
+- **Versions/Sources for non-reviewers.** Show only what the lineage view
+  already permits for that role. If any of it is reviewer-only, the tab or
+  feature is absent. No new exposure of drafts, reviewer identities, private
+  evidence or editing actions.
+- **Work identity header.** Remove the "Editor" h1 and its scope paragraph. Move
+  that explanation into Edit help or the first-save confirmation. Keep the
+  evaluation, archived, fresh-source, origin and error notices in the card's
+  status area.
+  - Replace the "WORKSPACE" eyebrow with the work's type and edition, for
+    example "BOOK · edition 101".
+  - The work title becomes the page's single h1 and is not a link.
+  - Role-neutral wording applies everywhere: the tab list is labelled "Work
+    views", and the page title is "<work title> | <site>" rather than "Work
+    editor".
+  - Readers see edition and reader-default lines. Reviewers additionally see
+    working-copy, saved and unsaved state.
+- **Reader-default navigation.** "Open reader default (edition N)" is an
+  explicit action that stays on the same page design. With unsaved edits it
+  uses the existing guard and recovery. It never selects a reader default or
+  saves anything.
+- **Retire duplicates.** After parity, retire `work_context.html`,
+  `work_navigation.html`, `.reader-toolbar` and the duplicate reader layout
+  rules, together with their tests. Remove them only once acceptance evidence
+  shows nothing still depends on them.
+- **Out of scope.** Publication pages (`document_publication.html`), catalogue
+  pages, M's style cascade semantics, permission changes and live-data changes.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -578,7 +651,8 @@ long, media-rich book fixtures, not live corrections. Preserve R annotation
 retirement, A hierarchy, P publication/default contracts and M's planned style
 placement. No new framework, personal-style system, publication model or live-data
 mutation belongs to this follow-up. V.e, V.f and V.g are independent and may land
-first as focused fixes after reproduction. Stop only after V17-V25 and relevant V1-V16
+first as focused fixes after reproduction. V.h depends on V.d and V.g, and should
+follow M's style placement or coordinate with it. Stop only after V17-V26 and relevant V1-V16
 preservation checks are evidenced; report browser limitations rather than claiming
 full acceptance from jsdom tests.
 
@@ -641,8 +715,9 @@ unsaved edits. Track implementation and validation independently.
 | V23 | Reproduce the reported placement on an isolated book fixture with a copied working copy (never the live edition 101 draft), recording a screenshot and DOM position. After the fix, in Whole book view the generated Metadata page is the last part of the canvas document, styled like the Title/ToC pages and before the selection path; it is absent from section views, follows include/omit and presets, and the full metadata sheet appears only in the Metadata subtab across tab switches, recovery and "Edit complete metadata…". Saved content, metadata values, undo history and print output are unchanged. |
 | V24 | On an isolated working copy at 1280px, 768px and 375px wide, and after 200% zoom, record toolbar height, each command's box/margin and row count before and after the fix. A single row is one command tall plus bar padding (no taller "Show"/"Section" controls). Preview publication matches the secondary toolbar buttons in height, margin, font size and weight, and is not larger or more prominent than Save version. Selects keep visible, programmatically associated labels. Preview opens the same dialog, keyboard order and focus are unchanged, sticky offsets track the new height, and print excludes the bar. |
 | V25 | On an isolated long book working copy in Read at 1440px, 1024px and 375px wide, first reproduce the ToC disappearing on scroll, then record its position against the measured stack. After the fix, deep-scroll in both directions with the header expanded, compact and wrapped: the whole ToC panel stays below the stack, scrolls internally to its last entry, and its links land below the stack. The Contents switch next to Download PDF toggles `aria-pressed`. When the ToC is hidden it is absent from layout and accessibility, and the reading column widens to its bounded maximum without losing the reading position. The state survives tab switches and Read re-renders, saves nothing to the server and does not change PDF/print output. Screenshots show the Read, Versions and Sources bars attached to the tab card with consistent radius, borders and surface at every width. Keyboard, focus and contrast checks pass. |
+| V26 | Using isolated copies of an article and a long book, capture screenshots of `/versions/<id>/` at 1440px and 375px wide as a guest, a signed-in non-reviewer and a reviewer. All show the same card, tab bar, Read layout, sticky behavior and footer. Edit appears only for reviewers, and guest network traces show no editor bundle, draft, recovery or reviewer-only lineage requests. Old `/versions/<id>/editor/?draft=…&start=source&tab=…` links redirect with their query and fragment kept; `reader-pdf`, `reader.css` and catalogue links still work. Without a working copy, Read and its PDF match the exact retained output (content and PDF comparison). Each page has one h1, the work title, which is not a link; no "Editor" heading or "Workspace" label remains. Opening the reader default stays on the same page design and the unsaved-edit guard fires. Reading-style settings appear only in Read (M), and V.g applies in both states. Print/PDF output, permissions and mutation counts are unchanged. Retire the old header templates only after their tests have been migrated.
 
-Stop when V1-V25 are implemented and validated, not when tabs merely look alike.
+Stop when V1-V26 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
