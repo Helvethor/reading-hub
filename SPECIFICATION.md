@@ -161,6 +161,12 @@ from main prose by a fine divider and opening space. Preserve readable contrast,
 selected themes, the metadata table and status prose across Read, preview, print
 and PDF. Metadata stays optional; review qualifications remain visible. Styling
 does not determine page breaks or change review facts or historical outputs.
+Follow-up M.j (specified only, M22-M23) diagnoses excessive top space above PDF
+titles and defines a measured opening-page inset appropriate to suppressed
+running headers. Full/compact title composition and part separation remain
+independent. Preserve comfortable edge/footer clearance, long-title fit,
+continuation-page furniture, content, themes and historical outputs; compare
+rendered candidates and verify PDF geometry and browser-print behavior.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;

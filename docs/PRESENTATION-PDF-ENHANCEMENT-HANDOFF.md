@@ -7,6 +7,7 @@ Follow-up M.h (M19) is specified only, not implemented or validated. This
 2026-11-12 request authorizes recording the filename change, not deploying it.
 Follow-up M.i (M20-M21), shared end-matter styling, is also specified only.
 Its recording does not authorize implementation or deployment.
+Follow-up M.j (M22-M23), coherent PDF title-page top spacing, is specified only.
 
 ## Outcome, authority and sequencing
 
@@ -418,6 +419,58 @@ screenshots before/after; do not claim visual acceptance from selector tests.
 Any required presentation cache-policy change must follow M6, preserving
 protected historical output rather than bulk overwriting cached PDFs.
 
+### M.j Coherent PDF title-page top spacing
+
+User report 2026-11-12: a large empty area above the title on the generated PDF
+title page feels incoherent; the user suggests the absent running header as a
+possible explanation. No specific PDF was supplied or independently measured.
+Treat the cause as a hypothesis until reproduced on an isolated export.
+
+Code evidence at `a3a2e95`: `print.css` reserves 30 mm top/bottom margins for
+both default and `reading-content` pages. Running headers are suppressed on
+`reading-content:first`, but the page margin remains. The title header's own
+top padding and h1 top margin are already zero in print rules. M.f can place
+full and compact titles on the named reading-content page. These rules explain
+one possible unused reservation, not the complete rendered gap: inspect inherited
+wrappers, generated styles, margin collapse, page selection and actual title
+text bounds before choosing the fix.
+
+Required outcome:
+
+- Give title-bearing opening pages an intentional top inset appropriate to
+  their lack of running headers. Reclaim unused header reservation where it
+  causes the reported gap, rather than adding a running header merely to fill
+  it. Preserve a comfortable paper-edge margin and existing lateral alignment.
+- Compare rendered candidates, for example 18, 24 and the existing 30 mm top
+  inset, against the title block's actual bounds. Select and document a
+  physical target and measurement tolerance for each supported title mode.
+  Do not declare a fix from a smaller CSS number alone. An intentional full
+  title composition may keep more space than a compact article opening.
+- Compact/full title controls content size/composition, not whether the next
+  part starts a new page. Keep M.f's separation choices independent. A compact
+  title followed continuously by text uses the same intentional opening-page
+  frame; subsequent body pages retain M.d's running furniture/body gaps.
+- Target the actual title-bearing page, not every named-page sequence's first
+  page or the first chapter after contents. Respect hidden/no-title outputs
+  and existing explicit part ordering without creating a blank page.
+- Preserve title, subtitle, selected bibliographic rows and their order.
+  Long/wrapped titles, large type, multiple contributors and dense metadata
+  must not clip, overlap the footer, disappear or acquire forced vertical
+  centering that worsens overflow. Do not shrink text to disguise spacing.
+- Check saved and draft exports, article/book/anthology presets, full/compact
+  layouts and continuous/new-page combinations. Browser print should follow
+  the same intent where supported; record engine differences explicitly.
+  Screen Read must not gain artificial page-sized gaps or print offsets.
+- Preserve header suppression, page numbering, running strings on continuation
+  pages, notes/media/targets, theme preferences and exact content. Record
+  intentional reflow/page-count changes. Apply M6's presentation cache policy;
+  no bulk rewrite of protected historical PDFs or live publication is authorized.
+
+Reuse shared print/layout policy rather than adding one-off title-specific
+inline negative margins or changing all page margins. Coordinate with M.d/M.f
+and generated Reading/PDF style rules. Validate with rendered page images and
+PDF text geometry; a visual screenshot alone cannot establish the exact inset.
+
 ## Discovery surfaces
 
 - Templates: `reader.html`, `pdf.html`, `document_review_status.html`,
@@ -465,7 +518,10 @@ saved versus changed-draft exports.
 | M20 | In isolated article/book saved and draft Read/preview fixtures, Metadata and Edition/review status share heading typography, spacing rhythm and available width. Both use a subtle divider/opening space distinct from main prose, with readable body contrast and scaling under supported themes. Check narrow widths, enlarged text, long metadata values and links; preserve table/prose layouts, exact warnings and navigation. Hiding Metadata leaves status visible once. Record before/after browser screenshots and measured styles, not just selector presence. |
 | M21 | Actual PDF and browser-print output use the same end-matter hierarchy without shaded-card dependence, clipped tables, faint qualifications or duplicated boundary rules. Exercise continuous/new-page separation and metadata on/off independently; styling does not change configured boundary decisions. Verify unchanged prose/order, review facts, PDF metadata and historical records, and explicit cache-policy preservation under M6. Report intentional reflow and visual evidence separately from automated correctness checks. |
 
-Stop when M1-M21 are implemented and validated with actual rendered output and
+| M22 | Reproduce and measure the reported opening gap on isolated title-bearing PDFs. Record paper edge, page/content frame, first title glyph bounds and inherited wrapper offsets before/after. Compare candidate insets and document the chosen target/tolerance for full and compact modes. Actual rendered title placement meets that target, without unused accidental header reservation, clipping or text-size workarounds. Report whether the proposed header-reservation cause was confirmed or another cause fixed. |
+| M23 | Exercise article/book/anthology full/compact and continuous/new-page title combinations, plus no-title output, long titles, enlarged fonts and dense bibliographic rows in saved/draft PDF and browser print. Preserve configured separation, header suppression, footer clearance, continuation-page M.d geometry, page numbering, content order/targets and theme settings. No unintended blank pages or screen Read gaps arise. Record reflow and print-engine differences; preserve historical output and cache identity under M6. |
+
+Stop when M1-M23 are implemented and validated with actual rendered output and
 parsed PDF metadata, not just template assertions or successful download status.
 For M7-M8, inspect rendered pages as well as extracted geometry; mathematical
 equality alone does not establish optical balance.

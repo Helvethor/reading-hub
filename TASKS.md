@@ -298,6 +298,7 @@ The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
 owns M1-M18 acceptance.
 The M.h filename follow-up (M19) is specified only, not part of that completion.
 The M.i shared end-matter follow-up (M20-M21) is likewise specified only.
+The M.j title-page top-spacing follow-up (M22-M23) is also specified only.
 
 - [ ] M.h: surround replacement hyphens in PDF download filenames with spaces,
   coalesce unsafe-character runs and preserve original hyphens, Unicode,
@@ -310,6 +311,12 @@ The M.i shared end-matter follow-up (M20-M21) is likewise specified only.
   themes, warnings, independent visibility and M.f page-break choices.
   Validate M20-M21 with actual browser/print/PDF output and historical-output
   preservation.
+
+- [ ] M.j: diagnose excessive PDF title-page top space and choose a measured,
+  intentional opening inset for full/compact titles without a running header.
+  Preserve independent page-break settings, continuation-page furniture,
+  long-title/metadata fit and historical output. Validate M22-M23 with
+  candidate comparison, rendered PDF geometry and browser-print checks.
 
 - [x] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.
