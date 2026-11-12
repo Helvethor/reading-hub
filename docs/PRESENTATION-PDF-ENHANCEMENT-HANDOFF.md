@@ -470,3 +470,20 @@ printers, independent accessibility/usability review and metadata survival throu
 third-party re-export remain unverified. Previously established publication-flow
 baseline failures are not repaired or certified by M. No live correction,
 publication, reader default or historical evidence is changed for acceptance.
+
+### Local delivery
+
+The final integrated suite passed 154 focused backend tests and all 295 frontend
+tests; the frontend build, Django checks and migration-drift check passed.
+The final copied-browser refresh confirmed the corrected Article scope label,
+saved layout and private 16 pt style, and an actual saved-revision PDF download
+returned 200 with a valid PDF signature.
+
+Code checkpoint `0e99731` was deployed locally at `http://127.0.0.1:8765/`.
+A fresh SQLite backup preceded migration 0034. Fingerprints of all 43 existing
+application tables were identical before migration and after live HTTP/PDF
+checks; the three new preference tables started empty. Homepage, reader and
+rebuilt asset requests returned 200. One representative retained article export
+returned a seven-page PDF whose properties/XMP and single source-generated end
+qualification were parsed successfully. This was a single derived export, not
+bulk regeneration or publication. The isolated test server was stopped.
