@@ -663,7 +663,10 @@ ambiguous choices disable Apply with a visible explanation.
 
 **Bulleted list** and **Numbered list** are in the common formatting toolbar and
 Selection tools. Use a paragraph caret or select complete consecutive paragraphs
-or sibling items; clicking the active type removes formatting. Selection tools
+or sibling items; clicking the active type removes formatting. New lists
+contain plain items with inline content directly in `li`, without a `p`.
+Paragraphs with IDs/classes and retained imported block structures stay intact;
+only structurally necessary nesting introduces block bodies. Selection tools
 also offers **Indent item**, **Outdent item** and **Move item up/down**. Enter
 splits the owning item and carries its following blocks/children with the suffix;
 Shift+Enter adds a line break. Enter removes an empty interior item, or exits a
@@ -683,7 +686,7 @@ collapsed ordinary paragraph caret outside lists, figures, tables and notes.
 It splits prose around a semantic `hr`, retaining the original target once and
 putting the caret in the following paragraph; unsafe target splits are refused.
 Each insertion is one undo step. With Block labels enabled, UL/OL containers have
-their own label/bar; each LI label and bar precedes its native bullet/number.
+their own label/bar; LI items have no individual labels or vertical bars.
 HR has a visible vertical bar too. These cues never enter saved HTML/JSON, Read
 or PDF.
 
@@ -711,6 +714,14 @@ editor-view/semantic-import backend tests, build/fidelity, native Chromium
 three rules versus one before insertion. Fixtures ran on a copied database;
 no live corrections, publication/default records, migrations or other workers
 were changed. Save unsaved work before reloading the editor.
+
+Subsequent plain-item/container-only refinement (2026-11-12) is deployed with
+JS `unified-workspace-v21` / CSS `unified-workspace-v11`. Home, byte-identical
+assets and the sign-in guard passed. Validation passed 320 frontend and 41
+editor-view tests plus build, and copied-data native article/book creation,
+keyboard editing, save/reopen and Read at 1280px/375px. New plain items have no
+paragraphs; LI cues are removed even from retained block items and diff widgets.
+Existing paragraph IDs/styles remain intact. No live corrections were changed.
 
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose

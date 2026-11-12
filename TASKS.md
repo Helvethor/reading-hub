@@ -262,6 +262,11 @@ and nesting behavior, ordinal-preserving refusals and mandatory success fixtures
   frontend and 52 focused backend tests, build/fidelity, native 1280px article /
   375px book save/reopen/Read and actual draft PDF rule/numbering checks on copied
   records; live corrections/defaults were not edited.
+- [x] Subsequent refinement (2026-11-12): create plain items without paragraph
+  wrappers and remove LI labels/bars, retaining only UL/OL list cues. Preserve
+  attributed/imported paragraphs and hidden chapters. Passed 320 frontend / 41
+  editor-view tests, build and copied-data native desktop/narrow
+  creation/edit/save/reopen/Read checks; deployed locally as JS v21 / CSS v11.
 
 ## Editor milestone Q: quotation/citation authoring (2026-11-12)
 

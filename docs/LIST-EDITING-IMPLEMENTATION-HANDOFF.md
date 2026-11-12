@@ -5,10 +5,31 @@ article/book fixtures after the explicit "Implement Q and L" authorization.
 No live draft, publication or reader default was changed for validation.
 Implementation-readiness refinement 2026-11-12: the decisions below resolve
 selection, numbering, structural-edit and keyboard ambiguities. These decisions
-remain binding except where the dated user-requested refinement below supersedes
-the original keyboard boundary; code inspection is not authoring acceptance.
+remain binding except where the dated user-requested refinements below supersede
+list shapes, keyboard boundaries or cues; code inspection is not authoring acceptance.
 
-## List removal and structural-cue refinement (2026-11-12)
+## Plain items and container-only cues (2026-11-12)
+
+The subsequent user refinement supersedes the earlier LI cue arrangement:
+attribute-free prose becomes inline-bodied `liText` (`li` in saved HTML), without
+inventing a `p`. Paragraph IDs/classes stay on retained paragraphs; imported
+block item structure is not flattened. Enter keeps new simple items inline.
+Selection mapping, undo/redo and removal of list formatting preserve content.
+Both inline/block LI items are excluded from labels and vertical bars, including
+removed-content diff widgets. Only UL/OL containers carry list cues. Native
+bullets/numbering remain, with container padding reserving their space.
+
+Validation: 320 frontend tests, 41 editor-view backend tests and the build passed.
+Native Chromium created a 12-item bulleted article at 1280px and numbered book
+at 375px; new items contained no paragraphs or LI gutters. Split/join, empty
+exit, undo/redo, save/reopen and Read passed. DOM Range set up selections;
+native keys/layout were used. Copied revision-2 records retained exact inline
+marks/links, IDs, imported block items and the untouched neighboring chapter.
+HTML attribute order is non-semantic. No new PDF or human accessibility
+acceptance is claimed for this refinement. JS v21 / CSS v11 were deployed
+locally with HTTP, asset-byte and sign-in-guard checks; live drafts were not edited.
+
+## Earlier list removal and structural-cue refinement (2026-11-12)
 
 Following the report from edition 101, safe sibling Backspace/Delete joins and
 empty interior-item Return removal are now implemented rather than blanket
@@ -198,9 +219,11 @@ These rules refine the interaction contract; they are not optional alternatives.
 
 ### Supported shapes and selection
 
-- New lists use `ul`/`ol` containing block-bodied `li` with one `p` per
-  selected paragraph. Keep each paragraph's attributes and inline content on
-  that paragraph; do not transfer its ID to the item.
+- New lists use `ul`/`ol` containing inline-bodied `liText` for attribute-free
+  selected paragraphs. Inline marks/links stay in the item without a `p`.
+  A paragraph with IDs/classes retains its block-bodied `li > p` shape and
+  original attributes; do not transfer its ID to the item. Existing imported
+  item structures remain unchanged.
 - Initial prose-to-list creation supports `p` siblings directly in `doc`,
   `section` or `div`, inside the visible part. Creation from headings,
   `inlineRun`, captions, tables or paragraphs already inside quotation/figure
@@ -298,8 +321,8 @@ substitute for implementing the milestone:
 
 | Fixture/action | Required result |
 |---|---|
-| Three prose paragraphs, create numbered list | One `ol`, three `li > p` items, displayed 1/2/3; paragraph IDs stay on `p`. |
-| Caret in empty `<p></p>`, create bullets | `<ul><li><p></p></li></ul>` with caret in the empty item; typing works and Enter can exit safely. |
+| Three prose paragraphs, create numbered list | One `ol`, three items displayed 1/2/3; plain text is directly in `li`, while paragraph IDs/classes stay on retained `p`. |
+| Caret in empty `<p></p>`, create bullets | `<ul><li></li></ul>` with caret in the empty item; typing works and Enter can exit safely. |
 | Attribute-free bullet list A/B/C, convert B to numbered | `ul(A)`, `ol(B)` starting at 1, `ul(C)`; no automatic join. |
 | Ordered list A/B/C, convert B to bullets | Refuse unchanged because C would restart at 1 under the supported schema. Whole-list conversion succeeds. |
 | Inline-bodied item `ab`, Enter between letters | Two inline-bodied items `a` and `b`; original item ID only on the left. |

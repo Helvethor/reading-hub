@@ -1711,7 +1711,9 @@ The 2026-11-12 removal refinement adds safe sibling joins with Backspace at an
 item's start or Delete at its end, Return removal of empty interior items and
 identity-preserving exit from styled/targeted final empty items. Unsafe
 target/style loss and unsupported internal joins remain explicit refusals.
-UL/OL container labels/bars and LI labels/bars before native markers are
+New lists put plain inline content directly in each `li`, without unnecessary
+paragraphs; retain paragraphs with IDs/classes and existing block structures.
+Only UL/OL containers have list labels/bars; LI items do not. These cues are
 view-only. HR has a visible vertical bar and manual toolbar/menu insertion at a
 safe ordinary paragraph caret outside lists, figures, tables and notes; it
 preserves prose/targets and is one undo step. Structural cues never enter
