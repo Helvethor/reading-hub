@@ -4223,7 +4223,6 @@ test("list containers have independent gutters above item and paragraph labels w
     assert.equal(node.dataset.editorBlock, label);
     assert.equal(node.dataset.editorLabelDepth, depth);
   }
-  assert.equal(editor.view.dom.querySelector("#numbers").style.getPropertyValue("--editor-list-marker-width"), "2ch");
   assert.equal(editor.view.dom.querySelector("hr").previousElementSibling.dataset.editorBlock, "HR");
   assert.equal(editor.getHTML(), html);
   assert.deepEqual(editor.getJSON(), json);

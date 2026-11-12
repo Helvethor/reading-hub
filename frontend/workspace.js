@@ -235,8 +235,9 @@ export function blockLabel(doc, pos, node) {
     EMPTYBLOCKTARGET: "TGT"}[tag] || (tag.length > 5 ? tag.slice(0, 3) : tag);
   const depth = chain.filter((ancestor, index) => labelled(ancestor, chain.slice(0, index))).length;
   const gutter = `--editor-label-gutter: var(--editor-label-column-${depth}, 1.5rem)`;
+  // Label pseudo-elements use a smaller font; rem keeps their marker offset identical.
   const marker = ["ul", "ol"].includes(node.type.name)
-    ? `; --editor-list-marker-width: ${node.type.name === "ul" ? 1 : String(node.childCount).length + 1}ch` : "";
+    ? `; --editor-list-marker-width: ${(.65 * (node.type.name === "ul" ? 1 : String(node.childCount).length + 1)).toFixed(2)}rem` : "";
   // Replaced nodes and scrolling tables cannot paint a label outside their box.
   const external = node.isLeaf || node.type.name === "table";
   return {tag, short, depth, gutter, external, attrs: {
