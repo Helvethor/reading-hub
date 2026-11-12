@@ -3,12 +3,14 @@
 Direction and documentation requested 2026-11-11.
 Status: core implementation is present; V1-V16 acceptance remains partial.
 V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
-The V.e Metadata-page placement bugfix (V23), V.f compact Edit command bar
-(V24) and V.g Read contents panel/toggle/bar (V25) are specified only. V.h one
+The V.e Metadata-page placement bugfix (V23) and V.f compact Edit command bar
+(V24) are implemented, with copied-book validation and the remaining acceptance
+limits recorded below. V.g Read contents panel/toggle/bar (V25) is specified only. V.h one
 work page for every role (V26) is specified only. V.i Versions/Sources redesign
 (V27-V30) is specified only; recording it does not authorize implementation.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
+The subsequent V.e/V.f implementation request authorizes those focused fixes.
 Local deployment is authorized; remote publication, migrations and live content
 mutation are not.
 
@@ -460,6 +462,25 @@ state, recovery, undo history, focus/tab state, outline/ToC navigation, page-flo
 footer ownership, sticky-stack offsets and print exclusions. Read/PDF placement
 is unchanged here; M owns generated-page breaks and ordering in output.
 
+Implementation and observed evidence, 2026-11-12 (`ff77603`): a saved working
+copy made from copied edition 80 reproduced the placement failure. The generated
+pages already shared styling and the correct `#editor-surface` parent; the
+editable root's `min-height: 100%` filled that parent again below Title/ToC.
+Metadata consequently overflowed the canvas and its selection footer, despite
+correct DOM order. A content-independent `20rem` minimum removes that cyclic
+sizing without moving generated content into ProseMirror or rebuilding it.
+Before/after screenshots and DOM geometry in Chromium confirm Metadata ends
+inside the canvas, before the selection path and page footer.
+
+On that isolated fixture, five-view navigation preserved text and saved state;
+section views hid Metadata. Keyboard Shift+F10, omit and undo restored the
+generated table. "Edit complete metadata" opened only the Metadata subtab;
+metadata edits survived subtab/view switches and guarded reload/recovery.
+No live edition 101 working copy was opened. Exact HTML/JSON exclusion and
+history invariants are covered by the existing focused frontend tests, rather
+than inferred from screenshots. Print-media exclusion was checked; a fresh
+Read/PDF content comparison and original-tester confirmation remain unverified.
+
 ### V.f: compact Edit command bar (bugfix)
 
 User-observed 2026-11-12 on a working copy of edition 80 (`?tab=edit`, 1280px
@@ -495,6 +516,49 @@ Required behavior:
   opening, keyboard order or focus outlines. V.a's measured sticky-stack offsets
   must update to the smaller height. V.c may later move commands into a stacked
   menu, but this fix must not wait for it.
+
+Implementation and validation, 2026-11-12 (`ff77603`): toolbar-scoped controls
+share a 2.45rem minimum, normal-weight .85rem text and inline label/select
+alignment. Preview publication has no extra margin and uses secondary styling;
+its standalone styling is unchanged. Secondary bars are also observed for
+resizing, so wrapping or revealing Section updates sticky offsets without a
+synthetic window-resize event.
+
+The embedded browser reproduced the reported single-row 88.75px toolbar and
+measured 56.19px after the fix, including padding/border, with 39.19px commands.
+A separate headless Chromium 154 run replayed the historical stylesheet on the
+same copied book, recorded screenshots/boxes, then tested the current stylesheet:
+
+| Viewport | Whole book before (height / rows) | After (height / rows) |
+| --- | --- | --- |
+| 1280px | 134.33px / 2 | 101.77px / 2 |
+| 768px | 179.91px / 3 | 147.34px / 3 |
+| 375px | 394.56px / 8 | 329.66px / 7 |
+
+Row count depends on available control/font widths; each current row contains
+39.19px controls, not stacked labels or an oversized preview. Whole book and
+Sections passed at all three widths, with no toolbar overflow and automatically
+correct sticky offsets. Native keyboard Enter opened the same revision's
+publication dialog; closing restored focus to Preview publication. The preview
+remained hidden during unsaved changes. Browser print media hid the command bar.
+
+At 640 CSS pixels and device scale 2 (200% device-scale/reflow emulation), the
+four-row bar decreased from 228.69px to 192.92px, with matching command boxes and
+correct offsets. Native browser zoom shortcuts did not change zoom in this
+harness; this emulation is not native-200%-zoom acceptance. Independent tester
+and assistive-technology acceptance remain pending. Validation passed 268 focused
+frontend tests (including a mocked ResizeObserver regression), 41 editor-view
+tests and the frontend build. These checks do not certify unrelated milestones.
+
+Local deployment: restarted the owned app at `http://127.0.0.1:8765/`; the
+library and changed assets returned HTTP 200, served CSS/JS matched the built
+files, and the reviewer editor remained sign-in protected. Fixture mutations
+used only the copied database; live verification made GET requests only.
+The whole-live-database fingerprint did change while the shared environment
+remained active. Comparison with the earlier fixture copy showed additional
+ingestion/editor/publication records and changed worker state. No live records
+were restored or discarded; an unchanged-live-database certificate is therefore
+not claimed.
 
 ### V.g: Read contents panel, ToC toggle and integrated action bar
 
@@ -854,5 +918,5 @@ No automatic saves/publication, live content conversion, collaboration/autosync
 service, framework rewrite, new version ancestry model, draft annotation remapping,
 automatic branch merge, catalogue mutation, public exposure or remote deployment.
 Local deployment is authorized by the later implementation instruction.
-The later implementation/local-run requests authorize V.a-V.d implementation
+The later implementation/local-run requests authorize V.a-V.f implementation
 and local deployment, not remote publication or live-content mutation.

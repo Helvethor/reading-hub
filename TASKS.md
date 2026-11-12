@@ -145,14 +145,20 @@ for scope, dependencies and V17-V22 acceptance.
   the evidence-only Pinned source structure tab without duplicate navigation.
 - [ ] V.d acceptance: validate PDF labels, status, file identity and exported content
   across immutable, saved-working-copy and unsaved states.
-- [ ] V.e (bugfix, specified only): user reports the generated Metadata page
-  appearing after the editor instead of inside it. Reproduce on an isolated
-  fixture; render it as the last canvas part like Title/ToC pages; keep the full
-  sheet only in the Metadata subtab. Acceptance V23.
-- [ ] V.f (bugfix, specified only): compact the Edit command bar (measured at
-  89px for one row). Keep the "Show"/"Section" labels on the same line as their
-  selects, and make Preview publication the same size as the other secondary
-  buttons, with no extra margin or bold text. Acceptance V24.
+- [x] V.e (bugfix, implemented): reproduced on a copied edition 80 working copy.
+  Remove the editable root's cyclic 100% minimum, which pushed the generated
+  Metadata page past the canvas/selection footer despite correct DOM order.
+  Chromium checks cover placement, views, metadata-subtab isolation, omit/undo
+  and unsaved metadata recovery. Generated pages remain outside saved prose.
+- [x] V.f (bugfix, implemented): inline "Show"/"Section" labels and normalize
+  command height/typography; Preview publication has secondary styling and no
+  extra margins. The single-row bar decreased from 88.75px to 56.19px.
+  Copied-book checks cover 1280/768/375px, dialog/focus, hidden preview and
+  automatic sticky remeasurement; 268 frontend and 41 editor-view tests pass.
+- [ ] V.e/V.f acceptance (V23/V24): original-tester confirmation, native 200%
+  browser zoom and fresh Read/PDF content comparison remain pending. Device-scale
+  200% emulation and browser print-media exclusion passed; neither is a claim of
+  independent usability/accessibility or full output comparison.
 - [ ] V.g (specified only): keep the Read ToC visible below the measured sticky
   stack while scrolling. Add a Contents show/hide switch next to Download PDF;
   when the ToC is hidden, the text takes the freed width up to a readable

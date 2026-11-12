@@ -251,13 +251,18 @@ lost flow space. Resize remeasures expanded heights inside the existing slots.
 Article/book Chromium checks cover tiny wheel increments and held scrollbar
 drags with invariant scroll ranges; original-tester confirmation and browser
 zoom remain pending. Local deployment is authorized; live content mutation is not.
-Bugfix V.e (specified only,
+Bugfix V.e (implemented with copied-book validation,
 acceptance V23): the generated end-of-book Metadata page is part of the editor
 canvas document, presented like the Title and ToC pages, not a block after the
-editor; the full metadata sheet appears only in the Metadata subtab. Bugfix V.f
-(specified only, acceptance V24): one row of Edit commands is a single command
+editor; the full metadata sheet appears only in the Metadata subtab. The editable
+root uses a content-independent minimum rather than filling the canvas again
+below its generated pages. Bugfix V.f
+(implemented with bounded acceptance V24): one row of Edit commands is a single command
 tall. Labels stay on the same line as their selects, and Preview publication
-matches the other secondary toolbar buttons rather than being larger. V.g
+matches the other secondary toolbar buttons rather than being larger. Measured
+sticky offsets follow command-row resizing. Copied-book checks cover three
+viewport widths, metadata recovery and dialog focus; native 200% zoom,
+original-tester confirmation and a fresh output comparison remain pending. V.g
 (specified only, acceptance V25): the workspace Read ToC stays reachable below
 the sticky stack while scrolling. A Contents switch beside Download PDF shows or
 hides it; when it is hidden, the text widens to a bounded measure, and the
