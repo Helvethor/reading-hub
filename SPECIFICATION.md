@@ -350,16 +350,17 @@ inputs, include metadata and expose missing/unknown ancestry explicitly.
 Existing permission, immutable-output, recovery and publication/default guards
 remain authoritative; recording this milestone authorizes no live operations.
 
-V.j (specified only, acceptance V31 in the
-[workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vj-read-width-toolbar-and-paper)):
+V.j (implemented; V31 acceptance partial; not deployed; acceptance in
+[the workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vj-read-width-toolbar-and-paper)):
 on the version Read tab, put Style alongside PDF and a clearly labelled Toggle
-ToC control in the same toolbar. Hiding the ToC must visibly widen the actual
-text, not just its enclosing column, without changing saved style settings or
-PDF/print. Present the content on a PDF-like paper surface with the PDF's
-18mm side and 30mm top/bottom margins at desktop widths, adapting on narrow
-screens. Preserve explicit reading palettes and the existing style workflow.
-This follow-up supersedes conflicting V.g width and control-label details; it
-does not authorize implementation, deployment or live-data changes.
+ToC control in the same toolbar. Hiding the ToC visibly widens the actual text,
+not just its enclosing column, without changing saved style settings or PDF/print.
+Present the content on a PDF-like paper surface with the PDF's 18mm side and
+30mm top/bottom margins at desktop widths, adapting on narrow screens. Preserve
+explicit reading palettes and the existing style workflow. This follow-up
+supersedes conflicting V.g width and control-label details; V31 browser/output
+acceptance remains pending. Implementation does not authorize deployment or
+live-data changes.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

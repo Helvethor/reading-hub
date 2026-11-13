@@ -94,6 +94,19 @@ body.workspace-page .review-navigation {
 .workspace-panel-edit .editor-workspace { border: 0; border-radius: 0; }
 .workspace-read-actions { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
 .workspace-read-actions :is(button, .button) { min-height: 2.45rem; }
+.workspace-read-actions > .workspace-reading-style {
+  flex: 0 1 auto;
+  max-width: none;
+  margin: 0;
+  background: transparent;
+}
+.workspace-read-actions > .workspace-reading-style[open] { flex-basis: 100%; }
+.workspace-read-actions > .workspace-reading-style > summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.45rem;
+  box-sizing: border-box;
+}
 .workspace-filter-bar { margin-block: 0 .75rem; }
 .workspace-read-content .reader-layout {
   grid-template-columns: minmax(0, 245px) minmax(0, 760px);
@@ -109,7 +122,6 @@ body.workspace-page .review-navigation {
 }
 .workspace-read-content .reader-layout.toc-hidden { grid-template-columns: minmax(0, 1fr); }
 .workspace-read-content .reader-layout.toc-hidden .reading-column {
-  max-width: 1000px;
   margin-inline: auto;
 }
 .workspace-read-content .toc-panel a[aria-current="location"] {
@@ -170,6 +182,25 @@ body.workspace-page .review-navigation {
   .site-header[data-compact="true"] { gap: .3rem; }
   .site-header[data-compact="true"] .brand { font-size: 1rem; }
   .site-header[data-compact="true"] .primary-navigation { font-size: .78rem; }
+}
+@media screen {
+  .workspace-read-content .publication-content { padding: 30mm 18mm; }
+  .workspace-read-content .reader-layout.toc-hidden .reading-column {
+    max-width: none;
+    width: 100%;
+  }
+  .workspace-read-content .reader-layout.toc-hidden .publication-content :is(
+    .document-header, .document-contents, .reader-content, .document-end-matter
+  ) {
+    max-width: none;
+    width: 100%;
+  }
+}
+@media screen and (max-width: 760px) {
+  .workspace-read-content .publication-content {
+    padding-block: 2rem;
+    padding-inline: clamp(1rem, 4vw, 18mm);
+  }
 }
 @media (max-height: 520px) {
   .workspace-context { padding-block: .3rem; }

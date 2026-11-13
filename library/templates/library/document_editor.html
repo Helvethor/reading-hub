@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v25">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v31">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v11-inline-q1">
 {% endblock %}
@@ -69,8 +69,7 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1"{% if initial_tab != "read" %} hidden{% endif %}>
-      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>PDF</button><button type="button" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button></div>
-      {% include "library/reading_style_controls.html" %}
+      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>PDF</button><button type="button" id="workspace-contents-toggle" aria-label="Toggle ToC" aria-pressed="true" aria-controls="workspace-read-toc">Toggle ToC</button>{% include "library/reading_style_controls.html" with workspace_style_control=True %}</div>
       <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
         <aside class="toc-panel" id="workspace-read-toc" aria-label="Table of contents" hidden></aside>
         <p>Select Read to render the current editor content. This does not save or publish it.</p>

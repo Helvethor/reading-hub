@@ -572,14 +572,34 @@ class DocumentEditorViewTests(TestCase):
         self.assertIsNone(page.select_one("#editor-panel-style"))
         panel = page.select_one("#workspace-panel-read .reading-style-controls")
         self.assertIsNotNone(panel)
+        self.assertIn("workspace-read-actions", panel.parent.get("class", []))
+        self.assertEqual(panel.find("summary", recursive=False).get_text(strip=True), "Style")
+        toggle = page.select_one("#workspace-contents-toggle")
+        self.assertEqual(toggle.get_text(strip=True), "Toggle ToC")
+        self.assertEqual(toggle["aria-label"], "Toggle ToC")
+        self.assertEqual(toggle["aria-pressed"], "true")
         self.assertEqual(panel["data-scope"], "output")
         self.assertIsNone(page.select_one("#workspace-panel-edit .reading-style-controls"))
         for form in panel.select("form"):
             self.assertIsNone(form.find_parent("form"))
         self.assertEqual(len(panel.select("form")), 1)
         self.assertEqual(response.context["reading_style"]["font_size"], 14)
-        self.assertContains(response, "Personal presentation only")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
+
+        public = Client().get(reverse("reader", args=[self.rendition.pk]))
+        self.assertEqual(public.status_code, 200)
+        public_page = BeautifulSoup(public.content, "html.parser")
+        public_actions = public_page.select_one("#workspace-panel-read .workspace-read-actions")
+        self.assertIsNotNone(public_actions)
+        self.assertIsNotNone(public_actions.select_one('[data-reading-pdf]'))
+        self.assertEqual(
+            public_actions.select_one("#workspace-contents-toggle").get_text(strip=True),
+            "Toggle ToC",
+        )
+        public_style = public_actions.select_one(".reading-style-controls")
+        self.assertEqual(
+            public_style.find("summary", recursive=False).get_text(strip=True), "Style",
+        )
 
     def test_exact_and_working_copy_read_and_pdf_share_the_output_style_snapshot(self):
         ReadingStyleOutputOverride.objects.create(

@@ -28,10 +28,10 @@ test("public workspace switches Read, Versions and Sources without editor reques
           <button role="tab" data-workspace-tab="sources" aria-controls="workspace-panel-sources">Sources</button>
         </div><p id="workspace-action-status"></p>
       </div>
-      <section id="workspace-panel-read"><button id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button>
+      <section id="workspace-panel-read"><button id="workspace-contents-toggle" aria-label="Toggle ToC" aria-pressed="true" aria-controls="workspace-read-toc">Toggle ToC</button>
         <div id="workspace-read-content"><div class="reader-layout">
           <aside class="toc-panel" id="workspace-read-toc"><a href="#heading">Heading</a></aside>
-          <div class="reading-column"><h2 id="heading">Heading</h2></div>
+          <div class="reading-column"><article class="reader-content"><h2 id="heading">Heading</h2></article></div>
         </div></div>
       </section>
       <section id="workspace-panel-versions" hidden><div id="workspace-versions-content"></div></section>
@@ -99,9 +99,24 @@ test("public workspace switches Read, Versions and Sources without editor reques
   assert.equal(state.get("versions_selected"), "edition:12");
   assert.equal(state.get("versions_anchor"), "edition:12");
 
-  document.querySelector("#workspace-contents-toggle").click();
+  const contentsToggle = document.querySelector("#workspace-contents-toggle");
+  assert.equal(contentsToggle.textContent, "Toggle ToC");
+  assert.equal(contentsToggle.getAttribute("aria-label"), "Toggle ToC");
+  owner.scrollTop = 300;
+  const heading = document.querySelector("#heading");
+  heading.getBoundingClientRect = () => ({
+    top: document.querySelector(".reader-layout").classList.contains("toc-hidden") ? 80 : 100,
+    bottom: 120,
+  });
+  contentsToggle.focus();
+  contentsToggle.click();
   assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
-  assert.equal(document.querySelector("#workspace-contents-toggle").getAttribute("aria-pressed"), "false");
+  assert.equal(contentsToggle.getAttribute("aria-pressed"), "false");
+  assert.equal(owner.scrollTop, 280);
+  assert.equal(document.activeElement, contentsToggle);
+  contentsToggle.click();
+  assert.equal(owner.scrollTop, 300);
+  assert.equal(contentsToggle.getAttribute("aria-pressed"), "true");
   document.querySelector('[data-workspace-tab="sources"]').click();
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(requested.length, 4);

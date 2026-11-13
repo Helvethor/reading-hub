@@ -221,15 +221,24 @@ the wider V26-V30 accessibility, long-history, zoom or print/PDF acceptance.
 Locally deployed as `b6cd76d` on 2026-11-13, including naming pass `1ccfcb0`;
 see the [deployment and preservation evidence](docs/OPERATIONS.md).
 
-Read layout follow-up V.j (specified only, 2026-11-13):
-- [ ] Place Style, PDF and Toggle ToC in the same Read toolbar for reviewer and
-  public workspaces; preserve the complete existing reading-style workflow.
-- [ ] Make hiding the ToC widen the rendered text itself, and give the reading
-  surface PDF-like paper and margins without changing PDF, saved preferences or
-  explicit palettes. See V.j in the
-  [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vj-read-width-toolbar-and-paper).
-- [ ] Validate V31 on isolated article/book fixtures across roles, responsive
-  widths, style choices, keyboard navigation and actual PDF/print output.
+Read layout follow-up V.j (implementation present; V31 acceptance partial,
+2026-11-13):
+- [x] Place Style, PDF and Toggle ToC in the same Read toolbar for reviewer and
+  public workspaces; Style reuses the existing controls and scope/persistence.
+- [x] Hiding the ToC widens actual publication content without changing its
+  selected line width; apply screen-only PDF-like paper margins and preserve
+  explicit palettes. The toggle retains the visible reading block and focus.
+- [ ] Complete V31 on isolated article/book fixtures across roles, responsive
+  widths, style choices, keyboard navigation and actual PDF/print output. See V.j
+  in the [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vj-read-width-toolbar-and-paper).
+- [x] Automated checks: 329 frontend tests, 59 isolated Django workspace tests,
+  production build, Django system checks and migration consistency pass.
+  Synthetic Chromium CSS checks measured body width increasing from 624 to
+  1,159px at 1440px and 460 to 746px at 1024px; 375px had no horizontal
+  overflow. Hiding the ToC did not change print body width in that fixture.
+  Saved/draft browser journeys, dark-palette rendering, native 200% zoom,
+  actual PDF/print comparison, human accessibility review and deployment remain
+  unverified. No live data or local deployment was changed.
 
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.

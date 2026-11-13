@@ -1,5 +1,5 @@
 {% load static %}
-<details class="reading-style-controls"
+<details class="reading-style-controls{% if workspace_style_control %} workspace-reading-style{% endif %}"
   data-preview-url="{% url 'reading-style-preview' %}"
   data-scope="{% if reading_style_account_settings %}account{% else %}output{% endif %}"
   data-work-type="{{ reading_style_work_type }}"
@@ -8,7 +8,7 @@
   data-authenticated="{{ reading_style_authenticated|yesno:'true,false' }}"
   data-import-guest-url="{% url 'reading-style-import-guest' %}"
   {% if reading_style_account_settings %}data-account-settings{% endif %}>
-  <summary>Reading &amp; PDF style <span class="reading-style-summary">Personal presentation only</span></summary>
+  <summary>{% if workspace_style_control %}Style{% else %}Reading &amp; PDF style <span class="reading-style-summary">Personal presentation only</span>{% endif %}</summary>
   <div class="reading-style-panel">
     {% if reading_style_account_settings %}
     <p class="reading-style-intro">My defaults are private to your account, follow you across devices, and apply per setting to this work type. Exact-version overrides take precedence. No preferences are copied to another edition.</p>

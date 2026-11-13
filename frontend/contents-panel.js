@@ -1,6 +1,17 @@
 export function mountContentsPanel(workspace, content, button) {
   let visible = true;
 
+  function readingPosition() {
+    const article = content.querySelector(".reader-content");
+    const scroller = content.ownerDocument.scrollingElement;
+    if (!article || !scroller) return null;
+    const target = [...article.children].find(element => {
+      const rect = element.getBoundingClientRect();
+      return rect.bottom > 0 && rect.top < window.innerHeight;
+    }) || article;
+    return {scroller, target, top: target.getBoundingClientRect().top};
+  }
+
   function update() {
     const layout = content.querySelector(".reader-layout");
     const toc = layout?.querySelector(".toc-panel");
@@ -29,8 +40,13 @@ export function mountContentsPanel(workspace, content, button) {
   }
 
   button?.addEventListener("click", () => {
+    const position = readingPosition();
     visible = !visible;
     update();
+    if (position?.target.isConnected) {
+      const shift = position.target.getBoundingClientRect().top - position.top;
+      position.scroller.scrollTop += shift;
+    }
   });
   window.addEventListener("scroll", update, {passive: true});
   return update;

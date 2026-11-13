@@ -686,8 +686,9 @@ space when the ToC is hidden; Style belongs in the same toolbar as PDF and
 the ToC control; replace "Contents" with a clear toggle label; and give the
 content the margins and white background of a PDF page.
 
-Current code evidence, not browser acceptance: both public and reviewer
-workspaces put `reading_style_controls.html` below the PDF/Contents bar.
+Baseline code evidence before V.j implementation, not browser acceptance: both
+public and reviewer workspaces put `reading_style_controls.html` below the PDF/
+Contents bar.
 The hidden-ToC column is capped at 1000px, but generated reading-style CSS
 also caps the actual header, contents and body to the selected `line_width`
 in `ch`. Increasing only the column can therefore leave the text unchanged.
@@ -727,7 +728,26 @@ Design and requirements, superseding conflicting V.g details:
   toggle. Apply to saved editions and unsaved draft previews without changing
   standalone publication pages or existing permissions.
 
-Acceptance V31 is pending; this design is not implementation or deployment.
+Implementation status (2026-11-13): reviewer and public Read tabs now place
+Style, PDF and Toggle ToC in one action bar; Style reuses the existing native
+disclosure and full settings form. Hiding ToC removes it from layout/accessibility,
+uses the available width for actual document sections despite the selected
+screen line-width cap, and preserves the visible reading block and focus. Screen
+paper uses 18mm inline/30mm block padding at desktop and adapts to 1rem inline
+padding on narrow screens. These rules do not apply to print.
+
+Validation: 329 frontend tests, 59 isolated Django workspace tests, production
+build, Django checks and migration consistency pass. An isolated synthetic
+Chromium layout fixture measured body widths of 624px shown / 1,159px hidden at
+1440px and 460px / 746px at 1024px; its 375px layout had no horizontal overflow.
+The fixture also confirmed 18mm/30mm desktop padding, 1rem narrow padding, focus
+retention, white default paper and unchanged print body width across ToC states.
+It did not use an actual saved/draft workspace or compare real PDF/print output.
+
+Acceptance V31 remains pending for representative saved/draft article/book
+journeys, guest/reviewer roles, explicit dark palettes, keyboard navigation,
+native 200% zoom, actual PDF/print content and margins, and human accessibility.
+No live data or deployment was changed.
 
 ### V.h: one work page for every role
 
