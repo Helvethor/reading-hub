@@ -221,6 +221,16 @@ the wider V26-V30 accessibility, long-history, zoom or print/PDF acceptance.
 Locally deployed as `b6cd76d` on 2026-11-13, including naming pass `1ccfcb0`;
 see the [deployment and preservation evidence](docs/OPERATIONS.md).
 
+Read layout follow-up V.j (specified only, 2026-11-13):
+- [ ] Place Style, PDF and Toggle ToC in the same Read toolbar for reviewer and
+  public workspaces; preserve the complete existing reading-style workflow.
+- [ ] Make hiding the ToC widen the rendered text itself, and give the reading
+  surface PDF-like paper and margins without changing PDF, saved preferences or
+  explicit palettes. See V.j in the
+  [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vj-read-width-toolbar-and-paper).
+- [ ] Validate V31 on isolated article/book fixtures across roles, responsive
+  widths, style choices, keyboard navigation and actual PDF/print output.
+
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 

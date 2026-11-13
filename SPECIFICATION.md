@@ -318,7 +318,7 @@ matches the other secondary toolbar buttons rather than being larger. Measured
 sticky offsets follow command-row resizing. Copied-book checks cover three
 viewport widths, metadata recovery and dialog focus; native 200% zoom,
 original-tester confirmation and a fresh output comparison remain pending. V.g
-(specified only, acceptance V25): the workspace Read ToC stays reachable below
+(implemented, acceptance V25 pending): the workspace Read ToC stays reachable below
 the sticky stack while scrolling. A Contents switch beside Download PDF shows or
 hides it; when it is hidden, the text widens to a bounded measure, and the
 setting is never saved to the server or applied to PDF/print. Tab action and
@@ -349,6 +349,17 @@ three visual levels retain true depth and ancestry. Comparisons name exact
 inputs, include metadata and expose missing/unknown ancestry explicitly.
 Existing permission, immutable-output, recovery and publication/default guards
 remain authoritative; recording this milestone authorizes no live operations.
+
+V.j (specified only, acceptance V31 in the
+[workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vj-read-width-toolbar-and-paper)):
+on the version Read tab, put Style alongside PDF and a clearly labelled Toggle
+ToC control in the same toolbar. Hiding the ToC must visibly widen the actual
+text, not just its enclosing column, without changing saved style settings or
+PDF/print. Present the content on a PDF-like paper surface with the PDF's
+18mm side and 30mm top/bottom margins at desktop widths, adapting on narrow
+screens. Preserve explicit reading palettes and the existing style workflow.
+This follow-up supersedes conflicting V.g width and control-label details; it
+does not authorize implementation, deployment or live-data changes.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

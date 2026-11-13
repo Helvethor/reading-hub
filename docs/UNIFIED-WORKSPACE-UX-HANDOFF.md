@@ -679,6 +679,56 @@ Required behavior:
   of the PDF action (V.d), deep links and internal links. Print and PDF output
   never include the bar, the switch or the ToC panel.
 
+### V.j: Read width, toolbar and paper
+
+User request 2026-11-13: on a version's Read tab, content should use more
+space when the ToC is hidden; Style belongs in the same toolbar as PDF and
+the ToC control; replace "Contents" with a clear toggle label; and give the
+content the margins and white background of a PDF page.
+
+Current code evidence, not browser acceptance: both public and reviewer
+workspaces put `reading_style_controls.html` below the PDF/Contents bar.
+The hidden-ToC column is capped at 1000px, but generated reading-style CSS
+also caps the actual header, contents and body to the selected `line_width`
+in `ch`. Increasing only the column can therefore leave the text unchanged.
+The PDF stylesheet uses 18mm side and 30mm top/bottom page margins, with a
+24mm top margin on the first compact-title content page.
+
+Design and requirements, superseding conflicting V.g details:
+- Place PDF, **Toggle ToC** and **Style** in one Read action toolbar for both
+  roles. Style opens the existing Reading & PDF style controls, retaining all
+  settings, scope choices, feedback, persistence and guest/account behavior;
+  it is not a second copy of the form. Keep the panel operable with keyboard
+  and visible focus, and make its expanded state accessible. Controls may wrap
+  on narrow screens without clipping or obscuring the sticky stack.
+- Toggle ToC is a stable accessible name with `aria-pressed` true when the
+  ToC is shown and `aria-controls` pointing to it. Keep V.g's default, session
+  behavior, sticky navigation and complete removal from layout/accessibility
+  when hidden. Showing it restores the prior two-column or narrow stacked view.
+- When hidden, use the freed horizontal space for the actual publication
+  content, including body and other aligned document sections. Override the
+  screen-only `line_width` constraint in this state rather than merely widening
+  its parent; do not mutate the selected style or its persisted value. Bound the
+  paper by the available workspace width and retain the configured line width
+  when the ToC is shown. At desktop widths where extra room exists, the measured
+  body content box must be strictly wider than with the ToC visible. Preserve
+  the reader's position and focus through both toggles.
+- Use a continuous paper-like reading surface rather than paginating the screen.
+  The default light presentation is white, with 18mm inline padding and 30mm
+  block padding corresponding to the PDF's normal page margins. On narrow
+  screens reduce inline padding as needed, down to 1rem, to avoid horizontal
+  overflow. Do not reproduce per-page running headers, pagination or the compact
+  first-page exception on screen. Explicit selected palettes, including dark
+  palettes, retain their paper/ink colors and contrast; do not force white over
+  a user's palette. The ToC remains outside the paper.
+- This is a screen layout change only: existing PDF/print margins, line-width
+  cascade, content, output identity and controls exclusion remain unchanged.
+  No style preference, edition, draft, review or publication is saved by a ToC
+  toggle. Apply to saved editions and unsaved draft previews without changing
+  standalone publication pages or existing permissions.
+
+Acceptance V31 is pending; this design is not implementation or deployment.
+
 ### V.h: one work page for every role
 
 User decision 2026-11-12: record option A of the consolidation proposal.
@@ -954,8 +1004,9 @@ unsaved edits. Track implementation and validation independently.
 | V28 | Inline parent comparisons show both exact identities and content/metadata changes for sequential revisions, branch starts and compatible retained editions. Review-only revisions report no content changes. Unknown/corrupt/missing parents give explicit reasons without substituted baselines. Compare with handles compatible alternatives; rapid selection cannot display stale results. Comparison/filtering produce no saves, reviews, publication or reader-default changes. |
 | V29 | Assert exact scope membership for This branch (anchor, descendants, direct parent), This source (exact capture) and Whole work on a multi-source branched fixture. Inspection leaves the anchor fixed; Focus on this version explicitly changes it. Combine each scope with archived/type filters; preserve context boundaries, shared-source links, unknown bindings and explicit size-limit failures. Tab switches, deep links and Back/Forward restore scope, anchor, filter and selection without losing editor state. |
 | V30 | Exercise compact lanes and Nested views on a deep-history fixture: indentation never exceeds three visual levels, while real depth, breadcrumbs, branch counts and all accessible nodes remain accurate. Grouped review/publication events retain exact records and inspection links. Record visible-browser evidence at 1440px and 375px and 200% zoom, including short viewports, keyboard/focus, stack offsets, inline diff errors and unsaved-edit recovery; print/PDF content and role permissions are preserved. Distinguish synthetic correctness checks from observed workflow evidence. |
+| V31 | On isolated article and long-book fixtures, exercise saved-edition guest and reviewer unsaved-draft Read at 1440px, 1024px and 375px, plus 200% zoom. Capture the toolbar and verify PDF, Toggle ToC and Style share it; keyboard-open Style and change/restore a setting with existing scope and persistence semantics. Measure actual body and paper boxes before/after toggling: at 1440px and 1024px the body widens when space permits, the hidden ToC occupies no space or accessibility tree, and toggling back restores the original width, focus and reading location. Check default white paper and computed desktop 18mm inline/30mm block padding, narrow-screen padding and no horizontal overflow; verify an explicit dark palette remains legible. Confirm ToC state across tabs and draft re-render, sticky targets and wrapped toolbar. Compare actual saved and draft PDF/print content and margins before/after; confirm no preference, content, publication or review mutation from toggling alone. Record screenshots and measurements, distinguishing observed from synthetic evidence. |
 
-Stop when V1-V30 are implemented and validated, not when tabs merely look alike.
+Stop when V1-V31 are implemented and validated, not when tabs merely look alike.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
