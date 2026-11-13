@@ -45,7 +45,7 @@ DEFAULTS = {
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
 PRESENTATION_SALT = "reading-hub-presentation-snapshot-v1"
-STYLE_VERSION = 8
+STYLE_VERSION = 9
 STYLE_SCOPES = ("output", "account")
 
 # (ink, paper, accent) per palette, light/dark mode and contrast level. Accents colour headings
@@ -548,6 +548,7 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
 {scope} :is(.document-contents > h2,.reader-content h2,.document-end-matter > h2) {{
   font-weight: 600; margin-block: 2.2em .85em;
 }}
+{scope} .document-end-matter > h2 {{ margin-block-start: 0; }}
 {text} [data-reading-marker]::before {{ content: attr(data-reading-marker); }}
 {scope} h3 {{ font-size: 1.35em; }}
 {scope} h4 {{ font-size: 1.15em; }}

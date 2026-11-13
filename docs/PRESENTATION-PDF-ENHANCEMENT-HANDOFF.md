@@ -9,7 +9,10 @@ not performed.
 Follow-up M.i (M20-M21), shared end-matter styling, was implemented 2026-11-13
 and tested with the shared style resolver and rendered PDF output. Browser
 screenshots, cross-engine comparison and human accessibility review remain open.
-Follow-up M.j (M22-M23), coherent PDF title-page top spacing, is specified only.
+Follow-up M.j (M22-M23), coherent PDF title-page top spacing, was implemented
+2026-11-13 with a measured 24 mm opening inset. Candidate PDF geometry,
+long-title fit and synthetic browser-print checks pass; no original supplied
+PDF or real saved/draft browser workflow was available.
 
 ## Outcome, authority and sequencing
 
@@ -482,6 +485,26 @@ Reuse shared print/layout policy rather than adding one-off title-specific
 inline negative margins or changing all page margins. Coordinate with M.d/M.f
 and generated Reading/PDF style rules. Validate with rendered page images and
 PDF text geometry; a visual screenshot alone cannot establish the exact inset.
+
+### M.j implementation evidence
+
+The original report did not include a PDF to reproduce. In an isolated
+WeasyPrint fixture, the prior 30 mm top frame was retained despite suppressed
+running headers. Full and compact title candidates at 18, 24 and 30 mm were
+rendered and measured: the first title glyph tracks the chosen inset (within
+2.5 mm), and the title-page content frame tracks it within 0.25 mm. The
+selected 24 mm inset leaves subsequent body pages at 30 mm. Full/compact and
+continuous/new-page behavior, as well as an 18 pt long title with selected
+bibliographic rows, have focused regressions.
+
+Synthetic Chromium print fixtures also placed the title at approximately 24 mm,
+kept body content on its configured following page, and displayed Metadata and
+status once; a 390 px viewport had no horizontal overflow. These fixtures are
+not authenticated saved/draft workflow evidence. Browser print headers/footers
+and engine-specific pagination can differ. The exact user-reported source PDF,
+exhaustive saved/draft and anthology combinations, cross-engine comparison and
+human accessibility review remain unverified. No live publication, stored
+content, historical PDF or retained cache was changed.
 
 ### M.k Title-only PDF download filenames
 

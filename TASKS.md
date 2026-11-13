@@ -365,7 +365,9 @@ M.h filename separators and M.k title-only naming (M19, M24) are implemented
 with server/client filename regressions; no browser download was manually made.
 M.i shared end-matter styling (M20-M21) is implemented and covered by actual
 WeasyPrint output/style tests; no independent usability/accessibility review.
-The M.j title-page top-spacing follow-up (M22-M23) is also specified only.
+M.j title-page top spacing (M22-M23) uses a measured 24 mm opening inset;
+candidate geometry, long-title fit and synthetic browser-print checks pass.
+No real saved/draft browser download or human accessibility review was performed.
 
 - [x] M.h: surround replacement hyphens in PDF download filenames with spaces,
   coalesce unsafe-character runs and preserve original hyphens, Unicode,
@@ -379,11 +381,16 @@ The M.j title-page top-spacing follow-up (M22-M23) is also specified only.
   M20-M21 are covered by shared resolver and rendered-PDF tests; browser
   screenshots, cross-engine review and human accessibility acceptance remain open.
 
-- [ ] M.j: diagnose excessive PDF title-page top space and choose a measured,
+- [x] M.j: diagnose excessive PDF title-page top space and choose a measured,
   intentional opening inset for full/compact titles without a running header.
   Preserve independent page-break settings, continuation-page furniture,
-  long-title/metadata fit and historical output. Validate M22-M23 with
-  candidate comparison, rendered PDF geometry and browser-print checks.
+  long-title/metadata fit and historical output. 18/24/30 mm candidates were
+  compared in WeasyPrint; title glyphs track the selected inset, with the
+  24 mm target measured within 2.5 mm and continuation body frames at 30 mm.
+  An 18 pt long-title/dense-metadata PDF test passes. Synthetic Chromium print
+  fixtures showed the same approximate title inset and no narrow-viewport
+  horizontal overflow. No source PDF, live saved/draft workflow, exhaustive
+  engine comparison or human accessibility review is claimed.
 
 - [x] M.k: name every PDF download using only its exact exported title plus
   `.pdf`, sanitized under M.h. Remove generated version/revision/draft qualifiers,

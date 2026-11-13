@@ -141,9 +141,11 @@ class ReadingStyleTests(TestCase):
         self.assertEqual(rgb(notice), ink)
         self.assertEqual(rgb(notice, "background_color"), mix(accent, paper, .08))
         self.assertEqual(rgb(boxes["s"]), accent)
-        for heading in ("m", "e", "c"):
-            for name in ("font_family", "font_size", "font_weight", "margin_top", "color"):
+        for heading in ("m", "e"):
+            for name in ("font_family", "font_size", "font_weight", "color"):
                 self.assertEqual(boxes[heading][name], boxes["s"][name], (heading, name))
+        for name in ("font_family", "font_size", "font_weight", "margin_top", "color"):
+            self.assertEqual(boxes["m"][name], boxes["e"][name], ("end-matter heading", name))
         # `ch` widths follow each box's own font, so section boxes share the prose font.
         for box in ("metadata", "edition", "document-contents"):
             for name in ("max_width", "font_family", "font_size", "line_height", "margin_top"):
@@ -476,6 +478,10 @@ class ReadingStyleTests(TestCase):
                 page = next(
                     page for page in layouts[-1].pages
                     if page._page_box.page_type.name == "reading-content"
+                    and {"@top-left", "@top-right"} <= {
+                        box.at_keyword for box in page._page_box.children
+                        if isinstance(box, MarginBox)
+                    }
                 )
                 body_tops.append(page._page_box.content_box_y())
                 positions = []

@@ -161,18 +161,17 @@ from main prose by a fine divider and opening space. Preserve readable contrast,
 selected themes, the metadata table and status prose across Read, preview, print
 and PDF. Metadata stays optional; review qualifications remain visible. Styling
 does not determine page breaks or change review facts or historical outputs.
-Follow-up M.j (specified only, M22-M23) diagnoses excessive top space above PDF
-titles and defines a measured opening-page inset appropriate to suppressed
-running headers. Full/compact title composition and part separation remain
-independent. Preserve comfortable edge/footer clearance, long-title fit,
-continuation-page furniture, content, themes and historical outputs; compare
-rendered candidates and verify PDF geometry and browser-print behavior.
-Follow-up M.k (specified only, M24) names PDF downloads with only the exact
-exported title plus `.pdf`, sanitized under M.h, without generated edition,
-revision or draft qualifiers. Literal title text is preserved. Exact state and
-draft qualifications remain in UI/output provenance, not the filename.
-Header/client names agree; cache keys, retained files and PDF metadata/content
-are unchanged.
+Follow-up M.j (M22-M23) is implemented with a 24 mm opening-page top inset
+where running headers are suppressed. Full/compact title composition and part
+separation remain independent; later body pages retain the 30 mm frame.
+Automated rendered-PDF geometry, long-title fit and synthetic browser-print
+checks pass. No supplied original PDF or real saved/draft browser workflow was
+available; cross-engine and human accessibility review remain unverified.
+Follow-up M.k (M24) is implemented: PDF downloads use only the exact exported
+title plus `.pdf`, sanitized under M.h, without generated edition, revision or
+draft qualifiers. Literal title text is preserved. Exact state and draft
+qualifications remain in UI/output provenance, not the filename. Header/client
+names agree; cache keys, retained files and PDF metadata/content are unchanged.
 Keep configured title-page bibliographic material; move concise edition/review
 status to distinct end matter independent of the optional bibliographic metadata
 page. Preserve exact review scope and the publication-not-verification caveat;

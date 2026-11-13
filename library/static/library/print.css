@@ -21,7 +21,12 @@
   }
   .reader-content, .document-end-matter { page: reading-content; }
   /* A compact title starts the first content page; its running headers would repeat it. */
-  @page reading-content:first { @top-left { content: none; } @top-right { content: none; } }
+  @page reading-content:first {
+    margin-top: 24mm;
+    @top-left { content: none; }
+    @top-right { content: none; }
+    @bottom-center { content: none; }
+  }
   .document-header h1 { string-set: book-title content(); }
   .document-contents h2 { string-set: section-title content(); }
   [data-pdf-section] { string-set: section-title attr(data-pdf-section); }
@@ -34,7 +39,8 @@
   .document-contents { break-after: page; page-break-after: always; }
   .document-header-compact { break-after: auto; page-break-after: auto; border: 0; }
   /* Sharing the content's named page keeps a compact title on the body's first page. */
-  .document-header-compact, .document-header-compact ~ section { page: reading-content; }
+  .document-header-full, .document-header-compact,
+  .document-header-compact ~ section { page: reading-content; }
   .publication-content.has-layout-policy > .document-header,
   .publication-content.has-layout-policy > .document-contents,
   .layout-policy > .document-header,

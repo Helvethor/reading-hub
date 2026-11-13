@@ -245,6 +245,8 @@ class PrintingTests(TestCase):
         )
         for title_size, separation, expected_body_page in (
             ("full", "continuous", 0),
+            ("full", "new-page", 1),
+            ("compact", "continuous", 0),
             ("compact", "new-page", 1),
         ):
             with self.subTest(title=title_size, separation=separation):
@@ -573,6 +575,146 @@ class PrintingTests(TestCase):
         self.assertAlmostEqual(centered_bottom_inset, 6, delta=0.25)
         self.assertLess(abs(top_inset - 18), abs(centered_top_inset - 18))
         self.assertLess(abs(bottom_inset - 18), abs(centered_bottom_inset - 18))
+
+    def test_title_opening_candidates_reclaim_unused_header_inset_only_on_title_page(self):
+        self.version.metadata.update(
+            work_type="article",
+            metadata_page=False,
+            layout={
+                "version": 1,
+                "overrides": {"body": "new-page", "edition": "continuous"},
+            },
+        )
+        self.version.html = (
+            '<section><h2 data-pdf-section="Body">Body</h2>'
+            '<p>Opening body text. ' + "Continuation. " * 120 + "</p></section>"
+        )
+        self.version.save(update_fields=["metadata", "html"])
+        original_css = CSS
+        original_render = HTML.render
+        scale = 25.4 / 72
+
+        for title_layout in ("full", "compact"):
+            self.version.metadata["title_layout"] = title_layout
+            self.version.save(update_fields=["metadata"])
+            for candidate in (18, 24, 30):
+                with self.subTest(title_layout=title_layout, candidate=candidate):
+                    layouts = []
+
+                    def css_with_candidate(*, filename=None, string=None, **kwargs):
+                        if filename == str(STYLES / "print.css"):
+                            string = Path(filename).read_text() + (
+                                f"\n@page reading-content:first "
+                                f"{{margin-top:{candidate}mm!important;}}"
+                            )
+                            filename = None
+                        return original_css(string=string, filename=filename, **kwargs)
+
+                    def capture_layout(renderer, *args, **kwargs):
+                        document = original_render(renderer, *args, **kwargs)
+                        layouts.append(document)
+                        return document
+
+                    output = io.BytesIO()
+                    with (
+                        patch("weasyprint.CSS", side_effect=css_with_candidate),
+                        patch.object(HTML, "render", capture_layout),
+                    ):
+                        render_pdf(self.version, output)
+                    pdf = PdfReader(output)
+                    self.assertGreaterEqual(len(pdf.pages), 2)
+
+                    title_bounds = []
+                    page = pdf.pages[0]
+                    page_height = float(page.mediabox.height)
+
+                    def capture_title(text, cm, tm, font, size):
+                        if self.version.title not in text:
+                            return
+                        descriptor = font.get("/FontDescriptor", {}) if font else {}
+                        if hasattr(descriptor, "get_object"):
+                            descriptor = descriptor.get_object()
+                        ascent = float(descriptor.get("/Ascent", 750)) * size / 1000
+                        descent = float(descriptor.get("/Descent", -250)) * size / 1000
+                        baseline = cm[1] * tm[4] + cm[3] * tm[5] + cm[5]
+                        title_bounds.append((
+                            (page_height - baseline - ascent) * scale,
+                            (page_height - baseline - descent) * scale,
+                        ))
+
+                    page.extract_text(visitor_text=capture_title)
+                    self.assertTrue(title_bounds)
+                    glyph_top = min(bounds[0] for bounds in title_bounds)
+                    self.assertAlmostEqual(glyph_top, candidate, delta=2.5)
+
+                    opening_page = layouts[-1].pages[0]._page_box
+                    body_page = layouts[-1].pages[1]._page_box
+                    self.assertAlmostEqual(opening_page.content_box_y() * 25.4 / 96,
+                                           candidate, delta=0.25)
+                    self.assertAlmostEqual(body_page.content_box_y() * 25.4 / 96,
+                                           30, delta=0.25)
+                    self.assertIn("Body", pdf.pages[1].extract_text())
+
+    def test_long_full_title_and_dense_metadata_fit_the_opening_page(self):
+        from library.services.reading_styles import DEFAULTS
+
+        title = ("A Long Historical Title About Reading and Public Memory " * 3).strip()
+        self.version.title = title
+        self.version.metadata.update({
+            "work_type": "book",
+            "title_layout": "full",
+            "metadata_page": False,
+            "subtitle": "A descriptive subtitle for this long-form edition",
+            "author": "A. Writer",
+            "original_title": "The original title",
+            "publisher": "A publisher",
+            "contributors": [
+                {"name": "Translator One", "role": "translator"},
+                {"name": "Editor Two", "role": "editor"},
+            ],
+            "title_page_fields": [
+                "original_title", "author", "editor", "translator", "publisher",
+            ],
+            "layout": {
+                "version": 1,
+                "overrides": {"body": "new-page", "edition": "continuous"},
+            },
+        })
+        self.version.save(update_fields=["title", "metadata"])
+        layouts = []
+        original_render = HTML.render
+
+        def capture_layout(renderer, *args, **kwargs):
+            document = original_render(renderer, *args, **kwargs)
+            layouts.append(document)
+            return document
+
+        output = io.BytesIO()
+        with patch.object(HTML, "render", capture_layout):
+            render_pdf(self.version, output, {**DEFAULTS, "font_size": 18})
+        pdf = PdfReader(output)
+        cover = " ".join((pdf.pages[0].extract_text() or "").split())
+        for expected in (
+            title, "A descriptive subtitle", "A. Writer", "The original title",
+            "A publisher", "Translator One", "Editor Two",
+        ):
+            self.assertIn(expected, cover)
+        self.assertNotIn("First chapter", cover)
+        page_height = float(pdf.pages[0].mediabox.height) * 25.4 / 72
+        line_boxes = []
+
+        def collect(box):
+            element = getattr(box, "element", None)
+            if element is not None and element.tag == "h1" and type(box).__name__ == "LineBox":
+                line_boxes.append((box.position_y * 25.4 / 96,
+                                   (box.position_y + box.height) * 25.4 / 96))
+            for child in getattr(box, "children", []):
+                collect(child)
+
+        collect(layouts[-1].pages[0]._page_box)
+        self.assertGreater(len(line_boxes), 1)
+        self.assertAlmostEqual(min(top for top, _bottom in line_boxes), 24, delta=0.25)
+        self.assertLess(max(bottom for _top, bottom in line_boxes), page_height - 18)
 
     def test_title_based_filename_preserves_unicode_and_is_filesystem_safe(self):
         for title, expected in [
