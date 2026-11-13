@@ -113,7 +113,8 @@ and state either:
 - **Default for readers and new editing starts**, or
 - **Not the default; readers still receive [current version].**
 
-Provide real, exact-version links for **Read publication** and **Download PDF**,
+Provide real, exact-version links for **Read** and **PDF**, following the
+[website-wide action-naming convention](../SPECIFICATION.md#website-wide-action-naming),
 plus **Return to editor**. In the embedded flow, open reader/PDF outside the
 iframe, preferably in a new tab with appropriate link semantics, so the editor
 and its pending content remain intact. Do not frame the ordinary reader or

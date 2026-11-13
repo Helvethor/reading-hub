@@ -205,7 +205,7 @@ class ReadingStyleTests(TestCase):
         token = applied.context["reading_style_token"]
         stylesheet = self.client.get(applied.context["reading_style_url"])
         self.assertEqual(stylesheet.content.decode(), style_css(self.custom))
-        pdf_link = soup.find("a", string="Download PDF")["href"]
+        pdf_link = soup.select_one("a[data-reading-pdf]")["href"]
         snapshot = token_presentation(parse_qs(urlsplit(pdf_link).query)["presentation"][0])
         self.assertEqual(snapshot["settings"], self.custom)
         path = Path(self.temp.name) / "download.pdf"

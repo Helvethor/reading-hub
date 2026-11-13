@@ -27,7 +27,7 @@
         {% for item in comparison.sections %}<option value="{{ item.id }}"{% if comparison.section == item.id %} selected{% endif %}>{{ item.label }} — #{{ item.id }}</option>{% endfor %}
       </select>
     </label>
-    <button type="submit">Compare saved revisions</button>
+    <button type="submit">Compare</button>
   </form>
   <p>Comparing <strong>{% if earlier %}saved revision {{ earlier }}{% else %}pinned draft base{% endif %}</strong>
     → <strong>{% if later %}saved revision {{ later }}{% else %}pinned draft base{% endif %}</strong>.</p>

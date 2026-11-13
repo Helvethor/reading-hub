@@ -366,7 +366,7 @@ class FreshDraftTests(TestCase):
         blob_path(self.rendition.snapshot.manifest["pages"][0]["digest"]).unlink()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 422)
-        self.assertNotContains(response, "Start separate draft from this preview", status_code=422)
+        self.assertNotContains(response, "Create working copy", status_code=422)
 
     def test_separate_base_saves_reopens_and_publishes_through_existing_reviewer_views(self):
         proposal = preview_fresh_draft(self.rendition)

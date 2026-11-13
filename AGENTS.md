@@ -11,6 +11,22 @@
 - Implementation does not automatically authorize deployment, publication,
   review certification or mutation of live corrections.
 
+## Website-wide action naming
+
+- Apply the [action-naming contract](SPECIFICATION.md#website-wide-action-naming)
+  across the whole website, including reader, reviewer, catalogue, account and
+  administration surfaces, not just Versions/Sources.
+- Prefer short, consistent labels: Read, Edit, PDF, Save, Compare and Publish.
+  Keep meaningful qualifiers such as Edit latest, Saved PDF and Draft PDF.
+  Put selected identity, scope and consequences in adjacent context, not labels.
+- Use an ellipsis when further choices or confirmation are required. Keep preview
+  and final actions distinct: Publish... opens confirmation; Publish commits it.
+  Named dialogs can use Apply, Cancel and Close; final operations retain specific
+  verbs such as Create working copy, Archive branch and Set reader default.
+- Preserve visible warnings, exact-version targets, permissions, confirmations
+  and unsaved-work guards. Do not rely on hover-only help. Accessible names must
+  include visible labels; associate additional explanations as descriptions.
+
 ## Minimal local recovery history
 
 - Before editing, inspect Git status and recent history. Preserve all unrelated

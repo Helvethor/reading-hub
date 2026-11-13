@@ -38,7 +38,7 @@ function setup(query = "") {
         </div>
         <p id="workspace-action-status"></p>
       </div>
-      <section id="workspace-panel-read"><button id="workspace-download-pdf">Download PDF</button><button id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button><div id="workspace-read-content"></div></section>
+      <section id="workspace-panel-read"><button id="workspace-download-pdf">PDF</button><button id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button><div id="workspace-read-content"></div></section>
       <section id="workspace-panel-edit"><h2>Edit content</h2></section>
       <section id="workspace-panel-versions"><div id="workspace-versions-content"></div></section>
       <section id="workspace-panel-sources"><div id="workspace-sources-content"></div></section>
@@ -295,11 +295,11 @@ test("Versions inspection updates only its panel and supports tab deep links", a
     `<div class="document-lineage"><h1>Versions</h1><nav class="work-navigation">Old tabs</nav>
       <div class="lineage-workspace">
         <a href="/documents/5/lineage/?filter=all&amp;selected=history%3Aone#lineage-inspection">Inspect history</a>
-        <a href="/versions/12/editor/publication/" data-workflow-panel="Publication preview">Publish</a>
+        <a href="/versions/12/editor/publication/" data-workflow-panel="Publish">Publish&hellip;</a>
       </div></div>`,
     `<div class="document-lineage"><h1>Inspect history</h1><div class="lineage-workspace">
       Selected only
-      <a href="/versions/12/editor/publication/" data-workflow-panel="Publication preview">Publish</a>
+      <a href="/versions/12/editor/publication/" data-workflow-panel="Publish">Publish&hellip;</a>
     </div></div>`,
   ];
   const requests = [];
@@ -316,7 +316,7 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   const panel = document.querySelector("#workspace-panel-versions");
   assert.match(panel.textContent, /Versions/);
   assert.doesNotMatch(panel.textContent, /Old tabs/);
-  const publicationLink = panel.querySelector('[data-workflow-panel="Publication preview"]');
+  const publicationLink = panel.querySelector('[data-workflow-panel="Publish"]');
   assert.ok(publicationLink);
   assert.equal(publicationLink.target, "");
   assert.equal(document.querySelector("iframe"), null);
@@ -330,7 +330,7 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   assert.equal(document.querySelector("#editor-surface").innerHTML, "");
   dom.window.HTMLDialogElement.prototype.showModal = function() { this.open = true; };
   mountWorkflowPanels({form, showError: assert.fail, isDirty: () => false});
-  panel.querySelector('[data-workflow-panel="Publication preview"]').click();
+  panel.querySelector('[data-workflow-panel="Publish"]').click();
   const workflowPanel = document.querySelector("dialog");
   assert.equal(workflowPanel.open, true);
   const workflowUrl = new URL(workflowPanel.querySelector("iframe").src);
@@ -448,9 +448,9 @@ function readThenPdf(readState, pdfResponse, requests) {
 
 test("PDF button is disabled until Read reports the actual content state", async () => {
   for (const [state, label] of [
-    ["exact", "Download PDF"],
-    ["saved", "Download saved version PDF"],
-    ["draft", "Download draft PDF"],
+    ["exact", "PDF"],
+    ["saved", "Saved PDF"],
+    ["draft", "Draft PDF"],
   ]) {
     const form = setup("?tab=read");
     const requests = [];
@@ -536,7 +536,7 @@ test("PDF refuses content changed after Read and refreshes Read instead", async 
     "http://localhost/versions/12/editor/read-preview/?presentation=signed-appearance-snapshot",
   ]);
   assert.match(document.querySelector("#workspace-action-status").textContent
-    + document.querySelector("#workspace-download-pdf").textContent, /saved version PDF/);
+    + document.querySelector("#workspace-download-pdf").textContent, /Saved PDF/);
 });
 
 test("PDF with a server state different from the label is not downloaded", async () => {

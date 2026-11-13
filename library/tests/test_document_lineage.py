@@ -2,6 +2,7 @@ import json
 from copy import deepcopy
 from unittest.mock import patch
 
+from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import Client, TestCase, override_settings
@@ -165,6 +166,54 @@ class DocumentLineageTests(TestCase):
         self.assertContains(response, 'class="lineage-workspace"')
         self.assertContains(response, 'id="lineage-inspection"')
         self.assertNotContains(response, "autofocus")
+
+    def test_short_publication_actions_preserve_exact_targets_and_latest_edit_choice(self):
+        first = self.save()
+        publication = self.publish(self.draft, first.revision)
+        url = reverse("document-lineage", args=[self.work.pk])
+        query = {"selected": f"edition:{publication.rendition_id}", "embedded": "1"}
+        self.client.force_login(self.reviewer)
+        edit_url = (
+            reverse("document-editor", args=[self.rendition.pk])
+            + f"?draft={self.draft.pk}&tab=edit"
+        )
+
+        def actions(response):
+            self.assertEqual(response.status_code, 200)
+            soup = BeautifulSoup(response.content, "html.parser")
+            return soup.select_one(".lineage-primary-actions")
+
+        latest = actions(self.client.get(url, query))
+        links = {link.get_text(strip=True): link for link in latest.select("a")}
+        self.assertEqual(links["Read"]["href"], reverse("reader", args=[publication.rendition_id]))
+        self.assertEqual(
+            links["PDF"]["href"], reverse("reader-pdf", args=[publication.rendition_id]),
+        )
+        self.assertEqual(links["Edit"]["href"], edit_url)
+        self.assertTrue(links["Edit"].has_attr("data-workflow-switch"))
+        self.assertIsNotNone(latest.find(id=links["Edit"]["aria-describedby"]))
+        self.assertNotIn("Edit latest", links)
+        self.assertNotIn("New working copy\u2026", links)
+
+        self.save(document={**first.document, "title": "Newer saved edits"}, revision=1)
+        version_count = DocumentVersion.objects.count()
+        older = actions(self.client.get(url, query))
+        links = {link.get_text(strip=True): link for link in older.select("a")}
+        self.assertNotIn("Edit", links)
+        self.assertEqual(links["Edit latest"]["href"], edit_url)
+        self.assertEqual(
+            links["New working copy\u2026"]["href"],
+            reverse("document-editor-history", args=[self.rendition.pk])
+            + f"?draft={self.draft.pk}&revision={first.revision}&embedded=1",
+        )
+        self.assertTrue(links["New working copy\u2026"].has_attr("data-workflow-panel"))
+        self.assertIn("Newer saved edits exist", older.get_text())
+        self.assertEqual(DocumentVersion.objects.count(), version_count)
+
+        public = actions(Client().get(url, query))
+        self.assertEqual(
+            {link.get_text(strip=True) for link in public.select("a")}, {"Read", "PDF"},
+        )
 
     def test_scopes_preserve_branch_parent_source_binding_and_anchor(self):
         reviewed = self.save(review="full")
@@ -840,7 +889,7 @@ class DocumentLineageTests(TestCase):
             "filter": "archived", "selected": f"history:{self.draft.pk}",
             "restore": str(archive.pk), "embedded": "1",
         })
-        self.assertContains(restore_preview, "Restore this operation")
+        self.assertContains(restore_preview, "Undo archive")
         sources = client.get(url, {"filter": "sources"})
         self.assertContains(sources, "Source capture")
         restored = client.post(f"{url}?filter=archived&embedded=1", {

@@ -17,9 +17,9 @@ function statusMessage(target, text, role = "status") {
 }
 
 const PDF_LABELS = {
-  exact: "Download PDF",
-  saved: "Download saved version PDF",
-  draft: "Download draft PDF",
+  exact: "PDF",
+  saved: "Saved PDF",
+  draft: "Draft PDF",
 };
 
 const PDF_PREPARING = {
@@ -180,7 +180,7 @@ export function mountWorkspaceShell({
   function showPdfState(state) {
     readState = PDF_LABELS[state] ? state : null;
     downloadButton.disabled = !readState;
-    downloadButton.textContent = PDF_LABELS[readState] || "Download PDF";
+    downloadButton.textContent = PDF_LABELS[readState] || "PDF";
     downloadButton.dataset.pdfState = readState || "";
   }
 

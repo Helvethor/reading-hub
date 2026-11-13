@@ -43,7 +43,7 @@ class ReviewNavigationTests(TestCase):
         self.assertNotIn("data-pdf-url", response.content.decode())
         self.assertContains(response, PARAGRAPH)
         self.assertContains(response, 'aria-label="Work views"')
-        self.assertContains(response, "Download PDF")
+        self.assertContains(response, "data-reading-pdf>PDF</a>")
         requested_edit = self.client.get(
             reverse("reader", args=[version.pk]), {"tab": "edit"},
         )

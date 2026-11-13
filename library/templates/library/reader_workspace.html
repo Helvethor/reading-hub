@@ -29,7 +29,7 @@
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
           </p>
           {% if reader_target and reader_target.pk != version.pk %}
-          <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Open reader default (edition {{ reader_target.pk }})</a>
+          <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default</a>
           {% endif %}
         </div>
       </header>
@@ -42,7 +42,7 @@
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1">
       <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar>
-        <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>Download PDF</a>
+        <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>PDF</a>
         <button type="button" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button>
       </div>
       {% include "library/reading_style_controls.html" %}

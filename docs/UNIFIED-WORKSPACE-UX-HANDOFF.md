@@ -104,7 +104,32 @@ regeneration preview opened and closed in the workspace without losing the
 unsaved edit. Source inspection is read-only and shows bounded block previews.
 These observations do not establish the full V1-V16 acceptance matrix.
 
+Action-naming first pass (2026-11-13): shortened Versions/Sources actions,
+workspace/reader controls and supporting history, comparison, publication and
+regeneration panels without changing destinations or form methods. A focused
+regression checks Read/PDF exact-version URLs, Edit versus Edit latest, the
+older publication's New working copy choice, reviewer-only visibility and
+read-only inspection. Existing PDF-state and confirmation/CSRF tests remain.
+Validation passed 123 focused backend tests, all 327 frontend tests, build and
+Django checks. Isolated synthetic browser checks observed the short publication
+actions, older-version choices, Save/Publish.../Insert from source..., Saved PDF
+and Close focus restoration. The existing CSP blocked the workflow iframe;
+Create working copy was verified on the directly opened history page instead.
+This was not bypassed or counted as a successful embedded-panel journey.
+The broader run also found three pre-existing failures, reproduced on unchanged
+baseline `202f49c`: two correction-history initial-selection expectations and the fresh-draft
+publication redirect expectation. They were not changed by this naming pass.
+No live content changes or deployment were performed.
+
 ## Workspace and state contract
+
+Action labels follow the [website-wide naming convention](../SPECIFICATION.md#website-wide-action-naming),
+which also applies outside this workspace. The 2026-11-13 first pass uses Read,
+Edit, PDF, Save, Compare and Publish...; older publications retain Edit latest
+versus New working copy... and exports retain Saved PDF / Draft PDF.
+Scope, exact identity and consequences stay in context/confirmation. Earlier
+literal button-label examples below are historical wording, not exceptions to
+the convention; their behavior and acceptance requirements remain unchanged.
 
 ### Stable shell and explicit identity
 
@@ -424,9 +449,9 @@ effective content state, not the selected tab or mere existence of a draft ID:
 
 | State | Read action | Required content |
 |---|---|---|
-| Immutable version, no working content changes | Download PDF | Exact opened retained version/output, not the reader default. |
-| Working copy matching its saved baseline | Download saved version PDF | Exact latest saved baseline represented by that copy, not its older starting edition. |
-| Working content differs from saved baseline | Download draft PDF | Captured current content, explicitly including unsaved changes. |
+| Immutable version, no working content changes | PDF | Exact opened retained version/output, not the reader default. |
+| Working copy matching its saved baseline | Saved PDF | Exact latest saved baseline represented by that copy, not its older starting edition. |
+| Working content differs from saved baseline | Draft PDF | Captured current content, explicitly including unsaved changes. |
 
 Use existing content-identity/dirty rules, including unchanged-content and
 review-only events; do not manufacture a new saved version for accurate labelling.

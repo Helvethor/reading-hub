@@ -80,6 +80,21 @@ Use isolated data for mutation acceptance. Never obtain evidence by changing rea
 corrections, annotations or publications. A dependency may be adopted for a
 demonstrated need, not as a substitute for designing the workflow.
 
+## Website-wide action naming
+
+Follow the [website-wide naming contract](../SPECIFICATION.md#website-wide-action-naming)
+for all surfaces, not just the workspace. Use short action labels, keep
+Edit latest / Saved PDF / Draft PDF distinctions, and put selected identity,
+scope and consequences in visible context. Ellipses indicate further choices
+or confirmation; final operations retain explicit verbs. Preserve warnings,
+confirmation and unsaved-content guards, and associate accessible descriptions
+without replacing the visible action name.
+
+The first pass covers Versions/Sources, shared workspace/reader actions and
+their supporting panels. Other surfaces adopt the same convention when changed.
+Older literal label examples in this handoff are superseded by this convention,
+not removed capabilities or weaker acceptance.
+
 ## Device and accessibility priorities
 
 The reviewer workspace is intended for computers: keyboard/pointer input and

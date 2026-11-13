@@ -193,7 +193,7 @@ class EditorSourceTests(TestCase):
              "selected": f"snapshot:{self.rendition.snapshot_id}"},
         )
         self.assertContains(lineage, url + '?page=0&amp;embedded=1"')
-        self.assertContains(lineage, 'data-workflow-panel="Inspect retained source"')
+        self.assertContains(lineage, 'data-workflow-panel="View source"')
         standalone = self.client.get(url)
         self.assertEqual(standalone["X-Frame-Options"], "DENY")
         self.assertIn("frame-ancestors 'none'", standalone["Content-Security-Policy"])

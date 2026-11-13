@@ -5,17 +5,17 @@
   <h1>Work versions</h1>
   <p>{{ version.title }}</p>
   <p>Continue a working copy's latest saved content, or explicitly start an alternative from an exact earlier version. Review approval is not inherited. Switching working copies leaves the current editor; save pending work first.</p>
-  {% if switch_url %}<p role="status">A separate working copy was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new working copy</a></p>{% endif %}
-  <p><a href="{% url 'document-editor' version.pk %}?start=source" data-workflow-switch>Start from this source-generated version</a> · <a href="{% url 'document-fresh-draft' version.pk %}{% if embedded %}?embedded=1{% endif %}">Preview fresh generation from retained source</a></p>
+  {% if switch_url %}<p role="status">A separate working copy was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Edit working copy</a></p>{% endif %}
+  <p><a href="{% url 'document-editor' version.pk %}?start=source" data-workflow-switch>Edit source version</a> · <a href="{% url 'document-fresh-draft' version.pk %}{% if embedded %}?embedded=1{% endif %}">Preview regeneration</a></p>
   {% if history_error %}<p class="error" role="alert">{{ history_error }}</p>{% endif %}
   {% if not draft %}
   <h2>Choose a working copy</h2>
   <ul>{% for item in histories %}
-    <li><a href="{% url 'document-editor' version.pk %}?draft={{ item.pk }}" data-workflow-switch>Continue working copy</a> · <a href="?draft={{ item.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Saved versions</a> · {{ item.created_at }} · {{ item.reviewer }}</li>
+    <li><a href="{% url 'document-editor' version.pk %}?draft={{ item.pk }}" data-workflow-switch>Edit</a> · <a href="?draft={{ item.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Saved versions</a> · {{ item.created_at }} · {{ item.reviewer }}</li>
   {% empty %}<li>No working copies yet. Start from the source-generated version above.</li>{% endfor %}</ul>
   {% else %}
   {% if draft_archived %}<p class="notice warning" role="alert">This working copy is archived. Restore it from <a href="{% url 'document-lineage' version.document_id %}?filter=archived&amp;selected=history%3A{{ draft.pk }}{% if embedded %}&amp;embedded=1{% endif %}">Versions</a> before continuing or saving. Pending editor content is preserved.</p>
-  {% else %}<p><a href="{% url 'document-editor' version.pk %}?draft={{ draft.pk }}" data-workflow-switch>Continue latest correction in this history</a> · <a href="{% url 'document-editor-history' version.pk %}{% if embedded %}?embedded=1{% endif %}">All correction histories</a></p>{% endif %}
+  {% else %}<p><a href="{% url 'document-editor' version.pk %}?draft={{ draft.pk }}" data-workflow-switch>Edit latest</a> · <a href="{% url 'document-editor-history' version.pk %}{% if embedded %}?embedded=1{% endif %}">Working copies</a></p>{% endif %}
   {% if draft.evidence.correction_origin %}
   <p>This history starts from <a href="?draft={{ draft.evidence.correction_origin.draft }}&amp;revision={{ draft.evidence.correction_origin.revision }}{% if embedded %}&amp;embedded=1{% endif %}">version {{ draft.evidence.correction_origin.revision }} of its parent history</a>. Review approval was not inherited.</p>
   {% endif %}
@@ -29,7 +29,7 @@
   {% if not draft_archived %}<form method="post">{% csrf_token %}
     <input type="hidden" name="draft" value="{{ draft.pk }}">
     <input type="hidden" name="revision" value="{{ selected.number }}">
-    <button type="submit">Start an alternative from this exact saved content</button>
+    <button type="submit">Create working copy</button>
   </form>
   {% else %}<p>Branching from an archived history is disabled until it is restored.</p>{% endif %}
   <details><summary>Exact saved markup (read-only)</summary><pre class="correction-history-markup">{{ selected.row.document.html }}</pre></details>

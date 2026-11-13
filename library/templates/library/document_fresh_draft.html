@@ -13,10 +13,10 @@
   {% else %}
   <p class="notice">Offline preview from this edition's retained snapshot, using current extraction and formatting rules{% if original_source %}, without previous source corrections, saved organization or named excerpts{% else %} and applicable source corrections/organization{% endif %}. No source is fetched. Saved editor revisions are not replayed, copied or overwritten. Save pending work before switching the editor.</p>
   {% endif %}
-  {% if switch_url %}<p role="status">A separate draft was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Switch to the new draft</a></p>{% endif %}
+  {% if switch_url %}<p role="status">A separate draft was created. Your current editor has not changed. <a href="{{ switch_url }}" data-workflow-switch>Edit working copy</a></p>{% endif %}
   <p>{% if original_source %}<strong>Historical retained-source reproduction</strong>{% else %}<a href="?inputs=original{% if embedded %}&amp;embedded=1{% endif %}">{% if source.structure.book %}Reproduce this historical capture without current membership{% else %}Start fresh from original retained source, without previous corrections or organization{% endif %}</a>{% endif %}</p>
   {% if generation_error %}<p class="error" role="alert">{{ generation_error }}</p>
-    <p><a href="{% url 'document-fresh-draft' source.pk %}?inputs={{ input_mode }}{% if embedded %}&amp;embedded=1{% endif %}">Generate a new preview</a></p>
+    <p><a href="{% url 'document-fresh-draft' source.pk %}?inputs={{ input_mode }}{% if embedded %}&amp;embedded=1{% endif %}">Retry preview</a></p>
     {% if original_source %}<p>Original inputs exclude saved corrections, but current source-language, asset and semantic policies still apply.</p>
     {% else %}<p><a href="{% url 'rendition-corrections' source.pk %}" target="_blank" rel="noopener">Inspect retained source corrections (new tab)</a>. Revalidation requirements and source-language restrictions are not bypassed by regeneration.</p>{% endif %}
   {% endif %}
@@ -49,7 +49,7 @@
     <input type="hidden" name="preview_digest" value="{{ proposal.digest }}">
     <input type="hidden" name="inputs" value="{{ input_mode }}">
     <label><input type="checkbox" name="confirm" value="yes" required> I reviewed this generation and any wrapper conversions. Start a separate unverified draft; do not publish or carry over saved edits or verification.</label>
-    <button type="submit">Start separate draft from this preview</button>
+    <button type="submit">Create working copy</button>
   </form>
   <h2>Generated document preview</h2>
   <h3>{{ proposal.document.title }}</h3>

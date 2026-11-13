@@ -31,7 +31,7 @@ export function mountDifferenceControls(form, editor, initial, showError) {
         `saved revision ${baselineRevision}`}. ${differences.length} changed range(s). ` +
         "Green = added; red = removed; changed block formatting is noted above the block. " +
         "Right-click a change to restore it; restoration is an unsaved, undoable edit. " +
-        "Metadata comparison is available in Saved comparison.";
+        "Use Compare in the Review tab to inspect saved metadata differences.";
   }
   function apply() {
     showDocumentDifferences(editor, baseline, filter.value === "diffs");

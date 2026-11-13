@@ -5,7 +5,7 @@
 {% block content %}
 {% include 'library/work_context.html' with active_work_tab="read" %}
 <div class="reader-toolbar">
-  <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>Download PDF</a>
+  <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>PDF</a>
 </div>
 {% include 'library/reading_style_controls.html' %}
 {% include 'library/reader_document.html' %}

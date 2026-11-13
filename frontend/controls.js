@@ -558,7 +558,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         quotationDialog.querySelector('label[for="editor-quotation-attribution"]').textContent =
           insertion ? "Attribution / caption (optional)" : "New caption text";
         quotationDialog.querySelector("#editor-quotation-apply").textContent =
-          insertion ? "Insert quotation" : "Apply figure changes";
+          insertion ? "Insert quotation" : "Apply";
         quotationDialog.querySelector("#editor-quotation-help").textContent = insertion
           ? "Enter literal quoted text; blank lines separate paragraphs and single line breaks are kept. Attribution is optional. No source facts are inferred. Preview and field edits do not change the document."
           : figureHelp;

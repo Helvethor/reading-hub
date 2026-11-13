@@ -50,7 +50,7 @@
             Reader default:
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
           </p>
-          {% if reader_target and reader_target.pk != version.pk %}<a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Open reader default (edition {{ reader_target.pk }})</a>{% endif %}
+          {% if reader_target and reader_target.pk != version.pk %}<a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default</a>{% endif %}
         </div>
         <div class="workspace-notices" aria-label="Work status">
           {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
@@ -69,7 +69,7 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1"{% if initial_tab != "read" %} hidden{% endif %}>
-      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>Download PDF</button><button type="button" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button></div>
+      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>PDF</button><button type="button" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button></div>
       {% include "library/reading_style_controls.html" %}
       <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
         <aside class="toc-panel" id="workspace-read-toc" aria-label="Table of contents" hidden></aside>
@@ -109,12 +109,12 @@
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
         <button type="button" data-history="undo" disabled>Undo</button>
         <button type="button" data-history="redo" disabled>Redo</button>
-        <button type="submit" class="editor-save" disabled>Save version</button>
-        <a id="editor-publication" class="button secondary" data-workflow-panel="Publication preview" hidden>Preview publication</a>
+        <button type="submit" class="editor-save" disabled>Save</button>
+        <a id="editor-publication" class="button secondary" data-workflow-panel="Publish" hidden>Publish&hellip;</a>
         <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
         <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" aria-describedby="editor-view-notice" disabled><option value="">All sections</option></select></label>
         <label><input id="editor-block-labels" type="checkbox" checked disabled> Block labels</label>
-        <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert retained source content</button>
+        <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert from source&hellip;</button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
       </div>
       <p id="editor-status" role="status">Loading the local editor and checking document fidelity…</p>
@@ -225,7 +225,7 @@
       </details>
       <p>Preview and publish are separate. Publication previews bind the exact saved version and still require explicit confirmation.</p>
       <p><a id="editor-history" href="{% url 'document-lineage' version.document_id %}?selected={% if draft and initial.revision %}revision%3A{{ draft.pk }}%3A{{ initial.revision }}{% elif draft %}history%3A{{ draft.pk }}{% else %}edition%3A{{ version.pk }}{% endif %}">Browse versions and review history</a></p>
-      <p><a id="editor-comparison" data-workflow-panel="Saved comparison" hidden>Compare saved versions</a> <span class="muted">Unsaved editor changes are not included.</span></p>
+      <p><a id="editor-comparison" data-workflow-panel="Compare" hidden>Compare</a> <span class="muted">Unsaved editor changes are not included.</span></p>
       <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
       </div>
     <details class="editor-help context-help">
@@ -488,7 +488,7 @@
     <p id="editor-quotation-help">Choose an existing paragraph to move it into the caption; any existing caption is kept and the paragraph appended. Nothing is inferred. Selected paragraphs become a quotation; images keep their retained asset. Edit text directly afterward; use link tools for a source URL. Cancel changes nothing.</p>
     <section id="editor-figure-preview" aria-label="Proposed figure relationships" aria-live="polite"></section>
     <p class="error" role="alert"></p>
-    <button type="button" id="editor-quotation-apply">Apply figure changes</button>
+    <button type="button" id="editor-quotation-apply">Apply</button>
     <button type="button" id="editor-quotation-cancel">Cancel</button>
   </dialog>
   <dialog id="editor-link" aria-labelledby="editor-link-heading">
@@ -508,8 +508,8 @@
     </details>
     <p id="editor-link-help">Use an absolute HTTP(S)/mailto URL or #target with an existing document ID, including targets in hidden chapters. Editing affects the whole existing link; creation wraps the selected unlinked text. Select within one block and include whole nested formatting wrappers; images, breaks and anchors are not supported for creation. Text, formatting, IDs and note/backlink classes stay unchanged. Clearing the title removes it. Reciprocal note links are not repaired automatically.</p>
     <p class="error" role="alert"></p>
-    <button type="button" id="editor-link-apply">Apply link changes</button>
-    <button type="button" id="editor-link-cancel">Cancel link edit</button>
+    <button type="button" id="editor-link-apply">Apply</button>
+    <button type="button" id="editor-link-cancel">Cancel</button>
   </dialog>
   <dialog id="editor-inline-q" aria-labelledby="editor-inline-q-heading">
     <h2 id="editor-inline-q-heading">Mark as inline quotation</h2>
@@ -540,8 +540,8 @@
     <textarea id="editor-image-alt" rows="4" maxlength="4000" aria-describedby="editor-image-help"></textarea>
     <p id="editor-image-help">Describe the image's meaning for readers who cannot see it. An empty value explicitly marks it decorative. Maximum 4,000 characters; no line breaks. This changes only alternative text, not the image file, caption, credit or target ID.</p>
     <p class="error" role="alert"></p>
-    <button type="button" id="editor-image-apply">Apply alternative text</button>
-    <button type="button" id="editor-image-cancel">Cancel image edit</button>
+    <button type="button" id="editor-image-apply">Apply</button>
+    <button type="button" id="editor-image-cancel">Cancel</button>
   </dialog>
   <dialog id="editor-paste" aria-labelledby="editor-paste-heading">
     <h2 id="editor-paste-heading">Review clipboard paste</h2>
@@ -555,7 +555,7 @@
     <p>Replacing text can remove selected inline targets. Review note links before publishing.</p>
     <button id="editor-paste-insert" type="button">Insert plain text</button>
     <button id="editor-paste-insert-formatted" type="button" hidden>Insert formatted text</button>
-    <button id="editor-paste-cancel" type="button" autofocus>Cancel paste</button>
+    <button id="editor-paste-cancel" type="button" autofocus>Cancel</button>
   </dialog>
   {{ initial|json_script:"document-editor-initial" }}
   <noscript><p class="error">The semantic editor requires JavaScript. Saved history and retained evidence remain available; obsolete source-editing pages do not accept changes.</p></noscript>

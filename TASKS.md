@@ -31,6 +31,20 @@ discovery remain first-class responsive workflows.
 - [x] Preserve theme/profile scopes and semantic controls in the changed surfaces.
 - [ ] Validate U1-U5 and U14 in the handoff, then checkpoint this milestone.
 
+Action-naming first pass (2026-11-13): implemented for Versions/Sources, shared
+workspace/reader controls and their history, comparison, publication and
+regeneration panels. The [website-wide convention](SPECIFICATION.md#website-wide-action-naming)
+is mandatory for all surfaces as they are changed; remaining website labels
+have not all been audited. Exact targets, permissions, confirmation forms and
+pending-content guards are unchanged. Validation passed 123 focused backend
+tests, 327 frontend tests, the production build and Django checks.
+Isolated synthetic browser checks confirmed the publication/older-version
+choices, editor commands, Saved PDF and Close focus restoration. Embedded-panel
+content was blocked by the existing CSP; its final action was checked directly
+and in backend tests, not certified end to end. Three broader workflow-test
+failures reproduced unchanged on the committed baseline and remain outside
+this naming pass. This pass is not deployed or full U1/U2/V acceptance.
+
 ### U2. Workflow restructuring and complete journey (implementation present; acceptance partial)
 
 - [x] Deliver stable application and work navigation; remove overlapping ordinary

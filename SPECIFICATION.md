@@ -64,7 +64,7 @@ context; technical evidence belongs in inspectable details.
 **Reviewer workspace:** replace competing navigation bars, preamble link lists
 and routine notice walls with one work/status header, predictable command groups
 and local Content, Metadata, Review and Appearance tabs. Keep Undo, Redo,
-Save version and Preview publication discoverable; expose common formatting
+Save and Publish... discoverable; expose common formatting
 without requiring right-click or shortcut knowledge. Put section controls beside
 the outline and selection tools beside relevant content. Versions/Sources
 inspection and other draft-specific panels preserve pending edits, focus and
@@ -89,6 +89,44 @@ and may receive prominent styling without losing their semantics. Labels are
 short and specific; scope and consequences belong in context and impact previews.
 Reserve warning styling for actionable warnings, not routine work context.
 Unsaved, saved, reviewed and published states stay visibly distinct.
+
+#### Website-wide action naming
+
+This convention applies to the whole website: public reading/discovery,
+reviewer workspaces, Versions/Sources, catalogue/membership, account/settings,
+administration and their dialogs. It is not a workspace-only style.
+
+- Use short, consistent action names: **Read**, **Edit**, **PDF**, **Save**,
+  **Compare** and **Publish**. The selected work/version and action consequences
+  belong in adjacent context or the confirmation preview, not sentence-length
+  button labels. Keep essential qualifiers: **Edit latest** when newer edits
+  exist, and **Saved PDF** / **Draft PDF** for working-copy/unsaved exports.
+- **Edit** continues the identified working copy or starts from the identified
+  source-generated version; it never promises to mutate an immutable edition.
+  For an older publication, distinguish **Edit latest** from **New working
+  copy...**, which starts from that exact publication after confirmation.
+- Use an ellipsis when further choices or confirmation are required:
+  **Publish...**, **Archive...**, **New working copy...** and
+  **Insert from source...**. The final confirmation uses the operation name
+  without an ellipsis: **Publish**, **Archive branch**, **Create working copy**.
+  Preview-only actions may say **Preview regeneration**; do not label them as
+  if they already performed the operation. **Fetch latest source** remains
+  distinct from offline **Regenerate**.
+- In a clearly named dialog/form, use **Apply**, **Cancel** and **Close**
+  without repeating its title. Keep consequential final actions specific:
+  **Set reader default**, **Archive branch**, **Undo archive**. Do not use
+  generic Apply/OK for publication, reader routing or archival.
+- Retain exact targets, permissions, confirmation requirements, pending-content
+  guards and material warnings. Use visible context or keyboard-accessible help,
+  never hover-only explanations. Accessible names include the visible label;
+  associate longer context as a description rather than replacing that name.
+
+The 2026-11-13 first pass applies this convention to Versions/Sources, shared
+workspace/reader controls and their history, comparison, publication and
+regeneration panels. Other surfaces adopt it as they are changed; this is not
+a claim that every existing website label has been audited or renamed.
+This section supersedes earlier literal action-label examples, not their
+behavior, preservation or acceptance requirements.
 
 **Help and retirement:** remove obsolete workflow promises and ordinary links to
 retired mutation surfaces, retaining compatible old routes and read-only evidence.

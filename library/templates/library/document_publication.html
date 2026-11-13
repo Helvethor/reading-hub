@@ -1,10 +1,10 @@
 {% extends panel_base %}
 {% load static %}
-{% block title %}Review publication | {{ site.name }}{% endblock %}
+{% block title %}Publish | {{ site.name }}{% endblock %}
 {% block head %}{% if candidate or published %}<link rel="stylesheet" href="{% if published %}{% url 'reader-css' published.rendition_id %}{% else %}?draft={{ request.GET.draft|urlencode }}&amp;revision={{ candidate.revision.revision }}&amp;stylesheet=1{% endif %}"><link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1"><link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>{% endif %}{% endblock %}
 {% block content %}
 <div class="page-container">
-  <h1>Review publication</h1>
+  <h1>Publish</h1>
   {% if not embedded %}<p><a href="{{ return_editor_url }}">Return to editor</a></p>{% endif %}
   {% if publication_error %}
   <p class="error" role="alert">{{ publication_error }}</p>
@@ -15,7 +15,7 @@
   {% endif %}
   {% endif %}
   {% if candidate %}
-  <p><a href="{% url 'document-comparison' source.pk %}?draft={{ request.GET.draft|urlencode }}&amp;to={{ candidate.revision.revision }}{% if embedded %}&amp;embedded=1{% endif %}">Compare this saved revision with its pinned starting document</a></p>
+  <p><a href="{% url 'document-comparison' source.pk %}?draft={{ request.GET.draft|urlencode }}&amp;to={{ candidate.revision.revision }}{% if embedded %}&amp;embedded=1{% endif %}">Compare with starting version</a></p>
   <p class="notice">Preview of saved revision {{ candidate.revision.revision }} only. Unsaved editor changes are not included. Publication creates a separate immutable edition; it does not verify content or modify the original edition, source corrections or catalogue ownership.</p>
   {% include 'library/document_review_status.html' with revision=candidate.revision %}
   <p>
@@ -36,7 +36,7 @@
     <label><input type="checkbox" name="make_default" value="yes"{% if selection_requested %} checked{% endif %}> Make this the default for readers and new editing starts.</label>
     <label for="publication-selection-reason">Reason for changing the reader default (required only when selected)</label>
     <textarea id="publication-selection-reason" name="reason" maxlength="2000"{% if selection_requested %} required{% endif %}>{{ selection_reason }}</textarea>
-    <button type="submit">Publish saved revision</button>
+    <button type="submit">Publish</button>
   </form>
   {% endif %}
   {% if published %}
@@ -51,10 +51,10 @@
     <p>Not the default; no reader version is currently available.</p>
     {% endif %}
     <p>
-      <a href="{% url 'reader' published.rendition_id %}" target="_blank" rel="noopener noreferrer">Read publication</a>
-      · <a href="{% url 'reader-pdf' published.rendition_id %}" target="_blank" rel="noopener noreferrer">Download PDF</a>
+      <a href="{% url 'reader' published.rendition_id %}" target="_blank" rel="noopener noreferrer">Read</a>
+      · <a href="{% url 'reader-pdf' published.rendition_id %}" target="_blank" rel="noopener noreferrer">PDF</a>
       {% if not is_reader_default %}
-      · <a href="{% url 'document-lineage' published.rendition.document_id %}?filter=publications&amp;selected=edition%3A{{ published.rendition_id }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Make default...</a>
+      · <a href="{% url 'document-lineage' published.rendition.document_id %}?filter=publications&amp;selected=edition%3A{{ published.rendition_id }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Set reader default&hellip;</a>
       {% endif %}
       · {% if embedded %}<a href="#" data-workflow-close>Return to editor</a>{% else %}<a href="{{ return_editor_url }}">Return to editor</a>{% endif %}
     </p>

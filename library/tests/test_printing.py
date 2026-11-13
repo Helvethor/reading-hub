@@ -922,7 +922,7 @@ class PrintingTests(TestCase):
     def test_reader_print_override_for_old_versions_and_optional_wrap(self):
         response = self.client.get(f"/versions/{self.version.pk}/")
         self.assertContains(response, "library/print.css")
-        self.assertContains(response, ">Download PDF</a>")
+        self.assertContains(response, "data-reading-pdf>PDF</a>")
         self.assertNotContains(response, "Download PDF with bookmarks")
         self.assertNotContains(response, 'class="print-toc"')
         self.assertContains(response, 'id="print-wrap-images"')

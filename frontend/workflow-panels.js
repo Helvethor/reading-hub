@@ -6,7 +6,7 @@ export function mountWorkflowPanels({
   dialog.setAttribute("aria-label", "Editor workflow");
   const close = document.createElement("button");
   close.type = "button";
-  close.textContent = "Close panel and return to editor";
+  close.textContent = "Close";
   const frame = document.createElement("iframe");
   const notice = document.createElement("p");
   notice.setAttribute("role", "alert");

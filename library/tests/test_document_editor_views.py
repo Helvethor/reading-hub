@@ -423,7 +423,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Reader default:")
         self.assertNotContains(response, "Download current draft PDF")
         download = workspace.select_one("#workspace-panel-read #workspace-download-pdf")
-        self.assertEqual(download.get_text(strip=True), "Download PDF")
+        self.assertEqual(download.get_text(strip=True), "PDF")
         self.assertTrue(download.has_attr("disabled"))
         self.assertTrue(download.find_parent(attrs={"data-workspace-subbar": True}))
         structure_tab = workspace.select_one('#editor-tab-structure[role="tab"]')
@@ -458,7 +458,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'data-comparison-url="'
                             + reverse("document-comparison", args=[self.rendition.pk]) + '"')
         self.assertContains(response, 'id="editor-comparison"')
-        for panel in ("Saved comparison", "Publication preview"):
+        for panel in ("Compare", "Publish"):
             self.assertContains(response, f'data-workflow-panel="{panel}"')
         self.assertNotContains(response, 'data-workflow-panel="Regenerate a separate draft"')
         self.assertContains(response, "Unsaved editor changes are not included.")
@@ -466,7 +466,9 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Review clipboard paste")
         self.assertContains(response, "Insert formatted text")
         self.assertContains(response, "Insert plain text")
-        self.assertContains(response, "Cancel paste")
+        self.assertContains(
+            response, 'id="editor-paste-cancel" type="button" autofocus>Cancel</button>',
+        )
         self.assertContains(response, "editor-metadata-sheet")
         self.assertContains(response, "Verify selected sections")
         self.assertContains(response, "Verify the whole document")
@@ -528,7 +530,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "workspace-back-to-top")
         self.assertContains(response, "public-workspace.js")
-        self.assertContains(response, "Download PDF")
+        self.assertContains(response, "data-reading-pdf>PDF</a>")
         self.assertContains(response, 'aria-label="Work identity and reader status"')
         self.assertNotContains(response, 'id="workspace-tab-edit"')
 
