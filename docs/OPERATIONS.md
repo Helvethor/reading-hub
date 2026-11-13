@@ -723,6 +723,37 @@ keyboard editing, save/reopen and Read at 1280px/375px. New plain items have no
 paragraphs; LI cues are removed even from retained block items and diff widgets.
 Existing paragraph IDs/styles remain intact. No live corrections were changed.
 
+Presentation/PDF milestones M19-M24 local deployment (2026-11-13): release
+`92d1839` serves `http://127.0.0.1:8765/` from `data/releases/92d1839`, using
+the existing `data/` root and editor pilot setting. The previous web process
+running from the source checkout was replaced; all six managed workers and the
+separate port-8000 service were left untouched. No migration was needed or run;
+the release's Django check passed and all migrations were already applied.
+The pre-deployment printing/reading-style suite passed all 43 tests.
+
+Before restart, private backup
+`data/backups/pdf-title-deploy-20261113T1405/` was verified: SQLite backup
+passed `PRAGMA quick_check` with no foreign-key violations; all 5,031 retained
+blobs (322,485,284 bytes) matched by SHA-256; the archive database copy matched;
+and the signing-key copy matched with mode 0600. The backup directory is mode
+0700. The release's locked npm install/build succeeded and Django `findstatic`
+resolved both generated editor assets. npm reported the existing Node/npm
+version-compatibility warning; it did not prevent the build.
+
+After restart, Library, catalogue, reader, print CSS and editor JS returned
+HTTP 200. Browser inspection of an existing reader confirmed the updated
+`0.53.0-9-opening` print stylesheet, both end-matter sections and no horizontal
+overflow. The PDF endpoint returned `application/pdf`, a valid PDF signature
+and a Content-Disposition filename matching the exact rendition title. That
+read generated one new PDF under cache version p16; prior cache files were not
+rewritten. Database
+integrity checks passed and document, branch, draft, revision, publication,
+reader-selection, rendition and asset counts matched the pre-deployment
+backup. The retained-blob SHA-256 inventory still matched. The managed-worker
+state was unchanged (one running, five already failed); no live correction,
+publication, reader selection or migration was changed. This is a local
+deployment, not a public release.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not
