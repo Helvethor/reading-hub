@@ -159,11 +159,14 @@ for scope, dependencies and V17-V22 acceptance.
   browser zoom and fresh Read/PDF content comparison remain pending. Device-scale
   200% emulation and browser print-media exclusion passed; neither is a claim of
   independent usability/accessibility or full output comparison.
-- [ ] V.g (specified only): keep the Read ToC visible below the measured sticky
-  stack while scrolling. Add a Contents show/hide switch next to Download PDF;
-  when the ToC is hidden, the text takes the freed width up to a readable
-  maximum. Make the Read/Versions/Sources bars visually part of the rounded tab
-  card. Acceptance V25.
+- [x] V.g implementation: make the workspace Read ToC sticky below the measured
+  stack, add a session-local Contents toggle that removes the panel from layout,
+  widen the bounded reading column when hidden, track the active entry, and
+  integrate tab panels/action bars with the rounded workspace card. A focused
+  frontend regression and production build pass.
+- [ ] V.g acceptance V25: visible-browser checks for sticky offsets, long-ToC
+  internal scrolling, link targets, responsive layout, focus/contrast, and
+  unchanged PDF/print output remain pending.
 - [ ] V.h (specified only): one work page for every role. `/versions/<id>/` uses
   the workspace design with Read/Versions/Sources for everyone; Edit is shown
   only to reviewers, and `/editor/` redirects to `?tab=edit` with its query

@@ -38,7 +38,7 @@ function setup(query = "") {
         </div>
         <p id="workspace-action-status"></p>
       </div>
-      <section id="workspace-panel-read"><button id="workspace-download-pdf">Download PDF</button><div id="workspace-read-content"></div></section>
+      <section id="workspace-panel-read"><button id="workspace-download-pdf">Download PDF</button><button id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button><div id="workspace-read-content"></div></section>
       <section id="workspace-panel-edit"><h2>Edit content</h2></section>
       <section id="workspace-panel-versions"><div id="workspace-versions-content"></div></section>
       <section id="workspace-panel-sources"><div id="workspace-sources-content"></div></section>
@@ -224,6 +224,42 @@ test("Read uses the current captured document and tab history keeps the editor m
   assert.equal(document.querySelector('[data-workspace-tab="edit"]')
     .getAttribute("aria-selected"), "true");
   assert.equal(document.querySelector("#editor-surface"), surface);
+});
+
+test("Contents toggle survives Read rerenders and removes the ToC from layout", async () => {
+  const form = setup("?tab=read");
+  let html = `<div class="reader-layout">
+    <aside id="workspace-read-toc" class="toc-panel"><nav>
+      <a href="#first">First</a><a href="#second">Second</a>
+    </nav></aside>
+    <div class="reading-column"><article class="reader-content">
+      <h2 id="first">First</h2><h2 id="second">Second</h2>
+    </article></div>
+  </div>`;
+  globalThis.fetch = () => Promise.resolve({
+    ok: true,
+    headers: {get: () => "application/json"},
+    json: async () => ({html, state: "exact", revision: 0, appearance: appearance()}),
+  });
+  const snapshot = {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  };
+  const shell = mount(form, snapshot);
+  await settle();
+  const toggle = document.querySelector("#workspace-contents-toggle");
+  toggle.click();
+  assert.equal(toggle.getAttribute("aria-pressed"), "false");
+  assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
+  assert.equal(document.querySelector(".reader-layout").classList.contains("toc-hidden"), true);
+
+  html = html.replace("First</h2>", "Updated</h2>");
+  snapshot.document.title = "Updated title";
+  shell.updateState({draft: null, revision: 0, dirty: true});
+  await settle();
+  assert.equal(toggle.getAttribute("aria-pressed"), "false");
+  assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
+  assert.equal(document.querySelector("#workspace-read-content").textContent.includes("Updated"), true);
 });
 
 test("a late Read response cannot replace a newer draft projection", async () => {

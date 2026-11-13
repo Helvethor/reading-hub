@@ -67,9 +67,10 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1" hidden>
-      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>Download PDF</button></div>
+      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar><button type="button" id="workspace-download-pdf" disabled>Download PDF</button><button type="button" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button></div>
       {% include "library/reading_style_controls.html" %}
       <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
+        <aside class="toc-panel" id="workspace-read-toc" aria-label="Table of contents" hidden></aside>
         <p>Select Read to render the current editor content. This does not save or publish it.</p>
       </div>
     </section>

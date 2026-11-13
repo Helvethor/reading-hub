@@ -172,6 +172,7 @@ export function mountWorkspaceShell({
   const compactState = workspace.querySelector("#workspace-compact-state");
   const readContent = workspace.querySelector("#workspace-read-content");
   const downloadButton = workspace.querySelector("#workspace-download-pdf");
+  const contentsButton = workspace.querySelector("#workspace-contents-toggle");
   const backToTop = workspace.querySelector("#workspace-back-to-top");
   const lineagePath = workspace.dataset.lineagePath;
   const lineageUrls = {
@@ -185,6 +186,7 @@ export function mountWorkspaceShell({
   let readSignature = "";
   let readState = null;
   let readRequest = 0;
+  let contentsVisible = true;
   const lineageRequests = {versions: 0, sources: 0};
   let lastEditorFocus = null;
   let refreshStickyStack = () => {};
@@ -274,6 +276,35 @@ export function mountWorkspaceShell({
     downloadButton.disabled = !readState;
     downloadButton.textContent = PDF_LABELS[readState] || "Download PDF";
     downloadButton.dataset.pdfState = readState || "";
+  }
+
+  function updateReadContents() {
+    const layout = readContent.querySelector(".reader-layout");
+    const toc = layout?.querySelector(".toc-panel");
+    if (!layout || !toc) return;
+    layout.classList.toggle("toc-hidden", !contentsVisible);
+    toc.hidden = !contentsVisible;
+    contentsButton?.setAttribute("aria-pressed", String(contentsVisible));
+    if (!contentsVisible) return;
+
+    const links = [...toc.querySelectorAll('a[href^="#"]')];
+    const targets = links.map(link => {
+      const id = link.hash.slice(1);
+      return {link, target: readContent.ownerDocument.getElementById(id)};
+    }).filter(item => item.target);
+    if (!targets.length) return;
+    const stackHeight = Number.parseFloat(
+      workspace.style.getPropertyValue("--workspace-full-stack"),
+    ) || 0;
+    const current = targets.filter(({target}) =>
+      target.getBoundingClientRect().top <= stackHeight + 24).at(-1) || targets[0];
+    for (const {link} of targets) link.removeAttribute("aria-current");
+    current.link.setAttribute("aria-current", "location");
+    const panelRect = toc.getBoundingClientRect();
+    const linkRect = current.link.getBoundingClientRect();
+    if (linkRect.top < panelRect.top || linkRect.bottom > panelRect.bottom) {
+      toc.scrollTop += linkRect.top - panelRect.top;
+    }
   }
 
   function currentTab() {
@@ -424,7 +455,10 @@ export function mountWorkspaceShell({
       if (!response.ok) throw new Error(result.error || `Read preview failed (${response.status}).`);
       if (requestId !== readRequest) return;
       await applyReadAppearance(result.appearance);
-      keepActivePosition("read", () => { readContent.innerHTML = result.html; });
+      keepActivePosition("read", () => {
+        readContent.innerHTML = result.html;
+        updateReadContents();
+      });
       showPdfState(result.state);
       status.textContent = "";
     } catch (error) {
@@ -600,6 +634,11 @@ export function mountWorkspaceShell({
       restoreEditorFocus: event.isTrusted,
     }));
   }
+  contentsButton?.addEventListener("click", () => {
+    contentsVisible = !contentsVisible;
+    updateReadContents();
+  });
+  window.addEventListener("scroll", updateReadContents, {passive: true});
   panels.get("edit").addEventListener("focusin", event => {
     if (event.target !== panels.get("edit")) lastEditorFocus = event.target;
   });

@@ -5,9 +5,11 @@ Status: core implementation is present; V1-V16 acceptance remains partial.
 V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
 The V.e Metadata-page placement bugfix (V23) and V.f compact Edit command bar
 (V24) are implemented, with copied-book validation and the remaining acceptance
-limits recorded below. V.g Read contents panel/toggle/bar (V25) is specified only. V.h one
-work page for every role (V26) is specified only. V.i Versions/Sources redesign
-(V27-V30) is specified only; recording it does not authorize implementation.
+limits recorded below. V.g Read contents panel/toggle/bar (V25) is implemented;
+browser acceptance remains partial. V.h one work page for every role (V26) and
+V.i Versions/Sources redesign (V27-V30) are under implementation. The
+2026-11-13 implementation request authorizes local implementation of V.g-V.i;
+it does not authorize live content, publication or reader-default changes.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
 The subsequent V.e/V.f implementation request authorizes those focused fixes.
@@ -600,6 +602,14 @@ Visual fit: `.workspace-chrome` is a rounded (`.5rem`), bordered card with a
 shadow and a paper background. `.workspace-read-actions` is a square,
 full-width strip with only a bottom border, on a different background. The two
 read as unrelated layers.
+
+Implementation update 2026-11-13: the Read panel now has a session-local
+Contents toggle, measured-stack ToC positioning, active-entry tracking and a
+bounded wider reading measure when the ToC is hidden. Workspace action/filter
+bars and main panels share the rounded card boundary. The focused workspace
+shell suite (19 tests) and production asset build pass. Visible-browser
+acceptance for sticky geometry, mobile behavior, focus/contrast and unchanged
+PDF/print output has not been run.
 
 Required behavior:
 - **Contents panel follows the viewport.** On wide viewports the Read ToC stays
