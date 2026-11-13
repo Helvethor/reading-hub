@@ -754,6 +754,29 @@ state was unchanged (one running, five already failed); no live correction,
 publication, reader selection or migration was changed. This is a local
 deployment, not a public release.
 
+Inline CITE/Q local deployment (2026-11-13): committed release `52494ad` serves
+`http://127.0.0.1:8765/` from `data/releases/52494ad`, using the existing
+`data/` root and `READING_HUB_EDITOR_PILOT=1`. Before restart, backup
+`data/backups/inline-citation-deploy-20261113T144221Z/` was verified: both
+SQLite databases passed `PRAGMA quick_check` and `foreign_key_check`, their
+logical schemas and rows matched the live copies, all 5,031 retained blobs
+(322,485,284 bytes) matched by SHA-256, and the signing-key copy matched with
+mode 0600. The directory is mode 0700. No migration was pending or run.
+The release build, Django system check and `findstatic` checks for both editor
+assets passed; npm's Node/npm compatibility warning did not prevent the build.
+
+Only the old web process was replaced. The new process serves from the release
+directory as PID 1114718. Home, reader version 92 and both generated editor
+assets returned HTTP 200. Post-deployment database integrity checks passed and
+all 56 table schemas/rows matched the pre-deployment backup. The separate
+port-8000 service remained available and untouched. No publication or live
+content changed. Worker processes were not started or restarted: no import job
+was running, five worker rows were already failed, and one row said `running`
+but referenced absent PID 271693; that stale operational row was left unchanged.
+This is a local deployment, not a public release or a native-browser acceptance
+run. See the [inline CITE/Q handoff](INLINE-CITATION-QUOTATION-IMPLEMENTATION-HANDOFF.md)
+for implementation validation and remaining browser journeys.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

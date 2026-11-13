@@ -319,9 +319,10 @@ upload, arbitrary grouping or live-content mutation is in scope.
 
 ## Editor milestone I: inline CITE and Q semantics (2026-11-13)
 
-**Status:** implemented as format 21 and locally validated with focused
-automated tests. I remains separate from G. No deployment, publication,
-historical rendition rewrite or live-content change was performed.
+**Status:** implemented as format 21, locally deployed and validated with
+focused automated tests. I remains separate from G. No publication, historical
+rendition rewrite or live-content change was performed. Deployment evidence is
+recorded in [Operations](docs/OPERATIONS.md).
 
 The [inline citation/quotation handoff](docs/INLINE-CITATION-QUOTATION-IMPLEMENTATION-HANDOFF.md)
 owns I1-I10 acceptance and precise design.

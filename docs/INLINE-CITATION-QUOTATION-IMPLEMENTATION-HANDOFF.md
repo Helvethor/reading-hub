@@ -1,9 +1,10 @@
 # Milestone I: reviewer-managed inline CITE and Q semantics
 
-Requested 2026-11-13. **Status: implemented locally in format 21; automated
-validation passed.** No deployment, source regeneration, publication or
+Requested 2026-11-13. **Status: implemented in format 21 and locally deployed;
+automated validation passed.** No source regeneration, publication or
 live-content changes were performed. Native-browser interaction and
-browser-print acceptance remain outstanding.
+browser-print acceptance remain outstanding. Deployment evidence is recorded in
+[Operations](OPERATIONS.md).
 
 ## Outcome and decisions
 
