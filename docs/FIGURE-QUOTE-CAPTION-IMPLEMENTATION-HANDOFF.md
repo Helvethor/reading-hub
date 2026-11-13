@@ -213,3 +213,7 @@ Stop when these bounded workflows pass. Defer automatic figure cleanup,
 provenance-based repair without a reproduced example, arbitrary media grouping,
 new media insertion and broader quotation contexts. Do not expand this milestone
 into a new inspector framework or treat implementation as deployment approval.
+
+Inline CITE/Q management is separately specified in
+[milestone I](INLINE-CITATION-QUOTATION-IMPLEMENTATION-HANDOFF.md). G must preserve
+inline semantics during block operations and share I's contextual command grammar.
