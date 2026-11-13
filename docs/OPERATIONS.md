@@ -777,6 +777,34 @@ This is a local deployment, not a public release or a native-browser acceptance
 run. See the [inline CITE/Q handoff](INLINE-CITATION-QUOTATION-IMPLEMENTATION-HANDOFF.md)
 for implementation validation and remaining browser journeys.
 
+V.g/V.h/V.i local deployment (2026-11-13): committed release `a67d4a5`
+(workspace implementation `2cbf9f1`, contents controls `41e367d`) serves
+`http://127.0.0.1:8765/` from `data/releases/a67d4a5` with the existing data
+root and `READING_HUB_EDITOR_PILOT=1`. Only the verified web process was
+replaced, from PID 1114718 to PID 1658455. The worker UI showed all six workers
+already failed before and after deployment; none was started or restarted.
+Their 6 x 1024 MiB configuration and disabled crawl states were preserved.
+The separate port-8000 service and untracked `.github/` were left untouched.
+No migration was pending or applied.
+
+Private backup `data/backups/workspace-vghi-deploy-20261113T2050Z/` contains
+online backups of both SQLite databases, all 5,031 retained blobs and the signing
+key. Integrity and foreign-key checks passed. After deployment, all schemas and
+rows in the application's 57 tables and archive's 6 tables matched the backup;
+all retained-blob and signing-key SHA-256 hashes were unchanged. No live content,
+publication, reader selection, account or worker configuration was changed.
+
+Validation in the actual release passed 111 isolated backend tests, 327 frontend
+tests, the production build, Django system checks and migration consistency.
+Both editor assets, public-workspace JS, workspace CSS and lineage CSS resolved
+through `findstatic`, returned HTTP 200 and matched release bytes. The existing
+npm/Node compatibility warning did not prevent installation or build.
+Read-only browser checks on edition 92 confirmed reviewer Read/Edit/Versions/
+Sources tabs and loaded the selected-item inspectors and relationship-scope
+controls. Anonymous HTTP checks confirmed Read/Versions/Sources without Edit,
+and preserved the admin/worker login guards. This is bounded local deployment
+evidence, not full V25-V30 visual, keyboard, accessibility or print acceptance.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not
