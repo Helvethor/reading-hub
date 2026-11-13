@@ -18,6 +18,7 @@ VOID = {"br", "hr", "img"}
 INLINE = {
     "strong", "b", "em", "i", "u", "s", "small", "sup", "sub", "a", "span",
     "br", "img", "code", "abbr", "cite",
+    "q",
 }
 CLASSES = {
     "document-subtitle", "media-credit", "note-backlink", "missing-image", "quotation",
@@ -104,6 +105,8 @@ class SemanticParser(HTMLParser):
             or (parent in INLINE | {"p", "h2", "h3", "h4", "h5", "h6", "pre"}
                 and tag not in INLINE)
             or (tag == "a" and "a" in self.stack)
+            or (tag == "cite" and "cite" in self.stack)
+            or (tag == "img" and "q" in self.stack)
             or (tag in {"p", "h2", "h3", "h4", "h5", "h6"} and "p" in self.stack)
         ):
             raise SemanticNestingError(f"Invalid semantic nesting for {tag}.")
@@ -242,6 +245,34 @@ def canonical_document(value):
         if node.name == "a" and node.has_attr("href"):
             node["rel"] = ["noopener", "noreferrer"]
     return json.loads(encode({**value, "html": str(soup)}))
+
+
+def inline_quote_presentation(html, format_version):
+    if str(format_version) != "21":
+        return html
+    soup = BeautifulSoup(html, "html.parser")
+    pairs = {("\u201c", "\u201d"), ("\u00ab", "\u00bb"),
+             ("\u201e", "\u201c"), ('"', '"')}
+    for quotation in soup.find_all("q"):
+        text = quotation.get_text()
+        if text and any(text.startswith(opening) and text.endswith(closing)
+                        for opening, closing in pairs):
+            quotation["data-rh-q-literal"] = "true"
+    return str(soup)
+
+
+def inline_quote_stylesheet(stylesheet, format_version):
+    if str(format_version) != "21" or "data-rh-q-literal" in stylesheet:
+        return stylesheet
+    return stylesheet + """
+.reader-content q { quotes: "“" "”" "‘" "’"; }
+.reader-content q:lang(fr) { quotes: "« " " »" "“" "”"; }
+.reader-content q:lang(de) { quotes: "„" "“" "‚" "‘"; }
+.reader-content q::before { content: open-quote; }
+.reader-content q::after { content: close-quote; }
+.reader-content q[data-rh-q-literal]::before,
+.reader-content q[data-rh-q-literal]::after { content: none; }
+"""
 
 
 def document_issues(document, asset_digests):

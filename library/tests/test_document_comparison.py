@@ -25,6 +25,14 @@ class ComparisonTests(SimpleTestCase):
         self.assertEqual(result["after_digest"], fingerprint(after))
         self.assertFalse(result["limited"])
 
+    def test_inline_quotation_and_source_title_changes_are_visible(self):
+        before = self.value("<p>A <q>brief quote</q> from <cite>Work</cite>.</p>")
+        after = self.value("<p>A <q>brief quoted phrase</q> from <cite>Work</cite>.</p>")
+        result = compare_documents(before, after)
+        self.assertTrue(result["html_changed"])
+        self.assertTrue(any("brief quoted phrase" in line["text"] for line in result["lines"]))
+        self.assertTrue(any("<q>" in line["text"] for line in result["lines"]))
+
     def test_unicode_entities_and_html_looking_text_are_preserved_in_inert_tokens(self):
         before = self.value("<p>&amp; &#233; Élément</p>")
         after = self.value("<p>&lt;script&gt;different&lt;/script&gt; Élément</p>")

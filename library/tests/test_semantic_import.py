@@ -13,13 +13,47 @@ from library.services.document_edits import (
     preview_rendition_import,
     save_revision,
 )
-from library.services.semantic_documents import canonical_document, document_issues
+from library.services.semantic_documents import (
+    canonical_document,
+    document_issues,
+    inline_quote_presentation,
+    inline_quote_stylesheet,
+)
 from library.services.semantic_import import preview_import
 from library.tests import test_document_edits as foundation
 from library.tests.test_document_edits import DIGEST, document
 
 
 class SemanticImportTests(SimpleTestCase):
+    def test_inline_quotation_is_supported_without_broadening_media_or_nested_cite(self):
+        source = document(
+            '<section id="c1"><p><q>He said <q>yes</q> and '
+            '<cite>Capital</cite>.</q></p></section>'
+        )
+        self.assertEqual(canonical_document(source)["html"], source["html"])
+        for html in (
+            '<section id="c1"><p><q><img src="/assets/' + DIGEST + '/" alt="x"></q></p></section>',
+            '<section id="c1"><p><cite>Work <cite>nested</cite></cite></p></section>',
+            '<section id="c1"><p><q><div>Block</div></q></p></section>',
+        ):
+            with self.subTest(html=html), self.assertRaises(ValueError):
+                canonical_document(document(html))
+
+    def test_inline_quotation_output_marks_only_matching_literal_outer_quotes(self):
+        html = '<p><q>“Already quoted.”</q> <q>New phrase</q></p>'
+        self.assertEqual(inline_quote_presentation(html, "20"), html)
+        output = BeautifulSoup(inline_quote_presentation(html, "21"), "html.parser")
+        self.assertEqual(len(output.select('q[data-rh-q-literal="true"]')), 1)
+        self.assertEqual(output.select_one("q").get_text(), "“Already quoted.”")
+        self.assertEqual(output.select_one("q + q").get_text(), "New phrase")
+
+    def test_inline_quotation_styles_do_not_rewrite_historical_snapshots(self):
+        stored = "historical stylesheet"
+        self.assertEqual(inline_quote_stylesheet(stored, "20"), stored)
+        current = inline_quote_stylesheet(stored, "21")
+        self.assertIn("q::before", current)
+        self.assertIn("data-rh-q-literal", current)
+
     def test_valid_documents_need_no_repair_or_approval(self):
         value = document()
         original = deepcopy(value)

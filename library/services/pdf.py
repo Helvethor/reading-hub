@@ -408,6 +408,7 @@ def render_pdf(
     from library.services.book_views import layout_context, publication_view
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import DEFAULTS, FONT_FILES, style_css, validate_style
+    from library.services.semantic_documents import inline_quote_presentation
     from library.services.storage import read_blob
     from library.themes import profile_for_theme
     from library.views import contents_tree, endmatter_ids, toc_tree, with_edition_status
@@ -466,6 +467,9 @@ def render_pdf(
             or metadata.get("layout")
         )
         else {"content_html": version.html, "entries": version.structure.get("toc", [])}
+    )
+    projection["content_html"] = inline_quote_presentation(
+        projection["content_html"], getattr(version, "format_version", None),
     )
     identifiers = endmatter_ids(projection["content_html"])
     metadata_values = metadata_context(

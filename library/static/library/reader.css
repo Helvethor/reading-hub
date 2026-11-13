@@ -17,6 +17,13 @@
 .reader-content .quotation blockquote { margin: 0; }
 .reader-content .quotation figcaption { margin: .65rem 0 0; padding-left: 1.5rem; font: .9em/1.6 Georgia, serif; color: inherit; }
 .reader-content .quotation figcaption p { margin: 0; }
+.reader-content q { quotes: "“" "”" "‘" "’"; }
+.reader-content q:lang(fr) { quotes: "« " " »" "“" "”"; }
+.reader-content q:lang(de) { quotes: "„" "“" "‚" "‘"; }
+.reader-content q::before { content: open-quote; }
+.reader-content q::after { content: close-quote; }
+.reader-content q[data-rh-q-literal]::before,
+.reader-content q[data-rh-q-literal]::after { content: none; }
 .reader-content ul, .reader-content ol { padding-left: 1.5em; margin-bottom: 1.4em; }
 .reader-content table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: .9em; margin: 1.5rem 0; }
 .reader-content th, .reader-content td { border: 1px solid #d9ddd1; padding: .5rem; }

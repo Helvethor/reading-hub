@@ -2017,23 +2017,24 @@ acceptance. Automatic cleanup, arbitrary grouping, new image insertion and live
 record changes are excluded. Recording this plan does not authorize implementation
 or deployment.
 
-### Reviewer-managed inline CITE and Q (planned 2026-11-13)
+### Reviewer-managed inline CITE and Q (implemented 2026-11-13)
 
-Milestone I is specified only. The
+Milestone I is implemented in format 21. The
 [inline citation/quotation handoff](docs/INLINE-CITATION-QUOTATION-IMPLEMENTATION-HANDOFF.md)
 owns I1-I10. It is separate from G: G controls block structure; I controls inline
 work titles (`cite`) and short inline quotations (`q`).
 
-Format 21 will add `q` to future normalization, semantic validation, editor,
+Format 21 adds `q` to future normalization, semantic validation, editor,
 paste/comparison, Read and PDF support. Existing renditions and versions are
-not re-normalized or repaired. Selection tools will mark, remove and change
-CITE/Q with exact range, nesting, target and one-step undo guarantees.
-Removing an identity-bearing wrapper retains its attributes on `span`.
+not re-normalized or repaired. Selection tools mark, remove and change CITE/Q
+with exact range, nesting, target and one-step undo guarantees. Removing an
+identity-bearing wrapper retains its attributes on `span`.
 
 Typed quotation marks remain by default. For one matching enclosing pair, the
 reviewer may explicitly replace them with semantic Q marks; output must not
 double them. Automatic detection, bibliography management, inline-to-block
-conversion and historical Q recovery are excluded.
+conversion and historical Q recovery are excluded. Automated validation is
+complete; native-browser and browser-print acceptance remains outstanding.
 
 ### Simple tables and retained-image insertion (planned 2026-11-13)
 

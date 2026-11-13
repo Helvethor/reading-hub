@@ -17,6 +17,8 @@ import {
   activateEditorLink,
   navigatedDocumentTarget,
   canMarkCitation, markCitation, selectedCitation, removeCitation,
+  canMarkInlineQuotation, markInlineQuotation, inlineSemanticTargets,
+  removeInlineSemantic, changeInlineSemantic,
 } from "./editor.js";
 import {
   canEditQuotation, canRemoveQuotation, prepareQuotation, applyQuotation,
@@ -691,6 +693,10 @@ function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace, s
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
   document.body.innerHTML = template.slice(template.indexOf('<div class="editor-workspace"'),
     template.indexOf('<dialog id="editor-image"'));
+  document.body.insertAdjacentHTML("beforeend", template.slice(
+    template.indexOf('<dialog id="editor-inline-q"'),
+    template.indexOf('<dialog id="editor-note-repair"'),
+  ));
   const form = document.querySelector("#document-editor");
   editor = createBoundedEditor(form.querySelector("#editor-surface"), html);
   for (const control of form.querySelectorAll("[disabled]")) control.disabled = false;
@@ -2096,6 +2102,23 @@ test("semantic copy pastes styled text repeatedly without losing source or dupli
   assert.equal(editor.getHTML(), first);
   assert(undo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), before);
+});
+
+test("semantic clipboard preserves nested inline quotation and source-title marks", () => {
+  open("<p><q>Outer <cite>work title</cite></q></p><p>Destination</p>");
+  let from, to;
+  editor.state.doc.descendants((node, position) => {
+    if (!node.isText) return;
+    if (node.text === "Outer ") from = position;
+    if (node.text === "work title") to = position + node.nodeSize;
+  });
+  editor.commands.setTextSelection({from, to});
+  const data = semanticClipboardData();
+  clipboardEvent("copy", data);
+  selectText("Destination");
+  clipboardEvent("paste", data);
+  assert.match(editor.getHTML(), /<q>Outer <cite>work title<\/cite><\/q>/);
+  assert.match(editor.getHTML(), /Destination/);
 });
 
 test("whole-block semantic copy retains Article identity and section metadata with fresh bindings", () => {
@@ -3988,6 +4011,98 @@ test("citation wrappers preserve full nested links and IDs and refuse partial wr
   assert.equal(editor.getHTML(), '<p><span id="work" class="text-align-left">Work <em>title</em></span></p>');
 });
 
+test("inline source-title and quotation marks preserve nesting and support exact undo", () => {
+  open("<p>Read Capital today.</p>");
+  selectText("Capital", 7);
+  assert(canMarkCitation(editor));
+  markCitation(editor);
+  assert.equal(editor.getHTML(), "<p>Read <cite>Capital</cite> today.</p>");
+  selectText("Capital", 7);
+  assert.equal(inlineSemanticTargets(editor).map(target => target.mark.attrs.tag).join(","), "cite");
+  removeInlineSemantic(editor, "cite");
+  assert.equal(editor.getHTML(), "<p>Read Capital today.</p>");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), "<p>Read <cite>Capital</cite> today.</p>");
+
+  editor.destroy();
+  open("<p>“a phrase”</p>");
+  selectText("“a phrase”", "“a phrase”".length);
+  assert(canMarkInlineQuotation(editor));
+  markInlineQuotation(editor);
+  assert.equal(editor.getHTML(), "<p><q>“a phrase”</q></p>");
+  assert(undo(editor.state, editor.view.dispatch));
+  markInlineQuotation(editor, {replaceOuterMarks: true});
+  assert.equal(editor.getHTML(), "<p><q>a phrase</q></p>");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), "<p>“a phrase”</p>");
+});
+
+test("nested inline quotation targets can be changed or removed independently", () => {
+  open("<p><q>He said <q>yes</q></q></p>");
+  selectText("yes", 3);
+  const targets = inlineSemanticTargets(editor);
+  assert.deepEqual(targets.map(target => target.mark.attrs.tag), ["q", "q"]);
+  changeInlineSemantic(editor, "q", 1);
+  assert.equal(editor.getHTML(), "<p><q>He said <cite>yes</cite></q></p>");
+  assert(undo(editor.state, editor.view.dispatch));
+  removeInlineSemantic(editor, "q", 1);
+  assert.equal(editor.getHTML(), "<p><q>He said yes</q></p>");
+
+  editor.destroy();
+  open("<p><q><cite>Capital</cite></q></p>");
+  selectText("Capital", 7);
+  assert.throws(() => changeInlineSemantic(editor, "q"), /cannot be nested or overlap/);
+  assert.equal(editor.getHTML(), "<p><q><cite>Capital</cite></q></p>");
+  assert.throws(() => createBoundedEditor(
+    document.createElement("div"),
+    '<p><q><img src="/assets/' + "a".repeat(64) + '/" alt="x"></q></p>',
+  ), /cannot contain images/);
+
+  editor.destroy();
+  open('<p><q id="phrase" class="text-align-left">Read <em>Capital</em></q></p>');
+  selectText("Read", 4);
+  changeInlineSemantic(editor, "q");
+  assert.equal(editor.getHTML(),
+    '<p><cite id="phrase" class="text-align-left">Read <em>Capital</em></cite></p>');
+  removeInlineSemantic(editor, "cite");
+  assert.equal(editor.getHTML(),
+    '<p><span id="phrase" class="text-align-left">Read <em>Capital</em></span></p>');
+});
+
+test("selection tools expose inline semantics and show the explicit mark-replacement preview", () => {
+  const form = mountSectionWorkspace("<p>“A quoted phrase”</p>");
+  selectText("“A quoted phrase”", "“A quoted phrase”".length);
+  form.querySelector("#editor-tools").click();
+  form.querySelector('[data-inline-mark="q"]').click();
+  const dialog = document.querySelector("#editor-inline-q");
+  assert(dialog.open);
+  assert.equal(dialog.querySelector("#editor-inline-q-before").textContent, "“A quoted phrase”");
+  assert.equal(dialog.querySelector("#editor-inline-q-after").textContent, "“A quoted phrase”");
+  const replace = dialog.querySelector("#editor-inline-q-replace");
+  replace.checked = true;
+  replace.dispatchEvent(new dom.window.Event("change"));
+  assert.equal(dialog.querySelector("#editor-inline-q-after").textContent, "A quoted phrase");
+  dialog.querySelector("#editor-inline-q-apply").click();
+  assert.equal(editor.getHTML(), "<p><q>A quoted phrase</q></p>");
+  assert.match(form.querySelector("#editor-selection-path").textContent, /Inline: Q/);
+
+  selectText("A quoted phrase", "A quoted phrase".length);
+  form.querySelector("#editor-tools").click();
+  assert(form.querySelector('[data-inline-action="remove"]'));
+  form.querySelector('[data-inline-action="remove"]').click();
+  assert.equal(editor.getHTML(), "<p>A quoted phrase</p>");
+
+  selectText("A quoted phrase", "A quoted phrase".length);
+  const shortcut = new dom.window.KeyboardEvent("keydown", {
+    key: "F10", shiftKey: true, bubbles: true, cancelable: true,
+  });
+  editor.view.dom.dispatchEvent(shortcut);
+  assert(shortcut.defaultPrevented);
+  assert.equal(form.querySelector("#editor-context-menu").hidden, false);
+  form.querySelector('[data-inline-mark="cite"]').click();
+  assert.equal(editor.getHTML(), "<p><cite>A quoted phrase</cite></p>");
+});
+
 test("Insert quotation is available at an empty caret and shares exact preview and repair semantics", () => {
   const form = mountSectionWorkspace("<p></p>");
   const insert = form.querySelector('[data-quotation="insert"]');
@@ -4367,6 +4482,21 @@ test("formatted paste preserves cited source titles without importing unsafe att
   const formatted = prepareFormattedPaste(editor, clip, proposal);
   applyFormattedPaste(editor, {...proposal, formatted});
   assert.equal(editor.getHTML(), "<p>Source: <cite>Work <em>title</em></cite></p>");
+});
+
+test("formatted paste preserves inline quotation and source-title semantics", () => {
+  open("<p>Source: </p>");
+  editor.commands.setTextSelection(9);
+  const clip = {
+    types: ["text/plain", "text/html"], files: [],
+    getData: type => type === "text/html"
+      ? "<q>A phrase with <cite>Capital</cite></q>" : "A phrase with Capital",
+  };
+  const proposal = preparePlainTextPaste(editor, clip);
+  const formatted = prepareFormattedPaste(editor, clip, proposal);
+  applyFormattedPaste(editor, {...proposal, formatted});
+  assert.equal(editor.getHTML(),
+    "<p>Source: <q>A phrase with <cite>Capital</cite></q></p>");
 });
 
 const reviewTasks = JSON.parse(readFileSync(new URL("./fixtures/review-tasks.json", import.meta.url), "utf8"));

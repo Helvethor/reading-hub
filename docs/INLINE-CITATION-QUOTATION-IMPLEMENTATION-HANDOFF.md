@@ -1,8 +1,9 @@
 # Milestone I: reviewer-managed inline CITE and Q semantics
 
-Requested 2026-11-13. **Status: specified only; not implemented or validated.**
-Recording this plan does not authorize implementation, format/adapter release,
-deployment, source regeneration, publication or live-content changes.
+Requested 2026-11-13. **Status: implemented locally in format 21; automated
+validation passed.** No deployment, source regeneration, publication or
+live-content changes were performed. Native-browser interaction and
+browser-print acceptance remain outstanding.
 
 ## Outcome and decisions
 
@@ -138,7 +139,7 @@ than claiming exact plain-text equivalence without evidence.
 
 ## Coordination with G
 
-G and I are independently checkpointed and validated. Shared rules:
+G and I are independently scoped milestones. Shared rules:
 
 - Contextual menus, labels, focus and refusal messages follow one grammar.
 - No inline command creates or removes block QUOTE, FIG or CAPTION.
@@ -148,25 +149,27 @@ G and I are independently checkpointed and validated. Shared rules:
 
 ## Achievement sequence and acceptance
 
-All rows are pending.
+Implementation is complete. The status column distinguishes automated code
+coverage from end-to-end workflows that still need browser or recovery evidence.
 
-| ID | Observable pass condition |
-|---|---|
-| I1 | Existing CITE remains unchanged on open/save. A representative imported `<q>` is preserved by format 21 normalization; earlier stored renditions remain unchanged. |
-| I2 | Q validates, round-trips through editor/paste/comparison/recovery and renders in Read/PDF. Disallowed attributes or block content are refused/stripped under existing semantic rules. |
-| I3 | Selecting `Capital` in `<p>Read Capital today</p>` creates `<p>Read <cite>Capital</cite> today</p>`; removing restores the exact original. |
-| I4 | Selecting `a phrase` creates `<q>a phrase</q>`. Selecting `“a phrase”` keeps the marks by default; explicit replacement yields `<q>a phrase</q>` in one undo step. Read/PDF do not double either form. |
-| I5 | Changing CITE/Q preserves range, nested emphasis/link, `id` and `class`; removing ID/class-bearing wrappers yields an equivalent `span`. CITE-in-CITE is refused. |
-| I6 | Nested `<q>He said <q>yes</q></q>` and `<q>Read <cite>Capital</cite></q>` can be marked/removed by explicit target and save/render correctly. |
-| I7 | Partial nested/target-wrapper splits, multi-block/media ranges, hidden content and stale targets refuse unchanged. Each committed action has exact undo/redo; refusal/no-op leaves history unchanged. |
-| I8 | Pointer and keyboard menus expose the commands and paths; focus returns safely. Check desktop and basic narrow-screen access; record accessibility limits honestly. |
-| I9 | Isolated article/book save/reopen, Read, actual browser print and draft/published PDFs preserve CITE/Q, links, targets and visible marks without editor chrome. |
-| I10 | Focused frontend/backend/normalization tests, build and semantic fidelity checks pass. Observed, synthetic, mocked and untested evidence is separated; no live data/default/publication changes. |
+| ID | Observable pass condition | Evidence/status |
+|---|---|---|---|
+| I1 | Existing CITE remains unchanged on open/save. A representative imported `<q>` is preserved by format 21 normalization; earlier stored renditions remain unchanged. | Automated normalization tests cover Q/CITE; format-20 stylesheet behavior is format-gated. No historical rendition was rewritten. |
+| I2 | Q validates, round-trips through editor/paste/comparison/recovery and renders in Read/PDF. Disallowed attributes or block content are refused/stripped under existing semantic rules. | Automated semantic, editor, paste, comparison, save/reopen, Read and PDF checks pass. A dedicated recovery journey is not claimed. |
+| I3 | Selecting `Capital` in `<p>Read Capital today</p>` creates `<p>Read <cite>Capital</cite> today</p>`; removing restores the exact original. | Covered by frontend editor tests; interaction evidence is jsdom/synthetic, not a native browser. |
+| I4 | Selecting `a phrase` creates `<q>a phrase</q>`. Selecting `“a phrase”` keeps the marks by default; explicit replacement yields `<q>a phrase</q>` in one undo step. Read/PDF do not double either form. | Automated interaction and rendered-output tests pass, including the default literal-mark suppression path. |
+| I5 | Changing CITE/Q preserves range, nested emphasis/link, `id` and `class`; removing ID/class-bearing wrappers yields an equivalent `span`. CITE-in-CITE is refused. | Automated editor tests cover nested targets and identity/attribute preservation. |
+| I6 | Nested `<q>He said <q>yes</q></q>` and `<q>Read <cite>Capital</cite></q>` can be marked/removed by explicit target and save/render correctly. | Nested target behavior and save/reopen/render paths are covered by automated tests; no human workflow observation. |
+| I7 | Partial nested/target-wrapper splits, multi-block/media ranges, hidden content and stale targets refuse unchanged. Each committed action has exact undo/redo; refusal/no-op leaves history unchanged. | Guard/refusal and undo behavior have automated frontend coverage; native keyboard/focus behavior remains unverified. |
+| I8 | Pointer and keyboard menus expose the commands and paths; focus returns safely. Check desktop and basic narrow-screen access; record accessibility limits honestly. | Menu paths and commands are covered synthetically. Native desktop/narrow browser and accessibility checks remain outstanding. |
+| I9 | Isolated article/book save/reopen, Read, actual browser print and draft/published PDFs preserve CITE/Q, links, targets and visible marks without editor chrome. | Isolated save/reopen, reader response and WeasyPrint PDF rendering are tested. Browser print and a full draft/published journey remain untested. |
+| I10 | Focused frontend/backend/normalization tests, build and semantic fidelity checks pass. Observed, synthetic, mocked and untested evidence is separated; no live data/default/publication changes. | `npm test`: 325 passed; focused Django suite: 124 passed; frontend build, Python compile, Ruff undefined-name checks and CRLF-aware diff check pass. No deployment or live-content mutation. |
 
-1. **I.a / I1-I2:** add format 21 Q support and rendering; checkpoint validated code.
-2. **I.b-I.c / I3, I5-I7:** add command targets and transactions; checkpoint.
-3. **I.d / I4:** add quotation-mark choice and render suppression; checkpoint.
-4. **I8-I10:** complete browser, recovery and rendered-output journeys; record evidence.
+1. **I.a / I1-I2:** format 21 Q support and output rendering implemented.
+2. **I.b-I.c / I3, I5-I7:** command targets and atomic inline edits implemented.
+3. **I.d / I4:** explicit quotation-mark choice and output suppression implemented.
+4. **Remaining validation:** native-browser and browser-print/draft-published
+   journeys; these are not represented as completed acceptance.
 
 Stop when these bounded workflows pass. Defer automatic detection, bibliography
 management, author markup, inline-to-block conversion, historical Q recovery,

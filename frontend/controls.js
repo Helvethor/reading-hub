@@ -6,7 +6,9 @@ import {
   selectedImage, prepareImageEdit, applyImageEdit,
   selectedLink, prepareLinkEdit, applyLinkEdit, applyLinkRemoval,
   canInsertLink, prepareLinkInsertion,
-  documentLinkTargets,
+  documentLinkTargets, canMarkCitation, markCitation, canMarkInlineQuotation,
+  markInlineQuotation, matchingInlineQuotationMarks, inlineSemanticTargets,
+  removeInlineSemantic, changeInlineSemantic,
 } from "./editor.js";
 import {
   canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure,
@@ -57,11 +59,13 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const trigger = form.querySelector("#editor-tools");
   const imageDialog = owner.querySelector("#editor-image");
   const linkDialog = owner.querySelector("#editor-link");
+  const inlineQuotationDialog = owner.querySelector("#editor-inline-q");
   const quotationDialog = owner.querySelector("#editor-quotation");
   let quotationProposal = null;
   let quotationApplied = false;
   const figureHelp = quotationDialog?.querySelector("#editor-quotation-help").textContent;
   let linkProposal = null;
+  let inlineQuotationProposal = null;
   let linkTargets = [];
   let imageProposal = null;
   let parts = [], menuTarget = null;
@@ -364,6 +368,45 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       button.setAttribute("aria-checked", String(active));
       if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(active));
     }
+    for (const button of form.querySelectorAll("[data-inline-mark]")) {
+      const target = button.dataset.inlineMark;
+      const allowed = target === "cite" ? canMarkCitation(editor) : canMarkInlineQuotation(editor);
+      available(button, !selection.empty && allowed);
+    }
+    const inlineTargets = inlineSemanticTargets(editor);
+    const inlineTargetList = menu.querySelector("[data-inline-targets]");
+    if (inlineTargetList) {
+      inlineTargetList.replaceChildren();
+      const counts = Object.fromEntries(["cite", "q"].map(tag => [
+        tag, inlineTargets.filter(target => target.mark.attrs.tag === tag).length,
+      ]));
+      for (const [index, target] of inlineTargets.entries()) {
+        const tag = target.mark.attrs.tag;
+        const tagIndex = inlineTargets.slice(0, index)
+          .filter(candidate => candidate.mark.attrs.tag === tag).length;
+        const name = tag === "cite" ? "source title" : "inline quotation";
+        const button = owner.createElement("button");
+        button.type = "button";
+        button.role = "menuitem";
+        button.dataset.inlineAction = "remove";
+        button.dataset.inlineTag = tag;
+        button.dataset.inlineIndex = String(tagIndex);
+        button.hidden = !prose;
+        button.disabled = !prose;
+        button.textContent = `Remove ${name}${counts[tag] > 1 ? ` (${tagIndex === 0 ? "outer" : "inner"})` : ""}`;
+        inlineTargetList.append(button);
+        const change = owner.createElement("button");
+        change.type = "button";
+        change.role = "menuitem";
+        change.dataset.inlineAction = "change";
+        change.dataset.inlineTag = tag;
+        change.dataset.inlineIndex = String(tagIndex);
+        change.hidden = !prose;
+        change.disabled = !prose;
+        change.textContent = `Change ${name} to ${tag === "cite" ? "inline quotation" : "source title"}`;
+        inlineTargetList.append(change);
+      }
+    }
     for (const button of form.querySelectorAll("[data-image]")) {
       available(button, !!selectedImage(editor));
     }
@@ -402,6 +445,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         (node.attrs.id ? ` #${node.attrs.id}` : ""));
     }
     path.textContent = `Current block: ${ancestors.join(" / ") || "Document"}`;
+    if (inlineTargets.length) path.textContent += " · Inline: " + inlineTargets
+      .map(target => target.mark.attrs.tag === "cite" ? "CITE" : "Q").join(" › ");
     if (selection instanceof BlockSelection) path.textContent =
       `${selection.positions.length} whole block(s) selected` +
       (selection.contiguous ? " (contiguous)." : " (gaps: select intervening blocks before extracting).") +
@@ -570,6 +615,32 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         linkDialog.showModal();
         linkDialog.querySelector("#editor-link-href").focus();
         return;
+      } else if (button.dataset.inlineMark === "cite") {
+        markCitation(editor);
+      } else if (button.dataset.inlineMark === "q") {
+        const text = editor.state.doc.textBetween(
+          editor.state.selection.from, editor.state.selection.to,
+        );
+        if (matchingInlineQuotationMarks(text)) {
+          inlineQuotationProposal = {
+            doc: editor.state.doc,
+            bookmark: editor.state.selection.getBookmark(),
+            text,
+          };
+          inlineQuotationDialog.querySelector("#editor-inline-q-before").textContent = text;
+          inlineQuotationDialog.querySelector("#editor-inline-q-after").textContent = text;
+          inlineQuotationDialog.querySelector("#editor-inline-q-replace").checked = false;
+          inlineQuotationDialog.querySelector('[role="alert"]').textContent = "";
+          inlineQuotationDialog.showModal();
+          inlineQuotationDialog.querySelector("#editor-inline-q-replace").focus();
+          return;
+        }
+        markInlineQuotation(editor);
+      } else if (button.dataset.inlineAction) {
+        const tag = button.dataset.inlineTag;
+        const index = Number(button.dataset.inlineIndex);
+        if (button.dataset.inlineAction === "remove") removeInlineSemantic(editor, tag, index);
+        else changeInlineSemantic(editor, tag, index);
       } else if ("linkRemove" in button.dataset) applyLinkRemoval(editor, prepareLinkEdit(editor));
       else if ("ruleInsert" in button.dataset) insertHorizontalRule(editor, readDocument);
       else if (button.dataset.list) applyList(editor, button.dataset.list, readDocument);
@@ -589,9 +660,13 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showError(failure.message);
     }
   }
-  for (const button of form.querySelectorAll("[data-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-list], [data-rule-insert]")) {
+  for (const button of form.querySelectorAll("[data-mark], [data-inline-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-list], [data-rule-insert]")) {
     button.addEventListener("click", () => perform(button));
   }
+  menu.addEventListener("click", event => {
+    const button = event.target.closest("[data-inline-action]");
+    if (button) perform(button);
+  });
   for (const button of form.querySelectorAll(".editor-format-toolbar button")) {
     button.addEventListener("mousedown", event => event.preventDefault());
   }
@@ -719,6 +794,42 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         linkDialog.close();
       } catch (failure) {
         linkDialog.querySelector('[role="alert"]').textContent = failure.message;
+      }
+    });
+  }
+  if (inlineQuotationDialog) {
+    const replace = inlineQuotationDialog.querySelector("#editor-inline-q-replace");
+    const preview = inlineQuotationDialog.querySelector("#editor-inline-q-after");
+    replace.addEventListener("change", () => {
+      const pair = matchingInlineQuotationMarks(inlineQuotationProposal?.text || "");
+      preview.textContent = replace.checked && pair
+        ? inlineQuotationProposal.text.slice(pair[0].length, -pair[1].length)
+        : inlineQuotationProposal?.text || "";
+    });
+    inlineQuotationDialog.querySelector("#editor-inline-q-cancel")
+      .addEventListener("click", () => inlineQuotationDialog.close());
+    inlineQuotationDialog.addEventListener("close", () => {
+      inlineQuotationProposal = null;
+      editor.commands.focus();
+    });
+    inlineQuotationDialog.querySelector("#editor-inline-q-apply").addEventListener("click", () => {
+      try {
+        const proposal = inlineQuotationProposal;
+        if (!proposal || editor.state.doc !== proposal.doc) {
+          throw new Error("The document changed while quotation options were open. Select the text again.");
+        }
+        editor.view.dispatch(editor.state.tr.setSelection(
+          proposal.bookmark.resolve(editor.state.doc),
+        ));
+        if (editor.state.doc.textBetween(
+          editor.state.selection.from, editor.state.selection.to,
+        ) !== proposal.text) {
+          throw new Error("The selected text changed. Select it again before marking it.");
+        }
+        markInlineQuotation(editor, {replaceOuterMarks: replace.checked});
+        inlineQuotationDialog.close();
+      } catch (failure) {
+        inlineQuotationDialog.querySelector('[role="alert"]').textContent = failure.message;
       }
     });
   }

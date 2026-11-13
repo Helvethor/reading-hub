@@ -55,6 +55,7 @@ TAGS = {
     "dd",
     "abbr",
     "cite",
+    "q",
 }
 
 

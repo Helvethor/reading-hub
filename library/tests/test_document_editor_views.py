@@ -771,6 +771,24 @@ class DocumentEditorViewTests(TestCase):
         self.rendition.refresh_from_db()
         self.assertEqual(self.rendition.html, original)
 
+    def test_inline_quotation_and_nested_source_title_save_and_reopen(self):
+        initial = self.client.get(self.url).context["initial"]
+        original = self.rendition.html
+        value = canonical_document({
+            **initial["document"],
+            "html": '<section id="c1"><p>He said <q id="speech">“yes, '
+            '<cite>Capital</cite>.”</q> today.</p></section>',
+        })
+        response = self.post(document=value)
+        self.assertEqual(response.status_code, 200)
+        saved = response.json()
+        self.assertEqual(saved["issues"], [])
+        self.assertEqual(saved["review"], "partial")
+        reopened = self.client.get(self.url + "?draft=" + saved["draft"])
+        self.assertEqual(reopened.context["initial"]["document"], value)
+        self.rendition.refresh_from_db()
+        self.assertEqual(self.rendition.html, original)
+
     def test_multi_paragraph_paste_result_retains_empty_targets_and_reopens(self):
         initial = self.client.get(self.url).context["initial"]
         original = self.rendition.html

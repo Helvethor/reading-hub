@@ -13,7 +13,7 @@ import {semanticDOM} from "./semantic-structure.js";
 
 const inlineTags = new Set([
   "strong", "b", "em", "i", "u", "s", "small", "sup", "sub", "a", "span",
-  "br", "img", "code", "abbr", "cite",
+  "br", "img", "code", "abbr", "cite", "q",
 ]);
 const wrapperTags = [...inlineTags].filter(tag => !["br", "img"].includes(tag));
 const attrs = {
@@ -432,12 +432,12 @@ export function documentLinkTargets(doc) {
   }));
 }
 
-export function inlineWrapperInsertionTarget(editor, tag = "a") {
+export function inlineWrapperInsertionTarget(editor, tag = "a", allowNested = false) {
   const {selection, doc} = editor.state;
   if (!(selection instanceof TextSelection) || selection.empty ||
       !selection.$from.sameParent(selection.$to) || !selection.$from.parent.inlineContent) return null;
   for (let depth = 1; depth <= selection.$from.depth; depth++) {
-    if (selection.$from.node(depth).attrs.tag === tag) return null;
+    if (!allowNested && selection.$from.node(depth).attrs.tag === tag) return null;
   }
   const nodes = [];
   doc.nodesBetween(selection.from, selection.to, (node, position) => {
@@ -445,7 +445,7 @@ export function inlineWrapperInsertionTarget(editor, tag = "a") {
       to: Math.min(position + node.nodeSize, selection.to)});
   });
   if (!nodes.length || nodes.some(({node}) => !node.isText ||
-      node.marks.some(mark => mark.attrs.tag === tag))) return null;
+      !allowNested && node.marks.some(mark => mark.attrs.tag === tag))) return null;
   const common = [];
   for (const mark of nodes[0].node.marks) {
     if (!nodes.every(({node}) => node.marks[common.length]?.eq(mark))) break;
@@ -490,12 +490,12 @@ export function markCitation(editor) {
     throw new Error("The source title is outside the visible part.");
   }
   const tr = closeHistory(editor.state.tr);
-  addCitationMark(editor, tr, target);
+  addInlineSemanticMark(editor, tr, target, "cite");
   editor.view.dispatch(tr);
   editor.view.dispatch(closeHistory(editor.state.tr));
 }
 
-function addCitationMark(editor, tr, target) {
+function addInlineSemanticMark(editor, tr, target, tag) {
   for (const {node, from, to} of target.nodes) {
     for (const mark of node.marks.filter(value => value.type.rank >= target.slot)) {
       tr.removeMark(from, to, mark);
@@ -505,7 +505,7 @@ function addCitationMark(editor, tr, target) {
     }
   }
   tr.addMark(target.from, target.to, editor.schema.marks[`inline${target.slot}`].create({
-    tag: "cite", identity: `edit-${++editedWrapper}`,
+    tag, identity: `edit-${++editedWrapper}`,
   }));
 }
 
@@ -519,32 +519,79 @@ export function citeTextInDocument(schema, doc, from, to) {
   const target = linkInsertionTarget({state, schema}, "cite");
   if (!target) throw new Error("The source title crosses partial formatting, media or an existing citation. Choose a complete title without splitting its wrappers.");
   const tr = state.tr;
-  addCitationMark({schema}, tr, target);
+  addInlineSemanticMark({schema}, tr, target, "cite");
   return tr.doc;
 }
 
-export function selectedCitation(editor) {
+export function inlineSemanticTargets(editor) {
   const {selection} = editor.state;
-  if (!selection.$from.sameParent(selection.$to)) return null;
+  if (!selection.$from.sameParent(selection.$to) || !selection.$from.parent.inlineContent) return [];
   const ranges = [];
+  let order = 0;
   selection.$from.parent.forEach((node, offset) => {
-    for (const mark of node.marks.filter(value => value.attrs.tag === "cite")) {
+    for (const mark of node.marks.filter(value => ["cite", "q"].includes(value.attrs.tag))) {
       const from = selection.$from.start() + offset;
       const previous = ranges.findLast(range => range.to === from && range.mark.eq(mark));
       if (previous) previous.to += node.nodeSize;
-      else ranges.push({from, to: from + node.nodeSize, mark});
+      else ranges.push({from, to: from + node.nodeSize, mark, order: order++});
     }
   });
-  const found = ranges.filter(range => selection.from >= range.from && selection.to <= range.to);
-  return found.length === 1 ? found[0] : null;
+  return ranges.filter(range => selection.empty
+    ? selection.from >= range.from && selection.from <= range.to
+    : selection.from >= range.from && selection.to <= range.to)
+    .sort((left, right) =>
+      left.from - right.from || right.to - left.to || left.order - right.order);
 }
 
-export function removeCitation(editor) {
-  const target = selectedCitation(editor);
-  if (!target) throw new Error("Select within one existing source title.");
+export function selectedInlineSemantic(editor, tag, targetIndex = 0) {
+  return inlineSemanticTargets(editor)
+    .filter(target => target.mark.attrs.tag === tag)[targetIndex] || null;
+}
+
+export function selectedCitation(editor) {
+  return selectedInlineSemantic(editor, "cite");
+}
+
+export function canMarkInlineQuotation(editor) {
+  return Boolean(inlineWrapperInsertionTarget(editor, "q", true));
+}
+
+export function matchingInlineQuotationMarks(text) {
+  return [
+    ["\u201c", "\u201d"], ["\u00ab", "\u00bb"],
+    ["\u201e", "\u201c"], ['"', '"'],
+  ].find(([opening, closing]) => text.startsWith(opening) && text.endsWith(closing));
+}
+
+export function markInlineQuotation(editor, {replaceOuterMarks = false} = {}) {
+  const target = inlineWrapperInsertionTarget(editor, "q", true);
+  if (!target) throw new Error("Select inline quotation text within one block, including whole nested wrappers. Images, breaks and partial wrappers are not supported.");
   const scope = visiblePart(editor);
   if (scope && (target.from < scope.from || target.to > scope.to)) {
-    throw new Error("The source title is outside the visible part.");
+    throw new Error("The inline quotation is outside the visible part.");
+  }
+  const text = editor.state.doc.textBetween(target.from, target.to);
+  const pair = matchingInlineQuotationMarks(text);
+  if (replaceOuterMarks && !pair) {
+    throw new Error("The selected text does not have one supported matching outer quotation-mark pair.");
+  }
+  if (replaceOuterMarks && text.length <= pair[0].length + pair[1].length) {
+    throw new Error("Keep at least one character inside the semantic quotation.");
+  }
+  const tr = closeHistory(editor.state.tr);
+  addInlineSemanticMark(editor, tr, target, "q");
+  if (replaceOuterMarks) {
+    tr.delete(target.to - pair[1].length, target.to);
+    tr.delete(target.from, target.from + pair[0].length);
+  }
+  editor.view.dispatch(tr);
+  editor.view.dispatch(closeHistory(editor.state.tr));
+}
+
+function removeInlineSemanticTarget(editor, target, label) {
+  const scope = visiblePart(editor);
+  if (scope && (target.from < scope.from || target.to > scope.to)) {
+    throw new Error(`The ${label} is outside the visible part.`);
   }
   const tr = closeHistory(editor.state.tr).removeMark(target.from, target.to, target.mark);
   if (target.mark.attrs.id || target.mark.attrs.class) {
@@ -552,6 +599,38 @@ export function removeCitation(editor) {
   }
   editor.view.dispatch(tr);
   editor.view.dispatch(closeHistory(editor.state.tr));
+}
+
+export function removeInlineSemantic(editor, tag, targetIndex = 0) {
+  const target = selectedInlineSemantic(editor, tag, targetIndex);
+  if (!target) throw new Error(`Place the cursor or select text within one existing ${tag === "cite" ? "source title" : "inline quotation"}.`);
+  removeInlineSemanticTarget(editor, target, tag === "cite" ? "source title" : "inline quotation");
+}
+
+export function changeInlineSemantic(editor, fromTag, targetIndex = 0) {
+  const target = selectedInlineSemantic(editor, fromTag, targetIndex);
+  if (!target) throw new Error(`Place the cursor or select text within one existing ${fromTag === "cite" ? "source title" : "inline quotation"}.`);
+  const toTag = fromTag === "cite" ? "q" : "cite";
+  if (toTag === "cite" && inlineSemanticTargets(editor).some(candidate =>
+    candidate !== target && candidate.mark.attrs.tag === "cite" &&
+    candidate.from < target.to && candidate.to > target.from)) {
+    throw new Error("Source titles cannot be nested or overlap.");
+  }
+  const scope = visiblePart(editor);
+  if (scope && (target.from < scope.from || target.to > scope.to)) {
+    throw new Error("The inline semantic wrapper is outside the visible part.");
+  }
+  const tr = closeHistory(editor.state.tr)
+    .removeMark(target.from, target.to, target.mark)
+    .addMark(target.from, target.to, target.mark.type.create({
+      ...target.mark.attrs, tag: toTag,
+    }));
+  editor.view.dispatch(tr);
+  editor.view.dispatch(closeHistory(editor.state.tr));
+}
+
+export function removeCitation(editor) {
+  removeInlineSemantic(editor, "cite");
 }
 
 function checkLinkProposal(editor, proposal) {
@@ -870,7 +949,7 @@ export function prepareFormattedPaste(editor, clipboard, proposal) {
   };
   normalize(template.content);
   const allowed = new Set(["strong", "b", "em", "i", "u", "s", "sup", "sub",
-    "small", "code", "abbr", "cite", "span", "a", "br"]);
+    "small", "code", "abbr", "cite", "q", "span", "a", "br"]);
   const roots = [...template.content.childNodes];
   const paragraphs = roots.filter(node => node.nodeType === 1 && node.localName === "p");
   const multiBlock = paragraphs.length > 1;
@@ -1094,6 +1173,9 @@ export function createBoundedEditor(element, html, onUpdate = () => {}, metadata
     }
     if (node.localName === "img" && !/^\/assets\/[a-f0-9]{64}\/$/.test(node.getAttribute("src"))) {
       throw new Error("Images must use retained local assets.");
+    }
+    if (node.localName === "img" && node.closest("q")) {
+      throw new Error("Inline quotations cannot contain images.");
     }
     if (node.localName === "a" && node.hasAttribute("href") &&
         !/^(#[^\s]+|https?:\/\/[^\s\\]+|mailto:[^\s\\]+)$/.test(node.getAttribute("href"))) {

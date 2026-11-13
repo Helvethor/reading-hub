@@ -64,6 +64,43 @@ class PrintingTests(TestCase):
         render_pdf(self.version, output)
         return PdfReader(output)
 
+    def test_inline_quotation_marks_render_once_for_generated_and_typed_pairs(self):
+        self.version.format_version = "21"
+        self.version.html = (
+            '<section><p><q>Plain phrase</q> and '
+            '<q>“Typed phrase”</q>.</p></section>'
+        )
+        self.version.save(update_fields=["html", "format_version"])
+        text = " ".join(page.extract_text() for page in self.pdf().pages)
+        self.assertIn("Plain phrase", text)
+        self.assertIn("Typed phrase", text)
+        self.assertEqual(text.count("“"), 2)
+        self.assertEqual(text.count("”"), 2)
+
+    def test_reader_stylesheet_adds_inline_q_support_only_for_format_21(self):
+        self.version.stylesheet = "historical stylesheet"
+        self.version.format_version = "20"
+        self.version.save(update_fields=["stylesheet", "format_version"])
+        historical = self.client.get(f"/versions/{self.version.pk}/reader.css")
+        self.assertEqual(historical.content.decode(), "historical stylesheet")
+        self.version.format_version = "21"
+        self.version.save(update_fields=["format_version"])
+        current = self.client.get(f"/versions/{self.version.pk}/reader.css")
+        self.assertIn("q::before", current.content.decode())
+        self.assertIn("data-rh-q-literal", current.content.decode())
+
+    def test_reader_preserves_inline_q_and_suppresses_duplicate_typed_marks(self):
+        self.version.format_version = "21"
+        self.version.html = (
+            '<section><p><q>Plain phrase</q> and '
+            '<q>“Typed phrase”</q>.</p></section>'
+        )
+        self.version.save(update_fields=["html", "format_version"])
+        response = self.client.get(f"/versions/{self.version.pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<q>Plain phrase</q>")
+        self.assertContains(response, '<q data-rh-q-literal="true">“Typed phrase”</q>')
+
     def test_title_page_contains_metadata_only_and_body_starts_on_second_page(self):
         self.version.metadata.update(
             subtitle="Burning questions of our movement",

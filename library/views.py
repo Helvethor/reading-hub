@@ -198,6 +198,7 @@ def reader(request, pk):
     from library.services.book_views import layout_context, publication_view
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
+    from library.services.semantic_documents import inline_quote_presentation
 
     rendition = get_object_or_404(Rendition.objects.select_related("document", "snapshot"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition)
@@ -218,6 +219,9 @@ def reader(request, pk):
             or rendition.metadata.get("layout")
         )
         else {"content_html": rendition.html, "entries": rendition.structure["toc"]}
+    )
+    projection["content_html"] = inline_quote_presentation(
+        projection["content_html"], rendition.format_version,
     )
     display_author = rendition.metadata.get("author", "").strip() or source_name(
         rendition.document.url)
@@ -314,11 +318,14 @@ def retry_job(request, pk):
 
 @require_GET
 def reader_stylesheet(request, pk):
+    from library.services.semantic_documents import inline_quote_stylesheet
+
     rendition = get_object_or_404(Rendition.objects.select_related("document"), pk=pk)
     destination = redirect_member(rendition.document, version=rendition, stylesheet=True)
     if destination:
         return destination
-    return HttpResponse(rendition.stylesheet, content_type="text/css; charset=utf-8")
+    stylesheet = inline_quote_stylesheet(rendition.stylesheet, rendition.format_version)
+    return HttpResponse(stylesheet, content_type="text/css; charset=utf-8")
 
 
 @require_GET

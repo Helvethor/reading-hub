@@ -2,12 +2,12 @@
 {% load static %}
 {% block title %}Work editor | {{ site.name }}{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}-endmatter">
-<link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}" media="print">
+<link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}-endmatter-inline-q1">
+<link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v11">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v11-inline-q1">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -269,6 +269,12 @@
         <button type="button" role="menuitem" data-list="up" disabled>Move item up</button>
         <button type="button" role="menuitem" data-list="down" disabled>Move item down</button>
       </div>
+      <div role="group" aria-label="Inline semantics" class="editor-menu-group">
+        <span class="editor-menu-heading">Inline semantics</span>
+        <button type="button" role="menuitem" data-inline-mark="cite" disabled>Mark as source title</button>
+        <button type="button" role="menuitem" data-inline-mark="q" disabled>Mark as inline quotation</button>
+        <div data-inline-targets></div>
+      </div>
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
       <button type="button" role="menuitem" data-rule-insert disabled>Insert horizontal rule</button>
@@ -501,6 +507,17 @@
     <button type="button" id="editor-link-apply">Apply link changes</button>
     <button type="button" id="editor-link-cancel">Cancel link edit</button>
   </dialog>
+  <dialog id="editor-inline-q" aria-labelledby="editor-inline-q-heading">
+    <h2 id="editor-inline-q-heading">Mark as inline quotation</h2>
+    <p>Typed quotation marks stay by default. Replace only the one matching pair around the selected text?</p>
+    <label><input id="editor-inline-q-replace" type="checkbox">
+      Replace typed quotation marks with semantic marks</label>
+    <p><strong>Before:</strong> <span id="editor-inline-q-before"></span></p>
+    <p><strong>After:</strong> <span id="editor-inline-q-after"></span></p>
+    <p class="error" role="alert"></p>
+    <button type="button" id="editor-inline-q-apply">Mark quotation</button>
+    <button type="button" id="editor-inline-q-cancel">Cancel</button>
+  </dialog>
   <dialog id="editor-note-repair" aria-labelledby="editor-note-heading">
     <h2 id="editor-note-heading">Repair note reference and backlink</h2>
     <label>Note paragraph or list item <select name="target"></select></label>
@@ -554,4 +571,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v21"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v22-inline-q1"></script>{% endif %}{% endblock %}

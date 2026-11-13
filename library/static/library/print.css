@@ -7,6 +7,13 @@
 .document-contents { margin-block: 0; overflow-wrap: anywhere; }
 .document-contents h2 { bookmark-level: none; }
 .reader-content [data-reading-marker]::before { content: attr(data-reading-marker); }
+.reader-content q { quotes: "“" "”" "‘" "’"; }
+.reader-content q:lang(fr) { quotes: "« " " »" "“" "”"; }
+.reader-content q:lang(de) { quotes: "„" "“" "‚" "‘"; }
+.reader-content q::before { content: open-quote; }
+.reader-content q::after { content: close-quote; }
+.reader-content q[data-rh-q-literal]::before,
+.reader-content q[data-rh-q-literal]::after { content: none; }
 @media print {
   @page {
     @top-left { content: none; }

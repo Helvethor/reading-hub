@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}Regenerate a separate draft | {{ site.name }}{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}-endmatter">
+<link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}-endmatter-inline-q1">
 {% endblock %}
 {% block content %}
 <div class="page-container document-comparison">
@@ -53,7 +53,7 @@
   </form>
   <h2>Generated document preview</h2>
   <h3>{{ proposal.document.title }}</h3>
-  <div class="reader-content">{{ proposal.document.html|safe }}</div>
+  <div class="reader-content" lang="{{ proposal.document.metadata.language|default:'en' }}">{{ preview_html|safe }}</div>
   {% endif %}
 </div>
 {% endblock %}

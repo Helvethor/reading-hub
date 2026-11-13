@@ -319,21 +319,24 @@ upload, arbitrary grouping or live-content mutation is in scope.
 
 ## Editor milestone I: inline CITE and Q semantics (2026-11-13)
 
-**Status:** specified only; no implementation or validation claimed. I is
-separate from G and independently checkpointed, while sharing its contextual
-command grammar. Recording it does not authorize implementation or release.
+**Status:** implemented as format 21 and locally validated with focused
+automated tests. I remains separate from G. No deployment, publication,
+historical rendition rewrite or live-content change was performed.
 
 The [inline citation/quotation handoff](docs/INLINE-CITATION-QUOTATION-IMPLEMENTATION-HANDOFF.md)
 owns I1-I10 acceptance and precise design.
 
-- [ ] I.a: add format 21 inline Q support to normalization, validation, editor,
+- [x] I.a: add format 21 inline Q support to normalization, validation, editor,
   paste/comparison, Read and PDF; leave historical renditions unchanged.
-- [ ] I.b-I.c: expose keyboard/pointer commands to mark, remove and change CITE/Q
+- [x] I.b-I.c: expose keyboard/pointer commands to mark, remove and change CITE/Q
   with exact range, nesting, target and one-step undo guarantees.
-- [ ] I.d: keep typed quotation marks by default, offer explicit replacement for
+- [x] I.d: keep typed quotation marks by default, offer explicit replacement for
   one enclosing matching pair and prevent doubled rendered marks.
-- [ ] Validate I1-I10 on isolated fixtures through recovery, save/reopen, Read,
-  print and PDFs. Defer automatic detection and historical Q recovery.
+- [x] Validate normalization, editor and paste/clipboard round trips, comparison,
+  isolated save/reopen, Read output, focused tests, PDF rendering and asset build.
+- [ ] Native desktop/narrow browser interaction, browser print and complete
+  draft/published PDF journey remain unobserved; no accessibility certification.
+  Defer automatic detection and historical Q recovery.
 
 ## Editor milestones T and N: simple tables and retained-image insertion (2026-11-13)
 

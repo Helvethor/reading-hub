@@ -50,6 +50,19 @@ def chapter(number, extra=""):
 
 
 class SourceTests(SimpleTestCase):
+    def test_inline_quotation_survives_future_normalization(self):
+        soup = parse_html(article_html(
+            '<p>Read <q id="short-quote">a short quotation</q> in '
+            '<cite>this work</cite>.</p>'
+        ))
+        source = discover(soup, ARTICLE)
+        html, _ = normalize([(source.parts[0], extract(soup, ARTICLE))], source, {})
+        result = BeautifulSoup(html, "html.parser")
+        quotation = result.select_one("q")
+        self.assertEqual(quotation.get_text(), "a short quotation")
+        self.assertTrue(quotation["id"].startswith("c1-"))
+        self.assertEqual(result.select_one("cite").get_text(), "this work")
+
     def test_cited_work_remains_inline_in_quotation_caption(self):
         extra = '<figure class="quotation"><blockquote><p>Quoted passage.</p></blockquote>' \
             '<figcaption>From <cite id="work"><a href="https://example.org/work">' \

@@ -327,9 +327,11 @@ def _workspace_edition_status(source, snapshot):
 def _workspace_preview_context(request, source, snapshot):
     from bs4 import BeautifulSoup
 
+    from library import versions
     from library.services.book_views import layout_context
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
+    from library.services.semantic_documents import inline_quote_presentation
     from library.views import contents_tree, toc_tree, with_edition_status
 
     document = snapshot["output_document"]
@@ -337,7 +339,9 @@ def _workspace_preview_context(request, source, snapshot):
     metadata = document["metadata"]
     book = structure["book"]
     display_author = metadata.get("author", "").strip() or source_name(source.document.url)
-    soup = BeautifulSoup(snapshot["projection"]["content_html"], "html.parser")
+    soup = BeautifulSoup(inline_quote_presentation(
+        snapshot["projection"]["content_html"], versions.FORMAT_VERSION,
+    ), "html.parser")
     identifier_prefix = f"workspace-preview-{uuid.uuid4().hex}-"
     identifiers = {
         node["id"]: f"{identifier_prefix}{node['id']}"
@@ -501,6 +505,7 @@ def _exact_workspace_pdf(request, source, selected_style, selected_theme):
 @metadata_reviewer_required
 def workspace_pdf(request, pk):
     source = get_version(pk)
+    from library import versions
     from library.services.pdf import PDFExportError, pdf_filename, render_pdf
 
     try:
@@ -517,7 +522,7 @@ def workspace_pdf(request, pk):
             stylesheet=snapshot["stylesheet"], warnings=snapshot["warnings"],
             document_publication=None, created_at=source.created_at,
             app_version=source.app_version, adapter_version=source.adapter_version,
-            format_version=source.format_version,
+            format_version=versions.FORMAT_VERSION,
         )
         destination = BytesIO()
         render_pdf(
@@ -716,10 +721,15 @@ def fresh_draft(request, pk):
         if "locked" not in str(exc).lower():
             raise
         error, status = "Another writer is active. Review a fresh preview and retry.", 409
+    from library.services.semantic_documents import inline_quote_presentation
+
     return panel_response(request, "library/document_fresh_draft.html", {
         "source": source, "proposal": proposal, "generation_error": error,
         "input_mode": mode, "original_source": original_source, "switch_url": switch_url,
         "membership_seeded": membership_seeded,
+        "preview_html": inline_quote_presentation(
+            proposal["document"]["html"], proposal["evidence"]["versions"]["format"],
+        ) if proposal else "",
     }, status=status)
 
 
@@ -728,6 +738,10 @@ def fresh_draft(request, pk):
 def publication(request, pk):
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
+    from library.services.semantic_documents import (
+        inline_quote_presentation,
+        inline_quote_stylesheet,
+    )
     from library.views import contents_tree, endmatter_ids, toc_tree, with_edition_status
 
     source = get_version(pk)
@@ -774,7 +788,11 @@ def publication(request, pk):
             candidate = None
         if candidate and request.GET.get("stylesheet") == "1":
             return HttpResponse(
-                candidate["output"]["stylesheet"], content_type="text/css; charset=utf-8",
+                inline_quote_stylesheet(
+                    candidate["output"]["stylesheet"],
+                    candidate["output"]["format_version"],
+                ),
+                content_type="text/css; charset=utf-8",
             )
     except DocumentEditConflict as exc:
         error, status, candidate = str(exc), 409, None
@@ -818,6 +836,9 @@ def publication(request, pk):
             version.html, version.structure["toc"], version.title,
             book=bool(version.structure.get("book")),
             metadata=version.metadata,
+        )
+        projection["content_html"] = inline_quote_presentation(
+            projection["content_html"], version.format_version,
         )
         display_author = version.metadata.get("author", "").strip() or source_name(
             source.document.url)
