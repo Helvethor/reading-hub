@@ -22,41 +22,77 @@ class ReviewNavigationTests(TestCase):
             "nav", attrs={"aria-label": "Work reviewer tools"}
         )
 
-    def test_reader_uses_compact_work_navigation_and_keeps_review_queue_in_site_nav(self):
+    def test_work_page_uses_one_role_aware_workspace_and_redirects_legacy_editor(self):
         version = self.import_version(ARTICLE)
+        self.client.logout()
         response = self.client.get(reverse("reader", args=[version.pk]))
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertIsNone(self.menu(response))
         self.assertEqual(
-            [link.get_text(strip=True) for link in soup.select(".work-navigation a")],
+            [tab.get_text(strip=True) for tab in soup.select(".workspace-tabs [role=tab]")],
+            ["Read", "Versions", "Sources"],
+        )
+        self.assertIsNone(soup.select_one("#workspace-tab-edit"))
+        self.assertIn("generated/public-workspace.js", " ".join(
+            script.get("src", "") for script in soup.select("script[src]")
+        ))
+        self.assertNotIn("generated/editor-pilot.js", " ".join(
+            script.get("src", "") for script in soup.select("script[src]")
+        ))
+        self.assertNotIn("data-read-url", response.content.decode())
+        self.assertNotIn("data-pdf-url", response.content.decode())
+        self.assertContains(response, PARAGRAPH)
+        self.assertContains(response, 'aria-label="Work views"')
+        self.assertContains(response, "Download PDF")
+        requested_edit = self.client.get(
+            reverse("reader", args=[version.pk]), {"tab": "edit"},
+        )
+        self.assertContains(requested_edit, 'data-initial-tab="read"')
+        self.assertNotContains(requested_edit, "data-read-url")
+
+        legacy = self.client.get(
+            reverse("document-editor-legacy", args=[version.pk]),
+            {"draft": "draft-id", "start": "source", "other": "kept"},
+        )
+        self.assertEqual(legacy.status_code, 301)
+        self.assertEqual(urlsplit(legacy["Location"]).path, reverse("reader", args=[version.pk]))
+        self.assertEqual(parse_qs(urlsplit(legacy["Location"]).query), {
+            "draft": ["draft-id"], "start": ["source"], "other": ["kept"], "tab": ["edit"],
+        })
+
+        self.client.force_login(self.reader)
+        response = self.client.get(reverse("reader", args=[version.pk]))
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertIsNone(soup.select_one("#workspace-tab-edit"))
+        self.assertContains(response, PARAGRAPH)
+        self.assertNotContains(response, "data-read-url")
+        self.assertEqual(self.client.get(reverse("work-review")).status_code, 403)
+
+        self.client.force_login(self.reviewer)
+        response = self.client.get(reverse("reader", args=[version.pk]))
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertEqual([heading.get_text(strip=True) for heading in soup.find_all("h1")],
+                         [version.title])
+        self.assertEqual(
+            [tab.get_text(strip=True) for tab in soup.select(".workspace-tabs [role=tab]")],
             ["Read", "Edit", "Versions", "Sources"],
         )
-        workspace_url = reverse("document-editor", args=[version.pk])
-        self.assertEqual(
-            {
-                link.get_text(strip=True): link["href"]
-                for link in soup.select(".work-navigation a")
-            },
-            {
-                tab.title(): f"{workspace_url}?tab={tab}"
-                for tab in ("read", "edit", "versions", "sources")
-            },
-        )
-        self.assertIsNone(soup.select_one(".reader-review-entry"))
+        self.assertNotIn("generated/public-workspace.js", " ".join(
+            script.get("src", "") for script in soup.select("script[src]")
+        ))
+        self.assertContains(response, 'aria-label="Work views"')
+        self.assertNotIn(">Editor</h1>", response.content.decode())
+        self.assertNotIn("WORKSPACE", response.content.decode())
+        self.assertNotIn('class="work-navigation"', response.content.decode())
+
         review_link = soup.select_one('.primary-navigation a[href*="review_version"]')
         self.assertEqual(
             review_link["href"], reverse("work-review") + f"?review_version={version.pk}"
         )
-        self.assertEqual(soup.select_one('.work-navigation a[aria-current="page"]').get_text(), "Read")
-        self.assertContains(response, PARAGRAPH)
-        self.client.force_login(self.reader)
-        response = self.client.get(reverse("reader", args=[version.pk]))
-        self.assertNotContains(response, "Review this work")
-        soup = BeautifulSoup(response.content, "html.parser")
-        self.assertIsNone(soup.select_one(".work-navigation"))
-        self.assertEqual(self.client.get(reverse("work-review")).status_code, 403)
-        self.client.logout()
-        self.assertEqual(self.client.get(reverse("work-review")).status_code, 302)
+        response = self.client.get(
+            reverse("reader", args=[version.pk]), {"tab": "versions"},
+        )
+        self.assertContains(response, 'data-initial-tab="versions"')
 
     @override_settings(READING_HUB_EDITOR_PILOT=True)
     @patch("library.document_editor_views.finders.find", return_value="built-asset")
@@ -78,7 +114,7 @@ class ReviewNavigationTests(TestCase):
         self.assertIn(f"review_version={version.pk}", response.url)
         response = self.client.get(response.url, follow=True)
         self.assertIsNone(self.menu(response))
-        self.assertContains(response, 'aria-label="Work workspace"')
+        self.assertContains(response, 'aria-label="Work views"')
         self.assertNotContains(response, 'aria-label="Work destinations"', html=False)
         self.assertContains(response, 'id="editor-source-open"')
         capture = CrawlCapture.objects.get()

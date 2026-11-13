@@ -131,8 +131,10 @@ def archived_draft_ids(document):
     ]
 
 
-def build_lineage(document, *, selected="", filter_name="all"):
+def build_lineage(document, *, selected="", filter_name="all", scope_name="work", anchor=""):
     """Build one bounded tree with one query per evidence collection."""
+    if scope_name not in {"branch", "source", "work"}:
+        raise ValueError("Choose a branch, source, or whole-work genealogy scope.")
     document = Document.objects.get(pk=document.pk)
     snapshots = _bounded(
         Snapshot.objects.filter(document=document).order_by("fetched_at", "pk"),
@@ -749,9 +751,9 @@ def build_lineage(document, *, selected="", filter_name="all"):
             version and version.pk == prior_version_id
         )
         if review_event:
-            anchor = content_anchor_by_draft.get(draft_id)
-            if anchor and anchor[0] == version.pk:
-                parent_id = anchor[1]
+            content_anchor = content_anchor_by_draft.get(draft_id)
+            if content_anchor and content_anchor[0] == version.pk:
+                parent_id = content_anchor[1]
         if version and version.pk != prior_version_id:
             normalized_parent = normalized_parent_id(version)
             if version.ancestry == "known" and normalized_parent:
@@ -892,6 +894,16 @@ def build_lineage(document, *, selected="", filter_name="all"):
         )
     if not selected or selected not in nodes:
         selected = root_id
+    if not anchor:
+        anchor = root_id
+
+    scope_error = ""
+    if anchor not in nodes:
+        scope_error = (
+            "The requested genealogy anchor is unavailable in this work; no replacement "
+            "anchor was inferred."
+        )
+        anchor = ""
 
     def matches(node):
         if filter_name == "sources":
@@ -906,40 +918,117 @@ def build_lineage(document, *, selected="", filter_name="all"):
             return node["archived"]
         return node["id"] == root_id or not node["archived"]
 
-    included = {root_id}
+    def descendants(start_id):
+        found, pending = set(), [start_id]
+        while pending:
+            node_id = pending.pop()
+            if node_id in found or node_id not in nodes:
+                continue
+            found.add(node_id)
+            pending.extend(nodes[node_id]["children"])
+        return found
 
-    def include_matches(node_id):
-        node = nodes[node_id]
-        if matches(node):
-            included.add(node_id)
-        for child_id in node["children"]:
-            include_matches(child_id)
+    source_anchor = ""
+    if scope_name == "work":
+        scoped = set(nodes)
+    elif anchor:
+        anchor_node = nodes[anchor]
+        if scope_name == "branch":
+            scoped = descendants(anchor)
+            parent_id = anchor_node.get("parent_id")
+            if (
+                parent_id in nodes and parent_id != root_id
+                and not anchor_node.get("unknown_ancestry")
+            ):
+                scoped.add(parent_id)
+        else:
+            snapshot_id = (
+                anchor_node.get("snapshot_id")
+                or anchor_node.get("source_snapshot_id")
+            )
+            if anchor_node["type"] == "snapshot":
+                snapshot_id = anchor_node.get("snapshot_id")
+            source_anchor = f"snapshot:{snapshot_id}" if snapshot_id else ""
+            if source_anchor not in nodes:
+                scope_error = (
+                    "This item has no verified retained-source binding. Its source "
+                    "genealogy is unavailable rather than inferred from a URL."
+                )
+                scoped = set()
+            else:
+                scoped = descendants(source_anchor)
+    else:
+        scoped = set()
 
-    include_matches(root_id)
+    included = {root_id} if scope_name == "work" else set()
+    included.update(node_id for node_id in scoped if matches(nodes[node_id]))
     for node_id in tuple(included):
-        parent_id = nodes[node_id]["parent_id"]
-        while parent_id:
+        parent_id = nodes[node_id].get("parent_id")
+        while parent_id and parent_id in scoped:
             included.add(parent_id)
-            parent_id = nodes[parent_id]["parent_id"]
+            parent_id = nodes[parent_id].get("parent_id")
     selected_path_id = selected
-    while selected_path_id:
+    while selected_path_id and selected_path_id in scoped:
         included.add(selected_path_id)
-        selected_path_id = nodes[selected_path_id]["parent_id"]
+        selected_path_id = nodes[selected_path_id].get("parent_id")
 
-    def projected(node_id):
+    scope_roots = sorted(
+        node_id for node_id in included
+        if node_id != root_id and nodes[node_id].get("parent_id") not in included
+    )
+    depth_cache = {root_id: 0}
+
+    def actual_depth(node_id):
+        if node_id not in depth_cache:
+            parent_id = nodes[node_id].get("parent_id")
+            depth_cache[node_id] = (
+                actual_depth(parent_id) + 1 if parent_id in nodes else 1
+            )
+        return depth_cache[node_id]
+
+    def projected(node_id, depth=0):
         if node_id not in included:
             return None
         node = deepcopy(nodes[node_id])
         node["context_only"] = node_id not in {root_id} and not matches(nodes[node_id])
+        node["scope_anchor"] = node_id == anchor or node_id == source_anchor
+        node["scope_boundary"] = (
+            scope_name != "work" and node_id in scope_roots
+            and nodes[node_id].get("parent_id") not in scoped
+        )
+        node["actual_depth"] = actual_depth(node_id)
+        node["visual_depth"] = depth
+        parent_id = node.get("parent_id")
+        node["parent_breadcrumb"] = nodes.get(parent_id, {}).get("label", "")
+        node["descendant_count"] = max(
+            0, len(descendants(node_id) & scoped) - 1,
+        )
         node["children"] = [
-            child for child_id in nodes[node_id]["children"]
-            if (child := projected(child_id)) is not None
+            child for child_id in node["children"]
+            if (child := projected(child_id, depth + 1)) is not None
         ]
         return node
 
-    tree = projected(root_id)
+    if scope_name == "work":
+        tree = projected(root_id)
+    else:
+        tree = {
+            "id": f"scope:{scope_name}:{anchor}", "type": "scope",
+            "label": {
+                "branch": "This branch", "source": "This source",
+            }[scope_name],
+            "parent_id": None, "children": [
+                node for node_id in scope_roots
+                if (node := projected(node_id)) is not None
+            ],
+        }
     selected_node = deepcopy(nodes[selected])
     selected_node["context_only"] = selected != root_id and not matches(nodes[selected])
+    selected_node["scope_anchor"] = selected == anchor or selected == source_anchor
+    selected_node["outside_scope"] = scope_name != "work" and selected not in scoped
+    selected_node["parent_breadcrumb"] = nodes.get(
+        selected_node.get("parent_id"), {},
+    ).get("label", "")
     selected_path = []
     path_node = nodes[selected]
     while path_node:
@@ -947,20 +1036,42 @@ def build_lineage(document, *, selected="", filter_name="all"):
         parent_id = path_node["parent_id"]
         path_node = nodes.get(parent_id) if parent_id else None
     timeline = []
+    lanes = []
 
-    def collect_timeline(node):
+    def collect_timeline(node, lane_label=""):
+        if node["type"] != "work" and not lane_label:
+            lane_label = node["label"]
         if node["type"] != "work":
-            timeline.append({
+            item = {
                 **node,
                 "parent_label": nodes.get(node["parent_id"], {}).get("label", ""),
-            })
+                "lane_label": lane_label,
+            }
+            timeline.append(item)
         for child in node["children"]:
-            collect_timeline(child)
+            collect_timeline(child, lane_label)
 
     collect_timeline(tree)
+    for root in tree["children"]:
+        lane = {"id": root["id"], "label": root["label"], "nodes": []}
+
+        def collect_lane(node):
+            lane["nodes"].append({
+                **node,
+                "parent_label": nodes.get(node.get("parent_id"), {}).get("label", ""),
+            })
+            for child in node["children"]:
+                collect_lane(child)
+
+        collect_lane(root)
+        lanes.append(lane)
     return {
         "document": document, "tree": tree, "nodes": nodes, "timeline": timeline,
-        "selected": selected_node, "filter_name": filter_name,
+        "lanes": lanes, "selected": selected_node, "filter_name": filter_name,
+        "scope_name": scope_name, "scope_anchor": anchor,
+        "scope_anchor_label": nodes.get(anchor, {}).get("label", ""),
+        "source_anchor": source_anchor, "scope_error": scope_error,
+        "selected_in_scope": selected in scoped,
         "selected_path": selected_path,
         "selection_error": selection_error,
         "archive_history": archive_history,

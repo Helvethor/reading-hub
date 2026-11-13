@@ -8,53 +8,7 @@
   <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>Download PDF</a>
 </div>
 {% include 'library/reading_style_controls.html' %}
-<div class="reader-layout">
-  <details class="print-options">
-    <summary>Print options</summary>
-    <label><input type="checkbox" id="print-wrap-images"> Wrap text around smaller figures when printing (reduces image width).</label>
-    <p>Browser print: Ctrl+P.</p>
-  </details>
-  <aside class="toc-panel" aria-label="Document navigation">
-    <details open>
-      <summary>On this page</summary>
-      <nav aria-label="Table of contents">
-        {% if toc %}{% include 'library/toc.html' with nodes=toc %}{% else %}<p class="muted">No section headings in this document.</p>{% endif %}
-      </nav>
-    </details>
-  </aside>
-  <div class="reading-column">
-    <div class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
-    <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
-      <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
-      <h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>
-      {% include 'library/document_metadata.html' %}
-    </header>
-    {% if version.warnings %}
-    <section class="notice warning" aria-label="Import warnings"><h2>Some images could not be saved</h2>
-      <ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
-    </section>
-    {% endif %}
-    {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
-    <article id="reader-article" class="reader-content" tabindex="0" aria-label="Article text" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
-    {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}
-    {% include 'library/document_edition_status.html' %}
-    </div>
-    <details class="version-details">
-      <summary>Version and source details</summary>
-      <dl>
-        <dt>Version created</dt><dd>{{ version.created_at|date:"Y-m-d H:i:s T" }}</dd>
-        <dt>Source captured</dt><dd>{{ version.snapshot.fetched_at|date:"Y-m-d H:i:s T" }}</dd>
-        <dt>Application</dt><dd>{{ version.app_version }}</dd>
-        <dt>Source adapter</dt><dd>{{ version.adapter_version }}</dd>
-        <dt>Formatting rules</dt><dd>{{ version.format_version }}</dd>
-        {% if version.document_publication %}<dt>Document publication rules</dt><dd>{{ version.document_publication.publication_version }}</dd>{% endif %}
-        {% if version.document_publication %}<dt>Edited result provenance</dt><dd>Original edition <a href="{% url 'reader' version.document_publication.revision.draft.rendition_id %}">{{ version.document_publication.revision.draft.rendition_id }}</a>; draft {{ version.document_publication.revision.draft_id }}, revision {{ version.document_publication.revision.revision }}.</dd>{% endif %}
-        {% if last_check %}<dt>Last source check</dt><dd>{{ last_check.checked_at|date:"Y-m-d H:i:s T" }} ({{ last_check.outcome }})</dd>{% endif %}
-      </dl>
-      <p>Source captures, classification and explicit generation options are available under Sources.</p>
-    </details>
-  </div>
-</div>
+{% include 'library/reader_document.html' %}
 <button type="button" class="reader-back-to-top" id="reader-back-to-top" aria-controls="reader-article" hidden>Back to top</button>
 {% endblock %}
 {% block scripts %}<script type="module" src="{% static 'library/reader-workspace.js' %}?v={{ app_version }}-workspace-v6"></script>{% endblock %}

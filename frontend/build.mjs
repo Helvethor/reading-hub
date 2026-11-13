@@ -26,3 +26,11 @@ await build({
   }
   await writeFile("library/static/library/generated/editor-licenses.txt", licenses.join("\n\n"));
 });
+
+await build({
+  entryPoints: ["frontend/public-workspace.js"],
+  bundle: true,
+  format: "esm",
+  target: "es2020",
+  outfile: "library/static/library/generated/public-workspace.js",
+});

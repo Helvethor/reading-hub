@@ -39,6 +39,50 @@
 .lineage-timeline-item.is-archived > a { text-decoration: line-through; }
 .lineage-status { display: flex; flex-wrap: wrap; gap: .35rem .7rem; }
 .lineage-status strong { color: var(--ink); }
+.lineage-controls,
+.lineage-compare-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .5rem .75rem;
+  padding: .75rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--surface-raised);
+}
+.lineage-controls label,
+.lineage-compare-form label { font-weight: 650; }
+.lineage-selected-identity,
+.lineage-opened-state { color: var(--muted-ink, #555); }
+.lineage-selected-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .75rem;
+}
+.lineage-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  padding-block: .5rem;
+  border-block: 1px solid var(--line);
+}
+.lineage-primary-actions > p { flex-basis: 100%; margin-block: .25rem; }
+.lineage-parent-comparison { margin-block: .75rem; }
+.lineage-parent-comparison > h3 { margin-block-end: .25rem; font-size: 1.05rem; }
+.lineage-information { margin-block-start: .75rem; }
+.lineage-lanes { display: grid; gap: .5rem; }
+.lineage-lane { border-block-end: 1px solid var(--line); }
+.lineage-lane > summary,
+.lineage-information > summary,
+.lineage-nested-view > summary { cursor: pointer; font-weight: 650; }
+.lineage-lane-records { margin-block: .25rem; }
+.lineage-lane-records .lineage-timeline-item { padding-block: .45rem; }
+.lineage-lane-records [data-lineage-depth="1"] { padding-inline-start: .5rem; }
+.lineage-lane-records [data-lineage-depth="2"] { padding-inline-start: 1rem; }
+.lineage-lane-records [data-lineage-depth="3"],
+.lineage-lane-records .is-deep { padding-inline-start: 1.5rem; }
+.lineage-lane-records .lineage-focus-link { font-size: .9em; }
 .full-ancestry { margin-block-start: 1rem; }
 #lineage-inspection {
   position: sticky;
@@ -77,6 +121,9 @@
   margin: .35rem 0 .35rem .65rem;
   padding-inline-start: .55rem;
   border-inline-start: 1px solid currentColor;
+}
+.lineage-node[data-depth="3"] .lineage-node {
+  margin-inline-start: 0;
 }
 
 .lineage-node > summary {
@@ -133,6 +180,10 @@
   .lineage-list { margin-block-end: 1rem; }
   .lineage-timeline { max-height: 45vh; }
   #lineage-inspection { position: static; max-height: none; }
+  .lineage-controls,
+  .lineage-compare-form { align-items: stretch; }
+  .lineage-controls > *,
+  .lineage-compare-form > * { flex: 1 1 100%; }
   .lineage-node {
     margin-inline-start: .25rem;
     padding-inline-start: .3rem;

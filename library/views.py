@@ -194,7 +194,7 @@ def with_edition_status(entries, edition_status_id):
 
 
 @require_GET
-def reader(request, pk):
+def reader(request, pk, *, workspace_page=False, initial_tab="read"):
     from library.services.book_views import layout_context, publication_view
     from library.services.document_metadata import metadata_context, with_metadata_page
     from library.services.reading_styles import style_context
@@ -241,7 +241,7 @@ def reader(request, pk):
         page_layout["layout_boundaries"]["body"]["value"] = projection["body_separation"]
     return render(
         request,
-        "library/reader.html",
+        "library/reader_workspace.html" if workspace_page else "library/reader.html",
         {
             **reading_style,
             "version": rendition,
@@ -261,6 +261,8 @@ def reader(request, pk):
             "content_html": projection["content_html"],
             "generated_book": bool(getattr(rendition, "document_publication", None)),
             "last_check": rendition.document.checks.order_by("-checked_at").first(),
+            "workspace_page": workspace_page,
+            "initial_tab": initial_tab,
         },
     )
 

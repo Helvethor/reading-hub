@@ -104,8 +104,13 @@ urlpatterns = [
     path("documents/<int:pk>/lineage/", document_lineage_views.workspace,
          name="document-lineage"),
     path("documents/<int:pk>/refresh/", views.refresh, name="refresh"),
-    path("versions/<int:pk>/", views.reader, name="reader"),
-    path("versions/<int:pk>/editor/", document_editor_views.workspace, name="document-editor"),
+    path("versions/<int:pk>/", document_editor_views.work_workspace, name="reader"),
+    path("versions/<int:pk>/", document_editor_views.work_workspace, name="document-editor"),
+    path(
+        "versions/<int:pk>/editor/",
+        document_editor_views.editor_redirect,
+        name="document-editor-legacy",
+    ),
     path(
         "versions/<int:pk>/editor/read-preview/",
         document_editor_views.workspace_preview,

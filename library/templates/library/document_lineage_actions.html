@@ -1,0 +1,81 @@
+<div class="lineage-primary-actions" aria-label="Actions for selected item">
+  {% if lineage.selected.type == "snapshot" %}
+    <p>Source-specific actions apply to this exact retained capture, not other captures from the same URL.</p>
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      {% if lineage.selected.related_editions %}
+      <a class="button secondary" href="#lineage-source-details">View versions derived from this capture</a>
+      {% endif %}
+      {% if lineage.selected.related_editions %}
+      <a class="button secondary" href="{% url 'document-fresh-draft' lineage.selected.related_editions.0.rendition_id %}{% if embedded %}?embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Preview retained-source regeneration"{% endif %}>Preview regeneration from this capture</a>
+      {% elif lineage.selected.related_generations %}
+      <a class="button secondary" href="{% url 'document-fresh-draft' lineage.selected.related_generations.0.rendition_id %}{% if embedded %}?embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Preview retained-source regeneration"{% endif %}>Preview regeneration from this capture</a>
+      {% endif %}
+      {% if embedded %}
+      <a class="button secondary" href="{% url 'document-lineage' document.pk %}?filter=sources&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ lineage.selected.id|urlencode }}#lineage-inspection" target="_blank" rel="noopener">Open Sources separately to fetch the latest source</a>
+      {% else %}
+      <form method="post" action="{% url 'refresh' document.pk %}" class="source-operation">
+        {% csrf_token %}
+        <button type="submit">Fetch latest source</button>
+        <span class="muted">Network request. Creates new retained evidence and never replaces edits or saved versions.</span>
+      </form>
+      {% endif %}
+    {% endif %}
+  {% elif lineage.selected.type == "edition" or lineage.selected.type == "publication" %}
+    <a class="button secondary" href="{{ lineage.selected.reader_url }}" target="_blank" rel="noopener noreferrer">Read this edition</a>
+    <a class="button secondary" href="{{ lineage.selected.pdf_url }}" target="_blank" rel="noopener noreferrer">Open its PDF</a>
+    {% if lineage.selected.can_select_reader_target %}
+    <form method="post" class="lineage-default-action">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="select-reader-target">
+      <input type="hidden" name="rendition_id" value="{{ lineage.selected.rendition_id }}">
+      <input type="hidden" name="expected_rendition" value="{{ reader_target.pk|default:'' }}">
+      <label for="reader-selection-reason">Reason for selecting this reader version (required)</label>
+      <textarea id="reader-selection-reason" name="reason" maxlength="2000" required></textarea>
+      <label><input type="checkbox" name="confirm" value="yes" required> I confirm this exact reader-version selection.</label>
+      <button type="submit">Make this the reader version</button>
+    </form>
+    {% endif %}
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      {% if lineage.selected.type == "publication" %}
+        {% if lineage.selected.publication_history_archived %}
+        <p>This publication's working history is archived. Restore it before continuing.</p>
+        {% elif lineage.selected.publication_is_latest %}
+        <a class="button secondary" href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;tab=edit" data-workflow-switch>Continue this working copy from the published version</a>
+        {% elif lineage.selected.publication_latest_revision_number > lineage.selected.publication_revision_number %}
+        <a class="button secondary" href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;tab=edit" data-workflow-switch>Continue the latest saved content</a>
+        <a class="button secondary" href="{% url 'document-editor-history' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;revision={{ lineage.selected.publication_revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Start an alternative from the published version"{% endif %}>Start an alternative from this published version</a>
+        {% else %}
+        <p>The exact saved editable version for this publication is unavailable; only its immutable reader output can be opened.</p>
+        {% endif %}
+      {% else %}
+      <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source&amp;tab=edit" data-workflow-switch>Start a correction from this exact source-generated version</a>
+      {% endif %}
+    {% endif %}
+  {% elif lineage.selected.type == "generation" %}
+    <p>This generation has no intermediate reader edition. Its exact retained-source history is preserved.</p>
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;tab=edit" data-workflow-switch>Open the correction history based on this generation</a>
+    {% elif lineage.selected.archived %}
+    <p>Restore this generation before starting or continuing its correction history.</p>
+    {% endif %}
+  {% elif lineage.selected.type == "history" %}
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;tab=edit" data-workflow-switch>Continue this working copy's latest saved content</a>
+    {% elif lineage.selected.archived %}
+    <p>Restore this history before continuing or saving it.</p>
+    {% endif %}
+  {% elif lineage.selected.type == "revision" or lineage.selected.type == "review" %}
+    {% if can_review and not lineage.selected.context_only %}
+    <a class="button secondary" href="{% url 'document-editor-history' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Inspect saved version"{% endif %}>{% if lineage.selected.archived %}Inspect archived saved content{% elif lineage.selected.type == "review" %}Inspect review record and its exact content{% else %}Inspect saved version or start an alternative from it{% endif %}</a>
+      {% if lineage.selected.latest and not lineage.selected.archived %}
+      <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;tab=edit#editor-mark-reviewed" data-workflow-switch>Continue this working copy and optionally review</a>
+      <a class="button secondary" href="{% url 'document-publication' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;revision={{ lineage.selected.revision_number }}{% if embedded %}&amp;embedded=1{% endif %}"{% if embedded %} data-workflow-panel="Preview saved content for publication"{% endif %}>Preview this exact saved content for publication</a>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if lineage.selected.type == "edition" or lineage.selected.type == "generation" or lineage.selected.type == "history" %}
+    {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <a class="button secondary" href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ lineage.selected.id|urlencode }}&amp;archive={{ lineage.selected.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Preview archive impact</a>
+    {% endif %}
+  {% endif %}
+</div>

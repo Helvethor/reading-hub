@@ -1,0 +1,65 @@
+{% extends "library/base.html" %}
+{% load static %}
+{% block title %}{{ version.document.title|default:version.title }} | {{ site.name }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{% url 'reader-css' version.pk %}">
+<link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1" media="print">
+<link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v25">
+<link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>
+{% endblock %}
+{% block content %}
+<div class="page-container work-page">
+  <section class="unified-workspace" id="unified-workspace"
+    data-initial-tab="{{ initial_tab }}"
+    data-versions-url="{% url 'document-lineage' version.document_id %}?filter=all&amp;scope=branch&amp;anchor=edition%3A{{ version.pk }}&amp;selected=edition%3A{{ version.pk }}&amp;embedded=1"
+    data-sources-url="{% url 'document-lineage' version.document_id %}?filter=sources&amp;scope=branch&amp;anchor=edition%3A{{ version.pk }}&amp;selected=snapshot%3A{{ version.snapshot_id }}&amp;embedded=1"
+    data-lineage-path="{% url 'document-lineage' version.document_id %}"
+    data-version-id="{{ version.pk }}"
+    data-reader-id="{{ reader_target.pk|default:'' }}">
+    <div class="workspace-chrome">
+      <header class="workspace-context" aria-label="Work identity and reader status">
+        <div class="workspace-identity">
+          <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} · EDITION {{ version.pk }}</p>
+          <h1>{{ version.document.title|default:version.title }}</h1>
+          <p class="workspace-compact-state" role="status">Edition {{ version.pk }}</p>
+          <p>Opened saved edition {{ version.pk }}.</p>
+          <p class="workspace-reader-default">
+            Reader default:
+            {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
+          </p>
+          {% if reader_target and reader_target.pk != version.pk %}
+          <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Open reader default (edition {{ reader_target.pk }})</a>
+          {% endif %}
+        </div>
+      </header>
+      <div class="workspace-tabs" role="tablist" aria-label="Work views">
+        <button type="button" role="tab" id="workspace-tab-read" aria-controls="workspace-panel-read" data-workspace-tab="read" aria-selected="true">Read</button>
+        <button type="button" role="tab" id="workspace-tab-versions" aria-controls="workspace-panel-versions" data-workspace-tab="versions" aria-selected="false" tabindex="-1">Versions</button>
+        <button type="button" role="tab" id="workspace-tab-sources" aria-controls="workspace-panel-sources" data-workspace-tab="sources" aria-selected="false" tabindex="-1">Sources</button>
+      </div>
+      <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
+    </div>
+    <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1">
+      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar>
+        <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>Download PDF</a>
+        <button type="button" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button>
+      </div>
+      {% include "library/reading_style_controls.html" %}
+      <div id="workspace-read-content" class="workspace-read-content">
+        {% include "library/reader_document.html" with workspace_page=True %}
+      </div>
+    </section>
+    <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-versions" role="tabpanel" aria-labelledby="workspace-tab-versions" tabindex="-1" hidden>
+      <div id="workspace-versions-content" aria-live="polite"><p>Select Versions to inspect saved editions, working copies and review evidence.</p></div>
+    </section>
+    <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-sources" role="tabpanel" aria-labelledby="workspace-tab-sources" tabindex="-1" hidden>
+      <div id="workspace-sources-content" aria-live="polite"><p>Select Sources to inspect retained captures and their relationship to this edition.</p></div>
+    </section>
+    <button type="button" class="workspace-back-to-top" id="workspace-back-to-top" hidden>Back to top</button>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v26"></script>
+{% endblock %}

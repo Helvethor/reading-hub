@@ -32,6 +32,7 @@ from library.services.document_edits import (
     save_revision,
 )
 from library.services.document_lineage import (
+    LineageLimitExceeded,
     archive_impact,
     archive_lineage,
     archived_draft_ids,
@@ -165,6 +166,165 @@ class DocumentLineageTests(TestCase):
         self.assertContains(response, 'id="lineage-inspection"')
         self.assertNotContains(response, "autofocus")
 
+    def test_scopes_preserve_branch_parent_source_binding_and_anchor(self):
+        reviewed = self.save(review="full")
+        revised = self.save(
+            document={
+                **reviewed.document,
+                "html": '<section id="c1"><p>Corrected.</p></section>',
+            },
+            revision=1,
+        )
+        branch = branch_draft(self.draft, self.reviewer, reviewed.revision)
+        branch_revision = self.save(
+            branch, {**reviewed.document, "title": "Alternative"}, 0,
+        )
+        branch_anchor = f"revision:{self.draft.pk}:{reviewed.revision}"
+        scoped = build_lineage(
+            self.work, selected=f"revision:{branch.pk}:{branch_revision.revision}",
+            filter_name="corrections", scope_name="branch", anchor=branch_anchor,
+        )
+        branch_ids = {node["id"] for node in scoped["timeline"]}
+        self.assertIn(branch_anchor, branch_ids)
+        self.assertIn(f"history:{branch.pk}", branch_ids)
+        self.assertIn(
+            scoped["nodes"][branch_anchor]["parent_id"], branch_ids,
+        )
+        self.assertNotIn(
+            f"revision:{branch.pk}:{branch_revision.revision}", branch_ids,
+        )
+        self.assertTrue(scoped["selected"]["outside_scope"])
+        self.assertEqual(scoped["scope_anchor"], branch_anchor)
+
+        other_manifest = {
+            "pages": [{
+                "url": f"{self.work.url}/other", "resolved_url": f"{self.work.url}/other",
+                "digest": "d" * 64,
+            }],
+            "assets": {},
+        }
+        other_snapshot = Snapshot.objects.create(
+            document=self.work, digest=snapshot_digest(other_manifest),
+            manifest=other_manifest,
+        )
+        other_edition = self.create_rendition(
+            self.work, other_snapshot, "Other source edition",
+            '<section id="c1"><p>Independent source.</p></section>', book=False,
+        )
+        source = build_lineage(
+            self.work, scope_name="source", anchor=f"snapshot:{self.snapshot.pk}",
+        )
+        source_ids = {node["id"] for node in source["timeline"]}
+        self.assertIn(f"snapshot:{self.snapshot.pk}", source_ids)
+        self.assertIn(f"edition:{self.rendition.pk}", source_ids)
+        self.assertNotIn(f"snapshot:{other_snapshot.pk}", source_ids)
+        self.assertNotIn(f"edition:{other_edition.pk}", source_ids)
+        self.assertTrue(build_lineage(
+            self.work, scope_name="source", anchor=f"work:{self.work.pk}",
+        )["scope_error"])
+        whole_work = build_lineage(self.work, scope_name="work")
+        self.assertIn(f"edition:{other_edition.pk}", {
+            node["id"] for node in whole_work["timeline"]
+        })
+
+    def test_lineage_limit_remains_explicit(self):
+        with patch("library.services.document_lineage.MAX_LINEAGE_ELEMENTS", 1):
+            with self.assertRaises(LineageLimitExceeded):
+                build_lineage(self.work)
+
+    def test_inline_review_only_comparison_does_not_mutate_saved_state(self):
+        evidence = {
+            "kind": "fresh-retained-source",
+            "snapshot": self.snapshot.pk,
+            "snapshot_digest": self.snapshot.digest,
+            "rendition": self.rendition.pk,
+            "anchor": {
+                "rendition": self.rendition.pk,
+                "identity": self.rendition.identity,
+                "output_digest": self.rendition.output_digest,
+                "snapshot": self.snapshot.pk,
+                "snapshot_digest": self.snapshot.digest,
+            },
+            "input_policy": {"mode": "reviewed"},
+            "assets": [],
+        }
+        draft = create_working_copy(
+            self.rendition, self.reviewer, self.draft.document, evidence,
+            profile=self.draft.profile, parent_version=None,
+            origin="source_generated", source_snapshot=self.snapshot,
+        )
+        reviewed = self.save(
+            draft, self.draft.document, 0, review="full",
+        )
+        changed = self.save(
+            draft,
+            document={
+                **reviewed.document,
+                "html": '<section id="c1"><p>Corrected.</p></section>',
+            },
+            revision=reviewed.revision,
+        )
+        revision_count = draft.revisions.count()
+        version_count = DocumentVersion.objects.count()
+        reader_target_id = self.work.reader_target().pk
+        self.client.force_login(self.reviewer)
+        response = self.client.get(
+            reverse("document-lineage", args=[self.work.pk]),
+            {
+                "scope": "work", "anchor": f"work:{self.work.pk}",
+                "selected": f"revision:{draft.pk}:{reviewed.revision}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(
+            response.context["comparison"], response.context["comparison_error"],
+        )
+        self.assertTrue(response.context["comparison"]["review_only"])
+        self.assertContains(response, "No content changes. This is a review-only record.")
+        changed_response = self.client.get(
+            reverse("document-lineage", args=[self.work.pk]),
+            {
+                "scope": "work", "anchor": f"work:{self.work.pk}",
+                "selected": f"revision:{draft.pk}:{changed.revision}",
+            },
+        )
+        self.assertIsNotNone(
+            changed_response.context["comparison"],
+            changed_response.context["comparison_error"],
+        )
+        comparison = changed_response.context["comparison"]
+        self.assertEqual(
+            comparison["before_id"],
+            changed_response.context["lineage"]["selected"]["parent_id"],
+        )
+        self.assertEqual(
+            comparison["before_label"],
+            changed_response.context["lineage"]["nodes"][
+                comparison["before_id"]
+            ]["label"],
+        )
+        alternate_response = self.client.get(
+            reverse("document-lineage", args=[self.work.pk]),
+            {
+                "scope": "work", "anchor": f"work:{self.work.pk}",
+                "selected": f"revision:{draft.pk}:{changed.revision}",
+                "compare_with": f"edition:{self.rendition.pk}",
+            },
+        )
+        self.assertIsNotNone(
+            alternate_response.context["comparison"],
+            alternate_response.context["comparison_error"],
+        )
+        self.assertEqual(
+            alternate_response.context["comparison"]["before_id"],
+            f"edition:{self.rendition.pk}",
+        )
+        draft.refresh_from_db()
+        self.work.refresh_from_db()
+        self.assertEqual(draft.revisions.count(), revision_count)
+        self.assertEqual(DocumentVersion.objects.count(), version_count)
+        self.assertEqual(self.work.reader_target().pk, reader_target_id)
+
     def test_review_only_event_keeps_publication_continuation_on_same_content(self):
         reviewed = self.save(review="partial")
         publication = self.publish(self.draft, reviewed.revision)
@@ -184,14 +344,13 @@ class DocumentLineageTests(TestCase):
         response = self.client.get(
             reverse("document-editor", args=[publication.rendition_id]) + "?tab=versions",
         )
-        self.assertRedirects(
-            response,
-            reverse("document-editor", args=[self.rendition.pk])
-            + f"?draft={self.draft.pk}&tab=versions",
-        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-initial-tab="versions"')
+        self.assertTrue(response.context["choose_history"])
+        self.assertIsNone(response.context["draft"])
         reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
-        self.assertContains(reader, "A work")
-        self.assertContains(reader, "Selected reader output")
+        self.assertEqual(reader.status_code, 200)
+        self.assertContains(reader, f'data-version-id="{publication.rendition_id}"')
 
         version_count = DocumentVersion.objects.count()
         continuation = branch_draft(self.draft, self.reviewer, review_event.revision)

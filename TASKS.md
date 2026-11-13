@@ -167,20 +167,21 @@ for scope, dependencies and V17-V22 acceptance.
 - [ ] V.g acceptance V25: visible-browser checks for sticky offsets, long-ToC
   internal scrolling, link targets, responsive layout, focus/contrast, and
   unchanged PDF/print output remain pending.
-- [ ] V.h (specified only): one work page for every role. `/versions/<id>/` uses
-  the workspace design with Read/Versions/Sources for everyone; Edit is shown
-  only to reviewers, and `/editor/` redirects to `?tab=edit` with its query
-  kept. Remove the "Editor" heading. Replace the "Workspace" label with the
-  work's type, edition and title (as h1). The reader default becomes an
-  explicit same-page action rather than a title link. Retire the older reader
-  header after parity. Acceptance V26.
-- [ ] V.i (specified only): redesign Versions/Sources around selected identity,
-  prominent guarded actions and inline verified-parent comparisons. Separate
-  branch/source/work genealogy scope from record filters; keep the anchor fixed
-  during inspection. Offer compact lanes and nesting capped at three visual
-  levels with depth/breadcrumbs, preserving exact ancestry and event records.
-  Deliver hierarchy/actions, comparison, then scope/nesting. Acceptance V27-V30
-  in the [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vi-versionssources---inspect-compare-and-act).
+- [x] V.h implementation: `/versions/<id>/` is the canonical role-aware work
+  page with Read/Versions/Sources for everyone and reviewer-only Edit. The old
+  editor URL redirects GETs while retaining authorized POST compatibility;
+  work identity and the explicit reader-default action remain in the shared
+  design. Focused routing and workspace regressions pass.
+- [x] V.i implementation: Versions/Sources lead with selected identity and
+  guarded actions, show exact-parent and reviewer-selected comparisons, and
+  separate branch/source/work scope from record filters. Compact genealogy
+  lanes and an optional nested view retain ancestry, depth, breadcrumbs and
+  context boundaries. The 111-test Django regression batch, frontend tests and
+  build pass; focused tests cover scope membership, comparison identities,
+  review-only changes, permission paths and preservation.
+- [ ] V.h/V.i acceptance (V26-V30): isolated visible-browser checks, long/deep
+  history at desktop/mobile/zoom, keyboard/focus and Back/Forward observation,
+  plus print/PDF preservation remain pending. See the [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vi-versionssources---inspect-compare-and-act).
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 

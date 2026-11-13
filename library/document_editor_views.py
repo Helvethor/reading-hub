@@ -9,7 +9,10 @@ from django.contrib.staticfiles import finders
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import URLValidator
 from django.db import OperationalError, transaction
-from django.http import FileResponse, Http404, HttpResponse, JsonResponse
+from django.http import (
+    FileResponse, Http404, HttpResponse, HttpResponseNotAllowed,
+    HttpResponsePermanentRedirect, JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
@@ -65,6 +68,47 @@ from library.sources.adapters import adapter_for
 logger = logging.getLogger("library")
 
 
+def _can_review_work(user):
+    return bool(
+        user.is_authenticated and (
+            user.is_staff or user.has_perm("library.review_metadata")
+        )
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def work_workspace(request, pk):
+    if _can_review_work(request.user) and settings.READING_HUB_EDITOR_PILOT:
+        read_default = (
+            not request.GET.get("draft")
+            and request.GET.get("tab", "read") != "edit"
+        )
+        return workspace(request, pk, read_default=read_default)
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+    from library.views import reader
+
+    allowed_tabs = {"read", "versions", "sources"}
+    initial_tab = request.GET.get("tab", "read")
+    if initial_tab not in allowed_tabs:
+        initial_tab = "read"
+    return reader(request, pk, workspace_page=True, initial_tab=initial_tab)
+
+
+@require_http_methods(["GET", "POST"])
+def editor_redirect(request, pk):
+    if request.method == "POST":
+        if not (_can_review_work(request.user) and settings.READING_HUB_EDITOR_PILOT):
+            return HttpResponseNotAllowed(["GET"])
+        return workspace(request, pk)
+    params = request.GET.copy()
+    if not params.get("tab"):
+        params["tab"] = "edit"
+    destination = reverse("reader", args=[pk])
+    query = params.urlencode()
+    return HttpResponsePermanentRedirect(f"{destination}?{query}" if query else destination)
+
+
 def panel_context(request):
     embedded = request.GET.get("embedded") == "1"
     return {
@@ -83,7 +127,7 @@ def panel_response(request, template, context, status=200):
 
 @require_http_methods(["GET", "POST"])
 @metadata_reviewer_required
-def workspace(request, pk):
+def workspace(request, pk, *, read_default=False):
     from library.services.reading_styles import style_context
 
     version = get_version(pk)
@@ -108,7 +152,7 @@ def workspace(request, pk):
             "revision__draft__rendition",
         ).first()
         reading_edition = request.GET.get("start") == "edition" and not draft_id
-        if publication and not reading_edition:
+        if publication and not reading_edition and not read_default:
             candidate = (
                 DocumentDraftBase.objects.filter(
                     pk=draft_id, profile=get_profile().key,
@@ -151,7 +195,9 @@ def workspace(request, pk):
                 return redirect(target + query)
         if reading_edition and publication:
             choose_history = True
-        if not draft_id and request.GET.get("start") not in {"source", "edition"}:
+        if read_default and not draft_id:
+            choose_history = histories.exists() or publication is not None
+        elif not draft_id and request.GET.get("start") not in {"source", "edition"}:
             choices = list(histories[:2])
             if len(choices) == 1 and choices[0].reviewer_id == request.user.pk:
                 draft_id = str(choices[0].pk)
@@ -213,6 +259,11 @@ def workspace(request, pk):
         "choose_history": choose_history, "work_types": WORK_TYPES,
         "evaluation_run": ReviewerRun.objects.filter(draft=draft, reviewer=request.user).first()
         if draft else None,
+        "initial_tab": (
+            request.GET.get("tab")
+            if request.GET.get("tab") in {"read", "edit", "versions", "sources"}
+            else "read"
+        ),
     }, status=422 if error else 200)
     response["Cache-Control"] = "no-store"
     return response

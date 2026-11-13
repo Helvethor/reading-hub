@@ -212,10 +212,10 @@ class ReaderCorrectionTests(TestCase):
         )
         self.assertFalse(CrawlCapture.objects.exists())
 
-    def test_reader_keeps_entire_book_and_toc_with_one_separate_reviewer_link(self):
+    def test_reader_keeps_entire_book_and_generated_contents_for_guests(self):
         version = self.reformat(self.import_version(BOOK))
         with patch("library.services.corrections.rendition_correction_sources") as sources:
-            response = self.client.get(reverse("reader", args=[version.pk]))
+            response = Client().get(reverse("reader", args=[version.pk]))
             sources.assert_not_called()
         page = BeautifulSoup(response.content, "html.parser")
         article = page.select_one("article.reader-content")
@@ -223,21 +223,29 @@ class ReaderCorrectionTests(TestCase):
         self.assertEqual(article.get_text(), retained.get_text())
         self.assertEqual(len(article.select(":scope > section")), 3)
         self.assertEqual(article.get_text().count(PARAGRAPH), 2)
-        self.assertEqual(len(page.select(".toc-panel a")), len(version.structure["toc"]) + 1,
-                         "Navigation adds the generated metadata page.")
-        self.assertEqual(page.select(".toc-panel a")[-1]["href"], "#document-metadata")
-        links = [
-            link for link in page.select(".primary-navigation a")
-            if link.get_text(strip=True) == "Review queue"
-        ]
-        self.assertEqual(len(links), 1)
-        self.assertEqual(links[0]["href"], reverse("work-review") + f"?review_version={version.pk}")
+        self.assertIn(
+            "#document-metadata",
+            [link["href"] for link in page.select(".toc-panel a")],
+            "Navigation includes the generated metadata page.",
+        )
+        self.assertIsNone(page.select_one(".review-navigation"))
         self.assertIsNone(page.select_one("#parsing-corrections"))
         self.assertIsNone(page.select_one(".reader-toolbar + .page-container"))
         self.assertNotContains(response, "Correct this retained source")
         self.assertNotContains(response, reverse("rendition-correction-source", args=[version.pk]))
         self.assertNotContains(response, "Correct content organization")
         self.assertFalse(CrawlCapture.objects.exists())
+        reviewer_page = BeautifulSoup(
+            self.client.get(reverse("reader", args=[version.pk])).content, "html.parser",
+        )
+        links = [
+            link for link in reviewer_page.select(".primary-navigation a")
+            if link.get_text(strip=True) == "Review queue"
+        ]
+        self.assertEqual(len(links), 1)
+        self.assertEqual(
+            links[0]["href"], reverse("work-review") + f"?review_version={version.pk}",
+        )
         overview = BeautifulSoup(self.client.get(links[0]["href"]).content, "html.parser")
         landing_url = overview.find("a", string="Document editor")["href"]
         with patch("library.document_editor_views.finders.find", return_value="built-asset"):

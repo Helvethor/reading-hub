@@ -1,8 +1,9 @@
-<details id="lineage-node-{{ node.id }}" class="lineage-node lineage-node-{{ node.type }}{% if node.archived %} is-archived{% endif %}{% if node.context_only %} is-context{% endif %}{% if node.id == selected_id %} is-selected{% endif %}"{% if node.id in lineage.selected_path %} open{% endif %}>
+<details id="lineage-node-{{ node.id }}" class="lineage-node lineage-node-{{ node.type }}{% if node.archived %} is-archived{% endif %}{% if node.context_only %} is-context{% endif %}{% if node.scope_boundary %} is-scope-boundary{% endif %}{% if node.id == selected_id %} is-selected{% endif %}" data-depth="{{ node.visual_depth }}"{% if node.id in lineage.selected_path %} open{% endif %}>
   <summary>
-    <span class="lineage-node-type">{% if node.type == "snapshot" %}Source capture{% elif node.type == "generation" %}Source-generated version{% elif node.type == "publication" %}Publication record{% elif node.type == "edition" %}Source-generated version{% elif node.type == "history" %}Working copy / branch{% elif node.type == "revision" %}Saved version{% elif node.type == "review" %}Review record{% else %}Work{% endif %}</span>
+    <span class="lineage-node-type">{% if node.type == "snapshot" %}Source capture{% elif node.type == "generation" %}Source-generated version{% elif node.type == "publication" %}Publication record{% elif node.type == "edition" %}Source-generated version{% elif node.type == "history" %}Working copy / branch{% elif node.type == "revision" %}Saved version{% elif node.type == "review" %}Review record{% elif node.type == "scope" %}Genealogy scope{% else %}Work{% endif %}</span>
     <span>{{ node.label }}</span>
     {% if node.created_at %}<time datetime="{{ node.created_at|date:'c' }}">{{ node.created_at|date:"Y-m-d H:i" }}</time>{% endif %}
+    {% if node.descendant_count %}<span>· {{ node.descendant_count }} descendant{{ node.descendant_count|pluralize }}</span>{% endif %}
     {% if node.reviewer %}<span>· {{ node.reviewer }}</span>{% endif %}
     {% if node.review %}<span>· {{ node.review }}</span>{% endif %}
     {% if node.issues %}<span>· {{ node.issues|length }} unresolved issue{{ node.issues|length|pluralize }}</span>{% endif %}
@@ -11,12 +12,17 @@
     {% if node.reader_target %}<strong>· Current reader output</strong>{% endif %}
     {% if node.archived %}<strong>· Archived</strong>{% endif %}
     {% if node.context_only %}<span>· ancestry context</span>{% endif %}
+    {% if node.scope_boundary %}<span>· scope boundary</span>{% endif %}
+    {% if node.scope_anchor %}<strong>· genealogy anchor</strong>{% endif %}
+    {% if node.actual_depth > 3 %}<span>· depth {{ node.actual_depth }} · parent: {{ node.parent_breadcrumb }}</span>{% endif %}
     {% if node.integrity_errors %}<strong role="alert">· Evidence integrity issue</strong>{% endif %}
   </summary>
-  {% if node.type != "work" %}
-  <p><a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;selected={{ node.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection" aria-label="Inspect {{ node.type }}: {{ node.label }}">Inspect this element</a></p>
+  {% if node.type != "work" and node.type != "scope" %}
+  <p><a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ node.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection" aria-label="Inspect {{ node.type }}: {{ node.label }}">Inspect this element</a>
+    · <a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;scope={{ lineage_scope }}&amp;anchor={{ node.id|urlencode }}&amp;selected={{ node.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Focus on this version</a>
+  </p>
   {% endif %}
   {% for child in node.children %}
-    {% include "library/document_lineage_node.html" with node=child %}
+    {% include "library/document_lineage_node.html" with node=child depth=depth|add:1 %}
   {% endfor %}
 </details>

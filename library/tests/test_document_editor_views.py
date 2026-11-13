@@ -413,9 +413,9 @@ class DocumentEditorViewTests(TestCase):
             "library/editor-pilot.css", "library/generated/editor-pilot.js",
         ):
             self.assertContains(response, f'/static/{asset}?v={APP_VERSION}')
-        self.assertContains(response, "Work editor")
+        self.assertContains(response, "BOOK · EDITION")
         self.assertContains(response, "immutable saved versions")
-        self.assertContains(response, 'aria-label="Work workspace"')
+        self.assertContains(response, 'aria-label="Work views"')
         self.assertContains(response, 'id="workspace-tab-read"')
         self.assertContains(response, 'id="workspace-tab-edit"')
         self.assertContains(response, 'id="workspace-tab-versions"')
@@ -444,12 +444,14 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(
             response,
             f'data-versions-url="{reverse("document-lineage", args=[self.rendition.document_id])}'
-            f'?filter=all&amp;selected=edition%3A{self.rendition.pk}&amp;embedded=1"',
+            f'?filter=all&amp;scope=branch&amp;anchor=edition%3A{self.rendition.pk}'
+            f'&amp;selected=edition%3A{self.rendition.pk}&amp;embedded=1"',
         )
         self.assertContains(
             response,
             f'data-sources-url="{reverse("document-lineage", args=[self.rendition.document_id])}'
-            f'?filter=sources&amp;selected=snapshot%3A{self.rendition.snapshot_id}&amp;embedded=1"',
+            f'?filter=sources&amp;scope=branch&amp;anchor=edition%3A{self.rendition.pk}'
+            f'&amp;selected=snapshot%3A{self.rendition.snapshot_id}&amp;embedded=1"',
         )
         self.assertNotContains(response, 'data-workflow-panel="Versions"')
         self.assertNotContains(response, 'data-workflow-panel="Sources"')
@@ -524,10 +526,11 @@ class DocumentEditorViewTests(TestCase):
     def test_guest_reader_keeps_the_immutable_route_and_adds_scroll_controls(self):
         response = Client().get(reverse("reader", args=[self.rendition.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "reader-back-to-top")
-        self.assertContains(response, "reader-workspace.js")
+        self.assertContains(response, "workspace-back-to-top")
+        self.assertContains(response, "public-workspace.js")
         self.assertContains(response, "Download PDF")
-        self.assertContains(response, 'aria-label="Work status and destinations"')
+        self.assertContains(response, 'aria-label="Work identity and reader status"')
+        self.assertNotContains(response, 'id="workspace-tab-edit"')
 
     def test_unowned_working_copy_requires_explicit_choice(self):
         source = self.rendition
@@ -851,8 +854,11 @@ class DocumentEditorViewTests(TestCase):
 
     def test_disabled_pilot_is_not_exposed(self):
         with override_settings(READING_HUB_EDITOR_PILOT=False):
-            self.assertEqual(self.client.get(self.url).status_code, 404)
-            self.assertEqual(self.post().status_code, 404)
+            self.assertEqual(self.client.get(self.url).status_code, 200)
+            self.assertNotContains(self.client.get(self.url), 'id="workspace-tab-edit"')
+            self.assertEqual(self.post().status_code, 405)
+            legacy = reverse("document-editor-legacy", args=[self.rendition.pk])
+            self.assertEqual(self.client.get(legacy).status_code, 301)
 
     def test_missing_build_is_an_explicit_unavailable_page(self):
         with patch("library.document_editor_views.finders.find", return_value=None):
@@ -862,15 +868,30 @@ class DocumentEditorViewTests(TestCase):
 
     def test_access_requires_reviewer_and_csrf(self):
         self.client.logout()
-        self.assertEqual(self.client.get(self.url).status_code, 302)
+        self.assertEqual(self.client.get(self.url).status_code, 200)
         reader = get_user_model().objects.create_user("reader")
         self.client.force_login(reader)
-        self.assertEqual(self.client.get(self.url).status_code, 403)
-        self.assertEqual(self.post().status_code, 403)
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+        self.assertNotContains(self.client.get(self.url), 'id="workspace-tab-edit"')
+        self.assertEqual(self.post().status_code, 405)
         protected = Client(enforce_csrf_checks=True)
         protected.force_login(self.reviewer)
         response = protected.post(self.url, "{}", content_type="application/json")
         self.assertEqual(response.status_code, 403)
+
+    def test_legacy_editor_post_keeps_already_open_tabs_working(self):
+        payload = self.workspace_payload(self.draft.document, draft=self.draft)
+        payload.update({
+            "conversion_approval": None, "review": "partial",
+            "verified_sections": [], "editorial": False,
+        })
+        response = self.client.post(
+            reverse("document-editor-legacy", args=[self.rendition.pk]),
+            json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertTrue(response.json()["draft"])
 
     def test_save_and_reopen_append_revisions_without_publication(self):
         value = {**self.draft.document, "html": '<section id="c1"><p>Edited.</p></section>'}

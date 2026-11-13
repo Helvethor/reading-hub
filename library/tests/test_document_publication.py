@@ -55,13 +55,16 @@ class DocumentPublicationTests(TestCase):
         candidate = prepare_publication(self.draft, revision)
         return publish_revision(self.draft, self.reviewer, revision, candidate["digest"])
 
+    def read(self, rendition_id):
+        return Client().get(reverse("reader", args=[rendition_id]))
+
     def test_partial_review_status_is_readable_endmatter_not_an_opening_block(self):
         reviewed = save_revision(
             self.draft, self.reviewer, self.revision.document, 1,
             review="sections", verified_sections=["c1"], editorial=True,
         )
         publication = self.publish(reviewed.revision)
-        response = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        response = self.read(publication.rendition_id)
         soup = BeautifulSoup(response.content, "html.parser")
         header = soup.select_one(".document-header")
         endmatter = soup.select("#document-edition-status")
@@ -125,7 +128,7 @@ class DocumentPublicationTests(TestCase):
                                    {"draft": self.draft.pk})
         self.assertEqual(reopened.context["initial"]["document"]["html"],
                          revision.document["html"])
-        self.assertContains(self.client.get(reverse("reader", args=[rendition.pk])),
+        self.assertContains(self.read(rendition.pk),
                             "Reviewed Appendix")
 
     def test_legacy_standalone_article_publication_keeps_identity_and_heading_hierarchy(self):
@@ -202,7 +205,7 @@ class DocumentPublicationTests(TestCase):
         self.assertTrue(all(entry["in_toc"] for entry in toc if entry["id"].startswith("h2-")))
 
         published = publish_revision(draft, self.reviewer, revision.revision, candidate["digest"])
-        response = self.client.get(reverse("reader", args=[published.rendition.pk]))
+        response = self.read(published.rendition.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Updated article identity")
         self.assertContains(response, "First section")
@@ -246,7 +249,7 @@ class DocumentPublicationTests(TestCase):
         published = publish_revision(
             self.draft, self.reviewer, revision.revision, candidate["digest"],
         )
-        response = self.client.get(reverse("reader", args=[published.rendition.pk]))
+        response = self.read(published.rendition.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Enclosing anthology title")
         self.assertContains(response, "Retained local story title")
@@ -306,14 +309,17 @@ class DocumentPublicationTests(TestCase):
         preview_soup = BeautifulSoup(preview.content, "html.parser")
         publication = self.publish(2)
         published = publication.rendition
-        response = self.client.get(reverse("reader", args=[published.pk]))
+        response = self.read(published.pk)
         soup = BeautifulSoup(response.content, "html.parser")
         for page in (preview_soup, soup):
             entries = page.select(".document-contents a")
             self.assertEqual([entry.get_text() for entry in entries],
                              ["I. First", "a. Nested", "II. Second"])
             self.assertEqual(page.select_one("#first")["data-reading-marker"], "I. ")
-            self.assertEqual(page.select_one(".document-header h1").get_text(), "Reviewed book")
+            self.assertEqual(
+                page.select_one(".document-header h1, .document-header h2").get_text(),
+                "Reviewed book",
+            )
             header = page.select_one(".document-header")
             rows = list(zip([node.get_text() for node in header.select("dt")],
                             [node.get_text() for node in header.select("dd")], strict=True))
@@ -370,7 +376,7 @@ class DocumentPublicationTests(TestCase):
         stored = published.html
         toc = deepcopy(published.structure["toc"])
         self.assertEqual(publication.publication_version, 3)
-        response = self.client.get(reverse("reader", args=[published.pk]))
+        response = self.read(published.pk)
         self.assertContains(response, 'data-reading-marker="I. "')
         self.assertContains(response, 'href="#a"')
         published.refresh_from_db()
@@ -431,7 +437,7 @@ class DocumentPublicationTests(TestCase):
         nested = next(part for part in result.rendition.structure["parts"]
                       if part["id"] == "edited-section")
         self.assertEqual(nested["parent"], "c1")
-        response = self.client.get(reverse("reader", args=[result.rendition.pk]))
+        response = self.read(result.rendition.pk)
         self.assertContains(response, "Endnotes")
         output = io.BytesIO()
         render_pdf(result.rendition, output)
@@ -462,7 +468,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(str(soup.select_one("#c7")), '<section id="c7">' + tail + '</section>')
         self.assertEqual([n["title"] for n in publication.rendition.structure["toc"]],
                          ["Chapter IV", "Chapter V"])
-        self.assertContains(self.client.get(reverse("reader", args=[publication.rendition.pk])),
+        self.assertContains(self.read(publication.rendition.pk),
                             'href="#earlier"')
         output = io.BytesIO()
         render_pdf(publication.rendition, output)
@@ -488,7 +494,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(soup.select_one("#renamed-note a")["href"], "#reference")
         self.assertEqual(soup.select_one("#reference sup").get_text(), "1")
         self.assertEqual(soup.select_one("#renamed-note").find_parent("section")["id"], "notes")
-        response = self.client.get(reverse("reader", args=[publication.rendition.pk]))
+        response = self.read(publication.rendition.pk)
         self.assertContains(response, 'href="#renamed-note"')
         self.assertContains(response, 'href="#reference"')
         output = io.BytesIO()
@@ -516,7 +522,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(soup.select_one("#renamed-inline em").get_text(), "Nested")
         self.assertEqual(soup.select_one("#renamed-inline a")["href"], "#reference")
         self.assertEqual(soup.select_one("#reference a")["href"], "#renamed-inline")
-        self.assertContains(self.client.get(reverse("reader", args=[result.rendition.pk])),
+        self.assertContains(self.read(result.rendition.pk),
                             'id="renamed-inline"')
         output = io.BytesIO()
         render_pdf(result.rendition, output)
@@ -628,7 +634,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(
             result.select_one("figcaption#source cite a").get_text(), "A letter to Marx"
         )
-        response = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        response = self.read(publication.rendition_id)
         self.assertContains(response, '<cite><a href="https://example.org/letter"')
         self.assertContains(response, 'figcaption id="source"')
         with (
@@ -676,7 +682,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(result.find_all("section")[-1]["id"], "notes")
         self.assertEqual(result.select_one("#ref")["href"], "#note")
         self.assertEqual(result.select_one("#note a")["href"], "#ref")
-        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        reader = self.read(publication.rendition_id)
         self.assertContains(reader, 'id="notes"')
         output = io.BytesIO()
         render_pdf(publication.rendition, output)
@@ -700,7 +706,7 @@ class DocumentPublicationTests(TestCase):
             [("Opening", True), ("Notes", False), ("Chapter notes", False),
              ("Sources", False), ("Endnotes", True)],
         )
-        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        reader = self.read(publication.rendition_id)
         for response in (preview, reader):
             soup = BeautifulSoup(response.content, "html.parser")
             self.assertEqual(
@@ -741,7 +747,7 @@ class DocumentPublicationTests(TestCase):
         publication = self.publish(2)
         self.assertEqual([item["title"] for item in publication.rendition.structure["toc"]],
                          ["Appendix", "Group and Dyelo"])
-        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        reader = self.read(publication.rendition_id)
         soup = BeautifulSoup(reader.content, "html.parser")
         self.assertEqual([link.get_text() for link in soup.select(".toc-panel a")
                           if link["href"].startswith("#")],
@@ -793,7 +799,7 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(soup.select_one('#edited-section a[href="#other"]').get_text(), "2")
         self.draft.refresh_from_db()
         self.assertEqual(self.draft.document, original_base)
-        reader = self.client.get(reverse("reader", args=[publication.rendition_id]))
+        reader = self.read(publication.rendition_id)
         self.assertContains(reader, "Relocated note")
         output = io.BytesIO()
         render_pdf(publication.rendition, output)
@@ -958,16 +964,18 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(selected_workspace.context["version"].pk, publication.rendition_id)
         self.assertIsNone(selected_workspace.context["initial"]["draft"])
         self.assertTrue(selected_workspace.context["initial"]["choose_history"])
-        source_reader = self.client.get(reverse("reader", args=[self.rendition.pk]))
+        source_reader = self.read(self.rendition.pk)
         self.assertContains(
             source_reader,
-            f'href="{reverse("document-editor", args=[publication.rendition_id])}?tab=edit"',
+            f'href="{reverse("document-editor", args=[publication.rendition_id])}?tab=read"',
         )
         self.assertRedirects(
             self.client.get(
-                reverse("document-editor", args=[publication.rendition_id]) + "?start=source",
+                reverse("document-editor", args=[publication.rendition_id])
+                + "?start=source&tab=edit",
             ),
-            reverse("document-editor", args=[self.rendition.pk]) + f"?draft={self.draft.pk}",
+            reverse("document-editor", args=[self.rendition.pk])
+            + f"?draft={self.draft.pk}&tab=edit",
         )
 
         retry = self.client.post(self.url + self.query, payload)
@@ -1045,7 +1053,7 @@ class DocumentPublicationTests(TestCase):
     def test_edited_reader_stylesheet_and_pdf_do_not_redirect_to_another_book(self):
         result = self.publish()
         with patch("library.organization_views.member_destination") as destination:
-            response = self.client.get(reverse("reader", args=[result.rendition_id]))
+            response = self.read(result.rendition_id)
             self.assertContains(response, "Edited text.")
             self.assertContains(response, "Not verified as a whole document")
             self.assertContains(response, 'href="#c1"')
@@ -1093,11 +1101,11 @@ class DocumentPublicationTests(TestCase):
         result = self.publish()
         self.assertEqual(result.rendition.metadata["subtitle"], "Corrected Subtitle")
         self.assertContains(
-            self.client.get(reverse("reader", args=[result.rendition_id])),
+            self.read(result.rendition_id),
             "Corrected Author",
         )
         self.assertContains(
-            self.client.get(reverse("reader", args=[result.rendition_id])),
+            self.read(result.rendition_id),
             'lang="fr"',
         )
 
@@ -1180,7 +1188,7 @@ class DocumentPublicationTests(TestCase):
         reopened = self.client.get(reverse("document-editor", args=[self.rendition.pk]),
                                    {"draft": self.draft.pk})
         self.assertEqual(reopened.context["initial"]["document"]["html"], revision.document["html"])
-        reader = self.client.get(reverse("reader", args=[result.rendition.pk]))
+        reader = self.read(result.rendition.pk)
         self.assertContains(reader, 'data-excerpt-parent="origin"')
         output = io.BytesIO()
         render_pdf(result.rendition, output)

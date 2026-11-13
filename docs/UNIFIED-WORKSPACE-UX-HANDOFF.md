@@ -6,9 +6,11 @@ V.a-V.d are implemented, with V17-V22 acceptance partial rather than certified.
 The V.e Metadata-page placement bugfix (V23) and V.f compact Edit command bar
 (V24) are implemented, with copied-book validation and the remaining acceptance
 limits recorded below. V.g Read contents panel/toggle/bar (V25) is implemented;
-browser acceptance remains partial. V.h one work page for every role (V26) and
-V.i Versions/Sources redesign (V27-V30) are under implementation. The
-2026-11-13 implementation request authorizes local implementation of V.g-V.i;
+browser acceptance remains partial. V.h one work page for every role (V26)
+and V.i Versions/Sources redesign (V27-V30) have implementation in place;
+acceptance remains partial pending the isolated browser and preservation
+checks below. The 2026-11-13 implementation request authorizes local
+implementation of V.g-V.i;
 it does not authorize live content, publication or reader-default changes.
 The later requests to continue implementation, deploy locally and implement the
 updated V.a supersede the original documentation-only instruction for V.a-V.d.
