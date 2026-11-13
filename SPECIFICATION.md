@@ -2035,6 +2035,28 @@ reviewer may explicitly replace them with semantic Q marks; output must not
 double them. Automatic detection, bibliography management, inline-to-block
 conversion and historical Q recovery are excluded.
 
+### Simple tables and retained-image insertion (planned 2026-11-13)
+
+Milestones T and N are specified only. The
+[table/image handoff](docs/TABLE-IMAGE-AUTHORING-IMPLEMENTATION-HANDOFF.md)
+owns precise supported shapes, safety rules and T1-T4, N1-N2 and TN3-TN6
+acceptance. Neither milestone changes G or I or authorizes implementation,
+deployment, publication or live-content mutation.
+
+T creates simple rectangular tables and provides explicit row/column insertion
+and deletion, individual header-cell changes and table-caption editing. Preserve
+cell content, targets and identity; confirm nonempty deletion and refuse unsafe
+or complex structural edits without rewriting existing tables. The current
+semantic schema does not support full header associations; no accessibility
+certification is implied.
+
+N inserts a standalone image chosen from assets already authorized by the
+current draft's base evidence. The reviewer supplies alt text or explicitly
+marks it decorative; existing figure/caption tools can then associate a caption.
+Preserve draft authorization, retained-asset integrity and publication binding.
+It is new placement, not file upload, remote fetching or global asset browsing.
+G remains independently specified and is not a prerequisite.
+
 Outline section drag/drop is available; arbitrary canvas drag/drop, new media or
 note insertion/renumbering remain unavailable. Each next revision can be explicitly marked partial, verified
 for selected identified sections, or whole-document verified. Verification requires

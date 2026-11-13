@@ -335,6 +335,29 @@ owns I1-I10 acceptance and precise design.
 - [ ] Validate I1-I10 on isolated fixtures through recovery, save/reopen, Read,
   print and PDFs. Defer automatic detection and historical Q recovery.
 
+## Editor milestones T and N: simple tables and retained-image insertion (2026-11-13)
+
+**Status:** specified only; no implementation or validation claimed. These are
+independently deliverable proposals; recording them does not authorize
+implementation, deployment, publication or live-content changes. Existing
+milestone ordering is unchanged.
+
+The [table/image handoff](docs/TABLE-IMAGE-AUTHORING-IMPLEMENTATION-HANDOFF.md)
+owns T1-T4, N1-N2 and TN3-TN6 acceptance.
+
+- [ ] T: create simple tables; insert/delete rows and columns, change individual
+  header cells and add/remove captions with explicit preservation/refusal rules.
+- [ ] N: insert a draft-base-authorized retained image at a prose caret, with
+  explicit alternative text or decorative choice; keep existing asset evidence
+  and publication binding. No upload or remote fetch.
+- [ ] Validate each outcome on isolated article/book fixtures through recovery,
+  save/reopen, Read, actual browser print and draft/published PDFs. Preserve
+  hidden content, targets, notes, assets and immutable evidence.
+
+Complex table restructuring, arbitrary asset browsing and ticket-only image
+selection are deferred. G remains the owner of independent figure/caption
+actions and is not a prerequisite for N's standalone image insertion.
+
 ## Operations milestone W: worker reliability and bounded recovery (2026-11-12)
 
 **Status:** specified only; read-only investigation found five failed/dead slots
