@@ -209,7 +209,8 @@ class DocumentEditorViewTests(TestCase):
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Cache-Control"], "no-store")
-        self.assertIn("Draft preview - Unsaved PDF title.pdf", response["Content-Disposition"])
+        self.assertIn("Unsaved PDF title.pdf", response["Content-Disposition"])
+        self.assertNotIn("Draft preview", response["Content-Disposition"])
         self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.7\\nworkspace")
         renderer.assert_called_once()
         self.rendition.refresh_from_db()
@@ -241,7 +242,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertEqual(response["Cache-Control"], "no-store")
-        self.assertIn("Draft preview - Captured workspace edition.pdf",
+        self.assertIn("Captured workspace edition.pdf",
                       response["Content-Disposition"])
         content = b"".join(response.streaming_content)
         self.assertTrue(content.startswith(b"%PDF-"))
@@ -370,7 +371,8 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(unchanged.status_code, 200)
         self.assertEqual(unchanged["X-Reading-Hub-PDF-State"], "saved")
         self.assertEqual(unchanged["X-Reading-Hub-PDF-Revision"], "1")
-        self.assertIn("Saved revision 1 - Saved copy title.pdf", unchanged["Content-Disposition"])
+        self.assertIn("Saved copy title.pdf", unchanged["Content-Disposition"])
+        self.assertNotIn("Saved revision", unchanged["Content-Disposition"])
         self.assertIn("Saved revision text.", rendered[-2])
         self.assertFalse(rendered[-1]["changed_unsaved"])
         read = self.client.post(
@@ -385,7 +387,8 @@ class DocumentEditorViewTests(TestCase):
             "html": '<section id="c1"><p>Unsaved later text.</p></section>',
         })
         self.assertEqual(changed["X-Reading-Hub-PDF-State"], "draft")
-        self.assertIn("Draft preview - Saved copy title.pdf", changed["Content-Disposition"])
+        self.assertIn("Saved copy title.pdf", changed["Content-Disposition"])
+        self.assertNotIn("Draft preview", changed["Content-Disposition"])
         self.assertIn("Unsaved later text.", rendered[-2])
         self.assertTrue(rendered[-1]["changed_unsaved"])
         self.assertEqual(DocumentEditRevision.objects.count(), 1)

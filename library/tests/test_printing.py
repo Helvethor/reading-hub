@@ -526,12 +526,20 @@ class PrintingTests(TestCase):
         for title, expected in [
             ("Print test", "Print test.pdf"),
             ("La homiĝo – étude", "La homiĝo – étude.pdf"),
-            ('Why? A/B: "test"', "Why- A-B- -test-.pdf"),
+            ("Why? Now", "Why - Now.pdf"),
+            ("Title: Subtitle", "Title - Subtitle.pdf"),
+            ("A/B", "A - B.pdf"),
+            ('Why? A/B: "test"', "Why - A - B - test-.pdf"),
+            ("A?? / : B", "A - B.pdf"),
+            (" A ? B ", "A - B.pdf"),
+            ("keep-this — and this", "keep-this — and this.pdf"),
             ("../CON", "-CON.pdf"),
             ("CON", "_CON.pdf"),
             ("NUL.txt", "_NUL.txt.pdf"),
             (" . ", "Untitled.pdf"),
-            ("line\r\nbreak", "line--break.pdf"),
+            ("line\r\nbreak", "line - break.pdf"),
+            ("?title?", "-title-.pdf"),
+            ("title?.", "title-.pdf"),
         ]:
             with self.subTest(title=title):
                 self.assertEqual(pdf_filename(title), expected)

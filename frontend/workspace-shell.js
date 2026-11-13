@@ -46,6 +46,19 @@ export function pdfFilename(disposition) {
     || disposition.match(/filename\s*=\s*([^;"\s]+)/i)?.[1] || "";
 }
 
+export function pdfFilenameFromTitle(title) {
+  const separator = "\x00";
+  const unsafe = /[<>:"/\\|?*\x00-\x1f\x7f]+(?:\s+[<>:"/\\|?*\x00-\x1f\x7f]+)*/g;
+  let name = String(title).replace(unsafe, separator).replace(/(?:\s*\x00\s*)+/g, separator);
+  name = name.replace(/\s+/g, " ").trim().replace(/^[ .]+|[ .]+$/g, "").slice(0, 150)
+    .replace(/[ .]+$/g, "") || "Untitled";
+  name = name.replaceAll(separator, " - ");
+  if (name.startsWith(" - ")) name = `-${name.slice(3)}`;
+  if (name.endsWith(" - ")) name = `${name.slice(0, -3)}-`;
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i.test(name)) name = `_${name}`;
+  return `${name}.pdf`;
+}
+
 function mountStickyStack(workspace, updateBackToTop) {
   const siteHeader = document.querySelector(".site-header");
   const reviewNavigation = document.querySelector(".review-navigation");
@@ -655,7 +668,7 @@ export function mountWorkspaceShell({
         throw new Error("The server produced a different PDF state than the one shown. Nothing was downloaded; refresh Read and retry.");
       }
       const filename = pdfFilename(response.headers.get("Content-Disposition"))
-        || `${snapshot.document.title}.pdf`;
+        || pdfFilenameFromTitle(snapshot.document.title);
       const objectUrl = URL.createObjectURL(await response.blob());
       const anchor = document.createElement("a");
       anchor.href = objectUrl;

@@ -531,12 +531,7 @@ def workspace_pdf(request, pk):
             destination,
             content_type="application/pdf",
             as_attachment=True,
-            filename=pdf_filename(
-                f"Draft preview - {document['title']}" if state == "draft"
-                else f"Saved revision {snapshot['saved_revision']} - {document['title']}"
-                if snapshot["saved_revision"]
-                else f"Working copy start - {document['title']}"
-            ),
+            filename=pdf_filename(document["title"]),
         )
         response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"

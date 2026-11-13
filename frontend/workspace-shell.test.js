@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
-import {mountWorkspaceShell, pdfFilename} from "./workspace-shell.js";
+import {mountWorkspaceShell, pdfFilename, pdfFilenameFromTitle} from "./workspace-shell.js";
 import {mountWorkflowPanels} from "./workflow-panels.js";
 
 let dom;
@@ -450,11 +450,14 @@ test("PDF request captures the Read-rendered document and reading style", async 
   };
   const requests = [];
   let finishRequest;
+  let downloadedFilename = "";
   globalThis.fetch = readThenPdf("draft",
     () => new Promise(resolve => { finishRequest = resolve; }), requests);
   mount(form, snapshot);
   await settle();
-  dom.window.HTMLAnchorElement.prototype.click = function() {};
+  dom.window.HTMLAnchorElement.prototype.click = function() {
+    downloadedFilename = this.download;
+  };
   dom.window.URL.createObjectURL = () => "blob:x";
   dom.window.URL.revokeObjectURL = () => {};
   globalThis.URL.createObjectURL = () => "blob:x";
@@ -464,16 +467,18 @@ test("PDF request captures the Read-rendered document and reading style", async 
   finishRequest({
     ok: true,
     headers: pdfHeaders("draft",
-      "attachment; filename=\"Draft preview - Captured title.pdf\"; " +
-      "filename*=UTF-8''Draft%20preview%20-%20Captured%20title%20%C3%A9.pdf"),
+      "attachment; filename=\"Captured title.pdf\"; " +
+      "filename*=UTF-8''Captured%20title.pdf"),
     blob: async () => new Blob(["pdf"]),
   });
   await settle();
   const pdf = requests.at(-1);
   assert.equal(JSON.parse(pdf.body).document.title, "Captured title");
   assert.equal(new URL(pdf.url).searchParams.get("presentation"), "signed-appearance-snapshot");
+  assert.equal(downloadedFilename, "Captured title.pdf");
   const message = document.querySelector("#workspace-action-status").textContent;
-  assert.match(message, /Draft preview - Captured title é\.pdf/);
+  assert.match(message, /Captured title\.pdf/);
+  assert.doesNotMatch(message, /Draft preview/);
   assert.match(message, /unsaved draft content only/);
 });
 
@@ -504,7 +509,7 @@ test("PDF with a server state different from the label is not downloaded", async
   let downloaded = false;
   globalThis.fetch = readThenPdf("exact", () => Promise.resolve({
     ok: true,
-    headers: pdfHeaders("draft", 'attachment; filename="Draft preview - T.pdf"'),
+    headers: pdfHeaders("draft", 'attachment; filename="T.pdf"'),
     blob: async () => new Blob(["pdf"]),
   }), requests);
   mount(form, {
@@ -525,6 +530,11 @@ test("pdfFilename prefers RFC 5987 names and tolerates plain parameters", () => 
   assert.equal(pdfFilename('attachment; filename="Saved revision 2 - T.pdf"'), "Saved revision 2 - T.pdf");
   assert.equal(pdfFilename("attachment; filename=plain.pdf"), "plain.pdf");
   assert.equal(pdfFilename(null), "");
+  assert.equal(pdfFilenameFromTitle("Why? Now"), "Why - Now.pdf");
+  assert.equal(pdfFilenameFromTitle("La homiĝo – étude"), "La homiĝo – étude.pdf");
+  assert.equal(pdfFilenameFromTitle("A?? / : B"), "A - B.pdf");
+  assert.equal(pdfFilenameFromTitle("?title?"), "-title-.pdf");
+  assert.equal(pdfFilenameFromTitle("CON"), "_CON.pdf");
 });
 
 function pageScroll() {

@@ -345,8 +345,16 @@ class PDFExportError(Exception):
 
 
 def pdf_filename(title):
-    name = re.sub(r'[<>:"/\\|?*\x00-\x1f\x7f]', "-", title)
+    separator = "\x00"
+    unsafe = r'[<>:"/\\|?*\x00-\x1f\x7f]+(?:\s+[<>:"/\\|?*\x00-\x1f\x7f]+)*'
+    name = re.sub(unsafe, separator, title)
+    name = re.sub(r"(?:\s*\x00\s*)+", separator, name)
     name = " ".join(name.split()).strip(" .")[:150].rstrip(" .") or "Untitled"
+    name = name.replace(separator, " - ")
+    if name.startswith(" - "):
+        name = "-" + name[3:]
+    if name.endswith(" - "):
+        name = name[:-3] + "-"
     if re.fullmatch(r"(?i:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", name):
         name = "_" + name
     return name + ".pdf"
