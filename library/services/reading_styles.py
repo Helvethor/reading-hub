@@ -45,7 +45,7 @@ DEFAULTS = {
 PRESET_NAME = "Marxist — standard (read-only)"
 SALT = "reading-hub-reading-style-v1"
 PRESENTATION_SALT = "reading-hub-presentation-snapshot-v1"
-STYLE_VERSION = 7
+STYLE_VERSION = 8
 STYLE_SCOPES = ("output", "account")
 
 # (ink, paper, accent) per palette, light/dark mode and contrast level. Accents colour headings
@@ -531,10 +531,10 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
   line-height: {value['line_height']}; font-family: {family('body')};
   letter-spacing: {value['letter_spacing']}em; word-spacing: {value['word_spacing']}em;
 }}
-{scope} :is(.document-header,.document-contents,.reader-content,.document-metadata-page) {{
+{scope} :is(.document-header,.document-contents,.reader-content,.document-end-matter) {{
   max-width: {value['line_width']}ch; margin-inline: auto; box-sizing: border-box;
 }}
-{scope} :is(.reader-content,.document-metadata-page) {{
+{scope} :is(.reader-content,.document-end-matter) {{
   font: inherit; color: inherit; hyphens: {'auto' if value['hyphenation'] else 'none'}; }}
 {text} p {{
   text-align: {value['paragraph_align']}; margin-block-end: {value['paragraph_spacing']}em;
@@ -545,7 +545,7 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
 }}
 {scope} h1 {{ font-size: 2em; }}
 {scope} h2 {{ font-size: 1.6em; }}
-{scope} :is(.document-contents > h2,.reader-content h2,.document-metadata-page > h2) {{
+{scope} :is(.document-contents > h2,.reader-content h2,.document-end-matter > h2) {{
   font-weight: 600; margin-block: 2.2em .85em;
 }}
 {text} [data-reading-marker]::before {{ content: attr(data-reading-marker); }}
@@ -590,7 +590,7 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
         # The site theme loads after this sheet, so palette rules out-rank its selectors.
         link = accent or ink
         blocks = (f"{scope} :is(.document-header,.document-contents,.reader-content,"
-                  ".document-metadata-page,.notice)")
+                  ".document-end-matter,.notice)")
         css += f"""
 {scope} .eyebrow {{ color: {link}; }}
 {blocks} a[href], {blocks} a[href]:hover {{ color: {link}; text-decoration-color: currentColor; }}
@@ -600,7 +600,7 @@ def style_css(settings, font_base="/static/library/fonts/", profile=None):
   color: inherit; background: {mix(link, paper, .08)}; border-color: {mix(link, paper, .45)};
 }}
 {scope} .reader-content :is(blockquote,figcaption,.media-credit) {{ color: inherit; }}
-{scope} :is(.reader-content,.document-metadata-page) :is(blockquote,th,td,hr) {{
+{scope} :is(.reader-content,.document-end-matter) :is(blockquote,th,td,hr) {{
   border-color: {mix(ink, paper, .3)};
 }}
 """

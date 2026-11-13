@@ -182,8 +182,11 @@ html .reader-content :target { background: none; }
 .version-details dl { display: grid; grid-template-columns: 160px 1fr; gap: .4rem 1rem; }
 .version-details dd { margin: 0; }
 .version-details dt { font-weight: 600; }
-.document-edition-status { margin-block: 3rem 0; padding-block-start: 1.5rem; border-block-start: 1px solid var(--line); }
-.document-edition-status > h2 { margin-block-start: 0; }
+.document-end-matter { margin-block: 3rem 0; padding-block-start: 1.5rem; border-top: 1px solid var(--line); }
+.document-end-matter > h2 { margin-block-start: 0; }
+.document-end-matter + .document-end-matter:not([data-layout-before="new-page"]) {
+  margin-block-start: 1.5rem; padding-block-start: 0; border-top: 0;
+}
 .publication-content.has-layout-policy [data-layout-before="new-page"],
 .layout-policy [data-layout-before="new-page"] {
   margin-block-start: 3rem;

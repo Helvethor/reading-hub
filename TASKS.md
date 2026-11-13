@@ -361,22 +361,23 @@ font/media/engine acceptance are not claimed.
 
 The [presentation/PDF handoff](docs/PRESENTATION-PDF-ENHANCEMENT-HANDOFF.md)
 owns M1-M18 acceptance.
-The M.h filename follow-up (M19) is specified only, not part of that completion.
-The M.i shared end-matter follow-up (M20-M21) is likewise specified only.
+M.h filename separators and M.k title-only naming (M19, M24) are implemented
+with server/client filename regressions; no browser download was manually made.
+M.i shared end-matter styling (M20-M21) is implemented and covered by actual
+WeasyPrint output/style tests; no independent usability/accessibility review.
 The M.j title-page top-spacing follow-up (M22-M23) is also specified only.
-The M.k title-only download-name follow-up (M24) is specified only.
 
-- [ ] M.h: surround replacement hyphens in PDF download filenames with spaces,
+- [x] M.h: surround replacement hyphens in PDF download filenames with spaces,
   coalesce unsafe-character runs and preserve original hyphens, Unicode,
-  filename safety and M.k title-only naming. Validate M19; leave stored titles,
-  PDF metadata/content and retained files unchanged.
+  filename safety and M.k title-only naming. M19's focused server and client
+  tests pass; stored titles, PDF metadata/content and retained files are unchanged.
 
-- [ ] M.i: unify Metadata and Edition/review status under a shared, subtly
+- [x] M.i: unify Metadata and Edition/review status under a shared, subtly
   distinct end-matter style across Read/preview/print/PDF. Match headings,
   spacing and width; use a fine divider and readable body text, preserving
   themes, warnings, independent visibility and M.f page-break choices.
-  Validate M20-M21 with actual browser/print/PDF output and historical-output
-  preservation.
+  M20-M21 are covered by shared resolver and rendered-PDF tests; browser
+  screenshots, cross-engine review and human accessibility acceptance remain open.
 
 - [ ] M.j: diagnose excessive PDF title-page top space and choose a measured,
   intentional opening inset for full/compact titles without a running header.
@@ -384,10 +385,10 @@ The M.k title-only download-name follow-up (M24) is specified only.
   long-title/metadata fit and historical output. Validate M22-M23 with
   candidate comparison, rendered PDF geometry and browser-print checks.
 
-- [ ] M.k: name every PDF download using only its exact exported title plus
+- [x] M.k: name every PDF download using only its exact exported title plus
   `.pdf`, sanitized under M.h. Remove generated version/revision/draft qualifiers,
-  not literal title text. Preserve state/provenance in UI/PDF and leave
-  retained files/cache keys unchanged. Validate M24.
+  not literal title text. Focused saved/draft/exact response tests pass; state and
+  provenance remain in UI/PDF, and retained files/cache keys are unchanged.
 
 - [x] Move edition/review status to distinct readable end matter independent of
   optional bibliographic metadata; keep technical details out of opening prose.

@@ -115,7 +115,10 @@ class ReadingStyleTests(TestCase):
           <ul><li><a id="toc" href="#s">Section</a></li></ul></section>
           <article class="reader-content"><h2 id="s">Section</h2>
           <p><a id="link" href="#s">x</a></p></article>
-          <section class="document-metadata-page"><h2 id="m">Metadata</h2></section></div>"""
+          <section class="document-end-matter document-metadata-page" id="metadata">
+          <h2 id="m">Metadata</h2></section>
+          <section class="document-end-matter document-edition-status" id="edition">
+          <h2 id="e">Edition and review status</h2><p>Review qualification.</p></section></div>"""
         # The site theme loads after the reading style in the page head.
         document = HTML(string=markup).render(stylesheets=[*site[:2], reading, site[2]])
         boxes = {}
@@ -138,13 +141,15 @@ class ReadingStyleTests(TestCase):
         self.assertEqual(rgb(notice), ink)
         self.assertEqual(rgb(notice, "background_color"), mix(accent, paper, .08))
         self.assertEqual(rgb(boxes["s"]), accent)
-        for heading in ("m", "c"):
+        for heading in ("m", "e", "c"):
             for name in ("font_family", "font_size", "font_weight", "margin_top", "color"):
                 self.assertEqual(boxes[heading][name], boxes["s"][name], (heading, name))
         # `ch` widths follow each box's own font, so section boxes share the prose font.
-        for box in ("document-metadata-page", "document-contents"):
+        for box in ("metadata", "edition", "document-contents"):
             for name in ("max_width", "font_family", "font_size", "line_height", "margin_top"):
                 self.assertEqual(boxes[box][name], boxes["reader-content"][name], (box, name))
+        self.assertEqual(boxes["metadata"]["border_top_style"], "solid")
+        self.assertEqual(boxes["edition"]["border_top_style"], "none")
         self.assertNotEqual(boxes["toc"]["font_family"], boxes["link"]["font_family"])
         for css in ("library/static/library/reader.css", "profiles/static/marxist/theme.css",
                     "profiles/static/marxist/dark.css"):

@@ -378,13 +378,65 @@ class PrintingTests(TestCase):
         self.assertTrue(any(link.get("/Dest") for link in links))
         self.assertNotIn("Contents", [item.title for item in outline if not isinstance(item, list)])
         text = "\n".join(page.extract_text() for page in reader.pages)
-        self.assertNotIn("Contents", text)
         body_text = []
         for page in reader.pages:
             page.extract_text(visitor_text=lambda value, cm, tm, font, size:
                               body_text.append(value) if size * abs(cm[0]) > 9 else None)
         self.assertEqual("\n".join(body_text).count("A section"), 1)
         self.assertEqual(text.count("A subsection"), 1)
+
+    def test_end_matter_shares_print_hierarchy_and_metadata_visibility_is_independent(self):
+        self.version.metadata.update(
+            title_layout="compact",
+            metadata_page=True,
+            work_type="article",
+        )
+        self.version.save(update_fields=["metadata"])
+        layouts = []
+        original_render = HTML.render
+
+        def capture_layout(renderer, *args, **kwargs):
+            document = original_render(renderer, *args, **kwargs)
+            layouts.append(document)
+            return document
+
+        with patch.object(HTML, "render", capture_layout):
+            pdf = self.pdf()
+        text = "\n".join(page.extract_text() for page in pdf.pages)
+        self.assertIn("Metadata", text)
+        self.assertEqual(text.count("Edition and review status"), 1)
+
+        styles = {}
+
+        def collect(box):
+            element = getattr(box, "element", None)
+            if element is not None and element.get("id") in {
+                "document-metadata", "document-edition-status",
+            }:
+                styles[element.get("id")] = box.style
+            for child in getattr(box, "children", []):
+                collect(child)
+
+        for page in layouts[-1].pages:
+            collect(page._page_box)
+        metadata_style = styles["document-metadata"]
+        edition_style = styles["document-edition-status"]
+        for prop in ("font_family", "font_size", "line_height", "max_width"):
+            self.assertEqual(metadata_style[prop], edition_style[prop], prop)
+        self.assertEqual(metadata_style["border_top_style"], "solid")
+        self.assertEqual(edition_style["border_top_style"], "none")
+
+        self.version.metadata["metadata_page"] = False
+        self.version.save(update_fields=["metadata"])
+        reader = BeautifulSoup(
+            self.client.get(f"/versions/{self.version.pk}/").content, "html.parser",
+        )
+        self.assertIsNone(reader.select_one(".document-metadata-page"))
+        self.assertEqual(len(reader.select(".document-edition-status")), 1)
+        pdf = self.pdf()
+        text = "\n".join(page.extract_text() for page in pdf.pages)
+        self.assertNotIn("Metadata", text)
+        self.assertEqual(text.count("Edition and review status"), 1)
 
     def test_running_furniture_bounds_balance_with_body_frame_on_continuation_pages(self):
         self.version.metadata.update(

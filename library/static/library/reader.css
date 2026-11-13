@@ -1,8 +1,8 @@
-.reader-content, .document-metadata-page { font: 1.15rem/1.85 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.reader-content, .document-end-matter { font: 1.15rem/1.85 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
 .reader-content p { margin: 0 0 1.4em; }
 .reader-content .document-subtitle { font-size: 1.2em; font-style: italic; line-height: 1.45; margin: .5em 0 1.5em; }
-.reader-content h2, .reader-content h3, .reader-content h4, .reader-content h5, .reader-content h6, .document-metadata-page > h2, .document-contents > h2 { font-family: Georgia, serif; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; margin: 2.2em 0 .85em; text-wrap: balance; }
-.reader-content h2, .document-metadata-page > h2, .document-contents > h2 { font-size: 1.75em; }
+.reader-content h2, .reader-content h3, .reader-content h4, .reader-content h5, .reader-content h6, .document-end-matter > h2, .document-contents > h2 { font-family: Georgia, serif; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; margin: 2.2em 0 .85em; text-wrap: balance; }
+.reader-content h2, .document-end-matter > h2, .document-contents > h2 { font-size: 1.75em; }
 .reader-content h3 { font-size: 1.4em; }
 .reader-content h4 { font-size: 1.2em; }
 .reader-content h5, .reader-content h6 { font-size: 1em; }

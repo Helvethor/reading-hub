@@ -1,4 +1,4 @@
-<section class="document-edition-status" id="{{ edition_status_id|default:'document-edition-status' }}" aria-labelledby="{{ edition_status_id|default:'document-edition-status' }}-heading"{% if layout_policy %} data-layout-before="{{ layout_boundaries.edition.value }}"{% endif %}>
+<section class="document-end-matter document-edition-status" id="{{ edition_status_id|default:'document-edition-status' }}" aria-labelledby="{{ edition_status_id|default:'document-edition-status' }}-heading"{% if layout_policy %} data-layout-before="{{ layout_boundaries.edition.value }}"{% endif %}>
   <h2 id="{{ edition_status_id|default:'document-edition-status' }}-heading">Edition and review status</h2>
   {% if edition_status.draft_snapshot or preview_is_unsaved %}
   <p><strong>Draft snapshot.</strong> This section describes the request-time draft content, not a saved or published edition.</p>

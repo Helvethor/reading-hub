@@ -3,12 +3,13 @@
 Proposal accepted for handoff 2026-11-11.
 Status: implemented with bounded automated, rendered-PDF and copied-browser
 validation below; no independent usability/accessibility certification.
-Follow-up M.h (M19) is specified only, not implemented or validated. This
-2026-11-12 request authorizes recording the filename change, not deploying it.
-Follow-up M.i (M20-M21), shared end-matter styling, is also specified only.
-Its recording does not authorize implementation or deployment.
+Follow-up M.h (M19) and M.k (M24), PDF download naming, were implemented
+2026-11-13 with focused server and client tests; a manual browser download was
+not performed.
+Follow-up M.i (M20-M21), shared end-matter styling, was implemented 2026-11-13
+and tested with the shared style resolver and rendered PDF output. Browser
+screenshots, cross-engine comparison and human accessibility review remain open.
 Follow-up M.j (M22-M23), coherent PDF title-page top spacing, is specified only.
-Follow-up M.k (M24), title-only PDF download filenames, is specified only.
 
 ## Outcome, authority and sequencing
 
@@ -354,8 +355,9 @@ whitespace. `test_title_based_filename_preserves_unicode_and_is_filesystem_safe`
 currently expects glued separators. Saved-output and draft PDF endpoints reuse
 this helper. This is code inspection, not an observed browser download.
 
-Replace unsafe-character runs with a readable ` - ` separator and normalize
-surrounding whitespace so interior replacement hyphens have exactly one space
+Replace unsafe-character runs, including punctuation separated only by
+whitespace, with a readable ` - ` separator and normalize surrounding whitespace
+so interior replacement hyphens have exactly one space
 on each side. For example, `Why? Now` becomes `Why - Now.pdf`, `Title: Subtitle`
 becomes `Title - Subtitle.pdf`, and `A/B` becomes `A - B.pdf`. Consecutive unsafe
 characters form one replacement separator rather than a chain of hyphens.
@@ -369,9 +371,10 @@ using M.k's title-only naming policy rather than generated draft/version
 qualifiers. Keep extension, length bound,
 empty-title fallback, reserved-device-name protection and header/path safety.
 Do not change stored titles, PDF Title/XMP properties, visible document titles,
-PDF bytes, cache identity or retained historical files. Add focused filename
-cases to the existing printing tests and inspect actual download headers and
-browser filenames for representative saved/draft exports on isolated fixtures.
+PDF bytes, cache identity or retained historical files. Focused printing tests
+cover the shared sanitizer, and workspace tests verify exact/saved/draft
+response headers and the client-suggested filename. A manual browser download
+was not performed.
 
 ### M.i Shared, subtly distinct end-matter styling
 
@@ -385,7 +388,7 @@ reading-style rules in `library/services/reading_styles.py` explicitly include
 `.document-metadata-page` in typography/heading rules but omit
 `.document-edition-status`. `app.css` gives the status section its own divider
 and spacing. This supports a styling-path mismatch; the specific live draft
-was not independently inspected in the browser or altered.
+was not independently inspected or altered.
 
 Required treatment:
 
@@ -420,6 +423,13 @@ supported themes at normal and enlarged text sizes. Record dimensions and
 screenshots before/after; do not claim visual acceptance from selector tests.
 Any required presentation cache-policy change must follow M6, preserving
 protected historical output rather than bulk overwriting cached PDFs.
+
+Implementation evidence (2026-11-13): shared `document-end-matter` selectors
+cover the common templates, static reader CSS, generated Reading/PDF styles
+and print rules. Style version/cache tokens were advanced. Focused tests
+exercise the selected theme resolver, rendered PDF heading/width/divider
+styles, and Metadata-off visibility. These tests are automated; no browser
+screenshots or human accessibility review are claimed.
 
 ### M.j Coherent PDF title-page top spacing
 
@@ -480,10 +490,9 @@ title, not its version. This is a download-name change, not a document-title or
 PDF metadata change.
 
 Code inspection at `f08b738`: exact saved exports use `pdf_filename(source.title)`.
-Workspace exports construct names with "Draft preview", "Saved revision N"
+Workspace exports constructed names with "Draft preview", "Saved revision N"
 or "Working copy start" before the snapshot title. The frontend normally uses
 the response Content-Disposition filename, with a snapshot-title fallback.
-No actual download was performed for this investigation.
 
 Required behavior:
 
@@ -515,6 +524,12 @@ Add focused response-header and client download tests for immutable, saved
 working-copy and unsaved draft states, reusing existing export tests. No PDF
 regeneration, content/metadata rewrite or live-data changes are needed solely
 for this naming policy.
+
+Implementation evidence (2026-11-13): exact, saved-working-copy and changed
+draft response tests now require the captured exported title alone. A client
+test asserts the anchor's suggested filename while the source title changes
+after request capture. Python and Node tests pass; no actual browser download
+was made.
 
 ## Discovery surfaces
 
