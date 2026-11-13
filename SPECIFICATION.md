@@ -338,7 +338,13 @@ inline differences from the verified content parent before provenance/audit.
 Review/publication events remain distinct records grouped with their content.
 Relationship scopes (anchored branch plus direct parent, exact source capture,
 whole work) are independent of record filters; inspection does not move the
-anchor or change active content. Compact lanes and optional nesting capped at
+anchor or change active content. Scope and filter selections apply immediately,
+without an Apply button, and preserve keyboard focus, pending edits and
+Back/Forward state. Visually identify the inspected row and scope anchor with
+distinct text badges as well as styling. Keep routine version actions together;
+reader-default changes belong in a separate disclosure with their required
+reason/confirmation, and archive actions in a separate maintenance group.
+Compact lanes and optional nesting capped at
 three visual levels retain true depth and ancestry. Comparisons name exact
 inputs, include metadata and expose missing/unknown ancestry explicitly.
 Existing permission, immutable-output, recovery and publication/default guards

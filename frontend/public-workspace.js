@@ -1,6 +1,7 @@
 import {scrollElementIntoView} from "./page-scroll.js";
 import {mountContentsPanel} from "./contents-panel.js";
 import {mountStickyStack} from "./workspace-navigation.js";
+import {mountLineageControls, replaceLineageContent} from "./lineage-controls.js";
 
 export function mountPublicWorkspace(workspace = document.querySelector("#unified-workspace")) {
   if (!workspace) return null;
@@ -111,7 +112,7 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
       }
     }
     const target = lineagePanels[tab];
-    target.replaceChildren(content);
+    replaceLineageContent(target, content);
     target.dataset.loadedUrl = destination.href;
     target.dataset.currentUrl = destination.href;
     refreshSticky();
@@ -120,7 +121,7 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
 
   async function loadLineage(tab, destination = lineageUrl(tab)) {
     const target = lineagePanels[tab];
-    if (target.dataset.loadedUrl === destination.href) return true;
+    if (target.dataset.loadedUrl === destination.href && !target.hasAttribute("aria-busy")) return true;
     const requestId = ++requests[tab];
     target.setAttribute("aria-busy", "true");
     setStatus(`Loading ${tab} without changing the opened edition.`);
@@ -179,6 +180,7 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
 
   for (const tab of ["versions", "sources"]) {
     const panel = lineagePanels[tab];
+    mountLineageControls(panel);
     panel.addEventListener("click", async event => {
       const link = event.target.closest("a[href]");
       if (!link || link.target === "_blank" || event.button !== 0
@@ -247,4 +249,7 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
   return {selectTab};
 }
 
-if (typeof document !== "undefined") mountPublicWorkspace();
+if (typeof document !== "undefined") {
+  if (document.querySelector("#unified-workspace")) mountPublicWorkspace();
+  else mountLineageControls(document);
+}

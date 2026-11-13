@@ -35,7 +35,21 @@
 .lineage-timeline-item > a { font-weight: 650; }
 .lineage-timeline-item > p { margin: .2rem 0 0; font-size: .85rem; }
 .lineage-timeline-item[aria-current="true"],
-.lineage-timeline-item.is-selected { border-inline-start: 3px solid var(--accent); }
+.lineage-timeline-item.is-selected {
+  border-inline-start: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
+}
+.lineage-timeline-item.is-anchor {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}
+.lineage-state-badge {
+  display: inline-block;
+  padding: .1rem .4rem;
+  border: 1px solid var(--line);
+  border-radius: .25rem;
+  font-size: .8rem;
+}
 .lineage-timeline-item.is-archived > a { text-decoration: line-through; }
 .lineage-status { display: flex; flex-wrap: wrap; gap: .35rem .7rem; }
 .lineage-status strong { color: var(--ink); }
@@ -52,6 +66,12 @@
 }
 .lineage-controls label,
 .lineage-compare-form label { font-weight: 650; }
+.document-lineage .lineage-controls > label {
+  flex: 1 1 14rem;
+  margin: 0;
+}
+.document-lineage .lineage-controls select { width: 100%; }
+.lineage-controls > .muted { flex: 1 1 100%; font-size: .85rem; }
 .lineage-selected-identity,
 .lineage-opened-state { color: var(--muted-ink, #555); }
 .lineage-selected-status {
@@ -60,14 +80,25 @@
   gap: .35rem .75rem;
 }
 .lineage-primary-actions {
+  display: grid;
+  gap: .75rem;
+  padding-block: .75rem;
+  border-block: 1px solid var(--line);
+}
+.lineage-action-row,
+.lineage-secondary-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .5rem;
-  padding-block: .5rem;
-  border-block: 1px solid var(--line);
 }
-.lineage-primary-actions > p { flex-basis: 100%; margin-block: .25rem; }
+.lineage-action-row > .button { margin: 0; }
+.lineage-action-row:not(:has(a, button)),
+.lineage-action-context:not(:has(p)) { display: none; }
+.lineage-action-context > p { margin-block: 0 .25rem; }
+.lineage-reader-settings { padding: .6rem; border: 1px solid var(--line); border-radius: .35rem; }
+.lineage-reader-settings > summary { cursor: pointer; font-weight: 650; }
+.lineage-secondary-actions { padding-block-start: .5rem; border-block-start: 1px solid var(--line); }
 .lineage-parent-comparison { margin-block: .75rem; }
 .lineage-parent-comparison > h3 { margin-block-end: .25rem; font-size: 1.05rem; }
 .lineage-information { margin-block-start: .75rem; }
@@ -162,6 +193,10 @@
 .lineage-node.is-selected > summary {
   font-weight: 700;
   outline: 2px solid currentColor;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
+}
+.lineage-node.is-anchor > summary {
+  border-block-end: 1px dashed var(--accent);
 }
 
 .document-lineage textarea {

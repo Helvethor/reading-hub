@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
 import {mountPublicWorkspace} from "./public-workspace.js";
+import {mountLineageControls} from "./lineage-controls.js";
 
 let dom;
 afterEach(() => {
@@ -50,13 +51,19 @@ test("public workspace switches Read, Versions and Sources without editor reques
   const requested = [];
   globalThis.fetch = async url => {
     requested.push(String(url));
+    const params = new URL(url).searchParams;
     return {
       ok: true,
       text: async () => `<div class="document-lineage">
         <h1>Versions</h1><p class="work-title">Duplicate title</p>
-        <form method="get"><input type="hidden" name="selected" value="edition:12">
-          <label>Show <select name="filter"><option value="all" selected>All</option></select></label>
-          <button>Apply</button></form>
+        <form method="get" class="lineage-controls">
+          <input type="hidden" name="selected" value="${params.get("selected")}">
+          <input type="hidden" name="anchor" value="${params.get("anchor")}">
+          <label>Scope <select name="scope">${["branch", "work"].map(value =>
+            `<option value="${value}" ${params.get("scope") === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
+          <label>Show <select name="filter">${["all", "sources", "publications"].map(value =>
+            `<option value="${value}" ${params.get("filter") === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
+        </form>
         <a href="/documents/5/lineage/?filter=all&amp;selected=revision%3A7%3A2#lineage-inspection">Inspect</a>
         <section id="lineage-inspection">Exact saved version</section>
       </div>`,
@@ -71,13 +78,57 @@ test("public workspace switches Read, Versions and Sources without editor reques
   assert.equal(document.querySelector("#workspace-versions-content h1"), null);
   assert.equal(document.querySelector("#workspace-versions-content .work-title"), null);
 
+  const panel = document.querySelector("#workspace-versions-content");
+  const scope = panel.querySelector("[name=scope]");
+  scope.focus();
+  scope.value = "work";
+  scope.dispatchEvent(new window.Event("change", {bubbles: true}));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requested.length, 2);
+  assert.equal(document.activeElement, panel.querySelector("[name=scope]"));
+  const filter = panel.querySelector("[name=filter]");
+  filter.focus();
+  filter.value = "publications";
+  filter.dispatchEvent(new window.Event("change", {bubbles: true}));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requested.length, 3);
+  assert.equal(document.activeElement, panel.querySelector("[name=filter]"));
+  const state = new URL(location.href).searchParams;
+  assert.equal(state.get("versions_scope"), "work");
+  assert.equal(state.get("versions_filter"), "publications");
+  assert.equal(state.get("versions_selected"), "edition:12");
+  assert.equal(state.get("versions_anchor"), "edition:12");
+
   document.querySelector("#workspace-contents-toggle").click();
   assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
   assert.equal(document.querySelector("#workspace-contents-toggle").getAttribute("aria-pressed"), "false");
   document.querySelector('[data-workspace-tab="sources"]').click();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(requested.length, 2);
-  assert.match(requested[1], /filter=sources/);
+  assert.equal(requested.length, 4);
+  assert.match(requested[3], /filter=sources/);
   assert.equal(document.querySelector("#workspace-panel-sources").hidden, false);
   assert.equal(document.querySelector("#unified-workspace [data-workspace-tab=edit]"), null);
+  assert.ok(requested.every(url => new URL(url).pathname === "/documents/5/lineage/"));
+});
+
+test("standalone lineage selectors submit their GET form but other selectors do not", () => {
+  dom = new JSDOM(`<form method="get" class="lineage-controls">
+    <select name="scope"><option>branch</option><option>work</option></select>
+    <select name="filter"><option>all</option><option>publications</option></select>
+  </form><form><select name="comparison"><option>other</option></select></form>`);
+  const root = dom.window.document;
+  const submissions = [];
+  root.addEventListener("submit", event => {
+    event.preventDefault();
+    submissions.push(new dom.window.FormData(event.target));
+  });
+  mountLineageControls(root);
+  for (const name of ["scope", "filter", "comparison"]) {
+    const select = root.querySelector(`[name=${name}]`);
+    select.selectedIndex = 1;
+    select.dispatchEvent(new dom.window.Event("change", {bubbles: true}));
+  }
+  assert.equal(submissions.length, 2);
+  assert.equal(submissions[0].get("scope"), "work");
+  assert.equal(submissions[1].get("filter"), "publications");
 });

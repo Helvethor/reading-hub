@@ -338,6 +338,77 @@ test("Versions inspection updates only its panel and supports tab deep links", a
   assert.equal(workflowUrl.searchParams.get("embedded"), "1");
 });
 
+test("lineage selectors apply immediately, reject stale reversals and preserve focus and edits", async () => {
+  const form = setup("?tab=versions&versions_selected=history%3Aone&versions_anchor=edition%3A12");
+  window.scrollTo = () => {};
+  const snapshot = {
+    draft: "draft-id", revision: 2,
+    document: {title: "Unsaved", html: "<p>Pending edits</p>", metadata: {}},
+    source_tickets: [],
+  };
+  const before = JSON.stringify(snapshot);
+  const requests = [];
+  const pending = [];
+  function response(url) {
+    const params = new URL(url).searchParams;
+    return {ok: true, text: async () => `<div class="document-lineage">
+      <form method="get" class="lineage-controls">
+        <select name="filter">${["all", "publications"].map(value =>
+          `<option value="${value}" ${params.get("filter") === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+        <input type="hidden" name="selected" value="${params.get("selected")}">
+        <select name="scope">${["branch", "work"].map(value =>
+          `<option value="${value}" ${params.get("scope") === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+        <input type="hidden" name="anchor" value="${params.get("anchor")}">
+      </form><p>${params.get("scope")} / ${params.get("filter")}</p></div>`};
+  }
+  globalThis.fetch = url => {
+    requests.push(String(url));
+    if (requests.length === 1) return Promise.resolve(response(url));
+    return new Promise(resolve => pending.push(() => resolve(response(url))));
+  };
+  mount(form, snapshot);
+  await new Promise(resolve => setImmediate(resolve));
+  document.querySelector("#editor-surface").innerHTML = "<p>Pending edits</p>";
+  const panel = document.querySelector("#workspace-versions-content");
+  const scope = panel.querySelector("[name=scope]");
+  scope.focus();
+  scope.value = "work";
+  scope.dispatchEvent(new window.Event("change", {bubbles: true}));
+  scope.value = "branch";
+  scope.dispatchEvent(new window.Event("change", {bubbles: true}));
+  assert.equal(requests.length, 3);
+  pending[1]();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(document.activeElement, panel.querySelector("[name=scope]"));
+  pending[0]();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(panel.querySelector("[name=scope]").value, "branch");
+  assert.match(panel.textContent, /branch \/ all/);
+
+  const filter = panel.querySelector("[name=filter]");
+  filter.focus();
+  filter.value = "publications";
+  filter.dispatchEvent(new window.Event("change", {bubbles: true}));
+  const editTab = document.querySelector("[data-workspace-tab=edit]");
+  editTab.focus();
+  pending[2]();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(document.activeElement, editTab);
+  editTab.click();
+  document.querySelector("[data-workspace-tab=versions]").click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 4);
+  const state = new URL(location.href).searchParams;
+  assert.equal(state.get("versions_scope"), "branch");
+  assert.equal(state.get("versions_filter"), "publications");
+  assert.equal(state.get("versions_selected"), "history:one");
+  assert.equal(state.get("versions_anchor"), "edition:12");
+  assert.equal(panel.querySelector("[name=filter]").value, "publications");
+  assert.equal(document.querySelector("#editor-surface").innerHTML, "<p>Pending edits</p>");
+  assert.equal(JSON.stringify(snapshot), before);
+  for (const url of requests) assert.equal(new URL(url).pathname, "/documents/5/lineage/");
+});
+
 test("lineage inspection scrolls to the newly loaded target, not the old one", async () => {
   const form = setup("?tab=versions");
   let finishInspection;

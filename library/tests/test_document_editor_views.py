@@ -530,6 +530,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "workspace-back-to-top")
         self.assertContains(response, "public-workspace.js")
+        self.assertContains(response, "library/lineage.css")
         self.assertContains(response, "data-reading-pdf>PDF</a>")
         self.assertContains(response, 'aria-label="Work identity and reader status"')
         self.assertNotContains(response, 'id="workspace-tab-edit"')

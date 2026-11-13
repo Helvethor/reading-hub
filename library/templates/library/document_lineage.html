@@ -1,7 +1,7 @@
 {% extends panel_base %}
 {% load static %}
 {% block title %}Work | {{ site.name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">{% endblock %}
 {% block content %}
 <div class="page-container document-lineage">
   <h1>{% if lineage_filter == "sources" %}Sources{% else %}Versions{% endif %}</h1>
@@ -55,17 +55,18 @@
     </details>
     {% endif %}
   </details>
-  <form method="get" class="lineage-controls" aria-label="Scope and filter lineage" data-workspace-subbar>
+  <form method="get" class="lineage-controls" aria-label="Scope and filter lineage" aria-describedby="lineage-filter-help" data-workspace-subbar>
     {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
     {% if selected_id %}<input type="hidden" name="selected" value="{{ selected_id }}">{% endif %}
     <input type="hidden" name="anchor" value="{{ anchor_id }}">
-    <label for="lineage-scope">Relationship scope</label>
+    <label for="lineage-scope">Relationship scope
     <select id="lineage-scope" name="scope">
       <option value="branch"{% if lineage_scope == "branch" %} selected{% endif %}>This branch</option>
       <option value="source"{% if lineage_scope == "source" %} selected{% endif %}>This source</option>
       <option value="work"{% if lineage_scope == "work" %} selected{% endif %}>Whole work</option>
     </select>
-    <label for="lineage-filter">Record filter</label>
+    </label>
+    <label for="lineage-filter">Record filter
     <select id="lineage-filter" name="filter">
       <option value="all"{% if lineage_filter == "all" %} selected{% endif %}>All records</option>
       <option value="sources"{% if lineage_filter == "sources" %} selected{% endif %}>Source captures</option>
@@ -74,7 +75,8 @@
       <option value="generations"{% if lineage_filter == "generations" %} selected{% endif %}>Source-generated versions</option>
       <option value="archived"{% if lineage_filter == "archived" %} selected{% endif %}>Archived elements</option>
     </select>
-    <button type="submit">Apply</button>
+    </label>
+    <span id="lineage-filter-help" class="muted">Selections apply immediately.</span>
   </form>
   {% if lineage.scope_error %}<p class="error" role="alert">{{ lineage.scope_error }}</p>{% endif %}
   {% if lineage %}
@@ -97,7 +99,7 @@
           <summary>{{ lane.label }} · {{ lane.nodes|length }} visible record{{ lane.nodes|length|pluralize }}</summary>
           <ol class="lineage-lane-records">
             {% for node in lane.nodes %}
-            <li class="lineage-timeline-item{% if node.archived %} is-archived{% endif %}{% if node.id == selected_id %} is-selected{% endif %}{% if node.context_only %} is-context{% endif %}{% if node.visual_depth > 3 %} is-deep{% endif %}" data-lineage-depth="{{ node.visual_depth }}" data-lineage-actual-depth="{{ node.actual_depth }}">
+            <li class="lineage-timeline-item{% if node.archived %} is-archived{% endif %}{% if node.id == selected_id %} is-selected{% endif %}{% if node.id == anchor_id %} is-anchor{% endif %}{% if node.context_only %} is-context{% endif %}{% if node.visual_depth > 3 %} is-deep{% endif %}" data-lineage-id="{{ node.id }}" data-lineage-depth="{{ node.visual_depth }}" data-lineage-actual-depth="{{ node.actual_depth }}">
           <a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ node.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection" aria-label="Inspect {{ node.type }}: {{ node.label }}"{% if node.id == selected_id %} aria-current="true"{% endif %}>{{ node.label }}</a>
           <p>
             <span class="lineage-node-type">{% if node.type == "snapshot" %}Source capture{% elif node.type == "generation" %}Source-generated version{% elif node.type == "edition" %}Saved reader version{% elif node.type == "history" %}Working copy / branch{% elif node.type == "revision" %}Saved version{% elif node.type == "review" %}Review record{% elif node.type == "publication" %}Publication record{% else %}{{ node.type|title }}{% endif %}</span>
@@ -108,6 +110,8 @@
             {% if node.review %}<span>· {{ node.review }}</span>{% endif %}
           </p>
           <p class="lineage-status">
+            {% if node.id == selected_id %}<strong class="lineage-state-badge">Inspecting</strong>{% endif %}
+            {% if node.id == anchor_id %}<strong class="lineage-state-badge">Scope anchor</strong>{% endif %}
             {% if node.reader_target %}<strong>Selected reader output</strong>{% endif %}
             {% if node.latest %}<strong>Latest saved content</strong>{% endif %}
             {% if node.archived %}<strong>Archived</strong>{% endif %}
@@ -287,4 +291,7 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+{% if not embedded %}<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v27"></script>{% endif %}
 {% endblock %}

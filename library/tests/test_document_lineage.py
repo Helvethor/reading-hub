@@ -194,6 +194,27 @@ class DocumentLineageTests(TestCase):
         self.assertIsNotNone(latest.find(id=links["Edit"]["aria-describedby"]))
         self.assertNotIn("Edit latest", links)
         self.assertNotIn("New working copy\u2026", links)
+        row = latest.select_one(".lineage-action-row")
+        self.assertEqual(
+            [link.get_text(strip=True) for link in row.select("a")],
+            ["Read", "PDF", "Edit"],
+        )
+        self.assertIsNone(row.select_one("form"))
+        settings = latest.select_one("details.lineage-reader-settings")
+        self.assertFalse(settings.has_attr("open"))
+        selection = settings.select_one("form")
+        self.assertEqual(selection["method"], "post")
+        self.assertIsNotNone(selection.select_one("[name=csrfmiddlewaretoken]"))
+        self.assertEqual(
+            selection.select_one("[name=rendition_id]")["value"],
+            str(publication.rendition_id),
+        )
+        self.assertEqual(
+            selection.select_one("[name=expected_rendition]")["value"],
+            str(self.work.reader_target().pk),
+        )
+        self.assertTrue(selection.select_one("[name=reason]").has_attr("required"))
+        self.assertTrue(selection.select_one("[name=confirm]").has_attr("required"))
 
         self.save(document={**first.document, "title": "Newer saved edits"}, revision=1)
         version_count = DocumentVersion.objects.count()
@@ -214,6 +235,36 @@ class DocumentLineageTests(TestCase):
         self.assertEqual(
             {link.get_text(strip=True) for link in public.select("a")}, {"Read", "PDF"},
         )
+        self.assertIsNone(public.select_one(".lineage-reader-settings"))
+
+    def test_selectors_and_focus_markers_keep_inspection_distinct_from_scope_anchor(self):
+        self.save()
+        self.client.force_login(self.reviewer)
+        url = reverse("document-lineage", args=[self.work.pk])
+        anchor = f"edition:{self.rendition.pk}"
+        selected = f"history:{self.draft.pk}"
+        response = self.client.get(url, {
+            "scope": "work", "filter": "all", "anchor": anchor, "selected": selected,
+        })
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, "html.parser")
+        controls = soup.select_one(".lineage-controls")
+        self.assertIsNone(controls.select_one("button, input[type=submit]"))
+        self.assertEqual(controls.select_one("[name=anchor]")["value"], anchor)
+        self.assertEqual(controls.select_one("[name=selected]")["value"], selected)
+        self.assertIsNotNone(soup.select_one('script[src*="generated/public-workspace.js"]'))
+        inspected = soup.select_one(".lineage-timeline-item.is-selected")
+        anchored = soup.select_one(".lineage-timeline-item.is-anchor")
+        self.assertEqual(inspected["data-lineage-id"], selected)
+        self.assertEqual(anchored["data-lineage-id"], anchor)
+        self.assertIn("Inspecting", inspected.select_one(".lineage-state-badge").get_text())
+        self.assertIn("Scope anchor", anchored.select_one(".lineage-state-badge").get_text())
+        self.assertIsNotNone(inspected.select_one('a[aria-current="true"]'))
+        self.assertNotIn("is-anchor", inspected["class"])
+        self.assertIsNone(soup.select_one(".lineage-reader-settings"))
+        archive = soup.select_one(".lineage-secondary-actions a")
+        self.assertEqual(archive.get_text(strip=True), "Archive\u2026")
+        self.assertIn(f"archive=history%3A{self.draft.pk}", archive["href"])
 
     def test_scopes_preserve_branch_parent_source_binding_and_anchor(self):
         reviewed = self.save(review="full")

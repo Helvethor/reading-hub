@@ -830,7 +830,20 @@ opened working copy's saved baseline; show its identity beside the controls.
 | This source | Genealogy derived from the anchor's exact retained source capture, not merely the same source URL. |
 | Whole work | Genealogy across all retained sources for this work. |
 
-Inspecting a row does not move the anchor. An explicit Focus on this version
+Scope and filter selections apply immediately, without an Apply button. Keep
+the changed selector focused after replacement unless focus has moved elsewhere;
+preserve pending editor content and scope/anchor/filter/selection in tab URLs
+and Back/Forward navigation. The latest choice wins over older responses,
+including a quick return to the previously displayed choice.
+
+Show separate **Inspecting** and **Scope anchor** badges in lanes and ancestry,
+with a filled/solid inspected state and dashed anchor treatment, not color alone.
+Group routine Read/PDF/Edit links together before their contextual explanations.
+Put Set reader default... in its own disclosure without removing its required
+reason, confirmation or stale-target fields. Keep Archive... in a separate
+maintenance group; no disclosure or navigation may itself mutate records.
+
+Inspecting a row does not move the anchor. An explicit Focus here
 action changes it. Missing source/parent bindings are labelled unknown, not
 inferred. Preserve shared-source links separately from content ancestry.
 Filtering shows boundary/context markers for hidden ancestry, result counts and

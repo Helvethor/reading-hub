@@ -1,6 +1,7 @@
 import {scrollElementIntoView} from "./page-scroll.js";
 import {mountStickyStack} from "./workspace-navigation.js";
 import {mountContentsPanel} from "./contents-panel.js";
+import {mountLineageControls, replaceLineageContent} from "./lineage-controls.js";
 
 function csrfToken(form) {
   const token = form.elements.csrfmiddlewaretoken?.value;
@@ -358,6 +359,8 @@ export function mountWorkspaceShell({
     url.searchParams.set("tab", tab);
     url.searchParams.set(`${prefix}_filter`, destination.searchParams.get("filter") || "");
     url.searchParams.set(`${prefix}_selected`, destination.searchParams.get("selected") || "");
+    url.searchParams.set(`${prefix}_scope`, destination.searchParams.get("scope") || "branch");
+    url.searchParams.set(`${prefix}_anchor`, destination.searchParams.get("anchor") || "");
     const state = {...(history.state || {}), workspaceTab: tab};
     if (replace) history.replaceState(state, "", url);
     else history.pushState(state, "", url);
@@ -375,6 +378,15 @@ export function mountWorkspaceShell({
     destination.searchParams.set(
       "selected", current.searchParams.get(`${prefix}_selected`)
         || initial.searchParams.get("selected"),
+    );
+    destination.searchParams.set(
+      "scope", current.searchParams.get(`${prefix}_scope`)
+        || initial.searchParams.get("scope") || "branch",
+    );
+    destination.searchParams.set(
+      "anchor", current.searchParams.get(`${prefix}_anchor`)
+        || initial.searchParams.get("anchor")
+        || initial.searchParams.get("selected") || "",
     );
     destination.searchParams.set("embedded", "1");
     return destination;
@@ -395,7 +407,7 @@ export function mountWorkspaceShell({
         filter.dataset.workspaceSubbar = "";
       }
     }
-    keepActivePosition(tab, () => target.replaceChildren(content));
+    keepActivePosition(tab, () => replaceLineageContent(target, content));
     target.dataset.loadedUrl = destination.href;
     target.dataset.currentUrl = destination.href;
     refreshStickyStack();
@@ -405,7 +417,7 @@ export function mountWorkspaceShell({
   async function loadLineage(tab, destination = lineageUrl(tab)) {
     const target = lineagePanels[tab];
     if (!target) return false;
-    if (target.dataset.loadedUrl === destination.href) return true;
+    if (target.dataset.loadedUrl === destination.href && !target.hasAttribute("aria-busy")) return true;
     const requestId = ++lineageRequests[tab];
     target.setAttribute("aria-busy", "true");
     status.textContent = `Loading ${tab} evidence without changing the active draft.`;
@@ -501,6 +513,7 @@ export function mountWorkspaceShell({
 
   for (const tab of ["versions", "sources"]) {
     const panel = lineagePanels[tab];
+    mountLineageControls(panel);
     panel.addEventListener("click", event => handleLineageClick(event, tab));
     panel.addEventListener("submit", event => handleLineageSubmit(event, tab));
   }

@@ -1,6 +1,6 @@
-<div class="lineage-primary-actions" aria-label="Actions for selected item">
+<div class="lineage-primary-actions" role="group" aria-label="Actions for selected item">
+  <div class="lineage-action-row" role="group" aria-label="Version actions">
   {% if lineage.selected.type == "snapshot" %}
-    <p>Source-specific actions apply to this exact retained capture, not other captures from the same URL.</p>
     {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
       {% if lineage.selected.related_editions %}
       <a class="button secondary" href="#lineage-source-details">Related versions</a>
@@ -12,7 +12,6 @@
       {% endif %}
       {% if embedded %}
       <a class="button secondary" href="{% url 'document-lineage' document.pk %}?filter=sources&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ lineage.selected.id|urlencode }}#lineage-inspection" target="_blank" rel="noopener" aria-describedby="lineage-fetch-context">Open Sources</a>
-      <span id="lineage-fetch-context" class="muted">Opens separately to fetch the latest source.</span>
       {% else %}
       <form method="post" action="{% url 'refresh' document.pk %}" class="source-operation">
         {% csrf_token %}
@@ -24,51 +23,27 @@
   {% elif lineage.selected.type == "edition" or lineage.selected.type == "publication" %}
     <a class="button secondary" href="{{ lineage.selected.reader_url }}" target="_blank" rel="noopener noreferrer">Read</a>
     <a class="button secondary" href="{{ lineage.selected.pdf_url }}" target="_blank" rel="noopener noreferrer">PDF</a>
-    {% if lineage.selected.can_select_reader_target %}
-    <form method="post" class="lineage-default-action">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="select-reader-target">
-      <input type="hidden" name="rendition_id" value="{{ lineage.selected.rendition_id }}">
-      <input type="hidden" name="expected_rendition" value="{{ reader_target.pk|default:'' }}">
-      <label for="reader-selection-reason">Reason for selecting this reader version (required)</label>
-      <textarea id="reader-selection-reason" name="reason" maxlength="2000" required></textarea>
-      <label><input type="checkbox" name="confirm" value="yes" required> I confirm this exact reader-version selection.</label>
-      <button type="submit">Set reader default</button>
-    </form>
-    {% endif %}
     {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
       {% if lineage.selected.type == "publication" %}
-        {% if lineage.selected.publication_history_archived %}
-        <p>This publication's working history is archived. Restore it before continuing.</p>
-        {% elif lineage.selected.publication_is_latest %}
-        <p id="lineage-edit-context" class="muted">Editing continues this publication's working copy. The published edition stays unchanged.</p>
+        {% if not lineage.selected.publication_history_archived %}
+        {% if lineage.selected.publication_is_latest %}
         <a class="button secondary" href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;tab=edit" data-workflow-switch aria-describedby="lineage-edit-context">Edit</a>
         {% elif lineage.selected.publication_latest_revision_number > lineage.selected.publication_revision_number %}
-        <p id="lineage-edit-context" class="muted">Newer saved edits exist. Edit latest opens those edits; a new working copy starts from this published version.</p>
         <a class="button secondary" href="{% url 'document-editor' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;tab=edit" data-workflow-switch aria-describedby="lineage-edit-context">Edit latest</a>
         <a class="button secondary" href="{% url 'document-editor-history' lineage.selected.publication_root_rendition_id %}?draft={{ lineage.selected.publication_draft_id }}&amp;revision={{ lineage.selected.publication_revision_number }}{% if embedded %}&amp;embedded=1{% endif %}" aria-describedby="lineage-edit-context"{% if embedded %} data-workflow-panel="New working copy"{% endif %}>New working copy&hellip;</a>
-        {% else %}
-        <p>The exact saved editable version for this publication is unavailable; only its immutable reader output can be opened.</p>
+        {% endif %}
         {% endif %}
       {% else %}
-      <p id="lineage-edit-context" class="muted">Editing starts from this source-generated version. The saved edition stays unchanged.</p>
       <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?start=source&amp;tab=edit" data-workflow-switch aria-describedby="lineage-edit-context">Edit</a>
       {% endif %}
     {% endif %}
   {% elif lineage.selected.type == "generation" %}
-    <p>This generation has no intermediate reader edition. Its exact retained-source history is preserved.</p>
     {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
-    <p id="lineage-edit-context" class="muted">Editing opens the latest saved content in this generation's working copy.</p>
     <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;tab=edit" data-workflow-switch aria-describedby="lineage-edit-context">Edit</a>
-    {% elif lineage.selected.archived %}
-    <p>Restore this generation before starting or continuing its correction history.</p>
     {% endif %}
   {% elif lineage.selected.type == "history" %}
     {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
-    <p id="lineage-edit-context" class="muted">Editing opens this working copy's latest saved content.</p>
     <a class="button secondary" href="{% url 'document-editor' lineage.selected.rendition_id %}?draft={{ lineage.selected.draft_id }}&amp;tab=edit" data-workflow-switch aria-describedby="lineage-edit-context">Edit</a>
-    {% elif lineage.selected.archived %}
-    <p>Restore this history before continuing or saving it.</p>
     {% endif %}
   {% elif lineage.selected.type == "revision" or lineage.selected.type == "review" %}
     {% if can_review and not lineage.selected.context_only %}
@@ -79,9 +54,63 @@
       {% endif %}
     {% endif %}
   {% endif %}
+  </div>
+  <div class="lineage-action-context">
+    {% if lineage.selected.type == "snapshot" %}
+    <p>Source-specific actions apply to this exact retained capture, not other captures from the same URL.</p>
+      {% if embedded and can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      <p id="lineage-fetch-context" class="muted">Open Sources opens separately to fetch the latest source.</p>
+      {% endif %}
+    {% elif lineage.selected.type == "publication" and can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      {% if lineage.selected.publication_history_archived %}
+      <p>This publication's working history is archived. Restore it before continuing.</p>
+      {% elif lineage.selected.publication_is_latest %}
+      <p id="lineage-edit-context" class="muted">Editing continues this publication's working copy. The published edition stays unchanged.</p>
+      {% elif lineage.selected.publication_latest_revision_number > lineage.selected.publication_revision_number %}
+      <p id="lineage-edit-context" class="muted">Newer saved edits exist. Edit latest opens those edits; a new working copy starts from this published version.</p>
+      {% else %}
+      <p>The exact saved editable version for this publication is unavailable; only its immutable reader output can be opened.</p>
+      {% endif %}
+    {% elif lineage.selected.type == "edition" and can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <p id="lineage-edit-context" class="muted">Editing starts from this source-generated version. The saved edition stays unchanged.</p>
+    {% elif lineage.selected.type == "generation" %}
+    <p>This generation has no intermediate reader edition. Its exact retained-source history is preserved.</p>
+      {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      <p id="lineage-edit-context" class="muted">Editing opens the latest saved content in this generation's working copy.</p>
+      {% elif lineage.selected.archived %}
+      <p>Restore this generation before starting or continuing its correction history.</p>
+      {% endif %}
+    {% elif lineage.selected.type == "history" %}
+      {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+      <p id="lineage-edit-context" class="muted">Editing opens this working copy's latest saved content.</p>
+      {% elif lineage.selected.archived %}
+      <p>Restore this history before continuing or saving it.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% if lineage.selected.type == "edition" or lineage.selected.type == "publication" %}
+  {% if lineage.selected.can_select_reader_target %}
+  <details class="lineage-reader-settings">
+    <summary>Set reader default&hellip;</summary>
+    <p>Changes which edition readers open by default. It does not edit or publish content.</p>
+    <form method="post" class="lineage-default-action">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="select-reader-target">
+      <input type="hidden" name="rendition_id" value="{{ lineage.selected.rendition_id }}">
+      <input type="hidden" name="expected_rendition" value="{{ reader_target.pk|default:'' }}">
+      <label for="reader-selection-reason">Reason for selecting this reader version (required)</label>
+      <textarea id="reader-selection-reason" name="reason" maxlength="2000" required></textarea>
+      <label><input type="checkbox" name="confirm" value="yes" required> I confirm this exact reader-version selection.</label>
+      <button type="submit">Set reader default</button>
+    </form>
+  </details>
+  {% endif %}
+  {% endif %}
   {% if lineage.selected.type == "edition" or lineage.selected.type == "generation" or lineage.selected.type == "history" %}
     {% if can_review and not lineage.selected.archived and not lineage.selected.context_only %}
+    <div class="lineage-secondary-actions" role="group" aria-label="Maintenance actions">
     <a class="button secondary" href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ lineage.selected.id|urlencode }}&amp;archive={{ lineage.selected.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection">Archive&hellip;</a>
+    </div>
     {% endif %}
   {% endif %}
 </div>

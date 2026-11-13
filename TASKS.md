@@ -196,6 +196,29 @@ for scope, dependencies and V17-V22 acceptance.
 - [ ] V.h/V.i acceptance (V26-V30): isolated visible-browser checks, long/deep
   history at desktop/mobile/zoom, keyboard/focus and Back/Forward observation,
   plus print/PDF preservation remain pending. See the [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vi-versionssources---inspect-compare-and-act).
+
+Versions controls/layout follow-up (2026-11-13): scope and record filters apply
+on selection in reviewer/public workspaces and standalone history, without an
+Apply button. Workspace replacement preserves selector focus unless it moved
+elsewhere; URL state retains scope, anchor, filter and inspected identity.
+Inspecting and Scope anchor badges distinguish those states in lanes and the
+optional tree. Read/PDF/Edit links stay together; reader-default settings use a
+separate disclosure with unchanged required reason/confirmation, and Archive...
+is separated as maintenance. Public workspaces now load the lineage stylesheet;
+changed asset URLs invalidate previously cached controls/styles.
+
+Validation: 63 focused backend and 26 focused frontend tests, production build
+and Django checks pass. Synthetic frontend tests cover rapid reversal/stale
+responses, moved focus, pending edits and selector isolation. Isolated Chromium
+checks observed reviewer and guest auto-filtering, workspace keyboard focus,
+Back/Forward restoration, standalone GET navigation, distinct inspected/anchor
+styles, and equal-height action wrapping at 1280px/375px without horizontal
+overflow. Actual unsaved typing survived Edit/Versions/filter/tab switches;
+saved revisions, published text and routing remained unchanged in the synthetic
+database. The existing scoped Ruff F841 finding is unchanged from HEAD.
+No live corrections, workers or deployment were changed. This does not close
+the wider V26-V30 accessibility, long-history, zoom or print/PDF acceptance.
+
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
 
