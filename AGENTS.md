@@ -37,3 +37,17 @@
   not the live SQLite database or retained blobs; backups are separate.
 - This is a local recovery practice, not a requirement to add CI, branching
   machinery, release/version bumps or deployments.
+
+## Local maintenance account
+
+- The local development site has a dedicated `copilot-maintenance` account for
+  authenticated admin and worker-maintenance UI access at `127.0.0.1:8765`.
+  It is staff-only, not a superuser, and has no Django model or group
+  permissions.
+- Its credentials are stored outside Git in
+  `data/agent-maintenance-credentials.json`, readable only by the local account
+  owner. Use them only for this local site. Never print, log, commit, copy, or
+  send the password elsewhere.
+- Use the worker UI for worker inspection and control; do not manipulate worker
+  processes or the database directly. Follow deployment authorization and
+  preservation safeguards before making changes.
