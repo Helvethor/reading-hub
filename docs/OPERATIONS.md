@@ -805,6 +805,33 @@ controls. Anonymous HTTP checks confirmed Read/Versions/Sources without Edit,
 and preserved the admin/worker login guards. This is bounded local deployment
 evidence, not full V25-V30 visual, keyboard, accessibility or print acceptance.
 
+Versions controls/action-naming local deployment (2026-11-13): committed
+release `b6cd76d` (including naming pass `1ccfcb0`) serves
+`http://127.0.0.1:8765/` from `data/releases/b6cd76d`, retaining the existing
+data root and `READING_HUB_EDITOR_PILOT=1`. Only the verified web PID 1658455
+was replaced, by PID 1755319. All six workers remained failed; no worker,
+account, crawl, reader-default or content operation was performed. No migration
+was pending or applied. The separate port-8000 service and untracked `.github/`
+were untouched.
+
+Private backup `data/backups/versions-controls-deploy-20261113T2146Z/` contains
+online copies of both databases, all 5,031 retained blobs and the signing key.
+Postdeployment integrity/foreign-key checks passed; all 57 application-table
+and 6 archive-table schemas/rows matched the backup, with unchanged blob/key
+hashes. The prior release remains available for rollback.
+
+The actual release passed 63 isolated backend tests, 26 focused frontend tests,
+the production build and Django checks. Missing release-local build dependencies
+were installed with `npm ci`; existing npm/Node warnings were nonfatal.
+Both editor assets, public-workspace JS and lineage CSS returned HTTP 200 and
+matched release bytes. Anonymous HTTP checks retained the public role guard.
+Authenticated read-only browser checks on edition 103 in the dark theme observed
+immediate scope/filter changes, retained selector focus, Back/Forward state,
+distinct inspected/anchor markers, Read/PDF/Edit grouping and separate Archive...
+controls. At 375px, action heights matched and there was no horizontal overflow.
+No live working copy was edited or saved. This bounded deployment check does not
+certify the wider V25-V30 accessibility, long-history, zoom or print/PDF outcomes.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

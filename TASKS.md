@@ -218,6 +218,8 @@ saved revisions, published text and routing remained unchanged in the synthetic
 database. The existing scoped Ruff F841 finding is unchanged from HEAD.
 No live corrections, workers or deployment were changed. This does not close
 the wider V26-V30 accessibility, long-history, zoom or print/PDF acceptance.
+Locally deployed as `b6cd76d` on 2026-11-13, including naming pass `1ccfcb0`;
+see the [deployment and preservation evidence](docs/OPERATIONS.md).
 
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
