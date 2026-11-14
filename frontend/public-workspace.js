@@ -173,6 +173,8 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
   function selectTab(tab, {writeHistory = false} = {}) {
     if (!panels.has(tab)) tab = "read";
     const previous = workspace.dataset.activeTab;
+    const restoreReadFocus = previous === "read" && tab !== "read"
+      && workspace.querySelector("#workspace-read-tools")?.contains(document.activeElement);
     if (previous && previous !== tab) positions.set(previous, window.scrollY);
     workspace.dataset.activeTab = tab;
     for (const button of buttons) {
@@ -182,6 +184,9 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
       panels.get(button.dataset.workspaceTab).hidden = !active;
     }
     if (writeHistory) writeTabState(tab);
+    if (restoreReadFocus) {
+      buttons.find(button => button.dataset.workspaceTab === tab).focus({preventScroll: true});
+    }
     refreshSticky();
     if (previous && previous !== tab) {
       window.scrollTo({top: positions.get(tab) ?? 0, behavior: "auto"});

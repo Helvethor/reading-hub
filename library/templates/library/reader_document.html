@@ -1,21 +1,30 @@
 <div class="reader-layout">
+  {% if not workspace_page %}
   <details class="print-options">
     <summary>Print options</summary>
     <label><input type="checkbox" id="print-wrap-images"> Wrap text around smaller figures when printing (reduces image width).</label>
     <p>Browser print: Ctrl+P.</p>
   </details>
+  {% endif %}
   <aside class="toc-panel"{% if workspace_page %} id="workspace-read-toc"{% endif %} aria-label="Document navigation">
     <details open>
-      <summary>On this page</summary>
+      <summary>Table of Contents</summary>
       <nav aria-label="Table of contents">
         {% if toc %}{% include 'library/toc.html' with nodes=toc %}{% else %}<p class="muted">No section headings in this document.</p>{% endif %}
       </nav>
     </details>
   </aside>
   <div class="reading-column"{% if workspace_page %} id="workspace-read-pane" data-workspace-scroll-pane role="region" aria-label="Reading content" tabindex="0"{% endif %}>
+    {% if workspace_page %}
+    <details class="print-options">
+      <summary>Print options</summary>
+      <label><input type="checkbox" id="print-wrap-images"> Wrap text around smaller figures when printing (reduces image width).</label>
+      <p>Browser print: Ctrl+P.</p>
+    </details>
+    {% endif %}
     <div class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
     <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
-      <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
+      <p class="eyebrow{% if workspace_page %} workspace-content-type{% endif %}">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} &middot; LOCALLY PRESERVED</p>
       {% if workspace_page %}<h2 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h2>{% else %}<h1 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h1>{% endif %}
       {% include 'library/document_metadata.html' %}
     </header>

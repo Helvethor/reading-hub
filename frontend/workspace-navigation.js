@@ -51,29 +51,6 @@ export function mountStickyStack(workspace, updateBackToTop) {
     workspace.style.setProperty("--workspace-edit-flow-height", `${height}px`);
   }
 
-  function measureReadFlow() {
-    let height = 0;
-    const add = element => {
-      if (!element || element.hidden || element.closest("[hidden]")) return;
-      const rect = element.getBoundingClientRect();
-      if (!rect.height) return;
-      const style = window.getComputedStyle(element);
-      height += rect.height
-        + (Number.parseFloat(style.marginTop) || 0)
-        + (Number.parseFloat(style.marginBottom) || 0);
-    };
-    const actions = workspace.querySelector(".workspace-read-actions");
-    if (actions && ["static", "relative"].includes(window.getComputedStyle(actions).position)) {
-      add(actions);
-    }
-    add(workspace.querySelector("#workspace-read-content .workspace-preview-heading"));
-    const toc = workspace.querySelector("#workspace-read-content .toc-panel");
-    if (toc && ["static", "relative"].includes(window.getComputedStyle(toc).position)) {
-      add(toc);
-    }
-    workspace.style.setProperty("--workspace-read-flow-height", `${height}px`);
-  }
-
   function measure() {
     const headerHeight = siteHeader?.getBoundingClientRect().height || 0;
     const reviewHeight = reviewNavigation?.getBoundingClientRect().height || 0;
@@ -115,6 +92,26 @@ export function mountStickyStack(workspace, updateBackToTop) {
     workspace.style.setProperty("--workspace-pane-stack-reservation", `${height}px`);
   }
 
+  function measureReadStageReservation() {
+    const readPanel = workspace.querySelector("#workspace-panel-read");
+    const actions = workspace.querySelector(".workspace-read-actions");
+    if (!readPanel || !actions) return;
+    const headerCompact = siteHeader?.dataset.compact;
+    const chromeCompact = chrome.dataset.compact;
+    const panelHidden = readPanel.hidden;
+    if (siteHeader) siteHeader.dataset.compact = "true";
+    chrome.dataset.compact = "true";
+    readPanel.hidden = false;
+    const height = (siteHeader?.getBoundingClientRect().height || 0)
+      + (reviewNavigation?.getBoundingClientRect().height || 0)
+      + chrome.getBoundingClientRect().height
+      + actions.getBoundingClientRect().height;
+    readPanel.hidden = panelHidden;
+    if (siteHeader) siteHeader.dataset.compact = headerCompact || "false";
+    chrome.dataset.compact = chromeCompact || "false";
+    workspace.style.setProperty("--workspace-read-compact-reservation", `${height}px`);
+  }
+
   function compact() {
     // Fixed-height slots keep compact transitions from changing document flow.
     const headerDistance = -headerMarker.getBoundingClientRect().bottom;
@@ -141,8 +138,8 @@ export function mountStickyStack(workspace, updateBackToTop) {
     if (headerSlot) headerSlot.style.height = `${expandedHeaderHeight}px`;
     chromeSlot.style.height = `${expandedChromeHeight}px`;
     measurePaneStackReservation();
+    measureReadStageReservation();
     measureEditFlow();
-    measureReadFlow();
     if (siteHeader) siteHeader.dataset.compact = headerCompact;
     chrome.dataset.compact = chromeCompact;
     compact();
@@ -160,14 +157,6 @@ export function mountStickyStack(workspace, updateBackToTop) {
     ? null
     : new ResizeObserver(measureEditFlow);
   for (const control of editFlowControls) editFlowObserver?.observe(control);
-  const readContent = workspace.querySelector("#workspace-read-content");
-  if (typeof MutationObserver !== "undefined" && readContent) {
-    const readFlowObserver = new MutationObserver(measureReadFlow);
-    readFlowObserver.observe(readContent, {childList: true});
-    readFlowObserver.observe(readContent, {
-      attributes: true, attributeFilter: ["hidden"], subtree: true,
-    });
-  }
   workspace.addEventListener("editor-local-tab-change", measureEditFlow);
   window.addEventListener("scroll", compact, {passive: true});
   window.addEventListener("resize", remeasure);

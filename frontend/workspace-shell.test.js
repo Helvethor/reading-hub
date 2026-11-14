@@ -38,7 +38,27 @@ function setup(query = "") {
         </div>
         <p id="workspace-action-status"></p>
       </div>
-      <section id="workspace-panel-read"><button id="workspace-download-pdf">PDF</button><button id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-toc">Contents</button><div id="workspace-read-content"></div></section>
+      <section id="workspace-panel-read">
+        <div class="workspace-read-actions">
+          <button id="workspace-download-pdf">PDF</button>
+          <button id="workspace-contents-toggle" aria-pressed="true" aria-expanded="true" aria-controls="workspace-read-tools">Table of Contents</button>
+          <button id="workspace-style-toggle" aria-pressed="false" aria-expanded="true" aria-controls="workspace-read-tools">Style</button>
+          <button id="workspace-larger-content" aria-pressed="false">Larger content</button>
+        </div>
+        <div id="workspace-read-stage" class="workspace-reader-stage">
+          <aside id="workspace-read-tools" class="workspace-reader-tools">
+            <header><button id="workspace-reader-tools-close">Close</button>
+              <div class="workspace-reader-tool-tabs" role="tablist">
+                <button id="workspace-read-toc-tab" role="tab" aria-controls="workspace-read-toc-panel" aria-selected="true">Table of Contents</button>
+                <button id="workspace-read-style-tab" role="tab" aria-controls="workspace-read-style-panel" aria-selected="false">Style</button>
+              </div>
+            </header>
+            <div id="workspace-read-toc-panel" role="tabpanel"><div id="workspace-read-toc-slot"></div></div>
+            <div id="workspace-read-style-panel" role="tabpanel" hidden>Style controls</div>
+          </aside>
+          <div id="workspace-read-content"></div>
+        </div>
+      </section>
       <section id="workspace-panel-edit"><h2>Edit content</h2></section>
       <section id="workspace-panel-versions"><div id="workspace-versions-content"></div></section>
       <section id="workspace-panel-sources"><div id="workspace-sources-content"></div></section>
@@ -54,6 +74,7 @@ function setup(query = "") {
       configurable: true,
     });
   }
+  window.scrollTo = () => {};
   originalFetch = globalThis.fetch;
   const append = document.head.append.bind(document.head);
   document.head.append = (...nodes) => {
@@ -237,7 +258,7 @@ test("Read uses the current captured document and tab history keeps the editor m
   assert.equal(document.querySelector("#editor-surface"), surface);
 });
 
-test("Contents toggle survives Read rerenders and removes the ToC from layout", async () => {
+test("Reader tools state survives Read rerenders and larger content restores the prior rail", async () => {
   const form = setup("?tab=read");
   let html = `<div class="reader-layout">
     <aside id="workspace-read-toc" class="toc-panel"><nav>
@@ -261,17 +282,88 @@ test("Contents toggle survives Read rerenders and removes the ToC from layout", 
   const shell = mount(form, snapshot);
   await settle();
   const toggle = document.querySelector("#workspace-contents-toggle");
+  const style = document.querySelector("#workspace-style-toggle");
+  const larger = document.querySelector("#workspace-larger-content");
+  const rail = document.querySelector("#workspace-read-tools");
+  const styleTab = document.querySelector("#workspace-read-style-tab");
+  const pane = document.querySelector("#workspace-read-pane");
+  const chapter = document.querySelector("#first");
+  Object.defineProperties(pane, {
+    clientHeight: {value: 300},
+    clientTop: {value: 0},
+    scrollHeight: {value: 1000},
+  });
+  pane.getBoundingClientRect = () => ({top: 100, bottom: 400, height: 300});
+  chapter.getBoundingClientRect = () => ({top: 500, bottom: 520, height: 20});
+  const contentsLink = document.querySelector('#workspace-read-toc-slot a[href="#first"]');
+  const contentsClick = new window.MouseEvent("click", {
+    bubbles: true, cancelable: true, button: 0,
+  });
+  contentsLink.dispatchEvent(contentsClick);
+  assert.equal(contentsClick.defaultPrevented, true);
+  assert.equal(location.hash, "#first");
+  assert.equal(pane.scrollTop, 128, "Contents links navigate the document pane.");
+
+  styleTab.click();
+  assert.equal(document.querySelector("#workspace-read-style-panel").hidden, false);
+  assert.equal(styleTab.getAttribute("aria-selected"), "true");
+  assert.equal(rail.hidden, false);
+  style.focus();
+  style.click();
+  assert.equal(rail.hidden, true);
+  assert.equal(document.activeElement, style);
+
+  larger.click();
+  assert.equal(larger.getAttribute("aria-pressed"), "true");
+  larger.click();
+  assert.equal(larger.getAttribute("aria-pressed"), "false");
+  assert.equal(rail.hidden, true, "Larger content restores the previously closed rail.");
+
   toggle.click();
-  assert.equal(toggle.getAttribute("aria-pressed"), "false");
-  assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
-  assert.equal(document.querySelector(".reader-layout").classList.contains("toc-hidden"), true);
+  assert.equal(rail.hidden, false);
+  assert.equal(style.getAttribute("aria-pressed"), "false");
+  assert.equal(toggle.getAttribute("aria-expanded"), "true");
+
+  larger.click();
+  style.click();
+  assert.equal(larger.getAttribute("aria-pressed"), "false");
+  assert.equal(rail.hidden, false);
+  assert.equal(style.getAttribute("aria-pressed"), "true");
+  assert.equal(styleTab.getAttribute("aria-selected"), "true");
+
+  const close = document.querySelector("#workspace-reader-tools-close");
+  close.focus();
+  close.click();
+  assert.equal(rail.hidden, true);
+  assert.equal(document.activeElement, style);
+  style.click();
+  assert.equal(rail.hidden, false);
+
+  styleTab.focus();
+  window.scrollTo = () => {};
+  shell.selectTab("versions");
+  assert.equal(document.activeElement, document.querySelector('[data-workspace-tab="versions"]'));
+  shell.selectTab("read");
+  assert.equal(rail.hidden, false);
+  assert.equal(styleTab.getAttribute("aria-selected"), "true");
+
+  snapshot.document.title = "Rerendered title";
+  shell.updateState({draft: null, revision: 0, dirty: true});
+  await settle();
+  assert.equal(rail.hidden, false);
+  assert.equal(styleTab.getAttribute("aria-selected"), "true");
+
+  toggle.click();
+  assert.equal(toggle.getAttribute("aria-pressed"), "true");
+  assert.equal(document.querySelector("#workspace-read-toc").parentElement.id,
+    "workspace-read-toc-slot");
 
   html = html.replace("First</h2>", "Updated</h2>");
   snapshot.document.title = "Updated title";
   shell.updateState({draft: null, revision: 0, dirty: true});
   await settle();
-  assert.equal(toggle.getAttribute("aria-pressed"), "false");
-  assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
+  assert.equal(toggle.getAttribute("aria-pressed"), "true");
+  assert.equal(document.querySelector("#workspace-read-tools").hidden, false);
   assert.equal(document.querySelector("#workspace-read-content").textContent.includes("Updated"), true);
 });
 
@@ -824,6 +916,53 @@ test("a late Read response does not move the page of another active tab", async 
   assert.equal(page.top, 900);
   assert.equal(page.calls.length, calls, "No scroll call is made for an inactive tab.");
   assert.match(document.querySelector("#workspace-read-content").textContent, /Rendered/);
+});
+
+test("Read and Reader tools share a stage height from compact measured chrome", () => {
+  const form = setup();
+  const header = document.querySelector(".site-header");
+  const navigation = document.querySelector(".review-navigation");
+  const chrome = document.querySelector(".workspace-chrome");
+  const readPanel = document.querySelector("#workspace-panel-read");
+  const actions = document.querySelector(".workspace-read-actions");
+  let actionHeight = 45;
+  header.getBoundingClientRect = () => {
+    const height = header.dataset.compact === "true" ? 40 : 80;
+    return {top: 0, bottom: height, height, left: 0, right: 0, width: 0};
+  };
+  navigation.getBoundingClientRect = () => ({
+    top: 0, bottom: 20, height: 20, left: 0, right: 0, width: 0,
+  });
+  chrome.getBoundingClientRect = () => {
+    const height = chrome.dataset.compact === "true" ? 30 : 70;
+    return {top: 0, bottom: height, height, left: 0, right: 0, width: 0};
+  };
+  actions.getBoundingClientRect = () => ({
+    top: 0, bottom: actionHeight, height: actionHeight, left: 0, right: 0, width: 0,
+  });
+  readPanel.hidden = true;
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  const workspace = document.querySelector("#unified-workspace");
+  assert.equal(readPanel.hidden, true, "Measuring a hidden Read tab does not expose it.");
+  assert.equal(
+    workspace.style.getPropertyValue("--workspace-read-compact-reservation"), "135px",
+  );
+  header.dataset.compact = "true";
+  chrome.dataset.compact = "true";
+  window.dispatchEvent(new window.Event("scroll"));
+  assert.equal(
+    workspace.style.getPropertyValue("--workspace-read-compact-reservation"), "135px",
+    "Ordinary compaction does not resize the reading stage.",
+  );
+  actionHeight = 55;
+  window.dispatchEvent(new window.Event("resize"));
+  assert.equal(
+    workspace.style.getPropertyValue("--workspace-read-compact-reservation"), "145px",
+    "A measured action-row change recalculates the available stage height.",
+  );
 });
 
 test("visible secondary bars stack below the shared navigation and hidden ones are ignored", () => {

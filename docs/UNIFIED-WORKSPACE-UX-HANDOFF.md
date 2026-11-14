@@ -27,9 +27,9 @@ performed.
 
 Follow-up V.l, agreed 2026-11-14, consolidates the coherent reader-stage/tools
 proposal and removal of the redundant content ARTICLE/BOOK eyebrow. It is
-planned, not implemented or validated; V36-V40 define acceptance. The current
-request authorizes milestone documentation only, not implementation, deployment
-or live-data changes, regardless of earlier authorization for other follow-ups.
+implemented in source following the user's `/implement milestone V.l` request;
+V36-V40 define acceptance, which remains partial pending browser/PDF and human
+accessibility validation. Deployment and live-data changes were not authorized.
 
 ## Outcome, authority and supersession
 
@@ -885,8 +885,10 @@ their unrelated behavior and preservation requirements remain in force.
 
 User accepted the reader design proposal on 2026-11-14 and requested consolidation
 as a milestone, adding that ARTICLE/BOOK above the content title is redundant
-with workspace context. Status: agreed design, documentation only; implementation
-and V36-V40 acceptance have not started.
+with workspace context. The user authorized implementation with
+`/implement milestone V.l`. Source implementation was delivered on 2026-11-14;
+V36-V40 acceptance is partial. No deployment or live-data changes were authorized
+or performed.
 
 #### Outcome, evidence and scope
 
@@ -902,6 +904,13 @@ pane. The latter reserves expanded chrome, leaving potential unused room after
 compaction. The workspace content header repeats ARTICLE/BOOK, already present
 in workspace context. These are code findings and user feedback, not a new
 live-browser reproduction or accessibility assessment.
+
+Automated evidence: the full frontend suite (334 tests), 24 focused workspace
+frontend tests, 43 isolated workspace Django tests and the production frontend
+build pass. The compact stage-capacity check uses mocked element measurements;
+it is synthetic evidence, not a browser layout measurement. Real article/book
+browser journeys, actual PDF/print comparisons, native zoom/input and human
+accessibility review remain unverified.
 
 Apply only to Read in guest, signed-in and reviewer version workspaces, including
 saved editions, working copies and unsaved previews. Reuse V.k's native scroll
@@ -986,14 +995,16 @@ reservation. Edit sizing, page-driven menu stacking and all unrelated
 preservation/output requirements remain in force. Do not mark V25/V31-V35
 complete from this redesign alone.
 
-After separate implementation authorization, deliver toolbar/rail/layout state
-as one coherent slice, then coordinate height/appearance/header cleanup and
-end-to-end preservation. Reuse shared position, rendering and style mechanisms
-across public/reviewer Read; do not duplicate forms or remount the editor.
-Run focused existing regressions/build/checks and actual isolated browser/PDF
-journeys; checkpoint validated milestones without auto-deployment. Stop at
-V36-V40, reporting automated correctness, synthetic layout, actual workflow/
-output observations and outstanding human/accessibility evidence separately.
+The user separately authorized V.l implementation. The source now delivers the
+shared toolbar/rail/layout state, measured stage capacity, responsive tools panel,
+screen-only eyebrow removal and existing style/scroll-owner integration across
+public and reviewer Read. The full frontend suite (334 tests), focused workspace
+frontend tests (24), isolated workspace Django tests (43) and production build
+pass. Stage-capacity geometry is synthetically measured, not observed in a
+browser. Complete the isolated browser/PDF journeys before treating V36-V40 as
+accepted; do not auto-deploy. Report automated correctness, synthetic layout,
+actual workflow/output observations and outstanding human/accessibility
+evidence separately.
 
 ### V.h: one work page for every role
 
@@ -1291,15 +1302,11 @@ V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance
 Stop when the authorized scope is implemented and validated, not when tabs merely
 look alike. V.k is implemented and locally deployed, but V32-V35 acceptance
 remains partial.
-V36-V40 apply only after V.l implementation is separately authorized; their
-documentation is not implementation, deployment or acceptance evidence.
-First reproduce context drift and state loss risks in isolated fixtures; deliver
-the shell/state and shared projection/export slices with focused regression tests
-and validated checkpoint commits. Run existing editor checks/build for frontend
-changes. Observe full edit -> Read -> PDF -> Versions/Sources -> Edit -> save
-journeys, with identity, content and mutation-count assertions.
-Include deep scrolling, return-to-top, anchor/focus navigation, resize/zoom,
-reduced-motion and print/export scenarios for the navigation-stack extension.
+V36-V40 are acceptance criteria for the separately authorized V.l
+implementation, not deployment or acceptance evidence. The current source
+implementation has not completed their real browser/PDF or human accessibility
+validation. V.l implementation is complete; its acceptance items remain open
+until those observations are performed.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1313,5 +1320,5 @@ automatic branch merge, catalogue mutation, public exposure or remote deployment
 Local deployment is authorized by the later implementation instruction.
 The later implementation/local-run requests authorize V.a-V.f implementation
 and local deployment, not remote publication or live-content mutation.
-V.l's current authorization is documentation only; earlier local implementation/
-deployment permissions do not authorize this newly planned follow-up.
+V.l implementation was separately authorized; that request did not authorize
+local or remote deployment, migrations or live-data changes.

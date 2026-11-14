@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v32">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v36">
 <link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>
 {% endblock %}
 {% block content %}
@@ -44,11 +44,15 @@
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1">
       <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar>
         <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>PDF</a>
-        <button type="button" id="workspace-contents-toggle" aria-label="Toggle ToC" aria-pressed="true" aria-controls="workspace-read-toc">Toggle ToC</button>
-        {% include "library/reading_style_controls.html" with workspace_style_control=True %}
+        <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-expanded="true" aria-controls="workspace-read-tools">Table of Contents</button>
+        <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-expanded="true" aria-controls="workspace-read-tools">Style</button>
+        <button type="button" class="secondary" id="workspace-larger-content" aria-pressed="false">Larger content</button>
       </div>
-      <div id="workspace-read-content" class="workspace-read-content">
-        {% include "library/reader_document.html" with workspace_page=True %}
+      <div class="workspace-reader-stage" id="workspace-read-stage">
+        {% include "library/workspace_reader_tools.html" %}
+        <div id="workspace-read-content" class="workspace-read-content">
+          {% include "library/reader_document.html" with workspace_page=True %}
+        </div>
       </div>
     </section>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-versions" role="tabpanel" aria-labelledby="workspace-tab-versions" tabindex="-1" hidden>
@@ -62,5 +66,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v27"></script>
+<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v36"></script>
 {% endblock %}

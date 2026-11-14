@@ -260,6 +260,8 @@ export function mountWorkspaceShell({
   function selectTab(tab, {writeHistory = false, focus = false, restoreEditorFocus = false} = {}) {
     if (!panels.has(tab)) throw new Error("Choose Read, Edit, Versions or Sources.");
     const previous = workspace.dataset.activeTab;
+    const restoreReadFocus = previous === "read" && tab !== "read"
+      && workspace.querySelector("#workspace-read-tools")?.contains(document.activeElement);
     const switching = Boolean(previous) && previous !== tab;
     if (switching) tabPositions.set(previous, window.scrollY);
     workspace.dataset.activeTab = tab;
@@ -271,6 +273,9 @@ export function mountWorkspaceShell({
     }
     if (writeHistory) writeTabState(tab);
     if (focus) buttons.find(button => button.dataset.workspaceTab === tab).focus();
+    if (restoreReadFocus) {
+      buttons.find(button => button.dataset.workspaceTab === tab).focus({preventScroll: true});
+    }
     for (const link of document.querySelectorAll("link[data-workspace-reading-style]")) {
       if (tab !== "read") link.remove();
     }

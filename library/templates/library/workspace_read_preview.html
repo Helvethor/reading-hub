@@ -1,17 +1,8 @@
 <section class="workspace-read-preview" aria-label="Workspace reading view">
-  {% if preview_is_unsaved %}
-  <header class="workspace-preview-heading">
-    <p class="eyebrow">PRIVATE WORKSPACE PREVIEW</p>
-    <h2 id="workspace-preview-heading">Draft preview: {{ version.title }}</h2>
-    <p role="status">
-      Unsaved editor changes are shown; nothing has been saved or published.
-    </p>
-  </header>
-  {% endif %}
   <div class="reader-layout">
     <aside class="toc-panel" id="workspace-read-toc" aria-label="Table of contents">
       <details open>
-        <summary>On this draft</summary>
+        <summary>Table of Contents</summary>
         <nav aria-label="Draft table of contents">
           {% if toc %}{% include 'library/toc.html' with nodes=toc %}{% else %}<p class="muted">No section headings in this draft.</p>{% endif %}
         </nav>
@@ -19,8 +10,17 @@
     </aside>
     <div class="reading-column" id="workspace-read-pane" data-workspace-scroll-pane role="region" aria-label="Reading content" tabindex="0">
       <div class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
+        {% if preview_is_unsaved %}
+        <header class="workspace-preview-heading">
+          <p class="eyebrow">PRIVATE WORKSPACE PREVIEW</p>
+          <h2 id="workspace-preview-heading">Draft preview: {{ version.title }}</h2>
+          <p role="status">
+            Unsaved editor changes are shown; nothing has been saved or published.
+          </p>
+        </header>
+        {% endif %}
         <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
-          <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %}{% if preview_is_unsaved %} · DRAFT PREVIEW{% endif %}</p>
+          <p class="eyebrow workspace-content-type">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %}{% if preview_is_unsaved %} · DRAFT PREVIEW{% endif %}</p>
           <h2 lang="{{ version.metadata.language|default:'en' }}">{{ version.title }}</h2>
           {% include 'library/document_metadata.html' %}
         </header>

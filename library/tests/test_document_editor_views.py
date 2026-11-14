@@ -578,12 +578,22 @@ class DocumentEditorViewTests(TestCase):
         self.assertIsNone(page.select_one("#editor-panel-style"))
         panel = page.select_one("#workspace-panel-read .reading-style-controls")
         self.assertIsNotNone(panel)
-        self.assertIn("workspace-read-actions", panel.parent.get("class", []))
-        self.assertEqual(panel.find("summary", recursive=False).get_text(strip=True), "Style")
+        self.assertEqual(panel.parent.get("id"), "workspace-read-style-panel")
+        self.assertEqual(panel.name, "div")
         toggle = page.select_one("#workspace-contents-toggle")
-        self.assertEqual(toggle.get_text(strip=True), "Toggle ToC")
-        self.assertEqual(toggle["aria-label"], "Toggle ToC")
+        self.assertEqual(toggle.get_text(strip=True), "Table of Contents")
         self.assertEqual(toggle["aria-pressed"], "true")
+        self.assertEqual(toggle["aria-expanded"], "true")
+        self.assertEqual(
+            page.select_one("#workspace-panel-read .workspace-read-actions #workspace-style-toggle").get_text(strip=True),
+            "Style",
+        )
+        self.assertEqual(
+            page.select_one("#workspace-panel-read .workspace-read-actions #workspace-larger-content").get_text(strip=True),
+            "Larger content",
+        )
+        self.assertIsNotNone(page.select_one("#workspace-read-tools[aria-label='Reader tools']"))
+        self.assertIsNotNone(page.select_one("#workspace-read-toc-tab[role='tab']"))
         self.assertEqual(panel["data-scope"], "output")
         self.assertIsNone(page.select_one("#workspace-panel-edit .reading-style-controls"))
         for form in panel.select("form"):
@@ -600,12 +610,13 @@ class DocumentEditorViewTests(TestCase):
         self.assertIsNotNone(public_actions.select_one('[data-reading-pdf]'))
         self.assertEqual(
             public_actions.select_one("#workspace-contents-toggle").get_text(strip=True),
-            "Toggle ToC",
+            "Table of Contents",
         )
-        public_style = public_actions.select_one(".reading-style-controls")
-        self.assertEqual(
-            public_style.find("summary", recursive=False).get_text(strip=True), "Style",
-        )
+        self.assertEqual(public_actions.select_one("#workspace-style-toggle").get_text(strip=True), "Style")
+        self.assertIsNotNone(public_page.select_one("#workspace-read-tools[aria-label='Reader tools']"))
+        self.assertIsNotNone(public_page.select_one("#workspace-read-toc-tab[role='tab']"))
+        public_style = public_page.select_one("#workspace-read-style-panel .reading-style-controls")
+        self.assertIsNotNone(public_style)
 
     def test_exact_and_working_copy_read_and_pdf_share_the_output_style_snapshot(self):
         ReadingStyleOutputOverride.objects.create(

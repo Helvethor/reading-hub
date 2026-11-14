@@ -197,6 +197,7 @@ export function mountReadingStyles(panel) {
       }
       const old = owner.querySelector("link[data-reading-style]");
       if (!accountSettings) {
+        workspace?.dispatchEvent(new view.CustomEvent("workspace-reading-style-before"));
         old?.remove();
         sheet.media = "all";
         if (workspace && workspace.dataset.activeTab === "read") {
@@ -210,6 +211,9 @@ export function mountReadingStyles(panel) {
       importBox?.removeAttribute("hidden");
       if (importBox && (!authenticated || !Object.keys(guestLayer).length)) {
         importBox.hidden = true;
+      }
+      if (!accountSettings) {
+        workspace?.dispatchEvent(new view.CustomEvent("workspace-reading-style-after"));
       }
       status.textContent = guestStorageError || (
         accountSettings || scope === "account"
