@@ -30,8 +30,8 @@ proposal and removal of the redundant content ARTICLE/BOOK eyebrow. It is
 implemented in source following the user's `/implement milestone V.l` request;
 V36-V40 define acceptance, which remains partial pending browser/PDF and human
 accessibility validation. The separately requested local deployment serves
-release `1dadec2`; the subsequent exclusive-mode refinement described below is
-source-only and has not been deployed. No live-data changes were made.
+release `1dadec2`; the subsequent exclusive-mode refinement described below was
+deployed in release `b627598`. No live-data changes were made.
 
 Follow-up V.m, agreed 2026-11-14, consolidates the comparison-first Versions
 proposal. The user authorized implementation on 2026-11-14; source changes are
@@ -1022,8 +1022,8 @@ User refinement 2026-11-14: the Table of Contents, Style and Larger content
 actions are exclusive modes with one highlighted state; the tools column
 alternates between a mode-named heading and content, without inner tabs or Close.
 Per-field reset controls are compact while retaining reset-to-inherited behavior.
-This refinement is implemented in source but is not in the currently deployed
-release `1dadec2`; V36-V40 still require validation against the revised design.
+This refinement is deployed in release `b627598`; V36-V40 still require
+validation against the revised design.
 
 ### V.h: one work page for every role
 

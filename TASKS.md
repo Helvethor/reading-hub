@@ -277,8 +277,8 @@ owns the complete design and V36-V40 acceptance. This consolidates the accepted
 reader proposal and removal of the redundant content ARTICLE/BOOK eyebrow.
 Implementation was authorized by `/implement milestone V.l` and locally
 deployed in release `aad5fe1` after the separate `/deploy-locally` request.
-The subsequent three-mode reader refinement is implemented in source but has
-not been deployed. No live-data changes were authorized or made. Build on V.k
+The subsequent three-mode reader refinement was deployed in release `b627598`
+on 2026-11-14. No live-data changes were authorized or made. Build on V.k
 without certifying its outstanding acceptance.
 
 - [x] Consolidate Table of Contents and Style in one independently scrollable

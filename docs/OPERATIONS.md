@@ -942,6 +942,26 @@ no worker was started or restarted, so any active worker may still require a
 code refresh. V41-V46 acceptance remains partial, including authenticated
 browser, long-book, print/PDF and human accessibility/usability checks.
 
+Reader-mode local deployment (2026-11-14): commit `b627598` serves from
+`data/releases/b627598` on `127.0.0.1:8765`, retaining the existing data root,
+`READING_HUB_EDITOR_PILOT=1`, Python executable and runserver flags. The verified
+web PID 2485954 was gracefully replaced by PID 2532853; the port-8000 service
+was not touched. `manage.py check` passed; `migrate --plan` was empty and
+`makemigrations --check --dry-run` found no changes. No migration or live-data
+change was made.
+
+Release-local `npm run build` succeeded with the existing Node/npm compatibility
+and configuration warnings. `findstatic` resolved both editor assets, the
+public-workspace bundle and workspace/lineage styles. The target release passed
+43 isolated `test_document_editor_views` tests; the committed refinement also
+passed 26 focused frontend tests and the production build. Home and version 103
+Read returned HTTP 200; five relevant assets returned HTTP 200 and matched the
+release files byte-for-byte. The shared browser page reloaded to the updated
+three-mode Reader UI with Table of Contents selected; an automated Style-button
+click timed out, so no live browser interaction acceptance is claimed. No
+application Python or source-profile code changed, so no worker action was
+taken. V36-V40 browser/PDF/human acceptance remains partial.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

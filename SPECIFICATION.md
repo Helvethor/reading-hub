@@ -80,7 +80,7 @@ and preserve the document title, metadata and export output. The
 owns the complete interaction, sizing, preservation and V36-V40 acceptance
 contract. The user authorized implementation with `/implement milestone V.l`.
 The later `/deploy-locally` request authorized the V.m release; the reader-mode
-refinement is source-only until separately deployed. These requests do not
+refinement was separately deployed in release `b627598`. These requests do not
 authorize live-data changes.
 
 **Reviewer workspace:** replace competing navigation bars, preamble link lists
