@@ -8,7 +8,9 @@ import {revealDocumentPosition, workspaceExtension, visiblePart} from "./workspa
 import {mountSemanticClipboard} from "./semantic-clipboard.js";
 import {BlockSelection, blockSelectionExtension} from "./block-selection.js";
 import {differenceExtension} from "./document-diffs.js";
-import {scrollElementIntoView, stackOffset} from "./page-scroll.js";
+import {
+  revealScrollPane, scrollElementIntoView, visibleBand,
+} from "./page-scroll.js";
 import {semanticDOM} from "./semantic-structure.js";
 
 const inlineTags = new Set([
@@ -1111,19 +1113,19 @@ export function navigatedDocumentTarget(editor) {
     ? target.id : null;
 }
 
-// The editor scrolls with the page, so the caret must also clear sticky bars.
 function keepSelectionClearOfStack(view) {
-  const doc = view.dom.ownerDocument;
-  const win = doc.defaultView;
-  if (!view.dom.closest("#editor-surface") || typeof win?.scrollBy !== "function") return false;
+  const surface = view.dom.closest("#editor-surface[data-workspace-scroll-pane]");
+  if (!surface) return false;
+  revealScrollPane(view.dom);
   let coords;
   try { coords = view.coordsAtPos(view.state.selection.head); }
   catch { return false; }
   if (!(coords.bottom > coords.top)) return false;
-  const top = stackOffset(doc) + 8;
-  const bottom = win.innerHeight - 8;
-  if (coords.top < top) win.scrollBy(0, coords.top - top);
-  else if (coords.bottom > bottom) win.scrollBy(0, coords.bottom - bottom);
+  const band = visibleBand(surface);
+  const top = band.top + 8;
+  const bottom = band.bottom - 8;
+  if (coords.top < top) surface.scrollTop += coords.top - top;
+  else if (coords.bottom > bottom) surface.scrollTop += coords.bottom - bottom;
   else return false;
   return true;
 }

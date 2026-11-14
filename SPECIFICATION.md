@@ -365,7 +365,7 @@ supersedes conflicting V.g width and control-label details; V31 browser/output
 acceptance remains pending. This local deployment did not change live data and
 does not authorize remote deployment.
 
-V.k (planned 2026-11-14; specification/design only; V32-V35 acceptance in
+V.k (implemented 2026-11-14; V32-V35 acceptance partial; evidence in
 [the workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vk-classical-content-and-page-scrolling)):
 restore two conventional scroll levels in workspace Read and Edit Content:
 one native scroll pane for the document and normal browser-page scrolling for
@@ -381,9 +381,9 @@ Use native overflow and input/edge behavior, without wheel interception,
 body-scroll locking or a new scrolling mode. Retain separate page and content
 positions through tab switches, asynchronous refresh and history; contents,
 caret/focus navigation and Back to top use the appropriate content owner.
-Preserve V.j paper/width/style behavior, pending edits, undo/recovery, exact
-content identity and PDF/print output. This request authorizes planning only,
-not implementation, deployment or live-data changes.
+preserve V.j paper/width/style behavior, pending edits, undo/recovery, exact
+content identity and PDF/print output. This implementation changes no live data
+and does not authorize deployment.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

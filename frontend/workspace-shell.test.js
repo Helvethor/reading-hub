@@ -159,6 +159,10 @@ test("tiny scrolling preserves flow geometry through compaction, reversal and re
     draft: null, revision: 0,
     document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
   });
+  const workspace = document.querySelector("#unified-workspace");
+  let paneReservation = workspace.style.getPropertyValue(
+    "--workspace-pane-stack-reservation",
+  );
   const scroll = target => {
     y = target;
     const before = range();
@@ -166,6 +170,9 @@ test("tiny scrolling preserves flow geometry through compaction, reversal and re
     flushLayout();
     assert.equal(y, target, "A transition must not move the scroll position.");
     assert.equal(range(), before, "A transition must not change the scroll range.");
+    assert.equal(workspace.style.getPropertyValue(
+      "--workspace-pane-stack-reservation",
+    ), paneReservation, "Compaction must not resize the content pane.");
     const state = [header.dataset.compact, chrome.dataset.compact];
     for (let i = 0; i < 3; i++) window.dispatchEvent(new window.Event("scroll"));
     assert.deepEqual([header.dataset.compact, chrome.dataset.compact], state,
@@ -180,6 +187,10 @@ test("tiny scrolling preserves flow geometry through compaction, reversal and re
   expandedHeader = 180;
   expandedChrome = 320;
   window.dispatchEvent(new window.Event("resize"));
+  paneReservation = workspace.style.getPropertyValue(
+    "--workspace-pane-stack-reservation",
+  );
+  assert.equal(paneReservation, "540px", "A real viewport/layout change remeasures the reservation.");
   assert.equal(header.parentElement.style.height, "180px");
   assert.equal(chrome.parentElement.style.height, "320px");
   const resizedY = y;
@@ -232,9 +243,11 @@ test("Contents toggle survives Read rerenders and removes the ToC from layout", 
     <aside id="workspace-read-toc" class="toc-panel"><nav>
       <a href="#first">First</a><a href="#second">Second</a>
     </nav></aside>
-    <div class="reading-column"><article class="reader-content">
+    <div class="reading-column" id="workspace-read-pane" data-workspace-scroll-pane>
+      <article class="reader-content">
       <h2 id="first">First</h2><h2 id="second">Second</h2>
-    </article></div>
+      </article>
+    </div>
   </div>`;
   globalThis.fetch = () => Promise.resolve({
     ok: true,
@@ -260,6 +273,81 @@ test("Contents toggle survives Read rerenders and removes the ToC from layout", 
   assert.equal(toggle.getAttribute("aria-pressed"), "false");
   assert.equal(document.querySelector("#workspace-read-toc").hidden, true);
   assert.equal(document.querySelector("#workspace-read-content").textContent.includes("Updated"), true);
+});
+
+test("Read rerenders retain the visible content anchor and Back to top leaves page scroll alone", async () => {
+  const form = setup("?tab=read");
+  let html = "";
+  const response = () => ({
+    headers: {get: () => "application/json"},
+    ok: true,
+    json: async () => ({html, state: "exact", appearance: appearance()}),
+  });
+  globalThis.fetch = async () => response();
+  const pageOwner = {scrollTop: 700};
+  Object.defineProperty(document, "scrollingElement", {value: pageOwner});
+  Object.defineProperty(window, "scrollY", {get: () => pageOwner.scrollTop, configurable: true});
+  const pageScrolls = [];
+  window.scrollTo = ({top}) => {
+    pageScrolls.push(top);
+    pageOwner.scrollTop = top;
+  };
+  dom.window.HTMLElement.prototype.getBoundingClientRect = function() {
+    if (this.matches?.("[data-workspace-scroll-pane]")) {
+      return {top: 100, bottom: 400, height: 300};
+    }
+    if (this.id === "first") {
+      const pane = this.closest("[data-workspace-scroll-pane]");
+      const top = 200 - pane.scrollTop;
+      return {top, bottom: top + 40, height: 40};
+    }
+    if (this.id === "second") {
+      const pane = this.closest("[data-workspace-scroll-pane]");
+      const base = this.textContent === "After" ? 800 : 700;
+      const top = 100 + base - pane.scrollTop;
+      return {top, bottom: top + 40, height: 40};
+    }
+    return {top: 0, bottom: 0, height: 0};
+  };
+  const paneHtml = text => `<div class="reader-layout">
+    <aside class="toc-panel" id="workspace-read-toc"></aside>
+    <div id="workspace-read-pane" class="reading-column" data-workspace-scroll-pane
+      role="region" aria-label="Reading content" tabindex="0">
+      <article class="reader-content"><h2 id="first">First</h2><h2 id="second">${text}</h2></article>
+    </div></div>`;
+  html = paneHtml("Before");
+  const snapshot = {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>Before</p>", metadata: {}}, source_tickets: [],
+  };
+  mount(form, snapshot);
+  await new Promise(resolve => setImmediate(resolve));
+  const oldPane = document.querySelector("#workspace-read-pane");
+  Object.defineProperty(oldPane, "clientHeight", {value: 300});
+  Object.defineProperty(oldPane, "clientTop", {value: 0});
+  oldPane.scrollTop = 500;
+  snapshot.document.html = "<p>After</p>";
+  html = paneHtml("After");
+  document.querySelector("#workspace-action-status").textContent = "";
+  document.querySelector('[data-workspace-tab="read"]').click();
+  await new Promise(resolve => setImmediate(resolve));
+
+  const pane = document.querySelector("#workspace-read-pane");
+  assert.equal(pane.scrollTop, 600);
+  assert.equal(
+    document.querySelector("#second").getBoundingClientRect().top
+      - pane.getBoundingClientRect().top,
+    200,
+  );
+  assert.equal(pageOwner.scrollTop, 700);
+  assert.deepEqual(pageScrolls, []);
+  const backToTop = document.querySelector("#workspace-back-to-top");
+  assert.equal(backToTop.getAttribute("aria-controls"), "workspace-read-pane");
+  pane.scrollTo = ({top}) => { pane.scrollTop = top; };
+  backToTop.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 1}));
+  assert.equal(pane.scrollTop, 0);
+  assert.equal(pageOwner.scrollTop, 700);
+  assert.deepEqual(pageScrolls, []);
 });
 
 test("a late Read response cannot replace a newer draft projection", async () => {

@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v31">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v32">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-unified-workspace-v11-inline-q1">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-scroll-v12">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -141,7 +141,7 @@
         </nav>
         <div class="editor-canvas">
           <p id="editor-view-notice" role="status">Whole book. Saving always includes all parts.</p>
-          <div id="editor-surface" class="reader-content"></div>
+          <div id="editor-surface" class="reader-content" data-workspace-scroll-pane></div>
           <p id="editor-selection-path" aria-label="Current block structure"></p>
         </div>
       </div>

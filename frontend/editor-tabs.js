@@ -3,9 +3,12 @@ export function mountEditorTabs(form) {
   const tabs = [...(workspace?.querySelectorAll('[role="tab"][data-editor-tab]') || [])];
   if (!tabs.length) return null;
   const panel = tab => form.ownerDocument.getElementById(tab.getAttribute("aria-controls"));
+  const pagePositions = new Map();
   function select(name, focus = false) {
     const chosen = tabs.find(tab => tab.dataset.editorTab === name);
     if (!chosen) throw new Error("Choose a supported editor tab.");
+    const previous = workspace.dataset.editorTab;
+    if (previous && previous !== name) pagePositions.set(previous, window.scrollY);
     for (const tab of tabs) {
       const active = tab === chosen;
       tab.setAttribute("aria-selected", String(active));
@@ -14,8 +17,11 @@ export function mountEditorTabs(form) {
     }
     workspace.dataset.editorTab = name;
     form.hidden = name === "structure";
-    if (focus) chosen.focus();
-    workspace.dispatchEvent(new CustomEvent("editor-local-tab-change", {
+    if (focus) chosen.focus({preventScroll: true});
+    if (previous && previous !== name) {
+      window.scrollTo({top: pagePositions.get(name) ?? 0, behavior: "auto"});
+    }
+    workspace.dispatchEvent(new workspace.ownerDocument.defaultView.CustomEvent("editor-local-tab-change", {
       detail: {tab: name},
     }));
   }

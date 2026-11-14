@@ -31,7 +31,8 @@ test("public workspace switches Read, Versions and Sources without editor reques
       <section id="workspace-panel-read"><button id="workspace-contents-toggle" aria-label="Toggle ToC" aria-pressed="true" aria-controls="workspace-read-toc">Toggle ToC</button>
         <div id="workspace-read-content"><div class="reader-layout">
           <aside class="toc-panel" id="workspace-read-toc"><a href="#heading">Heading</a></aside>
-          <div class="reading-column"><article class="reader-content"><h2 id="heading">Heading</h2></article></div>
+          <div id="workspace-read-pane" class="reading-column" data-workspace-scroll-pane>
+            <article class="reader-content"><h2 id="heading">Heading</h2></article></div>
         </div></div>
       </section>
       <section id="workspace-panel-versions" hidden><div id="workspace-versions-content"></div></section>
@@ -102,6 +103,16 @@ test("public workspace switches Read, Versions and Sources without editor reques
   const contentsToggle = document.querySelector("#workspace-contents-toggle");
   assert.equal(contentsToggle.textContent, "Toggle ToC");
   assert.equal(contentsToggle.getAttribute("aria-label"), "Toggle ToC");
+  const pane = document.querySelector("#workspace-read-pane");
+  Object.defineProperties(pane, {
+    clientHeight: {value: 300},
+    clientTop: {value: 0},
+  });
+  pane.getBoundingClientRect = () => ({top: 100, bottom: 400, height: 300});
+  const article = pane.querySelector(".reader-content");
+  article.firstElementChild.getBoundingClientRect = () => ({
+    top: 100, bottom: 120, height: 20,
+  });
   owner.scrollTop = 300;
   const heading = document.querySelector("#heading");
   heading.getBoundingClientRect = () => ({

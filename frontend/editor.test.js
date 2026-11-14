@@ -1074,9 +1074,11 @@ test("book, page and group rows follow the viewport like section rows and naviga
   offset = 0;
   const pageScrolls = [];
   dom.window.scrollTo = ({top}) => pageScrolls.push(top);
+  offset = -150;
   outline.querySelector('[data-book-view="toc"]').click();
   assert.equal(form.querySelector("#editor-part").value, "book");
-  assert.equal(pageScrolls[0], 100, "ToC navigation scrolls the page to the generated page.");
+  assert.deepEqual(pageScrolls, [], "ToC navigation stays within the content pane.");
+  assert(surface.scrollTop > 0, "The generated page is revealed inside the content pane.");
   assert.equal(document.activeElement.dataset.bookView, "toc");
   assert.equal(editor.getHTML(), original);
 
@@ -6156,4 +6158,34 @@ test("editor widget tabs switch panels by click, arrow keys and events while sha
   form.dispatchEvent(new dom.window.CustomEvent("editor-show-tab", {detail: {tab: "metadata"}}));
   assert.equal(tabs.current, "metadata");
   assert.throws(() => tabs.select("missing"), /supported editor tab/);
+});
+
+test("local tabs retain page positions separately from the editor content pane", () => {
+  const form = mountSectionWorkspace("<p>Body</p>");
+  const surface = form.querySelector("#editor-surface");
+  surface.scrollTop = 450;
+  const tabs = mountEditorTabs(form);
+  let pageY = 0;
+  const previousScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
+  const previousScrollTo = window.scrollTo;
+  Object.defineProperty(window, "scrollY", {
+    configurable: true, get: () => pageY,
+  });
+  window.scrollTo = ({top}) => { pageY = top; };
+
+  try {
+    pageY = 320;
+    tabs.select("metadata");
+    assert.equal(pageY, 0);
+    pageY = 80;
+    tabs.select("review");
+    assert.equal(pageY, 0);
+    tabs.select("editor");
+    assert.equal(pageY, 320);
+    assert.equal(surface.scrollTop, 450);
+  } finally {
+    if (previousScrollY) Object.defineProperty(window, "scrollY", previousScrollY);
+    else delete window.scrollY;
+    window.scrollTo = previousScrollTo;
+  }
 });

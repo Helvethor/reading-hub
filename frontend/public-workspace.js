@@ -34,6 +34,14 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     return workspace.dataset.activeTab || "read";
   }
 
+  function scrollOwner() {
+    if (currentTab() === "read") {
+      return contents.querySelector("[data-workspace-scroll-pane]")
+        || document.scrollingElement;
+    }
+    return document.scrollingElement;
+  }
+
   function setStatus(message, role = "status") {
     status.replaceChildren();
     if (!message) return;
@@ -44,14 +52,18 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
   }
 
   function updateBackToTop() {
-    const owner = document.scrollingElement;
+    const owner = scrollOwner();
     const stackHeight = Number.parseFloat(
       workspace.style.getPropertyValue("--workspace-full-stack")
         || workspace.style.getPropertyValue("--workspace-stack-height"),
     ) || 0;
-    backToTop.hidden = !owner || owner.scrollTop
-      < Math.max(120, window.innerHeight - stackHeight);
-    backToTop.setAttribute("aria-controls", panels.get(currentTab())?.id || "");
+    const isPage = owner === document.scrollingElement;
+    const visibleHeight = isPage
+      ? window.innerHeight - stackHeight : owner?.clientHeight || 0;
+    backToTop.hidden = !owner || Boolean(document.querySelector("dialog[open]"))
+      || owner.scrollTop < Math.max(120, visibleHeight);
+    backToTop.setAttribute("aria-controls",
+      (isPage ? panels.get(currentTab()) : owner)?.id || "");
   }
 
   function statePrefix(tab) {
@@ -236,10 +248,28 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     selectTab(tab);
   });
   window.addEventListener("scroll", updateBackToTop, {passive: true});
+  workspace.addEventListener("scroll", updateBackToTop, {passive: true, capture: true});
   backToTop.addEventListener("click", event => {
-    window.scrollTo({top: 0, behavior: "auto"});
-    refreshSticky();
-    if (event.detail === 0) panels.get(currentTab()).focus({preventScroll: true});
+    const owner = scrollOwner();
+    const isPage = owner === document.scrollingElement;
+    if (isPage) {
+      window.scrollTo({top: 0, behavior: "auto"});
+      refreshSticky();
+    } else {
+      owner.scrollTo?.({top: 0, behavior: "auto"});
+      if (!owner.scrollTo) owner.scrollTop = 0;
+    }
+    updateBackToTop();
+    if (event.detail === 0) {
+      const target = isPage ? panels.get(currentTab()) : owner;
+      target.focus({preventScroll: true});
+    }
+  });
+  const dialogObserver = typeof MutationObserver === "undefined"
+    ? null
+    : new MutationObserver(updateBackToTop);
+  dialogObserver?.observe(document.body, {
+    attributes: true, attributeFilter: ["open"], subtree: true,
   });
   refreshSticky = mountStickyStack(workspace, updateBackToTop);
 

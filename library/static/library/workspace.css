@@ -113,6 +113,12 @@ body.workspace-page .review-navigation {
   gap: clamp(1rem, 4vw, 3rem);
   padding-block-start: 1.5rem;
 }
+.workspace-read-content .reading-column[data-workspace-scroll-pane] {
+  max-height: max(5rem, calc(100dvh - var(--workspace-pane-stack-reservation, var(--workspace-full-stack, 0px)) - var(--workspace-read-flow-height, 0px) - 1rem));
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior-y: auto;
+}
 .workspace-read-content .toc-panel {
   position: sticky;
   top: var(--workspace-full-stack, 0px);
@@ -131,7 +137,7 @@ body.workspace-page .review-navigation {
 .workspace-read-content .reader-content [id],
 .workspace-read-content .document-end-matter[id],
 .workspace-read-content .document-contents[id] {
-  scroll-margin-top: calc(var(--workspace-full-stack, 0px) + 1rem);
+  scroll-margin-top: 1rem;
 }
 .workspace-scroll-panel .lineage-timeline { max-height: none; overflow: visible; }
 .workspace-scroll-panel .lineage-workspace { grid-template-columns: minmax(15rem, .9fr) minmax(0, 1.1fr); }
@@ -221,4 +227,9 @@ body.workspace-page .review-navigation {
   .workspace-sticky-marker, .workspace-sticky-slot { display: none !important; }
   .workspace-page :is(.work-page, .editor-page) { max-width: none; margin: 0; padding: 0; }
   .workspace-read-preview { padding: 0; }
+  .workspace-read-content .reading-column[data-workspace-scroll-pane],
+  #editor-surface[data-workspace-scroll-pane] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 }

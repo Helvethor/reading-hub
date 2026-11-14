@@ -407,6 +407,9 @@ class DocumentEditorViewTests(TestCase):
                 panel,
             )
         self.assertIsNotNone(workspace.select_one("#workspace-back-to-top"))
+        self.assertIsNotNone(
+            workspace.select_one("#editor-surface[data-workspace-scroll-pane]"),
+        )
         for asset in (
             "library/reader.css", "library/reading-style-controls.css",
             "library/generated/editor-pilot.css",
@@ -529,6 +532,9 @@ class DocumentEditorViewTests(TestCase):
         response = Client().get(reverse("reader", args=[self.rendition.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "workspace-back-to-top")
+        self.assertContains(
+            response, 'id="workspace-read-pane" data-workspace-scroll-pane',
+        )
         self.assertContains(response, "public-workspace.js")
         self.assertContains(response, "library/lineage.css")
         self.assertContains(response, "data-reading-pdf>PDF</a>")

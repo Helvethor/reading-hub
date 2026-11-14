@@ -765,19 +765,18 @@ close V31.
 ### V.k: classical content and page scrolling
 
 User request 2026-11-14: the recent Read/editor content scrolling feels strange;
-plan a return to one scroll for content and one for the page. Menu stacking
-behavior must not change. This section is a plan, not an implementation or
-deployment report.
+return to one scroll for content and one for the page. Menu stacking behavior
+must not change. Implementation delivered 2026-11-14; V32-V35 acceptance remains
+partial, and this section records evidence and outstanding validation.
 
 #### Current evidence and scope
 
-Code inspection confirms that V.b deliberately removed the canvas height/
-overflow boundary. `workspace-shell.js` and `public-workspace.js` remember
-`window.scrollY`; `page-scroll.js` navigates the window; `contents-panel.js`
-tracks the document scroller; and the editor caret visibility handler scrolls
-the window. Reintroducing CSS overflow alone would leave these callers targeting
-the wrong owner. No browser reproduction or new root-cause claim accompanies
-this planning pass.
+V.b deliberately removed the canvas height/overflow boundary. V.k restores
+bounded native Read and Edit Content panes and routes navigation, caret
+visibility, position restoration and Back to top to the correct owner. The
+sticky-stack state machine remains page-scroll-driven. This is an implementation
+record, not a claim that the original user report or complete V32-V35 workflow
+acceptance was independently reproduced.
 
 Apply to Read in public and reviewer version workspaces, including saved output
 and unsaved previews, and to Edit's Content canvas. Do not change Versions,
@@ -850,24 +849,28 @@ their unrelated behavior and preservation requirements remain in force.
   Screen overflow/height constraints are removed for print; actual saved/draft
   PDF and browser print retain all content and existing layout/identity.
 
-#### Implementation sequence and verification
+#### Delivery and verification
 
-1. On isolated article and media-rich long-book fixtures, record current page/
-   pane geometry and stack/menu behavior. Introduce the two bounded main panes
-   and owner-aware navigation together, not a CSS-only interim release. Extend
-   the existing shared scroll helpers for document or element owners; reuse them
-   in public/reviewer shells, contents tracking, outline and editor caret/link
-   navigation. Leave the sticky-stack state machine intact.
-2. Update position restoration, asynchronous replacement, Back to top and focus
-   return for both owners. Add focused regressions to existing workspace,
-   contents/navigation and editor tests covering independent positions, stale
-   responses, caret/link targets and unchanged page-driven compaction. Checkpoint
-   this coherent slice only after its focused tests and production build pass.
-3. Exercise V32-V35 in a visible browser with real wheel/trackpad, scrollbar and
-   keyboard input. Compare actual print and saved/draft PDF content, not only
-   CSS visibility. Use the existing isolated-test guidance; no live corrections,
-   saves, publication/default changes, workers or deployment are authorized.
-   Record automated, synthetic, observed and untested evidence separately.
+1. [x] Introduce the two bounded main panes and owner-aware navigation together.
+   Extend the shared helpers for page and element owners; reuse them in public
+   and reviewer workspaces, Contents tracking, outline navigation, editor links
+   and caret visibility. Leave the sticky-stack state machine page-driven.
+2. [x] Preserve page and pane positions across tabs and Read replacement; route
+   Back to top and keyboard focus to the active owner. Add regressions for
+   independent page/content scrolling, anchor restoration and stable stack
+   reservations.
+3. [x] Automated checks: 333 frontend tests, 49 isolated Django workspace/reader
+   tests, production build and template/system checks pass. A synthetic Chromium
+   fixture with equivalent pane CSS measured Read at 624px for 7,864px of content
+   and Edit at 524px for 4,671px. Wheel input over the page moved page position
+   while Read stayed at zero; input over Read moved its pane while page position
+   stayed fixed. The fixture did not load the application or its CSS bundle.
+4. [ ] Complete V32-V35 in the actual application on isolated short-article and
+   media-rich book fixtures. Native scrollbar drags, keyboard journeys, narrow
+   and short viewports, native 200% zoom, menu/dialog layering, Back/Forward,
+   actual saved/draft PDF and browser print comparison, and human accessibility
+   review remain unverified. The existing localhost service points to an older
+   release; it was not restarted or used against live data.
 
 ### V.h: one work page for every role
 

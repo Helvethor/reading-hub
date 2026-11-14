@@ -21,6 +21,59 @@ export function mountStickyStack(workspace, updateBackToTop) {
   let expandedHeaderHeight = siteHeader?.getBoundingClientRect().height || 0;
   let expandedChromeHeight = chrome.getBoundingClientRect().height;
 
+  const editFlowControls = [
+    ".editor-scope-help",
+    "#document-editor > details",
+    "#editor-status",
+    "#editor-error",
+    ".editor-diff-controls",
+    "#editor-diff-status",
+    "#editor-view-notice",
+    "#editor-selection-path",
+  ].flatMap(selector => [...workspace.querySelectorAll(selector)]);
+
+  function measureEditFlow() {
+    const surface = workspace.querySelector("#editor-surface[data-workspace-scroll-pane]");
+    if (!surface || surface.closest("[hidden]")) {
+      workspace.style.removeProperty("--workspace-edit-flow-height");
+      return;
+    }
+    let height = 0;
+    for (const control of editFlowControls) {
+      if (control.closest("[hidden]")) continue;
+      const rect = control.getBoundingClientRect();
+      if (!rect.height) continue;
+      const style = window.getComputedStyle(control);
+      height += rect.height
+        + (Number.parseFloat(style.marginTop) || 0)
+        + (Number.parseFloat(style.marginBottom) || 0);
+    }
+    workspace.style.setProperty("--workspace-edit-flow-height", `${height}px`);
+  }
+
+  function measureReadFlow() {
+    let height = 0;
+    const add = element => {
+      if (!element || element.hidden || element.closest("[hidden]")) return;
+      const rect = element.getBoundingClientRect();
+      if (!rect.height) return;
+      const style = window.getComputedStyle(element);
+      height += rect.height
+        + (Number.parseFloat(style.marginTop) || 0)
+        + (Number.parseFloat(style.marginBottom) || 0);
+    };
+    const actions = workspace.querySelector(".workspace-read-actions");
+    if (actions && ["static", "relative"].includes(window.getComputedStyle(actions).position)) {
+      add(actions);
+    }
+    add(workspace.querySelector("#workspace-read-content .workspace-preview-heading"));
+    const toc = workspace.querySelector("#workspace-read-content .toc-panel");
+    if (toc && ["static", "relative"].includes(window.getComputedStyle(toc).position)) {
+      add(toc);
+    }
+    workspace.style.setProperty("--workspace-read-flow-height", `${height}px`);
+  }
+
   function measure() {
     const headerHeight = siteHeader?.getBoundingClientRect().height || 0;
     const reviewHeight = reviewNavigation?.getBoundingClientRect().height || 0;
@@ -49,6 +102,19 @@ export function mountStickyStack(workspace, updateBackToTop) {
     updateBackToTop();
   }
 
+  function measurePaneStackReservation() {
+    let height = expandedHeaderHeight
+      + (reviewNavigation?.getBoundingClientRect().height || 0)
+      + expandedChromeHeight;
+    for (const bar of workspace.querySelectorAll("[data-workspace-subbar]")) {
+      if (bar.closest("[hidden]")) continue;
+      const position = window.getComputedStyle(bar).position;
+      if (position === "static" || position === "relative") continue;
+      height += bar.getBoundingClientRect().height;
+    }
+    workspace.style.setProperty("--workspace-pane-stack-reservation", `${height}px`);
+  }
+
   function compact() {
     // Fixed-height slots keep compact transitions from changing document flow.
     const headerDistance = -headerMarker.getBoundingClientRect().bottom;
@@ -74,6 +140,9 @@ export function mountStickyStack(workspace, updateBackToTop) {
     expandedChromeHeight = chrome.getBoundingClientRect().height;
     if (headerSlot) headerSlot.style.height = `${expandedHeaderHeight}px`;
     chromeSlot.style.height = `${expandedChromeHeight}px`;
+    measurePaneStackReservation();
+    measureEditFlow();
+    measureReadFlow();
     if (siteHeader) siteHeader.dataset.compact = headerCompact;
     chrome.dataset.compact = chromeCompact;
     compact();
@@ -87,6 +156,19 @@ export function mountStickyStack(workspace, updateBackToTop) {
   ]) {
     if (element) observer?.observe(element);
   }
+  const editFlowObserver = !editFlowControls.length || typeof ResizeObserver === "undefined"
+    ? null
+    : new ResizeObserver(measureEditFlow);
+  for (const control of editFlowControls) editFlowObserver?.observe(control);
+  const readContent = workspace.querySelector("#workspace-read-content");
+  if (typeof MutationObserver !== "undefined" && readContent) {
+    const readFlowObserver = new MutationObserver(measureReadFlow);
+    readFlowObserver.observe(readContent, {childList: true});
+    readFlowObserver.observe(readContent, {
+      attributes: true, attributeFilter: ["hidden"], subtree: true,
+    });
+  }
+  workspace.addEventListener("editor-local-tab-change", measureEditFlow);
   window.addEventListener("scroll", compact, {passive: true});
   window.addEventListener("resize", remeasure);
   remeasure();

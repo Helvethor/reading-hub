@@ -1,6 +1,8 @@
 import {scrollElementIntoView} from "./page-scroll.js";
 import {mountStickyStack} from "./workspace-navigation.js";
-import {mountContentsPanel} from "./contents-panel.js";
+import {
+  captureReadingPosition, mountContentsPanel, restoreReadingPosition,
+} from "./contents-panel.js";
 import {mountLineageControls, replaceLineageContent} from "./lineage-controls.js";
 
 function csrfToken(form) {
@@ -190,6 +192,15 @@ export function mountWorkspaceShell({
   }
 
   function scrollOwner() {
+    if (currentTab() === "read") {
+      return readContent.querySelector("[data-workspace-scroll-pane]")
+        || document.scrollingElement;
+    }
+    const editor = workspace.querySelector(".editor-workspace");
+    if (currentTab() === "edit" && editor?.dataset.editorTab === "editor") {
+      return editor.querySelector("#editor-surface[data-workspace-scroll-pane]")
+        || document.scrollingElement;
+    }
     return document.scrollingElement;
   }
 
@@ -206,12 +217,15 @@ export function mountWorkspaceShell({
   }
 
   function keepActivePosition(tab, replace) {
+    const contentPosition = tab === "read" ? captureReadingPosition(readContent) : null;
     if (tab !== currentTab()) {
       replace();
+      restoreReadingPosition(readContent, contentPosition);
       return;
     }
     const top = window.scrollY;
     replace();
+    restoreReadingPosition(readContent, contentPosition);
     if (pendingPosition?.tab === tab) applyPendingPosition();
     else if (window.scrollY !== top) window.scrollTo({top, behavior: "auto"});
   }
@@ -226,10 +240,13 @@ export function mountWorkspaceShell({
       workspace.style.getPropertyValue("--workspace-full-stack")
         || workspace.style.getPropertyValue("--workspace-stack-height"),
     ) || 0;
-    const visibleHeight = window.innerHeight - stackHeight;
+    const isPage = owner === document.scrollingElement;
+    const visibleHeight = isPage
+      ? window.innerHeight - stackHeight : owner?.clientHeight || 0;
     backToTop.hidden = !owner || modalOwnsFocus()
       || owner.scrollTop < Math.max(120, visibleHeight);
-    backToTop.setAttribute("aria-controls", panels.get(currentTab())?.id || "");
+    backToTop.setAttribute("aria-controls",
+      (isPage ? panels.get(currentTab()) : owner)?.id || "");
   }
 
   function writeTabState(tab, replace = false) {
@@ -616,14 +633,24 @@ export function mountWorkspaceShell({
   for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
     window.addEventListener(type, () => { pendingPosition = null; }, {passive: true, capture: true});
   }
+  window.addEventListener("scroll", updateBackToTop, {passive: true});
+  workspace.addEventListener("scroll", updateBackToTop, {passive: true, capture: true});
   backToTop.addEventListener("click", event => {
     const owner = scrollOwner();
     if (!owner) return;
-    scrollToTop();
-    refreshStickyStack();
+    const isPage = owner === document.scrollingElement;
+    if (isPage) {
+      scrollToTop();
+      refreshStickyStack();
+    } else {
+      owner.scrollTo?.({top: 0, behavior: "auto"});
+      if (!owner.scrollTo) owner.scrollTop = 0;
+    }
+    updateBackToTop();
     if (event.detail === 0) {
-      const panel = panels.get(currentTab());
-      panel.focus({preventScroll: true});
+      const target = isPage ? panels.get(currentTab())
+        : owner.querySelector("[contenteditable=true]") || owner;
+      target.focus({preventScroll: true});
     }
   });
   const dialogObserver = typeof MutationObserver === "undefined"

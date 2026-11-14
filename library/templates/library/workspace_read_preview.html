@@ -17,7 +17,7 @@
         </nav>
       </details>
     </aside>
-    <div class="reading-column">
+    <div class="reading-column" id="workspace-read-pane" data-workspace-scroll-pane role="region" aria-label="Reading content" tabindex="0">
       <div class="publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
         <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}>
           <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %}{% if preview_is_unsaved %} · DRAFT PREVIEW{% endif %}</p>

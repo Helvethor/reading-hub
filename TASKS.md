@@ -242,23 +242,27 @@ Read layout follow-up V.j (implementation present; V31 acceptance partial,
   Locally deployed as commit `df48756` on 2026-11-14 without migration or live
   content changes; see the [deployment evidence](docs/OPERATIONS.md).
 
-Classical scrolling follow-up V.k (planned, specification/design only,
+Classical scrolling follow-up V.k (implemented; V32-V35 acceptance partial,
 2026-11-14): return workspace Read and Edit Content to a native content pane
 plus normal page scrolling, without changing menu stacking. The
 [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vk-classical-content-and-page-scrolling)
-owns design, delivery order and V32-V35 acceptance. This is the next bounded
-scrolling correction if implementation is requested, not authorization to build
-or deploy it.
+records design, delivery and V32-V35 acceptance. No deployment or live-data
+changes were authorized or performed.
 
-- [ ] Restore one bounded main content pane in Read and Edit Content; keep page
+- [x] Restore one bounded main content pane in Read and Edit Content; keep page
   scrolling, footer access and existing stack/compaction behavior unchanged.
-- [ ] Make navigation, caret visibility, ToC/outline following and Back to top
+- [x] Make navigation, caret visibility, ToC/outline following and Back to top
   owner-aware; preserve separate page/content positions across tabs, history,
   asynchronous Read refresh and layout changes without stale-response jumps.
-- [ ] Validate V32-V35 with isolated saved/draft article/book workflows, native
+- [x] Automated correctness: 333 frontend tests, 49 isolated Django workspace/
+  reader tests, production build and template/system checks pass. Synthetic
+  Chromium fixture verified separate native page/Read/Edit scroll owners and
+  measured bounded pane heights; no live data or server was changed.
+- [ ] Complete V32-V35 with isolated saved/draft article/book workflows, native
   wheel/trackpad and scrollbar input, keyboard, short/narrow screens, 200% zoom,
-  menu layering and actual print/PDF preservation. No implementation or browser
-  validation has been performed for V.k.
+  menu layering and actual print/PDF preservation. Real application browser
+  journeys, actual print/PDF comparison and human accessibility review remain
+  unverified.
 
 - [ ] Validate remaining V17-V22 with isolated article/book fixtures and real
   browser/PDF observations under V.k's explicitly revised Read/Edit ownership;
