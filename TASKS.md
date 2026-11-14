@@ -270,6 +270,26 @@ records design, delivery and V32-V35 acceptance. Local deployment of commit
   browser/PDF observations under V.k's explicitly revised Read/Edit ownership;
   preserve relevant V1-V16 behavior and report limitations.
 
+Coherent reader follow-up V.l (agreed 2026-11-14; planned, not implemented):
+the [reader-stage handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vl-coherent-reader-stage-and-tools)
+owns the complete design and V36-V40 acceptance. This consolidates the accepted
+reader proposal and removal of the redundant content ARTICLE/BOOK eyebrow.
+Documentation only is authorized; implementation and deployment need separate
+authorization. Build on V.k without certifying its outstanding acceptance.
+
+- [ ] Consolidate Table of Contents and Style in one independently scrollable
+  Reader tools rail; normalize toolbar buttons and implement explicit Larger
+  content/rail transitions with session-local state and safe focus restoration.
+- [ ] Coordinate stable, compact-capacity Read/rail heights, normal page/footer
+  scrolling and responsive tools access without changing the menu-stack engine.
+- [ ] Remove Read's enclosing card border/shadow and redundant content type
+  eyebrow, retaining workspace identity, paper/palettes and meaningful focus,
+  hierarchy and warning treatments.
+- [ ] Validate V36-V40 on isolated short-article and long media-rich book
+  saved/draft journeys, including actual PDF/print preservation, style scopes,
+  editor state, native input, zoom and narrow/short screens; checkpoint only
+  validated delivery and report observed/synthetic/unverified evidence separately.
+
 - [x] Deliver persistent Read/Edit/Versions/Sources tabs with explicit saved,
   draft, unsaved and reader-default identities and common actions.
 - [x] Keep the editor mounted while switching tabs; preserve local state, history,

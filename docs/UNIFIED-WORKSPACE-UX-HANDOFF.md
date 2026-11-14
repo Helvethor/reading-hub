@@ -25,6 +25,12 @@ see the [local deployment record](OPERATIONS.md) and outstanding checks below.
 Remote deployment, migrations and live-data changes were not authorized or
 performed.
 
+Follow-up V.l, agreed 2026-11-14, consolidates the coherent reader-stage/tools
+proposal and removal of the redundant content ARTICLE/BOOK eyebrow. It is
+planned, not implemented or validated; V36-V40 define acceptance. The current
+request authorizes milestone documentation only, not implementation, deployment
+or live-data changes, regardless of earlier authorization for other follow-ups.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -875,6 +881,120 @@ their unrelated behavior and preservation requirements remain in force.
    `603268e` without migration or live-data changes; see
    [deployment evidence](OPERATIONS.md).
 
+### V.l: coherent reader stage and tools
+
+User accepted the reader design proposal on 2026-11-14 and requested consolidation
+as a milestone, adding that ARTICLE/BOOK above the content title is redundant
+with workspace context. Status: agreed design, documentation only; implementation
+and V36-V40 acceptance have not started.
+
+#### Outcome, evidence and scope
+
+A reader opens Style without growing the action bar, returns to Table of
+Contents, jumps to a chapter, enters Larger content and restores the tools
+without losing the reading anchor. Read fills the useful space below stacked
+menus while retaining native page, document and auxiliary tool scrolling.
+
+Code inspection found that opening Style expands its toolbar item to a full row;
+hiding the ToC also unbounds prose width. The ToC already has sticky positioning
+and internal overflow, but uses a different height calculation from the document
+pane. The latter reserves expanded chrome, leaving potential unused room after
+compaction. The workspace content header repeats ARTICLE/BOOK, already present
+in workspace context. These are code findings and user feedback, not a new
+live-browser reproduction or accessibility assessment.
+
+Apply only to Read in guest, signed-in and reviewer version workspaces, including
+saved editions, working copies and unsaved previews. Reuse V.k's native scroll
+owners and the existing style fields/services. Do not redesign Edit, Versions,
+Sources, standalone retained readers or export layouts.
+
+#### Layout and controls
+
+- Keep work identity/status, primary tabs and Read actions in their current
+  stack order. The Read toolbar contains PDF, Table of Contents, Style and
+  Larger content. Preserve applicable Saved PDF/Draft PDF qualifiers.
+- Replace Toggle ToC with **Table of Contents**, including its accessible
+  name. Replace the rail's "On this page" heading with the same term.
+- Rename the side column **Reader tools**. Give it mutually exclusive Table of
+  Contents and Style tabs; do not stack the entire settings form below a long
+  outline. Keep the rail header/tabs reachable while the active tool body
+  scrolls independently. Avoid additional nested scroll panes for style groups.
+- Style becomes an ordinary secondary toolbar button with matching height,
+  padding, typography, hover and focus treatment. Opening it never expands the
+  action bar. Reuse all existing style fields, reset controls, scope/origin
+  information, status/errors and guest/account behavior; adapt the form to the
+  rail width without tiny or clipped controls.
+- Start with the rail open on Table of Contents. Selecting either toolbar tool
+  opens its tab; selecting the already-open tool closes the rail. Switching
+  tools keeps it open. Use keyboard-operable rail tabs and explicit expanded/
+  selected states. When closing would hide focus, return focus to the trigger.
+- **Larger content** is a separate pressed-state layout toggle. Turning it on
+  remembers the previous rail visibility/tab, closes the rail and widens the
+  document viewport. Turning it off restores that previous state. Opening either
+  tool while larger mode is on exits larger mode and opens the selected tool,
+  overriding the remembered state. There is no larger-mode-with-open-rail state.
+- Keep these layout states session-local across workspace tabs and Read refresh;
+  they do not save preferences or content. Wider available space does not change
+  fonts or the selected prose-width limit; prose may grow only within that
+  limit, and wide media can use permitted additional space. Hiding the rail alone
+  must not remove prose-width limits. Larger content is not a PDF setting.
+- At narrow widths, provide the same tools through an on-demand bounded panel,
+  not a tall rail stacked above the document. Preserve focus return, reachable
+  close/tab controls and a usable reading band without horizontal page overflow.
+
+#### Height, scrolling and appearance
+
+- Align the rail and document to one stable reading stage. At ordinary desktop
+  sizes, its height fills the viewport below measured compact chrome/actions
+  with a 1rem bottom gutter. Short documents still occupy the stage without
+  filler content or forced internal scrolling.
+- Calculate capacity from measured compact chrome on real layout changes
+  (resize, native zoom, title/action wrapping and relevant status changes),
+  not hard-coded header heights, moving pane coordinates or each scroll event.
+  Expanded chrome consumes normal page flow; the modest extra page scrolling
+  lets the stage settle below the compact stack. Do not resize the pane during
+  ordinary compaction or change the stack's thresholds/expanded flow slots.
+  Confirm this sizing strategy in actual fixtures before treating it as solved.
+- Retain normal page scrolling and native document overflow. The footer follows
+  the bounded stage, not all prose. The rail scrolls independently; its input
+  never retargets Back to top or drives menu compaction. No wheel forwarding,
+  body lock, hidden scrollbars or new manual-resize/persisted-size feature.
+- Preserve the visible document anchor and rail tab/position across layout,
+  style, tab/history and asynchronous Read changes. Contents links navigate the
+  document owner. Active-entry following must not wrest scrolling away from a
+  reader browsing the outline or interacting with Style.
+- Keep borders for headers, tabs, menus and form controls. Remove Read's enclosing
+  content-card border/shadow and avoid outer boxes around the document and rail.
+  Use spacing and restrained surface contrast; retain useful ToC hierarchy
+  guides, active-section markers, focus outlines, warnings and selected paper/
+  palette identity. Other work-view cards remain unchanged.
+- Remove the redundant ARTICLE/BOOK eyebrow above the document title in
+  workspace Read. Keep the type in workspace context, the content title and
+  semantic heading hierarchy. If the same eyebrow carries useful preservation/
+  edition status, retain that information in existing context or version details,
+  not another pre-title label. Do not alter article/book roles, stored metadata,
+  generated title/content pages or PDF/print output; use screen-only treatment
+  where shared rendering would otherwise change exported content.
+
+#### Delivery, dependencies and stopping point
+
+V.l depends on V.k's implemented scroll-owner/navigation helpers and the existing
+shared style system, not on unrelated publication/default changes. It supersedes
+only V.g/V.j's literal toggle label, toolbar Style placement, hidden-ToC unbounded
+prose behavior and Read card treatment, plus V.k's expanded-chrome Read capacity
+reservation. Edit sizing, page-driven menu stacking and all unrelated
+preservation/output requirements remain in force. Do not mark V25/V31-V35
+complete from this redesign alone.
+
+After separate implementation authorization, deliver toolbar/rail/layout state
+as one coherent slice, then coordinate height/appearance/header cleanup and
+end-to-end preservation. Reuse shared position, rendering and style mechanisms
+across public/reviewer Read; do not duplicate forms or remount the editor.
+Run focused existing regressions/build/checks and actual isolated browser/PDF
+journeys; checkpoint validated milestones without auto-deployment. Stop at
+V36-V40, reporting automated correctness, synthetic layout, actual workflow/
+output observations and outstanding human/accessibility evidence separately.
+
 ### V.h: one work page for every role
 
 User decision 2026-11-12: record option A of the consolidation proposal.
@@ -1082,8 +1202,11 @@ mutation belongs to this follow-up. V.e, V.f and V.g are independent and may lan
 first as focused fixes after reproduction. V.h depends on V.d and V.g, and should
 follow M's style placement or coordinate with it. V.i follows the delivery order
 in its section. V.k is implemented and locally deployed; its V32-V35 acceptance
-remains open and revises only the stated Read/Edit scroll ownership. Stop only
-after the applicable V17-V35 and relevant V1-V16 preservation checks are
+remains open and revises only the stated Read/Edit scroll ownership. V.l is an
+agreed documentation-only follow-up; its implementation/deployment needs separate
+authorization and its V36-V40 contract supersedes only the conflicts listed in
+that section. Stop only
+after the applicable authorized V17-V40 and relevant V1-V16 preservation checks are
 evidenced; report browser limitations rather than claiming full acceptance from
 jsdom tests.
 
@@ -1157,12 +1280,19 @@ unsaved edits. Track implementation and validation independently.
 | V33 | With page position fixed, deep-scroll Read/Edit content: header/tab/command compaction and page range remain unchanged. Then scroll the page through the existing thresholds in both directions using tiny wheel increments and a held scrollbar drag: stack order, expansion, reserved flow and menu/dialog layering match the baseline without jitter. Open keyboard/pointer menus and dialogs before each kind of scroll and compare existing dismissal/focus behavior; new overflow does not clip them or detach their placement from targets. Include wrapped commands, expanded Style, short/narrow screens and zoom. |
 | V34 | Scroll page and each pane to distinct positions with unsaved edits; switch all main/local tabs, use Back/Forward, refresh Read asynchronously, change/restore Style and toggle ToC. Restore the appropriate page/content locations without editor remount, undo/recovery loss or stale-response/user-scroll overrides. Exercise ToC/internal/deep links, outline following, caret movement to first/last block and dialog focus return; targets are visible in the correct pane and below any overlap without unnecessary page jumps. Back to top moves only the active Read/Edit Content pane, leaves page/stack state unchanged, respects keyboard/reduced motion/modal focus and ignores auxiliary scrolling; other views keep their page target. |
 | V35 | Compare actual saved and unsaved draft PDF plus browser print before/after on the same fixtures: no pane clipping, missing generated/end pages, scroll controls or changed output identity, margins, prose, notes, links or media. Confirm V.j paper/width/palette behavior, editor state, permissions, retained records and mutation counts remain unchanged by scrolling/navigation. Versions/Sources, other Edit subtabs and standalone readers retain their previous scroll behavior. Record automated correctness, synthetic layout and observed workflow/output evidence separately; tester confirmation and human accessibility review remain explicit outstanding items unless performed. |
+| V36 | On guest and reviewer saved/draft Read fixtures, Table of Contents and Style match other toolbar buttons in computed height, padding and typography. Opening Style without a viewport change leaves toolbar height/row count unchanged. Exercise open, switch, close, Larger content on/off, prior-rail restoration and opening a tool from larger mode; assert visible/accessibility states and safe keyboard focus. State survives main-tab changes and Read replacement without implicit persistence. |
+| V37 | At 1440px and 1024px on short articles and long books, measure both stage panes after stacking: their heights agree and the stage fills the compact viewport capacity with the specified 1rem gutter, within 2 CSS px rounding tolerance. Tiny wheel increments and held scrollbar drags across compaction do not resize panes or oscillate geometry; page and content positions remain separate. Resize, title/action wrapping, short viewports, 375px and native 200% zoom recalculate capacity with reachable controls/last content/footer and no horizontal page overflow. Short content occupies the stage without artificial prose overflow. |
+| V38 | Navigate to the last entry in a long Table of Contents and the last Style control using independent tool scrolling and keyboard input. Contents links and active-entry following resolve the document owner without overriding manual rail browsing; Style interaction does not move or compact the page. Toggle rail/larger view and change/restore a style with a mid-document anchor; preserve that anchor, rail state/position, page/pane positions and editor selection/undo/recovery through tab/history and asynchronous refresh, including intervening user navigation. |
+| V39 | Capture light/dark, desktop and narrow Read surfaces: no enclosing Read card border/shadow or redundant pre-title ARTICLE/BOOK eyebrow; type remains in workspace context and the content title/heading semantics, metadata and material status/warnings remain intact. Headers/menus/controls retain clear boundaries, rail tabs and active headings remain distinguishable, and keyboard focus remains visible. A narrow-screen tools panel has reachable controls and returns focus without trapping the reader or stacking a long tool form above the document. Other work views retain their existing appearance. |
+| V40 | Measure selected prose-width limits before/after rail and Larger content changes: no layout action rewrites or removes them, though available viewport/media space can grow. Exercise exact-version/account defaults and guest styles with unchanged scopes, resets, status/errors and intentional persistence. Compare actual saved/draft PDF and browser print before/after: identical content/type/title metadata, generated pages, prose, notes, links, media, margins, palette and output identity; no clipping or reader tools. Layout actions create no preference/content/review/publication/default mutations. Preserve editor state, permissions, standalone readers and existing export failure visibility; report observed, synthetic and unverified evidence separately. |
 
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
 Stop when the authorized scope is implemented and validated, not when tabs merely
 look alike. V.k is implemented and locally deployed, but V32-V35 acceptance
 remains partial.
+V36-V40 apply only after V.l implementation is separately authorized; their
+documentation is not implementation, deployment or acceptance evidence.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
@@ -1183,3 +1313,5 @@ automatic branch merge, catalogue mutation, public exposure or remote deployment
 Local deployment is authorized by the later implementation instruction.
 The later implementation/local-run requests authorize V.a-V.f implementation
 and local deployment, not remote publication or live-content mutation.
+V.l's current authorization is documentation only; earlier local implementation/
+deployment permissions do not authorize this newly planned follow-up.

@@ -61,6 +61,22 @@ Private annotations are retired by the 2026-11-11 decision below.
 Move source refresh/generation into Sources and print settings into export/print
 context; technical evidence belongs in inspectable details.
 
+**Agreed reader follow-up V.l (2026-11-14; planned, not implemented):**
+consolidate version-workspace Read around a stable-height reading stage and an
+independently scrollable **Reader tools** rail with **Table of Contents** and
+**Style** tabs. Use matching toolbar buttons; **Larger content** is an explicit
+screen-layout toggle that hides the rail, not a typography or PDF preference.
+Keep normal page scrolling and the separate document pane, unchanged menu
+stacking, reading-position preservation and existing style scopes. Retain borders
+for chrome/controls, but separate Read content/tools through space and surfaces
+rather than enclosing card borders. Remove the redundant ARTICLE/BOOK eyebrow
+above the content title in workspace Read; retain the type in workspace context
+and preserve the document title, metadata and export output. The
+[V.l handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vl-coherent-reader-stage-and-tools)
+owns the complete interaction, sizing, preservation and V36-V40 acceptance
+contract. This decision authorizes milestone documentation, not implementation,
+deployment or live-data changes.
+
 **Reviewer workspace:** replace competing navigation bars, preamble link lists
 and routine notice walls with one work/status header, predictable command groups
 and local Content, Metadata, Review and Appearance tabs. Keep Undo, Redo,
