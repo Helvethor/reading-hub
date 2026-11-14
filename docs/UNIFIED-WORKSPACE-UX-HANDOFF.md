@@ -31,6 +31,11 @@ implemented in source following the user's `/implement milestone V.l` request;
 V36-V40 define acceptance, which remains partial pending browser/PDF and human
 accessibility validation. Deployment and live-data changes were not authorized.
 
+Follow-up V.m, agreed 2026-11-14, consolidates the comparison-first Versions
+proposal. It is planned, not implemented; V41-V46 define acceptance. The user
+requested a documented milestone, not implementation, deployment or live-data
+changes. Existing V.i delivery is a starting point, not V.m acceptance.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -1201,6 +1206,142 @@ No live corrections, default selection or publication are authorized by this
 documentation request. Defer a full interactive graph, merging, ancestry
 rewriting and general-purpose comparison of arbitrary source formats.
 
+### V.m: comparison-first Versions inspector
+
+Direction and milestone documentation requested 2026-11-14. Status: planned,
+not implemented. This records the recommended design, not authorization to
+implement, deploy, publish, change reader defaults or mutate live records.
+
+#### Outcome, evidence and scope
+
+A reviewer selects a record in Versions and immediately sees what changed,
+without opening another panel or pressing Compare. The left column owns
+navigation facts; the right column prioritizes readable differences rather than
+duplicating a record card. For example, selecting publication 103 compares its
+exact saved content with its recorded saved predecessor. If those documents are
+identical, show that result rather than silently skipping to an older edition.
+
+Read-only browser inspection of `/versions/103/?tab=versions` on 2026-11-14
+confirmed repeated publication identity/date, reader-default/status badges and
+opened-edition explanation in the inspector. The browser was signed out:
+reviewer comparison behavior was inspected in code, not observed end to end.
+`document_lineage_views.py` already computes default comparisons on selection;
+`document_lineage_comparison.html` retains a Compare submit button for alternate
+baselines and renders unified HTML-token patch lines from `document_comparison.py`.
+Authenticated rendering, comparison-state restoration and semantic-renderer
+compatibility must be verified during implementation, not assumed.
+
+Choose the comparison-first inspector over merely removing patch prefixes:
+colouring HTML-token lines alone does not produce readable document changes.
+Scope is Versions plus directly dependent shared comparison/state helpers.
+Preserve Sources behavior, existing reviewer-only comparison permissions,
+standalone lineage compatibility and exact publication/editor/PDF destinations.
+This supersedes V.i's duplicated inspector hierarchy and primary technical diff
+presentation only; verified ancestry, record identities, filters, guards and
+V27-V30 preservation requirements remain in force.
+
+#### Information hierarchy and navigation
+
+- **Left navigator:** compact version label, short date, author and essential
+  badges. Keep a clear selected state distinct from the scope anchor. Retain
+  publication/review events grouped with exact saved content and independently
+  inspectable; no new ancestry or event deduplication. Move depth, parent
+  breadcrumbs and technical provenance to inspectable details rather than
+  repeating them on every card. Keep unknown ancestry and filter boundaries
+  understandable.
+- **Right inspector:** compact exact selected identity (for example,
+  Edition 103 / Publication), followed by one applicable action row, the
+  comparison toolbar/results, then collapsed Information and evidence.
+  Keep short website-wide action names and exact targets; permissions, pending
+  content guards and consequential confirmations are unchanged.
+- **One owner per routine fact:** workspace context retains opened content and
+  reader default; cards retain date/author/status. Remove their repeated
+  paragraphs/badges and the always-visible "Inspecting another item..." essay
+  from the inspector. Full timestamp, reviewer and provenance remain in details.
+  If inspection differs from active content, show a concise distinction;
+  unsaved-content scope and actionable archived/outside-scope/integrity warnings
+  remain visible at the relevant comparison or operation.
+- Retain the computer-first adjacent layout and page scrolling. On narrow/short
+  screens keep selection, actions and comparison reachable without horizontal
+  page overflow or a long navigator hiding the result. Do not introduce a
+  whole-tab scroll box or alter the Read/Edit scroll-owner contract.
+
+#### Automatic comparison and state
+
+Entering Versions, selecting a record or changing Compare with loads the result
+inline automatically. Remove the Compare button from the enhanced interface;
+retain a functional explicit GET submission fallback when JavaScript is absent.
+Keep the labelled baseline selector alongside Changes from parent. If an
+alternative is selected, name that baseline rather than claiming it is a parent.
+Show exact before/after identities and direction.
+
+Default to the verified content predecessor, not the previous timestamp or a
+grouping node. Resolve branch starts through the recorded base and event
+attachments through their exact saved content. Selecting a different record
+resets the baseline to its verified predecessor; an alternative applies only to
+the current selection. Restoring a URL/history entry restores its explicit pair.
+Only compatible choices permitted by the current scope/permissions are offered.
+
+Show loading and errors explicitly. A late response cannot overwrite a newer
+selection/baseline, including rapid reversal. Do not move keyboard focus into
+results on every selection; preserve the originating selector/record focus
+unless the user moved it, and announce result status without reading the whole
+diff. Preserve scope, anchor, filter, selection and baseline in tab URLs and
+Back/Forward. Inspection never changes the opened content, anchor or reader
+default, saves content, remounts the editor or alters selection/undo/recovery.
+
+Missing/corrupt/unknown ancestry, incompatible content or display limits have
+explicit reasons, never guessed baselines or empty success. Unchanged content,
+metadata-only edits and review-only records have distinct truthful states.
+Publication against its saved revision may have no changes; do not manufacture
+differences by choosing another predecessor.
+
+#### Readable visual differences and evidence
+
+Use safe, inert semantic content rendering rather than inserting raw saved HTML.
+Reuse existing semantic diff/rendering mechanisms where suitable, without editor
+restore/accept controls, duplicate target IDs, executable content or mutation.
+
+- Removed blocks use soft red surfaces labelled Before; added blocks use soft
+  green surfaces labelled After. Pair replacements in reading order, with
+  reliable word-level highlighting where supported; fall back to an explicitly
+  labelled whole-block replacement when finer alignment is unreliable.
+  Unchanged context is neutral. Labels and accessible semantics distinguish
+  changes without relying on colour alone in either theme.
+- Preserve meaningful headings, paragraphs, lists, notes, links and media
+  context. Primary differences contain no `---`, `+++`, `@@`, line prefixes or
+  raw HTML-token noise. Describe structural/formatting changes explicitly;
+  do not infer moves or semantic intent without reliable evidence.
+- Show changed title/metadata fields as labelled Before/After values, not full
+  JSON dumps in the primary view. Keep exact markup, metadata and provenance
+  available in optional technical evidence.
+- Group long differences by identified section, offer Previous/Next change and
+  expandable unchanged stretches. Navigation must expose its destination and
+  clear the measured stack. Display limits/clipping are visible; offer narrower
+  section comparison and access to the complete exact evidence pair. Never
+  present a bounded or unsupported comparison as complete or unchanged.
+
+#### Delivery, dependencies and stopping point
+
+Build on V.i's saved-content resolver/comparison service and current lineage
+controls, V.c's contextual bars and the persistent reviewer/public workspace
+shells. Check semantic-diff/rendering compatibility before reuse: editor-owned
+mutation controls are not appropriate for immutable inspection. V.l's remaining
+Read acceptance is not a dependency; do not expand this milestone to resolve it.
+
+After separate implementation authorization:
+1. Deliver automatic comparison/state and the compact information hierarchy.
+2. Deliver safe visual differences, metadata/structure descriptions and optional
+   technical evidence.
+3. Complete long-comparison navigation and V41-V46 with isolated fixtures;
+   checkpoint small validated slices and record remaining limitations.
+
+Stop at a readable, exact, read-only Versions workflow with preservation evidence.
+Defer Sources redesign, editable diff restoration, arbitrary source-format
+comparison, a new graph, merges, ancestry rewriting and framework migration.
+Automated checks, browser workflow observation and human accessibility/usability
+acceptance are separate evidence; no test count establishes this milestone.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -1213,11 +1354,12 @@ mutation belongs to this follow-up. V.e, V.f and V.g are independent and may lan
 first as focused fixes after reproduction. V.h depends on V.d and V.g, and should
 follow M's style placement or coordinate with it. V.i follows the delivery order
 in its section. V.k is implemented and locally deployed; its V32-V35 acceptance
-remains open and revises only the stated Read/Edit scroll ownership. V.l is an
-agreed documentation-only follow-up; its implementation/deployment needs separate
-authorization and its V36-V40 contract supersedes only the conflicts listed in
-that section. Stop only
-after the applicable authorized V17-V40 and relevant V1-V16 preservation checks are
+remains open and revises only the stated Read/Edit scroll ownership. V.l source
+implementation was separately authorized; deployment needs separate authorization
+and its V36-V40 contract supersedes only the conflicts listed in that section.
+V.m remains documentation-only, with separate implementation/deployment authority
+required and a bounded V41-V46 contract. Stop only
+after the applicable authorized V17-V46 and relevant V1-V16 preservation checks are
 evidenced; report browser limitations rather than claiming full acceptance from
 jsdom tests.
 
@@ -1239,6 +1381,12 @@ Recheck current implementation before editing:
   asset-binding services.
 - Preservation/regression: editor state/recovery, workflow-panel, reader/PDF,
   publication, lineage, source-insertion and catalogue tests.
+- Versions comparison follow-up: `library/document_lineage_views.py`,
+  `library/services/document_comparison.py`, `document_lineage_comparison.html`,
+  `document_lineage.html`, `frontend/lineage-controls.js`, `workspace-shell.js`,
+  `public-workspace.js` and `document-diffs.js`; existing lineage, comparison,
+  diff and workspace tests. Check both state owners and inert rendering rather
+  than assuming editor diff controls can be mounted read-only.
 
 Reuse shared mechanisms rather than stacking a second workspace on the existing
 editor. Audit callers: a generic work-level Edit entry may resolve the reader
@@ -1297,6 +1445,13 @@ unsaved edits. Track implementation and validation independently.
 | V39 | Capture light/dark, desktop and narrow Read surfaces: no enclosing Read card border/shadow or redundant pre-title ARTICLE/BOOK eyebrow; type remains in workspace context and the content title/heading semantics, metadata and material status/warnings remain intact. Headers/menus/controls retain clear boundaries, rail tabs and active headings remain distinguishable, and keyboard focus remains visible. A narrow-screen tools panel has reachable controls and returns focus without trapping the reader or stacking a long tool form above the document. Other work views retain their existing appearance. |
 | V40 | Measure selected prose-width limits before/after rail and Larger content changes: no layout action rewrites or removes them, though available viewport/media space can grow. Exercise exact-version/account defaults and guest styles with unchanged scopes, resets, status/errors and intentional persistence. Compare actual saved/draft PDF and browser print before/after: identical content/type/title metadata, generated pages, prose, notes, links, media, margins, palette and output identity; no clipping or reader tools. Layout actions create no preference/content/review/publication/default mutations. Preserve editor state, permissions, standalone readers and existing export failure visibility; report observed, synthetic and unverified evidence separately. |
 
+| V41 | On isolated reviewer article/book histories, entering Versions, selecting a record and changing Compare with each show the exact labelled comparison without a second click or enhanced-interface Compare button. Test sequential revision, recorded branch base, publication attachment and explicit compatible alternative; selecting another record resets to its verified predecessor. Unknown/corrupt/missing parents and unsupported selections show explicit reasons without substituted baselines. Unchanged publication and review-only records remain truthful; metadata-only changes are not reported as wholly unchanged. Standalone GET submission still works without JavaScript. |
+| V42 | A changed paragraph displays paired red Before/green After blocks with reliable word highlights or an explicitly labelled whole-block replacement. Exercise additions/removals, title/metadata-only edits, headings/list/formatting/structural changes and retained notes/media. The primary view has no patch headers, hunk markers, line prefixes or raw HTML-token dump; changed metadata fields have exact Before/After values. Safe inert rendering introduces no executable content, duplicate target IDs or edit/restore controls. Verify exact technical evidence remains accessible and unsupported semantics are disclosed rather than omitted or guessed. |
+| V43 | At 1440px and 1024px, capture compact navigation cards and an adjacent inspector ordered identity, applicable actions, comparison, Information and evidence. Routine full timestamp/reviewer, reader-default badges and opened-edition essay are not repeated in the inspector; their facts remain in context/cards/details. Selected and scope-anchor states remain distinct, grouped events retain exact inspection links, and archived/filter-boundary/unknown-ancestry/unsaved warnings stay visible where material. Historical Read/PDF/Edit and guarded review/publication/default/archive actions retain exact targets and permissions. |
+| V44 | With unsaved editor text/metadata, select A, B and A rapidly and change/reverse baselines under delayed responses; only the latest pair may appear. Selector/record focus stays put unless the user moved it, loading/errors are announced, and no stale result or failure replaces a newer result. Tab switches, reload/deep links and Back/Forward restore scope, anchor, filter, selected identity and explicit comparison baseline. Compare record/content/default state before/after: no saves, review/publication/default changes, anchor movement or editor remount; selection, undo/recovery and page/content positions are preserved. A URL does not claim to contain unsaved edits. |
+| V45 | On a long media-rich book, section grouping and Previous/Next change reach the first/last difference below the measured stack and expand collapsed destination context. Expand unchanged stretches without losing selection or introducing page overflow. Exercise token/line/long-block display limits and unsupported rendering: a visible limitation identifies incomplete output, narrower section comparison and the complete evidence pair remain available, and no partial diff is described as complete or unchanged. At 375px, a short viewport and native 200% zoom, selection/results/actions remain reachable with keyboard, normal page scrolling and no horizontal page overflow or whole-tab scroll trap. |
+| V46 | Check both themes, keyboard focus, result announcements and non-colour Before/After distinctions on the isolated fixtures. Guest/non-reviewer views retain their existing comparison permissions; no reviewer-only documents/evidence are exposed. Shared-helper changes preserve Sources and standalone lineage behavior. Compare saved/draft reader and actual PDF/print output before/after for unchanged content, metadata, notes/media, output identity and absence of diff chrome; retain publication/concurrency/pending-content guards. Record focused automated correctness, synthetic checks, observed browser/output journeys and outstanding human usability/accessibility evidence separately; existing V.i test counts do not establish V.m acceptance. |
+
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
 Stop when the authorized scope is implemented and validated, not when tabs merely
@@ -1307,6 +1462,9 @@ implementation, not deployment or acceptance evidence. The current source
 implementation has not completed their real browser/PDF or human accessibility
 validation. V.l implementation is complete; its acceptance items remain open
 until those observations are performed.
+V41-V46 define the planned V.m milestone, not implementation or validation
+evidence. Documentation approval alone does not authorize implementation,
+deployment or live-data changes and does not close V27-V30 or earlier acceptance.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1322,3 +1480,6 @@ The later implementation/local-run requests authorize V.a-V.f implementation
 and local deployment, not remote publication or live-content mutation.
 V.l implementation was separately authorized; that request did not authorize
 local or remote deployment, migrations or live-data changes.
+V.m is documentation-only until separately authorized; it excludes Sources
+redesign, editable diff restoration, arbitrary source-format comparison and
+ancestry rewriting.

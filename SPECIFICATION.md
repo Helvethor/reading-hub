@@ -95,6 +95,22 @@ usable narrow-screen fallback, not an inspector after the complete ancestry tree
 Full provenance, historical corrections, archive impact/audit and unknown ancestry
 remain inspectable; no relationships may be invented for a simpler display.
 
+**Agreed Versions follow-up V.m (2026-11-14; planned, not implemented):**
+make the Versions inspector comparison-first. Entering the tab, selecting a
+record or changing **Compare with** automatically displays the exact comparison,
+without a Compare button in the enhanced interface. Default to the verified
+content predecessor; publication/review attachments may correctly report no
+content changes. Use readable, labelled red/green Before/After content blocks,
+neutral unchanged context and field-level metadata changes instead of HTML-token
+patch syntax. Keep compact identity/actions above the comparison, navigation
+facts in the left cards, and full provenance in Information and evidence; do not
+repeat routine opened-edition/default explanations already in workspace context.
+Preserve permissions, material warnings, exact evidence, pending editor state
+and URL/history state. The
+[V.m handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vm-comparison-first-versions-inspector)
+owns scope, dependencies and V41-V46 acceptance. This documentation agreement
+does not authorize implementation, deployment or live-data changes.
+
 **Shared structural guideline:** use consistent gutters, spacing, control sizes,
 headings, status presentation and form/error/action placement. Reading, form and
 workspace widths may differ intentionally, but major regions align to a shared

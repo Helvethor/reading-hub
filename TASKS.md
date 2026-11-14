@@ -297,6 +297,32 @@ outstanding acceptance.
   PDF/print observations and human accessibility review remain unverified;
   report observed/synthetic/unverified evidence separately.
 
+Comparison-first Versions follow-up V.m (agreed 2026-11-14; planned, not
+implemented):
+the [Versions handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vm-comparison-first-versions-inspector)
+owns the consolidated design and V41-V46 acceptance. Build on V.i's exact-content
+comparison and existing lineage controls; V.l acceptance is not a prerequisite.
+The user requested milestone documentation only, not implementation, deployment
+or live-data changes. V.i implementation does not establish V.m acceptance.
+
+- [ ] Make initial/selected-record and alternative-baseline comparison automatic;
+  preserve exact parent resolution, explicit unavailable states, selector focus,
+  latest-response ownership and selection/baseline URL/history restoration.
+- [ ] Consolidate compact navigator cards and selected identity/action header;
+  remove routine duplicated context while retaining material warnings, grouped
+  event identities, exact targets and inspectable evidence.
+- [ ] Replace primary HTML-token patches with safe, read-only red/green content
+  blocks, reliable word highlights, field-level metadata changes and explicit
+  structural/formatting descriptions. Keep technical evidence optional.
+- [ ] Add section grouping, Previous/Next change navigation and expandable
+  unchanged context for long comparisons; disclose limits and provide access to
+  complete evidence without presenting partial output as complete.
+- [ ] Validate V41-V46 with isolated article and media-rich book histories:
+  paragraph/metadata/structure changes, unchanged publication, review-only record,
+  branch start, missing/corrupt parent, alternative baseline and rapid reversal.
+  Record correctness, browser workflow and outstanding human/accessibility
+  evidence separately; checkpoint validated slices without automatic deployment.
+
 - [x] Deliver persistent Read/Edit/Versions/Sources tabs with explicit saved,
   draft, unsaved and reader-default identities and common actions.
 - [x] Keep the editor mounted while switching tabs; preserve local state, history,
