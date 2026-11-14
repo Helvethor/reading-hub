@@ -747,7 +747,9 @@ It did not use an actual saved/draft workspace or compare real PDF/print output.
 Acceptance V31 remains pending for representative saved/draft article/book
 journeys, guest/reviewer roles, explicit dark palettes, keyboard navigation,
 native 200% zoom, actual PDF/print content and margins, and human accessibility.
-No live data or deployment was changed.
+This implementation validation did not change live data. It was locally deployed
+on 2026-11-14; see the [deployment record](OPERATIONS.md). Deployment does not
+close V31.
 
 ### V.h: one work page for every role
 

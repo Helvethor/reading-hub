@@ -832,6 +832,29 @@ controls. At 375px, action heights matched and there was no horizontal overflow.
 No live working copy was edited or saved. This bounded deployment check does not
 certify the wider V25-V30 accessibility, long-history, zoom or print/PDF outcomes.
 
+V.j local deployment (2026-11-14): committed release `df48756` serves
+`http://127.0.0.1:8765/` from `data/releases/df48756`, preserving the existing
+`data/` root and `READING_HUB_EDITOR_PILOT=1`. The verified web PID 1755319 was
+gracefully replaced by PID 2132604. The separate port-8000 service and workers
+were not touched. No migration was pending or applied.
+
+Private backup `data/backups/vj-deploy-20261114T0725Z/` contains online backups
+of both SQLite databases, all 5,031 retained blobs (322,485,284 bytes) and the
+signing key. Both database backups passed `PRAGMA quick_check` and
+`foreign_key_check`; directory/key permissions are 0700/0600. Post-deployment,
+both databases' schemas and rows matched the backup, as did every retained-blob
+hash and the signing-key hash. No live content, review, publication, reader
+selection or account data changed.
+
+The target release passed 43 isolated `test_document_editor_views` tests,
+`manage.py check`, migration consistency and `findstatic` checks for both
+generated editor assets. `npm ci` and `npm run build` succeeded in the release;
+the existing Node/npm compatibility warning was nonfatal. Home, version 103 Read,
+workspace CSS, editor JS/CSS and public workspace JS returned HTTP 200. The Read
+HTML contains the V.j controls and workspace stylesheet cache version. V31
+acceptance remains partial: these checks did not exercise saved/draft journeys,
+dark palettes, native 200% zoom, actual PDF/print output or human accessibility.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

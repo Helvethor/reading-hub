@@ -237,8 +237,9 @@ Read layout follow-up V.j (implementation present; V31 acceptance partial,
   1,159px at 1440px and 460 to 746px at 1024px; 375px had no horizontal
   overflow. Hiding the ToC did not change print body width in that fixture.
   Saved/draft browser journeys, dark-palette rendering, native 200% zoom,
-  actual PDF/print comparison, human accessibility review and deployment remain
-  unverified. No live data or local deployment was changed.
+  actual PDF/print comparison and human accessibility review remain unverified.
+  Locally deployed as commit `df48756` on 2026-11-14 without migration or live
+  content changes; see the [deployment evidence](docs/OPERATIONS.md).
 
 - [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
   observations; preserve relevant V1-V16 behavior and report limitations.
