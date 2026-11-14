@@ -188,7 +188,7 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     if (!panels.has(tab)) tab = "read";
     const previous = workspace.dataset.activeTab;
     const restoreReadFocus = previous === "read" && tab !== "read"
-      && workspace.querySelector("#workspace-read-tools")?.contains(document.activeElement);
+      && panels.get("read")?.contains(document.activeElement);
     if (previous && previous !== tab) positions.set(previous, window.scrollY);
     workspace.dataset.activeTab = tab;
     for (const button of buttons) {

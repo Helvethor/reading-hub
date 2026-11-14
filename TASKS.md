@@ -277,12 +277,14 @@ owns the complete design and V36-V40 acceptance. This consolidates the accepted
 reader proposal and removal of the redundant content ARTICLE/BOOK eyebrow.
 Implementation was authorized by `/implement milestone V.l` and locally
 deployed in release `aad5fe1` after the separate `/deploy-locally` request.
-No live-data changes were authorized or made. Build on V.k without certifying
-its outstanding acceptance.
+The subsequent three-mode reader refinement is implemented in source but has
+not been deployed. No live-data changes were authorized or made. Build on V.k
+without certifying its outstanding acceptance.
 
 - [x] Consolidate Table of Contents and Style in one independently scrollable
-  Reader tools rail; normalize toolbar buttons and implement explicit Larger
-  content/rail transitions with session-local state and safe focus restoration.
+  rail with a mode-specific heading; remove nested tabs and Close, and make
+  Table of Contents, Style and Larger content exclusive, visibly active modes.
+  Keep compact per-field reset controls with inherited-value semantics.
 - [x] Coordinate stable, compact-capacity Read/rail heights, normal page/footer
   scrolling and responsive tools access without changing the menu-stack engine.
 - [x] Remove Read's enclosing card border/shadow and redundant content type
@@ -292,6 +294,10 @@ its outstanding acceptance.
   (24 tests), 43 isolated workspace Django tests, and the production frontend
   build. The synthetic stage-capacity test verifies compact measured chrome/
   action sizing and no resizing on compaction; it is not browser observation.
+- [x] Validate the exclusive reader-mode refinement with 26 focused frontend
+  tests, 43 isolated workspace Django tests, the Django system check and the
+  production build. These checks do not replace V36-V40 browser/PDF/human
+  acceptance.
 - [ ] Complete V36-V40 on isolated short-article and long media-rich book
   saved/draft journeys, including actual PDF/print preservation, style scopes,
   editor state, native input, zoom and narrow/short screens. Real browser and

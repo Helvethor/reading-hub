@@ -61,13 +61,17 @@ Private annotations are retired by the 2026-11-11 decision below.
 Move source refresh/generation into Sources and print settings into export/print
 context; technical evidence belongs in inspectable details.
 
-**Agreed reader follow-up V.l (2026-11-14; implemented, acceptance partial):**
-consolidate version-workspace Read around a stable-height reading stage and an
-independently scrollable **Reader tools** rail with **Table of Contents** and
-**Style** tabs. Use matching toolbar buttons; **Larger content** is an explicit
-screen-layout toggle that hides the rail, not a typography or PDF preference.
-Keep normal page scrolling and the separate document pane, unchanged menu
-stacking, reading-position preservation and existing style scopes. Retain borders
+**Agreed reader follow-up V.l (2026-11-14; source implemented, acceptance
+partial):** consolidate version-workspace Read around a stable-height reading
+stage with an independently scrollable tools column that alternates between
+**Table of Contents** and **Style**. The column heading follows the selected
+content; it has no nested tabs or Close button. The **Table of Contents**,
+**Style** and **Larger content** actions are three exclusive reader modes, with
+exactly one visibly and accessibly active. Larger content hides the tools and
+widens the document; it is not a typography or PDF preference. Keep normal page
+scrolling and the separate document pane, unchanged menu stacking,
+reading-position preservation and existing style scopes. Compact per-field
+reset affordances while preserving reset-to-inherited behavior. Retain borders
 for chrome/controls, but separate Read content/tools through space and surfaces
 rather than enclosing card borders. Remove the redundant ARTICLE/BOOK eyebrow
 above the content title in workspace Read; retain the type in workspace context
@@ -75,8 +79,9 @@ and preserve the document title, metadata and export output. The
 [V.l handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vl-coherent-reader-stage-and-tools)
 owns the complete interaction, sizing, preservation and V36-V40 acceptance
 contract. The user authorized implementation with `/implement milestone V.l`.
-The later `/deploy-locally` request authorized local deployment; neither request
-authorizes live-data changes.
+The later `/deploy-locally` request authorized the V.m release; the reader-mode
+refinement is source-only until separately deployed. These requests do not
+authorize live-data changes.
 
 **Reviewer workspace:** replace competing navigation bars, preamble link lists
 and routine notice walls with one work/status header, predictable command groups

@@ -261,7 +261,7 @@ export function mountWorkspaceShell({
     if (!panels.has(tab)) throw new Error("Choose Read, Edit, Versions or Sources.");
     const previous = workspace.dataset.activeTab;
     const restoreReadFocus = previous === "read" && tab !== "read"
-      && workspace.querySelector("#workspace-read-tools")?.contains(document.activeElement);
+      && panels.get("read")?.contains(document.activeElement);
     const switching = Boolean(previous) && previous !== tab;
     if (switching) tabPositions.set(previous, window.scrollY);
     workspace.dataset.activeTab = tab;

@@ -60,27 +60,21 @@ export function mountContentsPanel(workspace, content, button) {
   if (tools) {
     const stage = workspace.querySelector("#workspace-read-stage");
     const slot = workspace.querySelector("#workspace-read-toc-slot");
-    const contentsTab = workspace.querySelector("#workspace-read-toc-tab");
-    const styleTab = workspace.querySelector("#workspace-read-style-tab");
+    const heading = workspace.querySelector("#workspace-read-tools-title");
     const contentsPanel = workspace.querySelector("#workspace-read-toc-panel");
     const stylePanel = workspace.querySelector("#workspace-read-style-panel");
     const styleButton = workspace.querySelector("#workspace-style-toggle");
     const largerButton = workspace.querySelector("#workspace-larger-content");
-    const closeButton = workspace.querySelector("#workspace-reader-tools-close");
     const toolbar = workspace.querySelector(".workspace-read-actions");
-    if (!stage || !slot || !button || !contentsTab || !styleTab || !contentsPanel
-        || !stylePanel || !styleButton || !largerButton || !closeButton || !toolbar) {
-      throw new Error("The Reader tools controls are incomplete.");
+    if (!stage || !slot || !button || !heading || !contentsPanel
+        || !stylePanel || !styleButton || !largerButton || !toolbar) {
+      throw new Error("The reader mode controls are incomplete.");
     }
 
-    let activeTool = "contents";
-    let railOpen = true;
-    let larger = false;
-    let restore = {open: true, tool: "contents"};
+    let activeMode = "contents";
     let manualRailUntil = 0;
     let stylePosition = null;
-    const toolbarButtons = {contents: button, style: styleButton};
-    const tabs = {contents: contentsTab, style: styleTab};
+    const modeButtons = {contents: button, style: styleButton, larger: largerButton};
     const panels = {contents: contentsPanel, style: stylePanel};
 
     function moveContents() {
@@ -92,9 +86,13 @@ export function mountContentsPanel(workspace, content, button) {
       }
       const toc = slot.querySelector(".toc-panel");
       if (!toc) return;
-      toc.setAttribute("aria-label", "Table of contents");
-      const summary = toc.querySelector("details > summary");
-      if (summary) summary.textContent = "Table of Contents";
+      toc.setAttribute("role", "presentation");
+      toc.removeAttribute("aria-label");
+      const details = toc.querySelector(":scope > details");
+      if (details) {
+        details.querySelector(":scope > summary")?.remove();
+        details.replaceWith(...details.childNodes);
+      }
       const nav = toc.querySelector("nav");
       nav?.setAttribute("aria-label", "Table of contents");
       for (const link of toc.querySelectorAll('a[href^="#"]')) {
@@ -122,8 +120,7 @@ export function mountContentsPanel(workspace, content, button) {
     }
 
     function updateActiveEntry() {
-      if (!railOpen || larger || activeTool !== "contents"
-          || manualRailUntil > Date.now()) return;
+      if (activeMode !== "contents" || manualRailUntil > Date.now()) return;
       const toc = slot.querySelector(".toc-panel");
       const pane = paneFor(content);
       if (!toc) return;
@@ -147,24 +144,23 @@ export function mountContentsPanel(workspace, content, button) {
     }
 
     function renderState() {
-      tools.hidden = !railOpen;
-      stage.dataset.largerContent = String(larger);
-      stage.dataset.readerToolsOpen = String(railOpen);
+      const toolsVisible = activeMode !== "larger";
+      const label = activeMode === "style" ? "Style" : "Table of Contents";
+      tools.hidden = !toolsVisible;
+      heading.textContent = label;
+      stage.dataset.largerContent = String(activeMode === "larger");
+      stage.dataset.readerToolsOpen = String(toolsVisible);
       for (const name of ["contents", "style"]) {
-        const selected = name === activeTool;
-        tabs[name].setAttribute("aria-selected", String(selected));
-        tabs[name].tabIndex = selected ? 0 : -1;
-        panels[name].hidden = !selected;
-        const trigger = toolbarButtons[name];
-        trigger?.setAttribute("aria-pressed", String(railOpen && selected));
-        trigger?.setAttribute("aria-expanded", String(railOpen));
+        panels[name].hidden = name !== activeMode;
       }
-      largerButton.setAttribute("aria-pressed", String(larger));
+      for (const [name, trigger] of Object.entries(modeButtons)) {
+        trigger.setAttribute("aria-pressed", String(name === activeMode));
+      }
       positionNarrowTools();
     }
 
     function positionNarrowTools() {
-      if (!railOpen || !window.matchMedia?.("(max-width: 760px)").matches) return;
+      if (activeMode === "larger" || !window.matchMedia?.("(max-width: 760px)").matches) return;
       const stackHeight = Number.parseFloat(
         workspace.style.getPropertyValue("--workspace-full-stack")
           || workspace.style.getPropertyValue("--workspace-stack-height"),
@@ -181,74 +177,19 @@ export function mountContentsPanel(workspace, content, button) {
         restoreReadingPosition(content, position);
         window.requestAnimationFrame?.(() => restoreReadingPosition(content, position));
       }
+      updateActiveEntry();
     }
 
-    function selectTool(name) {
-      if (larger) {
-        setLayout(() => {
-          larger = false;
-          activeTool = name;
-          railOpen = true;
-          restore = {open: true, tool: name};
-        });
-      } else if (railOpen && activeTool === name) {
-        setLayout(() => { railOpen = false; });
-      } else {
-        setLayout(() => {
-          activeTool = name;
-          railOpen = true;
-          restore = {open: true, tool: name};
-        });
-      }
-    }
-
-    function selectRailTab(name) {
-      setLayout(() => {
-        activeTool = name;
-        railOpen = true;
-        restore = {open: true, tool: name};
-      });
+    function selectMode(name) {
+      if (activeMode === name) return;
+      setLayout(() => { activeMode = name; });
     }
 
     moveContents();
     renderState();
-    button?.addEventListener("click", () => selectTool("contents"));
-    styleButton.addEventListener("click", () => selectTool("style"));
-    closeButton.addEventListener("click", () => {
-      setLayout(() => { railOpen = false; });
-      toolbarButtons[activeTool].focus();
-    });
-    contentsTab.addEventListener("click", () => selectRailTab("contents"));
-    styleTab.addEventListener("click", () => selectRailTab("style"));
-    workspace.querySelector(".workspace-reader-tool-tabs").addEventListener("keydown", event => {
-      const order = [contentsTab, styleTab];
-      const index = order.indexOf(event.target);
-      if (index < 0) return;
-      const next = {
-        ArrowRight: (index + 1) % order.length,
-        ArrowLeft: (index + order.length - 1) % order.length,
-        Home: 0,
-        End: order.length - 1,
-      }[event.key];
-      if (next === undefined) return;
-      event.preventDefault();
-      const name = order[next] === contentsTab ? "contents" : "style";
-      selectRailTab(name);
-      tabs[name].focus();
-    });
-    largerButton.addEventListener("click", () => {
-      setLayout(() => {
-        if (larger) {
-          larger = false;
-          railOpen = restore.open;
-          activeTool = restore.tool;
-        } else {
-          restore = {open: railOpen, tool: activeTool};
-          larger = true;
-          railOpen = false;
-        }
-      });
-    });
+    button.addEventListener("click", () => selectMode("contents"));
+    styleButton.addEventListener("click", () => selectMode("style"));
+    largerButton.addEventListener("click", () => selectMode("larger"));
     tools.addEventListener("pointerdown", markRailInteraction);
     tools.addEventListener("wheel", markRailInteraction, {passive: true});
     tools.addEventListener("keydown", markRailInteraction);

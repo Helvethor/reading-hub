@@ -30,7 +30,8 @@ proposal and removal of the redundant content ARTICLE/BOOK eyebrow. It is
 implemented in source following the user's `/implement milestone V.l` request;
 V36-V40 define acceptance, which remains partial pending browser/PDF and human
 accessibility validation. The separately requested local deployment serves
-release `aad5fe1`; no live-data changes were made.
+release `1dadec2`; the subsequent exclusive-mode refinement described below is
+source-only and has not been deployed. No live-data changes were made.
 
 Follow-up V.m, agreed 2026-11-14, consolidates the comparison-first Versions
 proposal. The user authorized implementation on 2026-11-14; source changes are
@@ -935,32 +936,32 @@ Sources, standalone retained readers or export layouts.
   Larger content. Preserve applicable Saved PDF/Draft PDF qualifiers.
 - Replace Toggle ToC with **Table of Contents**, including its accessible
   name. Replace the rail's "On this page" heading with the same term.
-- Rename the side column **Reader tools**. Give it mutually exclusive Table of
-  Contents and Style tabs; do not stack the entire settings form below a long
-  outline. Keep the rail header/tabs reachable while the active tool body
-  scrolls independently. Avoid additional nested scroll panes for style groups.
+- Alternate the side column between **Table of Contents** and **Style**, using
+  the active content name as its heading. Do not add a Reader tools title,
+  nested tabs or a Close button; the Read actions select the reader mode. Do not
+  stack the entire settings form below a long outline. Keep the active tool body
+  independently scrollable and avoid nested scroll panes for style groups.
 - Style becomes an ordinary secondary toolbar button with matching height,
   padding, typography, hover and focus treatment. Opening it never expands the
-  action bar. Reuse all existing style fields, reset controls, scope/origin
-  information, status/errors and guest/account behavior; adapt the form to the
-  rail width without tiny or clipped controls.
-- Start with the rail open on Table of Contents. Selecting either toolbar tool
-  opens its tab; selecting the already-open tool closes the rail. Switching
-  tools keeps it open. Use keyboard-operable rail tabs and explicit expanded/
-  selected states. When closing would hide focus, return focus to the trigger.
-- **Larger content** is a separate pressed-state layout toggle. Turning it on
-  remembers the previous rail visibility/tab, closes the rail and widens the
-  document viewport. Turning it off restores that previous state. Opening either
-  tool while larger mode is on exits larger mode and opens the selected tool,
-  overriding the remembered state. There is no larger-mode-with-open-rail state.
+  action bar. Reuse all existing style fields, reset-to-inherited behavior,
+  scope/origin information, status/errors and guest/account behavior; make
+  per-field reset affordances compact without changing their meaning.
+- Treat **Table of Contents**, **Style** and **Larger content** as three
+  exclusive reader modes, with exactly one visibly highlighted and
+  `aria-pressed`. Start in Table of Contents. Selecting a mode displays that
+  content; selecting the active mode again leaves it active. The Read actions
+  replace a Close button and inner tab navigation.
+- **Larger content** hides the tools and widens the document viewport. Selecting
+  Table of Contents or Style returns to the two-column stage with that content.
+  There is no closed-rail state or remembered prior tab.
 - Keep these layout states session-local across workspace tabs and Read refresh;
   they do not save preferences or content. Wider available space does not change
   fonts or the selected prose-width limit; prose may grow only within that
   limit, and wide media can use permitted additional space. Hiding the rail alone
   must not remove prose-width limits. Larger content is not a PDF setting.
 - At narrow widths, provide the same tools through an on-demand bounded panel,
-  not a tall rail stacked above the document. Preserve focus return, reachable
-  close/tab controls and a usable reading band without horizontal page overflow.
+  not a tall rail stacked above the document. Keep all three mode actions
+  reachable and preserve a usable reading band without horizontal page overflow.
 
 #### Height, scrolling and appearance
 
@@ -1016,6 +1017,13 @@ browser. Complete the isolated browser/PDF journeys before treating V36-V40 as
 accepted; do not auto-deploy. Report automated correctness, synthetic layout,
 actual workflow/output observations and outstanding human/accessibility
 evidence separately.
+
+User refinement 2026-11-14: the Table of Contents, Style and Larger content
+actions are exclusive modes with one highlighted state; the tools column
+alternates between a mode-named heading and content, without inner tabs or Close.
+Per-field reset controls are compact while retaining reset-to-inherited behavior.
+This refinement is implemented in source but is not in the currently deployed
+release `1dadec2`; V36-V40 still require validation against the revised design.
 
 ### V.h: one work page for every role
 
@@ -1450,10 +1458,10 @@ unsaved edits. Track implementation and validation independently.
 | V33 | With page position fixed, deep-scroll Read/Edit content: header/tab/command compaction and page range remain unchanged. Then scroll the page through the existing thresholds in both directions using tiny wheel increments and a held scrollbar drag: stack order, expansion, reserved flow and menu/dialog layering match the baseline without jitter. Open keyboard/pointer menus and dialogs before each kind of scroll and compare existing dismissal/focus behavior; new overflow does not clip them or detach their placement from targets. Include wrapped commands, expanded Style, short/narrow screens and zoom. |
 | V34 | Scroll page and each pane to distinct positions with unsaved edits; switch all main/local tabs, use Back/Forward, refresh Read asynchronously, change/restore Style and toggle ToC. Restore the appropriate page/content locations without editor remount, undo/recovery loss or stale-response/user-scroll overrides. Exercise ToC/internal/deep links, outline following, caret movement to first/last block and dialog focus return; targets are visible in the correct pane and below any overlap without unnecessary page jumps. Back to top moves only the active Read/Edit Content pane, leaves page/stack state unchanged, respects keyboard/reduced motion/modal focus and ignores auxiliary scrolling; other views keep their page target. |
 | V35 | Compare actual saved and unsaved draft PDF plus browser print before/after on the same fixtures: no pane clipping, missing generated/end pages, scroll controls or changed output identity, margins, prose, notes, links or media. Confirm V.j paper/width/palette behavior, editor state, permissions, retained records and mutation counts remain unchanged by scrolling/navigation. Versions/Sources, other Edit subtabs and standalone readers retain their previous scroll behavior. Record automated correctness, synthetic layout and observed workflow/output evidence separately; tester confirmation and human accessibility review remain explicit outstanding items unless performed. |
-| V36 | On guest and reviewer saved/draft Read fixtures, Table of Contents and Style match other toolbar buttons in computed height, padding and typography. Opening Style without a viewport change leaves toolbar height/row count unchanged. Exercise open, switch, close, Larger content on/off, prior-rail restoration and opening a tool from larger mode; assert visible/accessibility states and safe keyboard focus. State survives main-tab changes and Read replacement without implicit persistence. |
+| V36 | On guest and reviewer saved/draft Read fixtures, Table of Contents, Style and Larger content match other toolbar buttons in computed height, padding and typography. Opening Style without a viewport change leaves toolbar height/row count unchanged. Exercise all three exclusive modes, including reselecting the active mode; assert visible/accessibility states, active highlighting and safe keyboard focus without inner tabs or a Close button. State survives main-tab changes and Read replacement without implicit persistence. |
 | V37 | At 1440px and 1024px on short articles and long books, measure both stage panes after stacking: their heights agree and the stage fills the compact viewport capacity with the specified 1rem gutter, within 2 CSS px rounding tolerance. Tiny wheel increments and held scrollbar drags across compaction do not resize panes or oscillate geometry; page and content positions remain separate. Resize, title/action wrapping, short viewports, 375px and native 200% zoom recalculate capacity with reachable controls/last content/footer and no horizontal page overflow. Short content occupies the stage without artificial prose overflow. |
-| V38 | Navigate to the last entry in a long Table of Contents and the last Style control using independent tool scrolling and keyboard input. Contents links and active-entry following resolve the document owner without overriding manual rail browsing; Style interaction does not move or compact the page. Toggle rail/larger view and change/restore a style with a mid-document anchor; preserve that anchor, rail state/position, page/pane positions and editor selection/undo/recovery through tab/history and asynchronous refresh, including intervening user navigation. |
-| V39 | Capture light/dark, desktop and narrow Read surfaces: no enclosing Read card border/shadow or redundant pre-title ARTICLE/BOOK eyebrow; type remains in workspace context and the content title/heading semantics, metadata and material status/warnings remain intact. Headers/menus/controls retain clear boundaries, rail tabs and active headings remain distinguishable, and keyboard focus remains visible. A narrow-screen tools panel has reachable controls and returns focus without trapping the reader or stacking a long tool form above the document. Other work views retain their existing appearance. |
+| V38 | Navigate to the last entry in a long Table of Contents and the last Style control using independent tool scrolling and keyboard input. Contents links and active-entry following resolve the document owner without overriding manual rail browsing; Style interaction does not move or compact the page. Switch between all three reader modes and change/restore a style with a mid-document anchor; preserve that anchor, selected mode/position, page/pane positions and editor selection/undo/recovery through tab/history and asynchronous refresh, including intervening user navigation. |
+| V39 | Capture light/dark, desktop and narrow Read surfaces: no enclosing Read card border/shadow or redundant pre-title ARTICLE/BOOK eyebrow; type remains in workspace context and the content title/heading semantics, metadata and material status/warnings remain intact. Headers/menus/controls retain clear boundaries, the side-column heading follows the active content, mode actions and active states remain distinguishable, and keyboard focus remains visible. A narrow-screen tools panel has reachable mode controls without trapping the reader or stacking a long tool form above the document. Other work views retain their previous appearance. |
 | V40 | Measure selected prose-width limits before/after rail and Larger content changes: no layout action rewrites or removes them, though available viewport/media space can grow. Exercise exact-version/account defaults and guest styles with unchanged scopes, resets, status/errors and intentional persistence. Compare actual saved/draft PDF and browser print before/after: identical content/type/title metadata, generated pages, prose, notes, links, media, margins, palette and output identity; no clipping or reader tools. Layout actions create no preference/content/review/publication/default mutations. Preserve editor state, permissions, standalone readers and existing export failure visibility; report observed, synthetic and unverified evidence separately. |
 
 | V41 | On isolated reviewer article/book histories, entering Versions, selecting a record and changing Compare with each show the exact labelled comparison without a second click or enhanced-interface Compare button. Test sequential revision, recorded branch base, publication attachment and explicit compatible alternative; selecting another record resets to its verified predecessor. Unknown/corrupt/missing parents and unsupported selections show explicit reasons without substituted baselines. Unchanged publication and review-only records remain truthful; metadata-only changes are not reported as wholly unchanged. Standalone GET submission still works without JavaScript. |

@@ -583,17 +583,27 @@ class DocumentEditorViewTests(TestCase):
         toggle = page.select_one("#workspace-contents-toggle")
         self.assertEqual(toggle.get_text(strip=True), "Table of Contents")
         self.assertEqual(toggle["aria-pressed"], "true")
-        self.assertEqual(toggle["aria-expanded"], "true")
+        style_toggle = page.select_one("#workspace-style-toggle")
+        self.assertEqual(style_toggle.get_text(strip=True), "Style")
+        self.assertEqual(style_toggle["aria-pressed"], "false")
+        larger_toggle = page.select_one("#workspace-larger-content")
+        self.assertEqual(larger_toggle.get_text(strip=True), "Larger content")
+        self.assertEqual(larger_toggle["aria-pressed"], "false")
         self.assertEqual(
-            page.select_one("#workspace-panel-read .workspace-read-actions #workspace-style-toggle").get_text(strip=True),
-            "Style",
+            page.select_one("#workspace-read-tools")["aria-labelledby"],
+            "workspace-read-tools-title",
         )
         self.assertEqual(
-            page.select_one("#workspace-panel-read .workspace-read-actions #workspace-larger-content").get_text(strip=True),
-            "Larger content",
+            page.select_one("#workspace-read-tools-title").get_text(strip=True),
+            "Table of Contents",
         )
-        self.assertIsNotNone(page.select_one("#workspace-read-tools[aria-label='Reader tools']"))
-        self.assertIsNotNone(page.select_one("#workspace-read-toc-tab[role='tab']"))
+        self.assertIsNone(page.select_one(".workspace-reader-tool-tabs"))
+        self.assertIsNone(page.select_one("#workspace-reader-tools-close"))
+        reset = panel.select_one('[data-reset-setting="font_size"]')
+        self.assertEqual(reset.get_text(strip=True), "↺")
+        self.assertEqual(
+            reset["aria-label"], "Reset General font size (pt) to inherited value",
+        )
         self.assertEqual(panel["data-scope"], "output")
         self.assertIsNone(page.select_one("#workspace-panel-edit .reading-style-controls"))
         for form in panel.select("form"):
@@ -612,9 +622,17 @@ class DocumentEditorViewTests(TestCase):
             public_actions.select_one("#workspace-contents-toggle").get_text(strip=True),
             "Table of Contents",
         )
-        self.assertEqual(public_actions.select_one("#workspace-style-toggle").get_text(strip=True), "Style")
-        self.assertIsNotNone(public_page.select_one("#workspace-read-tools[aria-label='Reader tools']"))
-        self.assertIsNotNone(public_page.select_one("#workspace-read-toc-tab[role='tab']"))
+        public_style_toggle = public_actions.select_one("#workspace-style-toggle")
+        self.assertEqual(public_style_toggle.get_text(strip=True), "Style")
+        self.assertEqual(
+            public_actions.select_one("#workspace-larger-content")["aria-pressed"], "false",
+        )
+        self.assertEqual(
+            public_page.select_one("#workspace-read-tools-title").get_text(strip=True),
+            "Table of Contents",
+        )
+        self.assertIsNone(public_page.select_one(".workspace-reader-tool-tabs"))
+        self.assertIsNone(public_page.select_one("#workspace-reader-tools-close"))
         public_style = public_page.select_one("#workspace-read-style-panel .reading-style-controls")
         self.assertIsNotNone(public_style)
 

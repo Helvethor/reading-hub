@@ -1,16 +1,11 @@
-<aside class="workspace-reader-tools" id="workspace-read-tools" aria-label="Reader tools">
+<aside class="workspace-reader-tools" id="workspace-read-tools" aria-labelledby="workspace-read-tools-title">
   <header class="workspace-reader-tools-header">
-    <h2>Reader tools</h2>
-    <button type="button" class="secondary" id="workspace-reader-tools-close">Close</button>
-    <div class="workspace-reader-tool-tabs" role="tablist" aria-label="Reader tools">
-      <button type="button" role="tab" id="workspace-read-toc-tab" aria-controls="workspace-read-toc-panel" aria-selected="true">Table of Contents</button>
-      <button type="button" role="tab" id="workspace-read-style-tab" aria-controls="workspace-read-style-panel" aria-selected="false" tabindex="-1">Style</button>
-    </div>
+    <h2 id="workspace-read-tools-title">Table of Contents</h2>
   </header>
-  <div class="workspace-reader-tool-panel" id="workspace-read-toc-panel" role="tabpanel" aria-labelledby="workspace-read-toc-tab">
+  <div class="workspace-reader-tool-panel" id="workspace-read-toc-panel">
     <div id="workspace-read-toc-slot"></div>
   </div>
-  <div class="workspace-reader-tool-panel" id="workspace-read-style-panel" role="tabpanel" aria-labelledby="workspace-read-style-tab" hidden>
+  <div class="workspace-reader-tool-panel" id="workspace-read-style-panel" hidden>
     {% include "library/reading_style_controls.html" with workspace_style_control=True %}
   </div>
 </aside>

@@ -44,7 +44,7 @@
             <div class="reading-style-field{% if field.field.widget.input_type == 'checkbox' %} reading-style-switch{% endif %}">
               {{ field.as_field_group }}
               <span class="reading-style-origin" data-style-origin-for="{{ field.name }}"></span>
-              <button type="button" class="reading-style-reset secondary" data-reset-setting="{{ field.name }}" aria-label="Reset {{ field.label }}">Reset</button>
+              <button type="button" class="reading-style-reset secondary{% if workspace_style_control %} workspace-reading-style-reset{% endif %}" data-reset-setting="{{ field.name }}" aria-label="Reset {{ field.label }} to inherited value" title="Reset {{ field.label }} to inherited value">{% if workspace_style_control %}↺{% else %}Reset{% endif %}</button>
             </div>
             {% endfor %}
           </div>

@@ -41,20 +41,18 @@ function setup(query = "") {
       <section id="workspace-panel-read">
         <div class="workspace-read-actions">
           <button id="workspace-download-pdf">PDF</button>
-          <button id="workspace-contents-toggle" aria-pressed="true" aria-expanded="true" aria-controls="workspace-read-tools">Table of Contents</button>
-          <button id="workspace-style-toggle" aria-pressed="false" aria-expanded="true" aria-controls="workspace-read-tools">Style</button>
-          <button id="workspace-larger-content" aria-pressed="false">Larger content</button>
+          <div class="workspace-reader-modes" role="group" aria-label="Reader mode">
+            <button id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-stage">Table of Contents</button>
+            <button id="workspace-style-toggle" aria-pressed="false" aria-controls="workspace-read-stage">Style</button>
+            <button id="workspace-larger-content" aria-pressed="false" aria-controls="workspace-read-stage">Larger content</button>
+          </div>
         </div>
         <div id="workspace-read-stage" class="workspace-reader-stage">
-          <aside id="workspace-read-tools" class="workspace-reader-tools">
-            <header><button id="workspace-reader-tools-close">Close</button>
-              <div class="workspace-reader-tool-tabs" role="tablist">
-                <button id="workspace-read-toc-tab" role="tab" aria-controls="workspace-read-toc-panel" aria-selected="true">Table of Contents</button>
-                <button id="workspace-read-style-tab" role="tab" aria-controls="workspace-read-style-panel" aria-selected="false">Style</button>
-              </div>
+          <aside id="workspace-read-tools" class="workspace-reader-tools" aria-labelledby="workspace-read-tools-title">
+            <header><h2 id="workspace-read-tools-title">Table of Contents</h2>
             </header>
-            <div id="workspace-read-toc-panel" role="tabpanel"><div id="workspace-read-toc-slot"></div></div>
-            <div id="workspace-read-style-panel" role="tabpanel" hidden>Style controls</div>
+            <div id="workspace-read-toc-panel"><div id="workspace-read-toc-slot"></div></div>
+            <div id="workspace-read-style-panel" hidden>Style controls</div>
           </aside>
           <div id="workspace-read-content"></div>
         </div>
@@ -258,12 +256,14 @@ test("Read uses the current captured document and tab history keeps the editor m
   assert.equal(document.querySelector("#editor-surface"), surface);
 });
 
-test("Reader tools state survives Read rerenders and larger content restores the prior rail", async () => {
+test("Reader mode buttons are exclusive and their selection survives Read rerenders", async () => {
   const form = setup("?tab=read");
   let html = `<div class="reader-layout">
-    <aside id="workspace-read-toc" class="toc-panel"><nav>
-      <a href="#first">First</a><a href="#second">Second</a>
-    </nav></aside>
+    <aside id="workspace-read-toc" class="toc-panel"><details open>
+      <summary>Table of Contents</summary><nav>
+        <a href="#first">First</a><a href="#second">Second</a>
+      </nav>
+    </details></aside>
     <div class="reading-column" id="workspace-read-pane" data-workspace-scroll-pane>
       <article class="reader-content">
       <h2 id="first">First</h2><h2 id="second">Second</h2>
@@ -285,9 +285,19 @@ test("Reader tools state survives Read rerenders and larger content restores the
   const style = document.querySelector("#workspace-style-toggle");
   const larger = document.querySelector("#workspace-larger-content");
   const rail = document.querySelector("#workspace-read-tools");
-  const styleTab = document.querySelector("#workspace-read-style-tab");
+  const heading = document.querySelector("#workspace-read-tools-title");
   const pane = document.querySelector("#workspace-read-pane");
   const chapter = document.querySelector("#first");
+  assert.equal(toggle.getAttribute("aria-pressed"), "true");
+  assert.equal(style.getAttribute("aria-pressed"), "false");
+  assert.equal(larger.getAttribute("aria-pressed"), "false");
+  assert.equal(heading.textContent, "Table of Contents");
+  assert.equal(document.querySelector(".workspace-reader-tool-tabs"), null);
+  assert.equal(document.querySelector("#workspace-reader-tools-close"), null);
+  assert.equal(document.querySelector("#workspace-read-toc-slot summary"), null);
+  assert.equal(document.querySelector("#workspace-read-toc-slot details"), null);
+  assert.equal(document.querySelector("#workspace-read-toc-slot .toc-panel").getAttribute("role"),
+    "presentation");
   Object.defineProperties(pane, {
     clientHeight: {value: 300},
     clientTop: {value: 0},
@@ -304,57 +314,50 @@ test("Reader tools state survives Read rerenders and larger content restores the
   assert.equal(location.hash, "#first");
   assert.equal(pane.scrollTop, 128, "Contents links navigate the document pane.");
 
-  styleTab.click();
-  assert.equal(document.querySelector("#workspace-read-style-panel").hidden, false);
-  assert.equal(styleTab.getAttribute("aria-selected"), "true");
-  assert.equal(rail.hidden, false);
-  style.focus();
   style.click();
-  assert.equal(rail.hidden, true);
-  assert.equal(document.activeElement, style);
+  assert.equal(document.querySelector("#workspace-read-style-panel").hidden, false);
+  assert.equal(heading.textContent, "Style");
+  assert.equal(style.getAttribute("aria-pressed"), "true");
+  assert.equal(toggle.getAttribute("aria-pressed"), "false");
+  assert.equal(rail.hidden, false);
+  style.click();
+  assert.equal(rail.hidden, false, "Selecting the active mode does not close the tools.");
+  assert.equal(style.getAttribute("aria-pressed"), "true");
 
+  toggle.click();
+  assert.equal(heading.textContent, "Table of Contents");
+  assert.equal(toggle.getAttribute("aria-pressed"), "true");
+  assert.equal(style.getAttribute("aria-pressed"), "false");
   larger.click();
   assert.equal(larger.getAttribute("aria-pressed"), "true");
   larger.click();
-  assert.equal(larger.getAttribute("aria-pressed"), "false");
-  assert.equal(rail.hidden, true, "Larger content restores the previously closed rail.");
+  assert.equal(larger.getAttribute("aria-pressed"), "true");
+  assert.equal(rail.hidden, true, "Larger content is a stable exclusive reader mode.");
 
-  toggle.click();
-  assert.equal(rail.hidden, false);
-  assert.equal(style.getAttribute("aria-pressed"), "false");
-  assert.equal(toggle.getAttribute("aria-expanded"), "true");
-
-  larger.click();
   style.click();
-  assert.equal(larger.getAttribute("aria-pressed"), "false");
   assert.equal(rail.hidden, false);
+  assert.equal(larger.getAttribute("aria-pressed"), "false");
   assert.equal(style.getAttribute("aria-pressed"), "true");
-  assert.equal(styleTab.getAttribute("aria-selected"), "true");
 
-  const close = document.querySelector("#workspace-reader-tools-close");
-  close.focus();
-  close.click();
-  assert.equal(rail.hidden, true);
-  assert.equal(document.activeElement, style);
-  style.click();
-  assert.equal(rail.hidden, false);
-
-  styleTab.focus();
+  style.focus();
   window.scrollTo = () => {};
   shell.selectTab("versions");
   assert.equal(document.activeElement, document.querySelector('[data-workspace-tab="versions"]'));
   shell.selectTab("read");
   assert.equal(rail.hidden, false);
-  assert.equal(styleTab.getAttribute("aria-selected"), "true");
+  assert.equal(style.getAttribute("aria-pressed"), "true");
+  assert.equal(heading.textContent, "Style");
 
   snapshot.document.title = "Rerendered title";
   shell.updateState({draft: null, revision: 0, dirty: true});
   await settle();
   assert.equal(rail.hidden, false);
-  assert.equal(styleTab.getAttribute("aria-selected"), "true");
+  assert.equal(style.getAttribute("aria-pressed"), "true");
 
   toggle.click();
   assert.equal(toggle.getAttribute("aria-pressed"), "true");
+  assert.equal(style.getAttribute("aria-pressed"), "false");
+  assert.equal(heading.textContent, "Table of Contents");
   assert.equal(document.querySelector("#workspace-read-toc").parentElement.id,
     "workspace-read-toc-slot");
 

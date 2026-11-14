@@ -73,7 +73,10 @@ test("public workspace switches Read, Versions and Sources without editor reques
     };
   };
   mountPublicWorkspace();
-  document.querySelector('[data-workspace-tab="versions"]').click();
+  const versionsTab = document.querySelector('[data-workspace-tab="versions"]');
+  document.querySelector("#workspace-contents-toggle").focus();
+  versionsTab.click();
+  assert.equal(document.activeElement, versionsTab);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(requested.length, 1);
   assert.match(requested[0], /filter=all/);

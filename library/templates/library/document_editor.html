@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v36">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v37-reader-modes">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-scroll-v12">
 {% endblock %}
@@ -71,9 +71,11 @@
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1"{% if initial_tab != "read" %} hidden{% endif %}>
       <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar>
         <button type="button" class="secondary" id="workspace-download-pdf" disabled>PDF</button>
-        <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-expanded="true" aria-controls="workspace-read-tools">Table of Contents</button>
-        <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-expanded="true" aria-controls="workspace-read-tools">Style</button>
-        <button type="button" class="secondary" id="workspace-larger-content" aria-pressed="false">Larger content</button>
+        <div class="workspace-reader-modes" role="group" aria-label="Reader mode">
+          <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-stage">Table of Contents</button>
+          <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-controls="workspace-read-stage">Style</button>
+          <button type="button" class="secondary" id="workspace-larger-content" aria-pressed="false" aria-controls="workspace-read-stage">Larger content</button>
+        </div>
       </div>
       <div class="workspace-reader-stage" id="workspace-read-stage">
         {% include "library/workspace_reader_tools.html" %}
@@ -581,4 +583,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v37-lineage-state"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v38-reader-modes"></script>{% endif %}{% endblock %}
