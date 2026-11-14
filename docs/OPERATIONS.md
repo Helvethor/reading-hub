@@ -213,7 +213,7 @@ WeasyPrint also needs system Pango/Harfbuzz/fontconfig and suitable installed
 fonts. On Arch Linux, install `pango` and fonts such as `noto-fonts` when missing.
 Do not reinstall dependencies on every documentation/UI change.
 
-Start the web process:
+For an interactive, user-owned terminal, start the web process:
 
 ```sh
 .venv/bin/python manage.py runserver 127.0.0.1:8765 --noreload --insecure
@@ -223,6 +223,19 @@ Open <http://127.0.0.1:8765/>. This serves local static assets with debug disabl
 it is not a public deployment setup. Do not bind to all interfaces, tunnel or
 forward the service to other machines. Template changes require restart with
 this no-autoreload configuration.
+
+Agent-operated starts and deployments must instead run the web server as an
+independent long-lived process, not in an attached conversation shell. With the
+Bash tool, launch it with `mode: "async"` and `detach: true`, then verify the
+listener PID, serving release and HTTP response. Do not use an attached async
+process, `nohup`, `&` or `disown` as a substitute. For a restart, arrange for
+the approved independent launch to stop only the verified old PID, wait for it
+to exit and the port to become free, then start the replacement with the same
+environment, data root, executable and flags. If independent execution is
+unavailable or denied, leave the existing service running and report the
+blocker; do not stop it first. An independent process can outlive the agent
+conversation, but is not a boot service and is not guaranteed to survive a
+machine restart.
 
 For a requested local deploy, the routine path is to checkpoint the intended
 changes if needed, identify the existing process and its target release, check

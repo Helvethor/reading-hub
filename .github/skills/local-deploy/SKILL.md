@@ -33,16 +33,25 @@ For a clear target with no required live migration or data transformation:
    its own ignored generated editor assets even when source assets are
    unchanged; follow the operations guide's build and `findstatic` checks.
    Install locked dependencies only when needed.
-5. Gracefully replace only the verified web PID, preserving its environment,
-   data root and required flags. Do not kill its process tree or use broad
-   process matching. If Python code or the source profile changed, follow the
-   documented worker procedure for already-active workers only; leave stopped
-   workers stopped and do not resume processing or crawls. If required worker
-   actions cannot be completed, report that limitation.
-6. Confirm the local service responds and check a representative read-only route
-   or relevant assets. Report the revision, checks, migration status, web and
-   worker actions, health, and any limitations. A restart is not full product
-   acceptance.
+5. Launch the replacement as an independent long-lived service, not an attached
+   conversation shell. With the Bash tool, use `mode: "async"` and
+   `detach: true`; do not use an attached async process, `nohup`, `&`, or
+   `disown` as a substitute. Arrange for the detached launch to gracefully stop
+   only the verified old web PID, wait for it to exit and the port to become
+   free, then start the replacement, preserving its environment, data root,
+   executable and required flags. Do not stop the old server before independent
+   execution is approved and started. If independent
+   execution is unavailable or denied, leave the old server running and report
+   the blocker. Do not kill its process tree or use broad process matching.
+   If Python code or the source profile changed, follow the documented worker
+   procedure for already-active workers only; leave stopped workers stopped and
+   do not resume processing or crawls. If required worker actions cannot be
+   completed, report that limitation.
+6. Confirm the independent process is running from the intended release and
+   responds, then check a representative read-only route or relevant assets.
+   Verify startup errors rather than treating a detached launch as readiness.
+   Report the revision, checks, migration status, web and worker actions,
+   health, and any limitations. A restart is not full product acceptance.
 
 ## Exceptional cases and data boundary
 
