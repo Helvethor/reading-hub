@@ -224,6 +224,17 @@ it is not a public deployment setup. Do not bind to all interfaces, tunnel or
 forward the service to other machines. Template changes require restart with
 this no-autoreload configuration.
 
+For a requested local deploy, the routine path is to checkpoint the intended
+changes if needed, identify the existing process and its target release, check
+for pending migrations, prepare any required release-local assets, restart the
+verified web process and smoke-test the service. Reuse relevant validation;
+unrelated worktree changes alone do not block a release-backed deploy. A new
+release needs its own generated editor assets, even if they did not change.
+Follow the existing worker guidance when Python code or the source profile
+changes. Full backups and exhaustive data comparisons are conditional on the
+risk or an authorized data operation, not routine for source-only deploys.
+Deployment alone does not authorize migrations or other live-data changes.
+
 ### Optional Marxist Dark theme
 
 The black/red, VS Code Dark-inspired theme reuses the existing Lenin image.
