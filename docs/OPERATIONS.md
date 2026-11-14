@@ -923,6 +923,25 @@ This is a local deployment, not V36-V40 acceptance: the compact stage test uses
 mocked measurements, and actual saved/draft browser journeys, PDF/print
 comparison, native zoom/input and human accessibility review remain outstanding.
 
+V.m local deployment (2026-11-14): commit `1dadec2` serves from
+`data/releases/1dadec2` on `127.0.0.1:8765`, retaining the existing data root,
+`READING_HUB_EDITOR_PILOT=1`, Python executable and runserver flags. The verified
+web PID 2406159 was gracefully replaced by PID 2485954. The port-8000 service
+was not touched. `manage.py check` passed; `migrate --plan` was empty and
+`makemigrations --check --dry-run` found no changes. No migration or live-data
+change was made.
+
+Release-local `npm ci` and `npm run build` succeeded; existing Node/npm
+compatibility warnings were nonfatal. `findstatic` resolved both editor assets,
+the public-workspace bundle and workspace/lineage styles. Home and version 103
+Versions returned HTTP 200; all five assets returned HTTP 200 and matched the
+release files byte-for-byte. An anonymous browser check confirmed the Versions
+tab loaded. Reviewer comparison journeys were not observed because staff access
+was unavailable. Worker status could not be verified in the required staff UI;
+no worker was started or restarted, so any active worker may still require a
+code refresh. V41-V46 acceptance remains partial, including authenticated
+browser, long-book, print/PDF and human accessibility/usability checks.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not
