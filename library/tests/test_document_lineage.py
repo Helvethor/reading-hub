@@ -381,6 +381,10 @@ class DocumentLineageTests(TestCase):
         )
         self.assertTrue(response.context["comparison"]["review_only"])
         self.assertContains(response, "No content changes. This is a review-only record.")
+        self.assertContains(response, "Download exact saved documents and digests (JSON)")
+        soup = BeautifulSoup(response.content, "html.parser")
+        fallback = soup.select_one(".lineage-compare-form button[type=submit]")
+        self.assertEqual(fallback.get_text(strip=True), "Compare")
         changed_response = self.client.get(
             reverse("document-lineage", args=[self.work.pk]),
             {
@@ -393,6 +397,9 @@ class DocumentLineageTests(TestCase):
             changed_response.context["comparison_error"],
         )
         comparison = changed_response.context["comparison"]
+        self.assertContains(changed_response, "Word-level changes:")
+        self.assertContains(changed_response, "Before")
+        self.assertContains(changed_response, "After")
         self.assertEqual(
             comparison["before_id"],
             changed_response.context["lineage"]["selected"]["parent_id"],
@@ -403,6 +410,20 @@ class DocumentLineageTests(TestCase):
                 comparison["before_id"]
             ]["label"],
         )
+        download = self.client.get(
+            reverse("document-lineage", args=[self.work.pk]),
+            {
+                "scope": "work", "anchor": f"work:{self.work.pk}",
+                "selected": f"revision:{draft.pk}:{changed.revision}",
+                "download_comparison": "1",
+            },
+        )
+        self.assertEqual(download.status_code, 200)
+        self.assertIn("attachment", download["Content-Disposition"])
+        self.assertEqual(
+            download.json()["before"]["document"], reviewed.document,
+        )
+        self.assertEqual(download.json()["after"]["document"], changed.document)
         alternate_response = self.client.get(
             reverse("document-lineage", args=[self.work.pk]),
             {
@@ -882,10 +903,16 @@ class DocumentLineageTests(TestCase):
         self.assertEqual(DocumentReaderSelection.objects.count(), 2)
 
     def test_permission_csrf_stale_preview_and_active_filter(self):
-        self.save()
+        saved = self.save()
         url = reverse("document-lineage", args=[self.rendition.document_id])
         anonymous = Client().get(url)
         self.assertEqual(anonymous.status_code, 200)
+        private_evidence = Client().get(url, {
+            "selected": f"revision:{self.draft.pk}:{saved.revision}",
+            "download_comparison": "1",
+        })
+        self.assertIn("text/html", private_evidence["Content-Type"])
+        self.assertNotContains(private_evidence, "Download exact saved documents")
         outsider = get_user_model().objects.create_user("outsider")
         client = Client()
         client.force_login(outsider)

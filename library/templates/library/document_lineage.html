@@ -1,7 +1,7 @@
 {% extends panel_base %}
 {% load static %}
 {% block title %}Work | {{ site.name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">{% endblock %}
 {% block content %}
 <div class="page-container document-lineage">
   <h1>{% if lineage_filter == "sources" %}Sources{% else %}Versions{% endif %}</h1>
@@ -59,6 +59,8 @@
     {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
     {% if selected_id %}<input type="hidden" name="selected" value="{{ selected_id }}">{% endif %}
     <input type="hidden" name="anchor" value="{{ anchor_id }}">
+    <input type="hidden" name="compare_with" value="{{ compare_with }}">
+    <input type="hidden" name="section" value="{{ comparison_section }}">
     <label for="lineage-scope">Relationship scope
     <select id="lineage-scope" name="scope">
       <option value="branch"{% if lineage_scope == "branch" %} selected{% endif %}>This branch</option>
@@ -103,12 +105,20 @@
           <a href="{% url 'document-lineage' document.pk %}?filter={{ lineage_filter }}&amp;scope={{ lineage_scope }}&amp;anchor={{ anchor_id|urlencode }}&amp;selected={{ node.id|urlencode }}{% if embedded %}&amp;embedded=1{% endif %}#lineage-inspection" aria-label="Inspect {{ node.type }}: {{ node.label }}"{% if node.id == selected_id %} aria-current="true"{% endif %}>{{ node.label }}</a>
           <p>
             <span class="lineage-node-type">{% if node.type == "snapshot" %}Source capture{% elif node.type == "generation" %}Source-generated version{% elif node.type == "edition" %}Saved reader version{% elif node.type == "history" %}Working copy / branch{% elif node.type == "revision" %}Saved version{% elif node.type == "review" %}Review record{% elif node.type == "publication" %}Publication record{% else %}{{ node.type|title }}{% endif %}</span>
-            {% if node.created_at %}<time datetime="{{ node.created_at|date:'c' }}">{{ node.created_at|date:"Y-m-d H:i" }}</time>{% endif %}
-            {% if node.parent_label and not node.unknown_ancestry %}<span>· Parent: {{ node.parent_label }}</span>{% endif %}
-            {% if node.actual_depth > 3 %}<span>· Depth {{ node.actual_depth }} · parent breadcrumb: {{ node.parent_breadcrumb }}</span>{% endif %}
-            {% if node.reviewer %}<span>· {{ node.reviewer }}</span>{% endif %}
-            {% if node.review %}<span>· {{ node.review }}</span>{% endif %}
+            {% if node.created_at %}<time datetime="{{ node.created_at|date:'c' }}">{{ node.created_at|date:"Y-m-d" }}</time>{% endif %}
           </p>
+          {% if node.created_at or node.reviewer or node.review or node.parent_label or node.actual_depth %}
+          <details class="lineage-card-details">
+            <summary>Record details</summary>
+            <dl>
+              {% if node.created_at %}<dt>Full timestamp</dt><dd>{{ node.created_at|date:"Y-m-d H:i:s T" }}</dd>{% endif %}
+              {% if node.reviewer %}<dt>Reviewer</dt><dd>{{ node.reviewer }}</dd>{% endif %}
+              {% if node.review %}<dt>Review status</dt><dd>{{ node.review }}</dd>{% endif %}
+              {% if node.parent_label and not node.unknown_ancestry %}<dt>Recorded parent</dt><dd>{{ node.parent_label }}</dd>{% endif %}
+              {% if node.actual_depth %}<dt>Lineage depth</dt><dd>{{ node.actual_depth }}{% if node.parent_breadcrumb %}; parent breadcrumb: {{ node.parent_breadcrumb }}{% endif %}</dd>{% endif %}
+            </dl>
+          </details>
+          {% endif %}
           <p class="lineage-status">
             {% if node.id == selected_id %}<strong class="lineage-state-badge">Inspecting</strong>{% endif %}
             {% if node.id == anchor_id %}<strong class="lineage-state-badge">Scope anchor</strong>{% endif %}
@@ -151,22 +161,12 @@
       {% elif lineage.selected.type == "review" %}Review record
       {% elif lineage.selected.type == "publication" %}Publication record
       {% else %}{{ lineage.selected.type|title }}{% endif %}
-      {% if lineage.selected.created_at %} · {{ lineage.selected.created_at|date:"Y-m-d H:i:s T" }}{% endif %}
-      {% if lineage.selected.review %} · {{ lineage.selected.review }}{% endif %}
-      {% if lineage.selected.reviewer %} · Reviewer {{ lineage.selected.reviewer }}{% endif %}
     </p>
     <p class="lineage-selected-status">
-      {% if lineage.selected.reader_target %}<strong>Selected reader output</strong>{% endif %}
-      {% if lineage.selected.latest %}<strong>Latest saved content</strong>{% endif %}
-      {% if lineage.selected.publication_is_latest %}<strong>Publication reflects the latest saved content</strong>{% endif %}
       {% if lineage.selected.archived %}<strong>Archived</strong>{% endif %}
       {% if lineage.selected.context_only %}<span>Context for the active record filter</span>{% endif %}
       {% if lineage.selected.outside_scope %}<span>Outside this genealogy scope</span>{% endif %}
       {% if lineage.selected.scope_anchor %}<span>Current scope anchor</span>{% endif %}
-    </p>
-    <p class="lineage-opened-state">
-      {% if reader_target %}Opened reader output: {{ reader_target.title }} (edition {{ reader_target.pk }}).{% else %}No reader edition is currently selected.{% endif %}
-      Inspecting another item does not change the opened edition.
     </p>
     {% if lineage.selection_error %}<p class="error" role="alert">{{ lineage.selection_error }}</p>{% endif %}
     {% if lineage.selected.outside_scope %}<p class="notice warning" role="status">This selected item is outside the current scope. Focus on it to change the anchor, or show the whole work.</p>{% endif %}
@@ -178,9 +178,15 @@
     {% include "library/document_lineage_actions.html" %}
     {% if can_review %}{% include "library/document_lineage_comparison.html" %}{% endif %}
     {% endif %}
-    {% if lineage.selected.details or lineage.selected.secondary_links or lineage.selected.type == "snapshot" %}
+    {% if lineage.selected.details or lineage.selected.secondary_links or lineage.selected.type == "snapshot" or lineage.selected.created_at or lineage.selected.publication_is_latest %}
     <details class="lineage-information">
       <summary>Information and evidence</summary>
+    {% if lineage.selected.created_at or lineage.selected.publication_is_latest %}
+    <dl>
+    {% if lineage.selected.created_at %}<dt>Full timestamp</dt><dd>{{ lineage.selected.created_at|date:"Y-m-d H:i:s T" }}</dd>{% endif %}
+    {% if lineage.selected.publication_is_latest %}<dt>Publication state</dt><dd>Reflects the latest saved content.</dd>{% endif %}
+    </dl>
+    {% endif %}
     {% if lineage.selected.details %}
     <dl>
       {% for item in lineage.selected.details %}
@@ -293,5 +299,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-{% if not embedded %}<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v27"></script>{% endif %}
+{% if not embedded %}<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v28"></script>{% endif %}
 {% endblock %}

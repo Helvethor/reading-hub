@@ -96,7 +96,8 @@ usable narrow-screen fallback, not an inspector after the complete ancestry tree
 Full provenance, historical corrections, archive impact/audit and unknown ancestry
 remain inspectable; no relationships may be invented for a simpler display.
 
-**Agreed Versions follow-up V.m (2026-11-14; planned, not implemented):**
+**Agreed Versions follow-up V.m (2026-11-14; implementation delivered,
+acceptance partial):**
 make the Versions inspector comparison-first. Entering the tab, selecting a
 record or changing **Compare with** automatically displays the exact comparison,
 without a Compare button in the enhanced interface. Default to the verified
@@ -109,8 +110,11 @@ repeat routine opened-edition/default explanations already in workspace context.
 Preserve permissions, material warnings, exact evidence, pending editor state
 and URL/history state. The
 [V.m handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vm-comparison-first-versions-inspector)
-owns scope, dependencies and V41-V46 acceptance. This documentation agreement
-does not authorize implementation, deployment or live-data changes.
+owns scope, dependencies and V41-V46 acceptance. Implementation was separately
+authorized on 2026-11-14; this did not authorize deployment or live-data changes.
+Focused automated checks pass; authenticated
+browser, long-book, PDF/print, and human accessibility/usability acceptance
+remain outstanding.
 
 **Shared structural guideline:** use consistent gutters, spacing, control sizes,
 headings, status presentation and form/error/action placement. Reading, form and

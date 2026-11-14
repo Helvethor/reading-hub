@@ -1010,7 +1010,9 @@ def comparison(request, pk):
 
         before, before_row = document(earlier)
         after, after_row = document(later)
-        result = compare_documents(before, after, request.GET.get("section", ""))
+        result = compare_documents(
+            before, after, request.GET.get("section", ""), include_visual=False,
+        )
     except (ValueError, ImportFailure) as exc:
         return panel_response(request, "library/document_comparison.html", {
             "source": source, "comparison_error": str(exc),

@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="{% static 'library/reader.css' %}?v={{ app_version }}-endmatter-inline-q1">
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
-<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">
+<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
 <link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v36">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-scroll-v12">
@@ -581,4 +581,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v36-reader-tools"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v37-lineage-state"></script>{% endif %}{% endblock %}

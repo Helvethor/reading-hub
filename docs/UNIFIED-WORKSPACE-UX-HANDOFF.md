@@ -33,9 +33,13 @@ accessibility validation. The separately requested local deployment serves
 release `aad5fe1`; no live-data changes were made.
 
 Follow-up V.m, agreed 2026-11-14, consolidates the comparison-first Versions
-proposal. It is planned, not implemented; V41-V46 define acceptance. The user
-requested a documented milestone, not implementation, deployment or live-data
-changes. Existing V.i delivery is a starting point, not V.m acceptance.
+proposal. The user authorized implementation on 2026-11-14; source changes are
+delivered and V41-V46 acceptance remains partial. Focused automated checks cover
+semantic comparison, exact evidence, selection/baseline history and preservation.
+Authenticated browser journeys, long media-rich books, actual PDF/print, and
+human usability/accessibility review remain unverified. Implementation did not
+authorize deployment or live-data changes. Existing V.i delivery alone does
+not establish V.m acceptance.
 
 ## Outcome, authority and supersession
 
@@ -1210,9 +1214,10 @@ rewriting and general-purpose comparison of arbitrary source formats.
 
 ### V.m: comparison-first Versions inspector
 
-Direction and milestone documentation requested 2026-11-14. Status: planned,
-not implemented. This records the recommended design, not authorization to
-implement, deploy, publish, change reader defaults or mutate live records.
+Direction and milestone documentation requested 2026-11-14; implementation
+separately authorized with "Implement V.m". Status: source implementation
+delivered; acceptance partial. This does not authorize deployment, publication,
+reader-default changes or live-record mutation.
 
 #### Outcome, evidence and scope
 
@@ -1225,13 +1230,11 @@ identical, show that result rather than silently skipping to an older edition.
 
 Read-only browser inspection of `/versions/103/?tab=versions` on 2026-11-14
 confirmed repeated publication identity/date, reader-default/status badges and
-opened-edition explanation in the inspector. The browser was signed out:
-reviewer comparison behavior was inspected in code, not observed end to end.
-`document_lineage_views.py` already computes default comparisons on selection;
-`document_lineage_comparison.html` retains a Compare submit button for alternate
-baselines and renders unified HTML-token patch lines from `document_comparison.py`.
-Authenticated rendering, comparison-state restoration and semantic-renderer
-compatibility must be verified during implementation, not assumed.
+opened-edition explanation in the inspector. The browser was signed out.
+Implementation now removes those routine repetitions, automatically compares
+verified exact parents and alternate baselines, and renders safe semantic blocks
+with field-level metadata and optional exact evidence. Authenticated browser
+rendering and real article/book journeys remain unobserved.
 
 Choose the comparison-first inspector over merely removing patch prefixes:
 colouring HTML-token lines alone does not produce readable document changes.
@@ -1331,12 +1334,18 @@ shells. Check semantic-diff/rendering compatibility before reuse: editor-owned
 mutation controls are not appropriate for immutable inspection. V.l's remaining
 Read acceptance is not a dependency; do not expand this milestone to resolve it.
 
-After separate implementation authorization:
-1. Deliver automatic comparison/state and the compact information hierarchy.
-2. Deliver safe visual differences, metadata/structure descriptions and optional
-   technical evidence.
-3. Complete long-comparison navigation and V41-V46 with isolated fixtures;
-   checkpoint small validated slices and record remaining limitations.
+Delivered: automatic comparison/state and compact inspector hierarchy; inert
+semantic before/after blocks with word-level differences where block structure
+matches, explicit structure/replacement descriptions, field-level metadata,
+section navigation, expandable unchanged context and exact JSON evidence. The
+enhanced interface auto-submits selectors while a GET submit control remains
+available without JavaScript. Focused backend and frontend tests passed.
+
+Remaining: complete V41-V46 against isolated article and media-rich book
+histories, exercise all failure/permission/preservation journeys in a browser,
+measure narrow/short/200% zoom behavior, compare actual PDF/print, and obtain
+human accessibility/usability evidence. Do not treat source implementation or
+focused automated checks as full milestone acceptance.
 
 Stop at a readable, exact, read-only Versions workflow with preservation evidence.
 Defer Sources redesign, editable diff restoration, arbitrary source-format
@@ -1359,11 +1368,11 @@ in its section. V.k is implemented and locally deployed; its V32-V35 acceptance
 remains open and revises only the stated Read/Edit scroll ownership. V.l source
 implementation was separately authorized; deployment needs separate authorization
 and its V36-V40 contract supersedes only the conflicts listed in that section.
-V.m remains documentation-only, with separate implementation/deployment authority
-required and a bounded V41-V46 contract. Stop only
-after the applicable authorized V17-V46 and relevant V1-V16 preservation checks are
-evidenced; report browser limitations rather than claiming full acceptance from
-jsdom tests.
+V.m source implementation was separately authorized and delivered; deployment
+still requires separate authorization. V41-V46 acceptance remains partial. Stop
+only after the applicable authorized V17-V46 and relevant V1-V16 preservation
+checks are evidenced; report browser limitations rather than claiming full
+acceptance from jsdom tests.
 
 ## Implementation discovery map
 
@@ -1464,9 +1473,10 @@ implementation, not deployment or acceptance evidence. The current source
 implementation has not completed their real browser/PDF or human accessibility
 validation. V.l implementation is complete; its acceptance items remain open
 until those observations are performed.
-V41-V46 define the planned V.m milestone, not implementation or validation
-evidence. Documentation approval alone does not authorize implementation,
-deployment or live-data changes and does not close V27-V30 or earlier acceptance.
+V41-V46 define V.m acceptance, not proof of completion. V.m source implementation
+was separately authorized and delivered; validation remains partial. That request
+did not authorize deployment or live-data changes and does not close V27-V30 or
+earlier acceptance.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1482,6 +1492,7 @@ The later implementation/local-run requests authorize V.a-V.f implementation
 and local deployment, not remote publication or live-content mutation.
 V.l implementation was separately authorized; that request did not authorize
 local or remote deployment, migrations or live-data changes.
-V.m is documentation-only until separately authorized; it excludes Sources
-redesign, editable diff restoration, arbitrary source-format comparison and
-ancestry rewriting.
+V.m source implementation was separately authorized; deployment and live-data
+changes still require separate authorization. It excludes Sources redesign,
+editable diff restoration, arbitrary source-format comparison and ancestry
+rewriting.

@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="{% url 'reader-css' version.pk %}">
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
-<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v1">
+<link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
 <link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v36">
 <link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>
 {% endblock %}
@@ -66,5 +66,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v36"></script>
+<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v37-lineage-state"></script>
 {% endblock %}

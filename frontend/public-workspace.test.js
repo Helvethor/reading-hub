@@ -60,6 +60,8 @@ test("public workspace switches Read, Versions and Sources without editor reques
         <form method="get" class="lineage-controls">
           <input type="hidden" name="selected" value="${params.get("selected")}">
           <input type="hidden" name="anchor" value="${params.get("anchor")}">
+          <input type="hidden" name="compare_with" value="${params.get("compare_with") || ""}">
+          <input type="hidden" name="section" value="${params.get("section") || ""}">
           <label>Scope <select name="scope">${["branch", "work"].map(value =>
             `<option value="${value}" ${params.get("scope") === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
           <label>Show <select name="filter">${["all", "sources", "publications"].map(value =>
@@ -137,11 +139,13 @@ test("public workspace switches Read, Versions and Sources without editor reques
   assert.ok(requested.every(url => new URL(url).pathname === "/documents/5/lineage/"));
 });
 
-test("standalone lineage selectors submit their GET form but other selectors do not", () => {
+test("standalone lineage and comparison selectors submit their GET forms", () => {
   dom = new JSDOM(`<form method="get" class="lineage-controls">
     <select name="scope"><option>branch</option><option>work</option></select>
     <select name="filter"><option>all</option><option>publications</option></select>
-  </form><form><select name="comparison"><option>other</option></select></form>`);
+  </form><form method="get" class="lineage-compare-form">
+    <select name="compare_with"><option>parent</option><option>edition</option></select>
+  </form><form><select name="other"><option>one</option><option>two</option></select></form>`);
   const root = dom.window.document;
   const submissions = [];
   root.addEventListener("submit", event => {
@@ -149,12 +153,14 @@ test("standalone lineage selectors submit their GET form but other selectors do 
     submissions.push(new dom.window.FormData(event.target));
   });
   mountLineageControls(root);
-  for (const name of ["scope", "filter", "comparison"]) {
+  for (const name of ["scope", "filter", "compare_with", "other"]) {
     const select = root.querySelector(`[name=${name}]`);
     select.selectedIndex = 1;
     select.dispatchEvent(new dom.window.Event("change", {bubbles: true}));
   }
-  assert.equal(submissions.length, 2);
+  assert.equal(submissions.length, 3);
   assert.equal(submissions[0].get("scope"), "work");
   assert.equal(submissions[1].get("filter"), "publications");
+  assert.equal(submissions[2].get("compare_with"), "edition");
+  assert.equal(root.documentElement.classList.contains("has-lineage-controls"), true);
 });

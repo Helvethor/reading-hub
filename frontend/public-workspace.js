@@ -92,6 +92,16 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
         || initial.searchParams.get("anchor")
         || initial.searchParams.get("selected") || "",
     );
+    destination.searchParams.set(
+      "compare_with", current.searchParams.has(`${prefix}_compare_with`)
+        ? current.searchParams.get(`${prefix}_compare_with`)
+        : initial.searchParams.get("compare_with") || "",
+    );
+    destination.searchParams.set(
+      "section", current.searchParams.has(`${prefix}_section`)
+        ? current.searchParams.get(`${prefix}_section`)
+        : initial.searchParams.get("section") || "",
+    );
     destination.searchParams.set("embedded", "1");
     return destination;
   }
@@ -104,6 +114,10 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     url.searchParams.set(`${prefix}_selected`, destination.searchParams.get("selected") || "");
     url.searchParams.set(`${prefix}_scope`, destination.searchParams.get("scope") || "branch");
     url.searchParams.set(`${prefix}_anchor`, destination.searchParams.get("anchor") || "");
+    url.searchParams.set(
+      `${prefix}_compare_with`, destination.searchParams.get("compare_with") || "",
+    );
+    url.searchParams.set(`${prefix}_section`, destination.searchParams.get("section") || "");
     const state = {...(history.state || {}), workspaceTab: tab};
     if (replace) history.replaceState(state, "", url);
     else history.pushState(state, "", url);

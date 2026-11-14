@@ -60,6 +60,49 @@ class ComparisonTests(SimpleTestCase):
         result = compare_documents(before, after)
         self.assertEqual(result["changed_fields"], ["metadata"])
         self.assertEqual(result["lines"], [])
+        self.assertEqual(result["metadata_changes"], [{
+            "field": "author", "before": "Not present", "after": "Reviewer",
+        }])
+
+    def test_visual_comparison_groups_sections_sanitizes_markup_and_aligns_words(self):
+        before = self.value(
+            "<p>Outside old.</p>"
+            '<section id="c1"><h2>Chapter</h2><p>A brief <em>old</em> phrase.</p>'
+            '<script>alert(1)</script></section>'
+            '<section id="c2"><p>Unchanged.</p></section>',
+        )
+        after = self.value(
+            "<p>Outside new.</p>"
+            '<section id="c1"><h2>Chapter</h2><p>A very brief <em>new</em> phrase.</p>'
+            '<img src="javascript:alert(1)" alt="diagram"></section>'
+            '<section id="c2"><p>Unchanged.</p></section>',
+        )
+        result = compare_documents(before, after)
+        self.assertEqual(
+            [item["id"] for item in result["visual_sections"]], ["c1", "c2", None],
+        )
+        changed = next(item for item in result["visual_sections"] if item["id"] == "c1")
+        pair = next(group for group in changed["groups"] if not group["unchanged"])
+        self.assertEqual(pair["word_changes"], {"before": "old", "after": "very new"})
+        self.assertIn("<em>", str(pair["before_html"]))
+        self.assertNotIn("<script", str(pair["before_html"]))
+        differences = [group for group in changed["groups"] if not group["unchanged"]]
+        self.assertEqual(len(differences), 2)
+        self.assertEqual(differences[0]["next_anchor"], differences[1]["anchor"])
+        self.assertEqual(differences[1]["previous_anchor"], differences[0]["anchor"])
+        self.assertTrue(any(group["unchanged"] for group in changed["groups"]))
+        image = next(
+            group for group in changed["groups"]
+            if not group["unchanged"] and "Image: diagram" in str(group["after_html"])
+        )
+        self.assertNotIn("javascript:", str(image["after_html"]))
+        unchanged = next(item for item in result["visual_sections"] if item["id"] == "c2")
+        self.assertTrue(all(group["unchanged"] for group in unchanged["groups"]))
+        unsectioned = next(
+            item for item in result["visual_sections"] if item["id"] is None
+        )
+        self.assertEqual(unsectioned["label"], "Unsectioned content")
+        self.assertTrue(unsectioned["changed"])
 
     def test_localized_change_in_large_book_remains_visible_without_quadratic_full_diff(self):
         prefix, suffix = "<p>Earlier chapter.</p>" * 3000, "<p>Later chapter.</p>" * 3000

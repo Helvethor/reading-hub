@@ -72,8 +72,7 @@
 }
 .document-lineage .lineage-controls select { width: 100%; }
 .lineage-controls > .muted { flex: 1 1 100%; font-size: .85rem; }
-.lineage-selected-identity,
-.lineage-opened-state { color: var(--muted-ink, #555); }
+.lineage-selected-identity { color: var(--muted-ink, #555); }
 .lineage-selected-status {
   display: flex;
   flex-wrap: wrap;
@@ -101,6 +100,71 @@
 .lineage-secondary-actions { padding-block-start: .5rem; border-block-start: 1px solid var(--line); }
 .lineage-parent-comparison { margin-block: .75rem; }
 .lineage-parent-comparison > h3 { margin-block-end: .25rem; font-size: 1.05rem; }
+.lineage-compare-form {
+  margin-block: .75rem;
+  scroll-margin-block-start: calc(var(--workspace-full-stack, 0px) + 1rem);
+}
+.has-lineage-controls .lineage-compare-fallback { display: none; }
+.lineage-change-navigation,
+.lineage-change-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin-block: .6rem;
+}
+.lineage-change-section,
+.lineage-change-pair {
+  scroll-margin-block-start: calc(var(--workspace-full-stack, 0px) + 1rem);
+}
+.lineage-change-section > h4 { margin-block: .9rem .35rem; }
+.lineage-change-pair {
+  margin-block: .75rem;
+  padding-block: .4rem;
+}
+.lineage-block-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+}
+.lineage-block-before,
+.lineage-block-after {
+  min-width: 0;
+  padding: .65rem;
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.lineage-block-before {
+  border-inline-start: .3rem solid #a84242;
+  background: color-mix(in srgb, #d96c6c 15%, var(--surface-raised));
+}
+.lineage-block-after {
+  border-inline-start: .3rem solid #28734e;
+  background: color-mix(in srgb, #51a879 15%, var(--surface-raised));
+}
+.lineage-block-pair h5 { margin-block: 0 .4rem; font-size: .95rem; }
+.lineage-word-delta,
+.lineage-structure-note { margin-block: .4rem; }
+.lineage-word-delta del,
+.lineage-word-delta ins { display: inline-block; margin-inline-end: .35rem; }
+.lineage-word-delta del { text-decoration-thickness: .12em; }
+.lineage-word-delta ins { text-decoration-thickness: .12em; }
+.lineage-unchanged-context { margin-block: .5rem; }
+.lineage-unchanged-context > summary,
+.lineage-card-details > summary { cursor: pointer; }
+.lineage-context-blocks {
+  margin-block-start: .4rem;
+  padding-inline-start: .8rem;
+  border-inline-start: 2px solid var(--line);
+}
+.lineage-context-block + .lineage-context-block { margin-block-start: .4rem; }
+.lineage-technical-evidence { margin-block-start: .75rem; }
+.lineage-technical-evidence > summary { cursor: pointer; font-weight: 650; }
+.lineage-diff { max-height: 24rem; overflow: auto; }
+.lineage-card-details { margin-block-start: .3rem; font-size: .85rem; }
+.lineage-card-details dl { display: grid; grid-template-columns: max-content 1fr; gap: .2rem .5rem; }
+.lineage-card-details dt { font-weight: 650; }
 .lineage-information { margin-block-start: .75rem; }
 .lineage-lanes { display: grid; gap: .5rem; }
 .lineage-lane { border-block-end: 1px solid var(--line); }
@@ -116,10 +180,6 @@
 .lineage-lane-records .lineage-focus-link { font-size: .9em; }
 .full-ancestry { margin-block-start: 1rem; }
 #lineage-inspection {
-  position: sticky;
-  top: .75rem;
-  max-height: calc(100dvh - 1.5rem);
-  overflow: auto;
   overflow-wrap: anywhere;
 }
 #lineage-inspection > h2 { font-size: 1.2rem; }
@@ -211,16 +271,21 @@
 }
 
 @media (max-width: 40rem) {
-  .lineage-workspace { display: block; }
+  .lineage-workspace { display: flex; flex-direction: column; }
+  #lineage-inspection { order: -1; }
   .lineage-list { margin-block-end: 1rem; }
   .lineage-timeline { max-height: 45vh; }
-  #lineage-inspection { position: static; max-height: none; }
   .lineage-controls,
   .lineage-compare-form { align-items: stretch; }
   .lineage-controls > *,
   .lineage-compare-form > * { flex: 1 1 100%; }
+  .lineage-block-pair { grid-template-columns: minmax(0, 1fr); }
   .lineage-node {
     margin-inline-start: .25rem;
     padding-inline-start: .3rem;
   }
+}
+
+@media (max-height: 40rem) {
+  #lineage-inspection { position: static; max-height: none; overflow: visible; }
 }

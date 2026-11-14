@@ -1,50 +1,170 @@
 <section class="lineage-parent-comparison" aria-labelledby="lineage-comparison-heading">
-  <h3 id="lineage-comparison-heading">Changes from parent</h3>
+  <h3 id="lineage-comparison-heading">{% if compare_with %}Compare saved versions{% else %}Changes from parent{% endif %}</h3>
   {% if comparison %}
-  <p>From <strong>{{ comparison.before_label }}</strong> to <strong>{{ comparison.after_label }}</strong>.</p>
+  <p class="lineage-comparison-pair" role="status" aria-live="polite">
+    Comparing <strong>{{ comparison.before_label }}</strong> to
+    <strong>{{ comparison.after_label }}</strong>.
+  </p>
   {% if comparison.review_only %}
   <p>No content changes. This is a review-only record.</p>
   {% elif comparison.result.changed_fields %}
-  <p>Changed: {{ comparison.result.changed_fields|join:", " }}.</p>
+  <p>Changed:
+    {% if "title" in comparison.result.changed_fields %}title{% endif %}
+    {% if "metadata" in comparison.result.changed_fields %}{% if "title" in comparison.result.changed_fields %}, {% endif %}metadata{% endif %}
+    {% if "html" in comparison.result.changed_fields %}{% if "title" in comparison.result.changed_fields or "metadata" in comparison.result.changed_fields %}, {% endif %}content{% endif %}.
+  </p>
   {% else %}
   <p>No content or metadata changes.</p>
   {% endif %}
-  {% if comparison.result.html_changed %}
-    {% if comparison.result.limited %}
-    <p class="muted">The semantic content comparison exceeded its display bound. No content was omitted from the saved records.</p>
-    {% elif comparison.result.lines %}
-    <ol class="lineage-diff">{% for line in comparison.result.lines %}
-      <li class="lineage-diff-{{ line.kind }}"><code>{{ line.text }}</code></li>
-    {% endfor %}</ol>
+
+  {% if comparison.result.changed_fields %}
+    {% if comparison.before_title != comparison.after_title %}
+    <section class="lineage-field-change">
+      <h4>Title</h4>
+      <dl>
+        <dt>Before</dt><dd>{{ comparison.before_title }}</dd>
+        <dt>After</dt><dd>{{ comparison.after_title }}</dd>
+      </dl>
+    </section>
+    {% endif %}
+    {% if comparison.result.metadata_changes %}
+    <section class="lineage-field-changes">
+      <h4>Metadata</h4>
+      <dl>
+        {% for change in comparison.result.metadata_changes %}
+        <dt>{{ change.field }}</dt>
+        <dd><span class="lineage-before-label">Before:</span> {{ change.before }}
+          <span class="lineage-after-label">After:</span> {{ change.after }}</dd>
+        {% endfor %}
+      </dl>
+    </section>
     {% endif %}
   {% endif %}
-  {% if "title" in comparison.result.changed_fields or "metadata" in comparison.result.changed_fields %}
-  <details>
-    <summary>Metadata and identity changes</summary>
-    <div class="lineage-metadata-comparison">
-      <section><h4>{{ comparison.before_label }}</h4><p>Title: {{ comparison.before_title }}</p><pre>{{ comparison.result.metadata_before }}</pre></section>
-      <section><h4>{{ comparison.after_label }}</h4><p>Title: {{ comparison.after_title }}</p><pre>{{ comparison.result.metadata_after }}</pre></section>
-    </div>
-  </details>
+
+  {% if comparison.result.html_changed %}
+    <nav class="lineage-change-navigation" aria-label="Changed sections">
+      {% for section in comparison.result.visual_sections %}
+        {% if section.changed %}<a href="#{{ section.anchor }}">{{ section.label }}</a>{% endif %}
+      {% endfor %}
+    </nav>
+    {% for section in comparison.result.visual_sections %}
+    <section class="lineage-change-section" id="{{ section.anchor }}"
+             aria-labelledby="{{ section.anchor }}-heading">
+      <h4 id="{{ section.anchor }}-heading">{{ section.label }}</h4>
+      {% if section.limited %}
+      <p class="notice warning" role="status">
+        This section exceeds the inline display limit. The comparison is incomplete,
+        not unchanged. Choose this section in the
+        <a href="#lineage-compare-form">comparison scope below</a> or open the
+        complete exact evidence pair below.
+      </p>
+      {% else %}
+        {% for group in section.groups %}
+          {% if group.unchanged %}
+          <details class="lineage-unchanged-context">
+            <summary>Show {{ group.count }} unchanged content block{{ group.count|pluralize }}</summary>
+            <div class="lineage-context-blocks">
+              {% for block in group.blocks %}<div class="lineage-context-block">{{ block }}</div>{% endfor %}
+            </div>
+          </details>
+          {% else %}
+          <article class="lineage-change-pair" id="{{ group.anchor }}">
+            <nav class="lineage-change-stepper" aria-label="Change navigation">
+              {% if group.previous_anchor %}<a href="#{{ group.previous_anchor }}">Previous change</a>{% endif %}
+              {% if group.next_anchor %}<a href="#{{ group.next_anchor }}">Next change</a>{% endif %}
+            </nav>
+            {% if group.word_changes %}
+            <p class="lineage-word-delta">
+              <span>Word-level changes:</span>
+              {% if group.word_changes.before %}<del>{{ group.word_changes.before }}</del>{% endif %}
+              {% if group.word_changes.after %}<ins>{{ group.word_changes.after }}</ins>{% endif %}
+            </p>
+            {% elif group.structure_only %}
+            <p class="lineage-structure-note">Structure or formatting changed; wording is unchanged.</p>
+            {% elif group.before_html and group.after_html %}
+            <p class="lineage-structure-note">Whole-block replacement.</p>
+            {% endif %}
+            <div class="lineage-block-pair">
+              <section class="lineage-block-before" aria-label="Before">
+                <h5>Before{% if group.before_kind %} · {{ group.before_kind|title }}{% endif %}</h5>
+                {% if group.before_html %}{{ group.before_html }}{% else %}<p>No earlier block.</p>{% endif %}
+              </section>
+              <section class="lineage-block-after" aria-label="After">
+                <h5>After{% if group.after_kind %} · {{ group.after_kind|title }}{% endif %}</h5>
+                {% if group.after_html %}{{ group.after_html }}{% else %}<p>No later block.</p>{% endif %}
+              </section>
+            </div>
+          </article>
+          {% endif %}
+        {% empty %}
+          <p>No wording or structure changes in this section.</p>
+        {% endfor %}
+      {% endif %}
+    </section>
+    {% endfor %}
+    {% if not comparison.result.visual_changed %}
+    <p class="notice warning" role="status">
+      Saved markup differs, but the safe semantic display found no readable block
+      changes. Review the exact technical evidence; this is not reported as unchanged.
+    </p>
+    {% endif %}
+  {% elif "html" in comparison.result.changed_fields %}
+    {% if comparison.result.section %}
+    <p>No HTML changes in this selected section. Content changes may exist elsewhere.</p>
+    {% else %}
+    <p class="notice warning" role="status">
+      The saved HTML differs, but this display could not identify a safe content block.
+      Review the exact evidence pair below.
+    </p>
+    {% endif %}
   {% endif %}
+
+  <details class="lineage-technical-evidence">
+    <summary>Exact comparison evidence</summary>
+    <p>
+      <a href="{{ evidence_download_url }}" target="_blank" rel="noopener">
+        Download exact saved documents and digests (JSON)
+      </a>
+    </p>
+    <p>Before digest: <code>{{ comparison.result.before_digest }}</code></p>
+    <p>After digest: <code>{{ comparison.result.after_digest }}</code></p>
+    {% if comparison.result.lines %}
+    <details>
+      <summary>Technical HTML-token evidence</summary>
+      <ol class="lineage-diff">{% for line in comparison.result.lines %}
+        <li class="lineage-diff-{{ line.kind }}"><code>{{ line.text }}</code></li>
+      {% endfor %}</ol>
+    </details>
+    {% endif %}
+  </details>
   {% elif comparison_error %}
   <p class="notice warning" role="status">{{ comparison_error }}</p>
   {% endif %}
-  {% if compare_choices %}
-  <form method="get" class="lineage-compare-form" aria-label="Compare with another saved version">
+
+  {% if can_review %}
+  <form id="lineage-compare-form" method="get" class="lineage-compare-form" aria-label="Compare saved content">
     {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
     <input type="hidden" name="filter" value="{{ lineage_filter }}">
     <input type="hidden" name="scope" value="{{ lineage_scope }}">
     <input type="hidden" name="anchor" value="{{ anchor_id }}">
     <input type="hidden" name="selected" value="{{ lineage.selected.id }}">
-    <label for="lineage-compare-with">Compare with</label>
-    <select id="lineage-compare-with" name="compare_with">
-      <option value="">Verified parent (default)</option>
-      {% for node in compare_choices %}
-      <option value="{{ node.id }}"{% if compare_with == node.id %} selected{% endif %}>{{ node.label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Compare</button>
+    <label for="lineage-compare-with">Compare with
+      <select id="lineage-compare-with" name="compare_with">
+        <option value="">Verified parent (default)</option>
+        {% for node in compare_choices %}
+        <option value="{{ node.id }}"{% if compare_with == node.id %} selected{% endif %}>{{ node.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="lineage-compare-section">Comparison scope
+      <select id="lineage-compare-section" name="section">
+        <option value="">All identified sections</option>
+        {% for section in comparison.result.sections %}
+        <option value="{{ section.id }}"{% if comparison_section == section.id %} selected{% endif %}>{{ section.label }} — #{{ section.id }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="lineage-compare-fallback" type="submit">Compare</button>
   </form>
   {% endif %}
 </section>

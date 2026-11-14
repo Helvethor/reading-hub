@@ -539,6 +539,8 @@ test("lineage selectors apply immediately, reject stale reversals and preserve f
         <select name="scope">${["branch", "work"].map(value =>
           `<option value="${value}" ${params.get("scope") === value ? "selected" : ""}>${value}</option>`).join("")}</select>
         <input type="hidden" name="anchor" value="${params.get("anchor")}">
+        <input type="hidden" name="compare_with" value="${params.get("compare_with") || ""}">
+        <input type="hidden" name="section" value="${params.get("section") || ""}">
       </form><p>${params.get("scope")} / ${params.get("filter")}</p></div>`};
   }
   globalThis.fetch = url => {
@@ -587,6 +589,112 @@ test("lineage selectors apply immediately, reject stale reversals and preserve f
   assert.equal(document.querySelector("#editor-surface").innerHTML, "<p>Pending edits</p>");
   assert.equal(JSON.stringify(snapshot), before);
   for (const url of requests) assert.equal(new URL(url).pathname, "/documents/5/lineage/");
+});
+
+test("comparison baseline changes preserve focus, URL state and Back restoration", async () => {
+  const form = setup(
+    "?tab=versions&versions_selected=revision%3A20&versions_anchor=edition%3A12"
+      + "&versions_compare_with=edition%3A11",
+  );
+  const requests = [];
+  globalThis.fetch = async url => {
+    requests.push(String(url));
+    const params = new URL(url).searchParams;
+    return {ok: true, text: async () => `<div class="document-lineage">
+      <form method="get" class="lineage-controls">
+        <input type="hidden" name="filter" value="${params.get("filter")}">
+        <input type="hidden" name="selected" value="${params.get("selected")}">
+        <input type="hidden" name="scope" value="${params.get("scope")}">
+        <input type="hidden" name="anchor" value="${params.get("anchor")}">
+        <input type="hidden" name="compare_with" value="${params.get("compare_with") || ""}">
+        <input type="hidden" name="section" value="${params.get("section") || ""}">
+      </form>
+      <form method="get" class="lineage-compare-form">
+        <input type="hidden" name="filter" value="${params.get("filter")}">
+        <input type="hidden" name="selected" value="${params.get("selected")}">
+        <input type="hidden" name="scope" value="${params.get("scope")}">
+        <input type="hidden" name="anchor" value="${params.get("anchor")}">
+        <select name="compare_with">
+          ${["edition:11", "edition:13"].map(value =>
+            `<option value="${value}" ${params.get("compare_with") === value ? "selected" : ""}>${value}</option>`).join("")}
+        </select>
+        <select name="section"><option value="">All</option></select>
+      </form></div>`};
+  };
+  const snapshot = {
+    draft: "draft-id", revision: 2,
+    document: {title: "Unsaved", html: "<p>Pending edits</p>", metadata: {}},
+    source_tickets: [],
+  };
+  mount(form, snapshot);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(new URL(requests[0]).searchParams.get("compare_with"), "edition:11");
+
+  const panel = document.querySelector("#workspace-versions-content");
+  const selector = panel.querySelector(".lineage-compare-form [name=compare_with]");
+  selector.focus();
+  selector.value = "edition:13";
+  selector.dispatchEvent(new window.Event("change", {bubbles: true}));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(new URL(requests.at(-1)).searchParams.get("compare_with"), "edition:13");
+  assert.equal(document.activeElement, panel.querySelector(
+    ".lineage-compare-form [name=compare_with]",
+  ));
+  assert.equal(
+    new URL(location.href).searchParams.get("versions_compare_with"), "edition:13",
+  );
+
+  history.replaceState({}, "", "?tab=versions&versions_selected=revision%3A20"
+    + "&versions_anchor=edition%3A12&versions_compare_with=edition%3A11");
+  window.dispatchEvent(new window.PopStateEvent("popstate"));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(new URL(requests.at(-1)).searchParams.get("compare_with"), "edition:11");
+  assert.equal(document.querySelector("#editor-surface").innerHTML, "");
+  assert.equal(JSON.stringify(snapshot.document), JSON.stringify({
+    title: "Unsaved", html: "<p>Pending edits</p>", metadata: {},
+  }));
+});
+
+test("selecting a record keeps record focus and resets the alternative baseline", async () => {
+  const form = setup(
+    "?tab=versions&versions_selected=revision%3A20&versions_anchor=edition%3A12"
+      + "&versions_compare_with=edition%3A11",
+  );
+  const requests = [];
+  globalThis.fetch = async url => {
+    requests.push(String(url));
+    const selected = new URL(url).searchParams.get("selected") || "revision:20";
+    const target = "revision:21";
+    return {ok: true, text: async () => `<div class="document-lineage">
+      <ol><li class="lineage-timeline-item ${selected === target ? "is-selected" : ""}" data-lineage-id="${target}">
+        <a href="/documents/5/lineage/?filter=all&amp;scope=branch&amp;anchor=edition%3A12&amp;selected=${encodeURIComponent(target)}"
+           ${selected === target ? 'aria-current="true"' : ""}>Revision 21</a>
+      </li></ol></div>`};
+  };
+  const snapshot = {
+    draft: "draft-id", revision: 2,
+    document: {title: "Unsaved", html: "<p>Pending edits</p>", metadata: {}},
+    source_tickets: [],
+  };
+  mount(form, snapshot);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(new URL(requests[0]).searchParams.get("compare_with"), "edition:11");
+  const panel = document.querySelector("#workspace-versions-content");
+  const link = panel.querySelector(".lineage-timeline-item > a");
+  link.focus();
+  link.dispatchEvent(new window.MouseEvent("click", {
+    bubbles: true, button: 0, cancelable: true,
+  }));
+  await new Promise(resolve => setImmediate(resolve));
+
+  const state = new URL(location.href).searchParams;
+  assert.equal(state.get("versions_selected"), "revision:21");
+  assert.equal(state.get("versions_compare_with"), "");
+  assert.equal(new URL(requests.at(-1)).searchParams.has("compare_with"), false);
+  assert.equal(document.activeElement, panel.querySelector(".lineage-timeline-item > a"));
+  assert.equal(JSON.stringify(snapshot.document), JSON.stringify({
+    title: "Unsaved", html: "<p>Pending edits</p>", metadata: {},
+  }));
 });
 
 test("lineage inspection scrolls to the newly loaded target, not the old one", async () => {

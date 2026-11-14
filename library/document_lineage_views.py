@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db import OperationalError
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
@@ -16,6 +17,8 @@ from library.models import (
     DocumentReaderSelection,
     Rendition,
 )
+from library.services.document_comparison import compare_documents
+from library.services.document_edits import preview_rendition_import
 from library.services.document_lineage import (
     LineageConflict,
     LineageLimitExceeded,
@@ -24,14 +27,12 @@ from library.services.document_lineage import (
     build_lineage,
     restore_archive,
 )
-from library.services.document_comparison import compare_documents
-from library.services.document_edits import preview_rendition_import
-from library.services.errors import ImportFailure
-from library.services.semantic_documents import fingerprint
 from library.services.document_versions import (
     restore_reader_fallback,
     select_reader_target,
 )
+from library.services.errors import ImportFailure
+from library.services.semantic_documents import fingerprint
 
 
 def _saved_lineage_document(document, node):
@@ -82,7 +83,7 @@ def _saved_lineage_document(document, node):
     return value
 
 
-def _lineage_comparison(document, lineage, compare_with=""):
+def _lineage_comparison(document, lineage, compare_with="", section=""):
     selected = lineage["selected"]
     if selected.get("outside_scope"):
         return None, "Focus this item into the current genealogy scope before comparing it."
@@ -112,7 +113,7 @@ def _lineage_comparison(document, lineage, compare_with=""):
     try:
         before = _saved_lineage_document(document, before_node)
         after = _saved_lineage_document(document, selected)
-        result = compare_documents(before, after)
+        result = compare_documents(before, after, section)
     except (ValueError, ImportFailure) as exc:
         return None, str(exc)
     return {
@@ -278,10 +279,11 @@ def workspace(request, pk):
     comparison = None
     comparison_error = ""
     compare_with = request.GET.get("compare_with", "")
+    comparison_section = request.GET.get("section", "")
     compare_choices = []
     if can_review and lineage and lineage.get("selected"):
         comparison, comparison_error = _lineage_comparison(
-            document, lineage, compare_with,
+            document, lineage, compare_with, comparison_section,
         )
         visible_nodes = lineage["timeline"]
         compare_choices = [
@@ -294,6 +296,35 @@ def workspace(request, pk):
             and not node["archived"]
         ]
 
+    if request.GET.get("download_comparison") == "1" and comparison:
+        before_node = lineage["nodes"][comparison["before_id"]]
+        after_node = lineage["nodes"][comparison["after_id"]]
+        response = JsonResponse({
+            "semantics": "exact_saved_content_comparison",
+            "scope": {
+                "filter": filter_name, "scope": scope_name, "anchor": anchor_id,
+                "selected": selected_id, "compare_with": compare_with,
+                "section": comparison_section,
+            },
+            "before": {
+                "id": comparison["before_id"], "label": comparison["before_label"],
+                "digest": comparison["result"]["before_digest"],
+                "document": _saved_lineage_document(document, before_node),
+            },
+            "after": {
+                "id": comparison["after_id"], "label": comparison["after_label"],
+                "digest": comparison["result"]["after_digest"],
+                "document": _saved_lineage_document(document, after_node),
+            },
+        }, json_dumps_params={"ensure_ascii": False, "indent": 2})
+        response["Cache-Control"] = "no-store"
+        response["Content-Disposition"] = (
+            'attachment; filename="saved-lineage-comparison.json"'
+        )
+        return response
+
+    evidence_params = request.GET.copy()
+    evidence_params["download_comparison"] = "1"
     return panel_response(request, "library/document_lineage.html", {
         "document": document, "version": reader_target, "lineage": lineage, "lineage_error": error,
         "lineage_filter": filter_name, "archive_preview": preview,
@@ -301,6 +332,10 @@ def workspace(request, pk):
         "lineage_scope": scope_name, "anchor_id": anchor_id,
         "comparison": comparison, "comparison_error": comparison_error,
         "compare_with": compare_with, "compare_choices": compare_choices,
+        "comparison_section": comparison_section,
+        "evidence_download_url": (
+            f"{reverse('document-lineage', args=[document.pk])}?{evidence_params.urlencode()}"
+        ),
         "reader_target": reader_target,
         "reader_fallback": reader_fallback,
         "can_reset_reader_fallback": bool(
@@ -320,5 +355,5 @@ def workspace(request, pk):
         ).select_related("previous_rendition", "rendition", "reviewer").order_by(
             "-created_at", "-pk",
         )[:20],
-        "embedded": panel_context(request)["embedded"], "can_review": can_review,
+        "embedded": panel_context(request)["embedded"],
     }, status=status)
