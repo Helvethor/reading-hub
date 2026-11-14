@@ -75,7 +75,8 @@ and preserve the document title, metadata and export output. The
 [V.l handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vl-coherent-reader-stage-and-tools)
 owns the complete interaction, sizing, preservation and V36-V40 acceptance
 contract. The user authorized implementation with `/implement milestone V.l`.
-This does not authorize deployment or live-data changes.
+The later `/deploy-locally` request authorized local deployment; neither request
+authorizes live-data changes.
 
 **Reviewer workspace:** replace competing navigation bars, preamble link lists
 and routine notice walls with one work/status header, predictable command groups

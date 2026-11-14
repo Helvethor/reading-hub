@@ -900,6 +900,29 @@ tests. This bounded deployment check does not complete V32-V35: saved/draft
 editing journeys, native input/scrollbar tests, short/narrow screens, 200% zoom,
 print/PDF comparison and human accessibility review remain outstanding.
 
+V.l local deployment (2026-11-14): validated commit `aad5fe1` serves
+`http://127.0.0.1:8765/` from `data/releases/aad5fe1`, retaining the existing
+`data/` root and `READING_HUB_EDITOR_PILOT=1`. The verified web PID 2294973 was
+gracefully replaced by PID 2406159 using the same Python executable and
+runserver flags. The separate port-8000 service and import workers were not
+touched. No Python application code or source profile changed. The live
+`migrate --plan` was empty; no migration or live-data change was made.
+
+The target release passed `manage.py check`, `migrate --plan`,
+`makemigrations --check --dry-run`, 43 isolated `test_document_editor_views`
+tests, and the full frontend suite (334 tests). Release-local `npm ci` and
+`npm run build` succeeded; npm reported its existing Node/npm compatibility and
+configuration warnings. `findstatic` resolved both generated editor assets,
+the public workspace bundle and the workspace CSS assets. Home and version 103
+Read returned HTTP 200, and the Read HTML contained the V.l Reader tools,
+Table of Contents and Larger content controls. Workspace CSS and all three
+generated JS/CSS assets returned HTTP 200 and matched the release files
+byte-for-byte.
+
+This is a local deployment, not V36-V40 acceptance: the compact stage test uses
+mocked measurements, and actual saved/draft browser journeys, PDF/print
+comparison, native zoom/input and human accessibility review remain outstanding.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

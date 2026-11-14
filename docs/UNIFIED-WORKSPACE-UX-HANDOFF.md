@@ -29,7 +29,8 @@ Follow-up V.l, agreed 2026-11-14, consolidates the coherent reader-stage/tools
 proposal and removal of the redundant content ARTICLE/BOOK eyebrow. It is
 implemented in source following the user's `/implement milestone V.l` request;
 V36-V40 define acceptance, which remains partial pending browser/PDF and human
-accessibility validation. Deployment and live-data changes were not authorized.
+accessibility validation. The separately requested local deployment serves
+release `aad5fe1`; no live-data changes were made.
 
 Follow-up V.m, agreed 2026-11-14, consolidates the comparison-first Versions
 proposal. It is planned, not implemented; V41-V46 define acceptance. The user
@@ -892,7 +893,8 @@ User accepted the reader design proposal on 2026-11-14 and requested consolidati
 as a milestone, adding that ARTICLE/BOOK above the content title is redundant
 with workspace context. The user authorized implementation with
 `/implement milestone V.l`. Source implementation was delivered on 2026-11-14;
-V36-V40 acceptance is partial. No deployment or live-data changes were authorized
+V36-V40 acceptance is partial. The separately requested local deployment is
+recorded in [Operations](OPERATIONS.md); no live-data changes were authorized
 or performed.
 
 #### Outcome, evidence and scope

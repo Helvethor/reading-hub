@@ -275,9 +275,10 @@ partial):
 the [reader-stage handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vl-coherent-reader-stage-and-tools)
 owns the complete design and V36-V40 acceptance. This consolidates the accepted
 reader proposal and removal of the redundant content ARTICLE/BOOK eyebrow.
-Implementation was authorized by `/implement milestone V.l`; deployment and
-live-data changes were not authorized. Build on V.k without certifying its
-outstanding acceptance.
+Implementation was authorized by `/implement milestone V.l` and locally
+deployed in release `aad5fe1` after the separate `/deploy-locally` request.
+No live-data changes were authorized or made. Build on V.k without certifying
+its outstanding acceptance.
 
 - [x] Consolidate Table of Contents and Style in one independently scrollable
   Reader tools rail; normalize toolbar buttons and implement explicit Larger
