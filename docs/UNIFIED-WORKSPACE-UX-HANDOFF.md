@@ -18,6 +18,12 @@ The subsequent V.e/V.f implementation request authorizes those focused fixes.
 Local deployment is authorized; remote publication, migrations and live content
 mutation are not.
 
+Follow-up V.k, requested 2026-11-14, is specification/design only. It plans a
+return to separate content and page scrolling in Read and Edit Content, without
+changing menu stacking. Earlier implementation/deployment authorization is not
+authorization to implement or deploy this new follow-up. V32-V35 below are
+unimplemented and unvalidated.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -210,9 +216,10 @@ the content area. Basic navigation and commands remain keyboard reachable.
 Show a labelled Back to top button after scrolling at least one usable viewport
 height in the active content scroll area; hide it again near that area's start.
 The threshold uses the visible area below the stack and is recomputed on resize.
-The V.b refinement below supersedes independent main editor/Versions/Sources
-scroll owners: use document scrolling for active main content. Scrolling an
-outline, menu or dialog must not accidentally change the button's target.
+The implemented V.b refinement below uses document scrolling for active main
+content. Planned V.k supersedes that ownership for Read and Edit Content only.
+Scrolling an outline, menu or dialog must not accidentally change the button's
+target.
 
 Activation returns that content area to its beginning without switching tabs,
 saving, changing editor selection or clearing undo/recovery. Position the button
@@ -401,6 +408,10 @@ Implementation/evidence, 2026-11-12:
   No live corrections, revisions, publications or reader defaults were changed.
 
 ### V.b: document scrolling and footer ownership
+
+Historical implemented baseline: V.k below supersedes Read/Edit Content
+ownership and the footer's relationship to their full document length. Retain
+the other requirements and their preservation evidence.
 
 Read, Edit (including the main canvas), Versions and Sources participate in normal
 document flow. Remove viewport-height clamps, resizing handles and independent
@@ -751,6 +762,113 @@ This implementation validation did not change live data. It was locally deployed
 on 2026-11-14; see the [deployment record](OPERATIONS.md). Deployment does not
 close V31.
 
+### V.k: classical content and page scrolling
+
+User request 2026-11-14: the recent Read/editor content scrolling feels strange;
+plan a return to one scroll for content and one for the page. Menu stacking
+behavior must not change. This section is a plan, not an implementation or
+deployment report.
+
+#### Current evidence and scope
+
+Code inspection confirms that V.b deliberately removed the canvas height/
+overflow boundary. `workspace-shell.js` and `public-workspace.js` remember
+`window.scrollY`; `page-scroll.js` navigates the window; `contents-panel.js`
+tracks the document scroller; and the editor caret visibility handler scrolls
+the window. Reintroducing CSS overflow alone would leave these callers targeting
+the wrong owner. No browser reproduction or new root-cause claim accompanies
+this planning pass.
+
+Apply to Read in public and reviewer version workspaces, including saved output
+and unsaved previews, and to Edit's Content canvas. Do not change Versions,
+Sources, Metadata/Review/other Edit subtabs, standalone retained reader pages,
+publication/PDF routes, or the persistence model. This supersedes conflicting
+Read/Edit ownership in V.b, V15/V18/V19 and V.g/V.j navigation assumptions;
+their unrelated behavior and preservation requirements remain in force.
+
+#### Interaction and layout design
+
+- **Page scroll:** the browser's normal page scrollbar moves the surrounding
+  work context, active view and footer. The footer follows the bounded active
+  pane and other page-level content, not every paragraph inside it. Hidden
+  panels contribute no page height. Do not lock body scrolling or turn the
+  entire application into a fixed-height shell.
+- **Content scroll:** give Read's paper column one native vertical overflow
+  pane, and use `#editor-surface` as Edit Content's single main overflow pane.
+  Include the complete generated Title/ToC/Metadata pages and editable document
+  in that same Edit pane; do not make a second scroller on the Tiptap root.
+  Keep Read actions, Edit secondary tabs/commands, outline/ToC and canvas
+  selection/status controls outside the main content scroller. Existing
+  bounded scrolling for long outlines/ToCs, menus and dialogs remains allowed;
+  "two levels" does not remove those auxiliary controls.
+- **Sizing:** bound the pane by the usable viewport using the existing measured
+  chrome/flow reservations and local controls, not a hard-coded header height.
+  Size independently of prose length and the pane's scroll position. Ordinary
+  scrolling/compaction must not continually resize the pane or change the page
+  scroll range; reuse stable expanded-height reservations rather than deriving
+  height from the pane's moving viewport top. Recalculate for actual layout
+  changes, including resize, zoom, wrapping and Style disclosure. Short/narrow
+  screens retain both native scroll owners, reachable controls and a usable
+  content band; remove conflicting canvas minimums rather than letting them
+  force the document back into page flow. No manual resizing feature or new
+  persisted size preference is required.
+- **Native input:** pointer/wheel/trackpad input over the document scrolls its
+  pane; over the page it scrolls the page. Retain browser-native scroll chaining
+  at pane boundaries and native scrollbar dragging. Do not forward wheel deltas,
+  trap input, add artificial smooth scrolling or hide scrollbars. Keyboard
+  scrolling follows focus; the Read pane is a named keyboard-focusable region,
+  while the editor retains its normal editable semantics. Tab can leave either
+  region without losing content.
+- **Unchanged stacking:** retain application header, review navigation,
+  work/context tabs and current commands in their current order, with existing
+  compaction thresholds, flow slots, measured offsets, responsive behavior and
+  z-index/menu/dialog rules. Page scrolling alone drives compaction. Content
+  scrolling does not fake window scroll, compact/expand bars, remount controls
+  or dismiss menus differently. Do not put stacked bars/popovers inside a new
+  clipping ancestor; verify menu placement when the underlying pane moves.
+- **Position and navigation:** remember page position and each content pane's
+  independent position across main/local tab switches and Back/Forward.
+  Preserve the visible content anchor through ToC width/style changes and Read
+  replacement, with numeric position as fallback when that anchor no longer
+  exists. A newly opened view starts at its beginning unless an explicit deep
+  link targets content. Contents/internal links, outline following, editor
+  caret navigation and dialog focus return resolve their containing owner.
+  First reveal an offscreen pane through the page only as needed, then reveal
+  the target inside that pane using its visible bounds and any actual overlap;
+  do not subtract the whole sticky stack twice. A late response cannot move an
+  inactive tab or override intervening user navigation.
+- **Back to top:** in Read/Edit Content, the existing button targets only that
+  content pane, appears after one pane viewport of content scrolling and hides
+  near its start. It does not reset page position or expand the menu stack.
+  Other views retain their page target. Keep the accessible target, focus safety,
+  modal suppression and reduced-motion behavior; auxiliary scrolling never
+  retargets it. Normal page scrollbar/keyboard navigation remains available.
+- **Preservation:** keep V.j's paper, margins, hidden-ToC width, Style scopes and
+  session-local toggle state. Keep the editor instance, selection, undo, folds,
+  source bindings, generated-page order, pending edits and recovery. No scroll
+  operation saves content/preferences or changes review/publication/defaults.
+  Screen overflow/height constraints are removed for print; actual saved/draft
+  PDF and browser print retain all content and existing layout/identity.
+
+#### Implementation sequence and verification
+
+1. On isolated article and media-rich long-book fixtures, record current page/
+   pane geometry and stack/menu behavior. Introduce the two bounded main panes
+   and owner-aware navigation together, not a CSS-only interim release. Extend
+   the existing shared scroll helpers for document or element owners; reuse them
+   in public/reviewer shells, contents tracking, outline and editor caret/link
+   navigation. Leave the sticky-stack state machine intact.
+2. Update position restoration, asynchronous replacement, Back to top and focus
+   return for both owners. Add focused regressions to existing workspace,
+   contents/navigation and editor tests covering independent positions, stale
+   responses, caret/link targets and unchanged page-driven compaction. Checkpoint
+   this coherent slice only after its focused tests and production build pass.
+3. Exercise V32-V35 in a visible browser with real wheel/trackpad, scrollbar and
+   keyboard input. Compare actual print and saved/draft PDF content, not only
+   CSS visibility. Use the existing isolated-test guidance; no live corrections,
+   saves, publication/default changes, workers or deployment are authorized.
+   Record automated, synthetic, observed and untested evidence separately.
+
 ### V.h: one work page for every role
 
 User decision 2026-11-12: record option A of the consolidation proposal.
@@ -957,7 +1075,9 @@ placement. No new framework, personal-style system, publication model or live-da
 mutation belongs to this follow-up. V.e, V.f and V.g are independent and may land
 first as focused fixes after reproduction. V.h depends on V.d and V.g, and should
 follow M's style placement or coordinate with it. V.i follows the delivery order
-in its section. Stop only after V17-V30 and relevant V1-V16
+in its section. V.k, if subsequently authorized, follows its own sequence and
+revises only the stated Read/Edit scroll ownership. Stop only after the applicable
+V17-V35 and relevant V1-V16
 preservation checks are evidenced; report browser limitations rather than claiming
 full acceptance from jsdom tests.
 
@@ -1027,8 +1147,15 @@ unsaved edits. Track implementation and validation independently.
 | V29 | Assert exact scope membership for This branch (anchor, descendants, direct parent), This source (exact capture) and Whole work on a multi-source branched fixture. Inspection leaves the anchor fixed; Focus on this version explicitly changes it. Combine each scope with archived/type filters; preserve context boundaries, shared-source links, unknown bindings and explicit size-limit failures. Tab switches, deep links and Back/Forward restore scope, anchor, filter and selection without losing editor state. |
 | V30 | Exercise compact lanes and Nested views on a deep-history fixture: indentation never exceeds three visual levels, while real depth, breadcrumbs, branch counts and all accessible nodes remain accurate. Grouped review/publication events retain exact records and inspection links. Record visible-browser evidence at 1440px and 375px and 200% zoom, including short viewports, keyboard/focus, stack offsets, inline diff errors and unsaved-edit recovery; print/PDF content and role permissions are preserved. Distinguish synthetic correctness checks from observed workflow evidence. |
 | V31 | On isolated article and long-book fixtures, exercise saved-edition guest and reviewer unsaved-draft Read at 1440px, 1024px and 375px, plus 200% zoom. Capture the toolbar and verify PDF, Toggle ToC and Style share it; keyboard-open Style and change/restore a setting with existing scope and persistence semantics. Measure actual body and paper boxes before/after toggling: at 1440px and 1024px the body widens when space permits, the hidden ToC occupies no space or accessibility tree, and toggling back restores the original width, focus and reading location. Check default white paper and computed desktop 18mm inline/30mm block padding, narrow-screen padding and no horizontal overflow; verify an explicit dark palette remains legible. Confirm ToC state across tabs and draft re-render, sticky targets and wrapped toolbar. Compare actual saved and draft PDF/print content and margins before/after; confirm no preference, content, publication or review mutation from toggling alone. Record screenshots and measurements, distinguishing observed from synthetic evidence. |
+| V32 | On isolated short-article and long media-rich book fixtures, guest saved Read and reviewer saved/unsaved Read/Edit Content each have one native main content pane plus normal page scrolling. Record page and pane positions/ranges: wheel/trackpad and held scrollbar drags move only the intended owner until native boundary chaining; stopping input leaves stable geometry. The footer is reachable after the pane without traversing all its prose; hidden panels add no height. At 1440px, 1024px, 375px, a short viewport and native 200% zoom, the last document block and all controls remain reachable without horizontal page overflow or a keyboard trap. |
+| V33 | With page position fixed, deep-scroll Read/Edit content: header/tab/command compaction and page range remain unchanged. Then scroll the page through the existing thresholds in both directions using tiny wheel increments and a held scrollbar drag: stack order, expansion, reserved flow and menu/dialog layering match the baseline without jitter. Open keyboard/pointer menus and dialogs before each kind of scroll and compare existing dismissal/focus behavior; new overflow does not clip them or detach their placement from targets. Include wrapped commands, expanded Style, short/narrow screens and zoom. |
+| V34 | Scroll page and each pane to distinct positions with unsaved edits; switch all main/local tabs, use Back/Forward, refresh Read asynchronously, change/restore Style and toggle ToC. Restore the appropriate page/content locations without editor remount, undo/recovery loss or stale-response/user-scroll overrides. Exercise ToC/internal/deep links, outline following, caret movement to first/last block and dialog focus return; targets are visible in the correct pane and below any overlap without unnecessary page jumps. Back to top moves only the active Read/Edit Content pane, leaves page/stack state unchanged, respects keyboard/reduced motion/modal focus and ignores auxiliary scrolling; other views keep their page target. |
+| V35 | Compare actual saved and unsaved draft PDF plus browser print before/after on the same fixtures: no pane clipping, missing generated/end pages, scroll controls or changed output identity, margins, prose, notes, links or media. Confirm V.j paper/width/palette behavior, editor state, permissions, retained records and mutation counts remain unchanged by scrolling/navigation. Versions/Sources, other Edit subtabs and standalone readers retain their previous scroll behavior. Record automated correctness, synthetic layout and observed workflow/output evidence separately; tester confirmation and human accessibility review remain explicit outstanding items unless performed. |
 
-Stop when V1-V31 are implemented and validated, not when tabs merely look alike.
+V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
+V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
+Stop when the authorized scope is implemented and validated, not when tabs merely
+look alike. V.k remains planning-only until implementation is requested.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend

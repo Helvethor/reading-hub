@@ -291,7 +291,9 @@ publication/default changes are not.
 
 Workspace refinement V.a-V.d (implemented, acceptance partial):
 all main tab content, including the editor canvas, uses
-document scrolling with the footer after active content. Compact navigation must
+document scrolling with the footer after active content. This describes the
+implemented baseline; planned V.k below supersedes its Read/Edit content-scroll
+ownership, not menu stacking or the other views. Compact navigation must
 not oscillate on initial scroll. Coordinate primary tabs, secondary tabs and
 contextual action/filter bars; pinned source structure becomes an evidence-only
 Edit subtab. PDF labels and exported identity distinguish exact immutable output,
@@ -362,6 +364,26 @@ explicit reading palettes and the existing style workflow. This follow-up
 supersedes conflicting V.g width and control-label details; V31 browser/output
 acceptance remains pending. This local deployment did not change live data and
 does not authorize remote deployment.
+
+V.k (planned 2026-11-14; specification/design only; V32-V35 acceptance in
+[the workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vk-classical-content-and-page-scrolling)):
+restore two conventional scroll levels in workspace Read and Edit Content:
+one native scroll pane for the document and normal browser-page scrolling for
+the surrounding workspace and footer. Read's paper and Edit's complete canvas
+document, including generated pages, scroll inside their respective panes;
+toolbars, ToC/outline and selection/status controls stay outside the main content
+scroller. Existing auxiliary scrolling remains allowed. Versions, Sources,
+other Edit subtabs and standalone retained readers are unchanged.
+Preserve the current menu/header/tab/command stacking, compaction thresholds,
+expanded-height flow reservations, layering and responsive rules. Only page
+scrolling drives that stack; content scrolling must not compact or expand it.
+Use native overflow and input/edge behavior, without wheel interception,
+body-scroll locking or a new scrolling mode. Retain separate page and content
+positions through tab switches, asynchronous refresh and history; contents,
+caret/focus navigation and Back to top use the appropriate content owner.
+Preserve V.j paper/width/style behavior, pending edits, undo/recovery, exact
+content identity and PDF/print output. This request authorizes planning only,
+not implementation, deployment or live-data changes.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

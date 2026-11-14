@@ -153,8 +153,9 @@ for scope, dependencies and V17-V22 acceptance.
   book 80 preserve scroll range under wheel input and held scrollbar drags.
   Tester confirmation and browser zoom remain pending; this is not full V17
   acceptance or a claim that the original usage loop was independently reproduced.
-- [ ] V.b acceptance: validate document flow across all main tabs, per-view
-  position, anchor/focus navigation and footer ownership.
+- [ ] V.b acceptance: validate document flow, per-view position, anchor/focus
+  navigation and footer ownership, applying planned V.k's Read/Edit content-pane
+  contract rather than certifying the superseded all-document-scroll requirement.
 - [ ] V.c acceptance: validate coordinated secondary tabs/actions/filters and
   the evidence-only Pinned source structure tab without duplicate navigation.
 - [ ] V.d acceptance: validate PDF labels, status, file identity and exported content
@@ -241,8 +242,27 @@ Read layout follow-up V.j (implementation present; V31 acceptance partial,
   Locally deployed as commit `df48756` on 2026-11-14 without migration or live
   content changes; see the [deployment evidence](docs/OPERATIONS.md).
 
-- [ ] Validate V17-V22 with isolated article/book fixtures and real browser/PDF
-  observations; preserve relevant V1-V16 behavior and report limitations.
+Classical scrolling follow-up V.k (planned, specification/design only,
+2026-11-14): return workspace Read and Edit Content to a native content pane
+plus normal page scrolling, without changing menu stacking. The
+[workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vk-classical-content-and-page-scrolling)
+owns design, delivery order and V32-V35 acceptance. This is the next bounded
+scrolling correction if implementation is requested, not authorization to build
+or deploy it.
+
+- [ ] Restore one bounded main content pane in Read and Edit Content; keep page
+  scrolling, footer access and existing stack/compaction behavior unchanged.
+- [ ] Make navigation, caret visibility, ToC/outline following and Back to top
+  owner-aware; preserve separate page/content positions across tabs, history,
+  asynchronous Read refresh and layout changes without stale-response jumps.
+- [ ] Validate V32-V35 with isolated saved/draft article/book workflows, native
+  wheel/trackpad and scrollbar input, keyboard, short/narrow screens, 200% zoom,
+  menu layering and actual print/PDF preservation. No implementation or browser
+  validation has been performed for V.k.
+
+- [ ] Validate remaining V17-V22 with isolated article/book fixtures and real
+  browser/PDF observations under V.k's explicitly revised Read/Edit ownership;
+  preserve relevant V1-V16 behavior and report limitations.
 
 - [x] Deliver persistent Read/Edit/Versions/Sources tabs with explicit saved,
   draft, unsaved and reader-default identities and common actions.
