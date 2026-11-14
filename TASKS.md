@@ -154,8 +154,9 @@ for scope, dependencies and V17-V22 acceptance.
   Tester confirmation and browser zoom remain pending; this is not full V17
   acceptance or a claim that the original usage loop was independently reproduced.
 - [ ] V.b acceptance: validate document flow, per-view position, anchor/focus
-  navigation and footer ownership, applying planned V.k's Read/Edit content-pane
-  contract rather than certifying the superseded all-document-scroll requirement.
+  navigation and footer ownership, applying implemented V.k's Read/Edit
+  content-pane contract rather than certifying the superseded all-document-scroll
+  requirement.
 - [ ] V.c acceptance: validate coordinated secondary tabs/actions/filters and
   the evidence-only Pinned source structure tab without duplicate navigation.
 - [ ] V.d acceptance: validate PDF labels, status, file identity and exported content
@@ -246,18 +247,19 @@ Classical scrolling follow-up V.k (implemented; V32-V35 acceptance partial,
 2026-11-14): return workspace Read and Edit Content to a native content pane
 plus normal page scrolling, without changing menu stacking. The
 [workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vk-classical-content-and-page-scrolling)
-records design, delivery and V32-V35 acceptance. No deployment or live-data
-changes were authorized or performed.
+records design, delivery and V32-V35 acceptance. Local deployment of commit
+`603268e` completed without migrations or live-data changes; see
+[Operations](docs/OPERATIONS.md).
 
 - [x] Restore one bounded main content pane in Read and Edit Content; keep page
   scrolling, footer access and existing stack/compaction behavior unchanged.
 - [x] Make navigation, caret visibility, ToC/outline following and Back to top
   owner-aware; preserve separate page/content positions across tabs, history,
   asynchronous Read refresh and layout changes without stale-response jumps.
-- [x] Automated correctness: 333 frontend tests, 49 isolated Django workspace/
-  reader tests, production build and template/system checks pass. Synthetic
-  Chromium fixture verified separate native page/Read/Edit scroll owners and
-  measured bounded pane heights; no live data or server was changed.
+- [x] Automated correctness before deployment: 333 frontend tests, 49 isolated
+  Django workspace/reader tests, production build and template/system checks
+  pass. A synthetic Chromium fixture verified separate native page/Read/Edit
+  scroll owners and measured bounded pane heights.
 - [ ] Complete V32-V35 with isolated saved/draft article/book workflows, native
   wheel/trackpad and scrollbar input, keyboard, short/narrow screens, 200% zoom,
   menu layering and actual print/PDF preservation. Real application browser

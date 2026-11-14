@@ -292,7 +292,7 @@ publication/default changes are not.
 Workspace refinement V.a-V.d (implemented, acceptance partial):
 all main tab content, including the editor canvas, uses
 document scrolling with the footer after active content. This describes the
-implemented baseline; planned V.k below supersedes its Read/Edit content-scroll
+implemented baseline; V.k below supersedes its Read/Edit content-scroll
 ownership, not menu stacking or the other views. Compact navigation must
 not oscillate on initial scroll. Coordinate primary tabs, secondary tabs and
 contextual action/filter bars; pinned source structure becomes an evidence-only
@@ -365,7 +365,8 @@ supersedes conflicting V.g width and control-label details; V31 browser/output
 acceptance remains pending. This local deployment did not change live data and
 does not authorize remote deployment.
 
-V.k (implemented 2026-11-14; V32-V35 acceptance partial; evidence in
+V.k (implemented and locally deployed 2026-11-14; V32-V35 acceptance partial;
+evidence in
 [the workspace handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vk-classical-content-and-page-scrolling)):
 restore two conventional scroll levels in workspace Read and Edit Content:
 one native scroll pane for the document and normal browser-page scrolling for
@@ -381,9 +382,11 @@ Use native overflow and input/edge behavior, without wheel interception,
 body-scroll locking or a new scrolling mode. Retain separate page and content
 positions through tab switches, asynchronous refresh and history; contents,
 caret/focus navigation and Back to top use the appropriate content owner.
-preserve V.j paper/width/style behavior, pending edits, undo/recovery, exact
-content identity and PDF/print output. This implementation changes no live data
-and does not authorize deployment.
+Preserve V.j paper/width/style behavior, pending edits, undo/recovery, exact
+content identity and PDF/print output. The implementation itself changed no live
+data and did not authorize deployment; the local deployment was separately
+authorized and is recorded in [Operations](docs/OPERATIONS.md). No migration or
+live-data changes were made.
 
 For reviewer catalogue entry, the selected edition opens in the workspace Read
 tab without silently resuming a working copy. A published edition requires

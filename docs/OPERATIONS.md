@@ -866,6 +866,27 @@ HTML contains the V.j controls and workspace stylesheet cache version. V31
 acceptance remains partial: these checks did not exercise saved/draft journeys,
 dark palettes, native 200% zoom, actual PDF/print output or human accessibility.
 
+V.k local deployment (2026-11-14): validated commit `603268e` serves
+`http://127.0.0.1:8765/` from `data/releases/603268e`, preserving the existing
+`data/` root and `READING_HUB_EDITOR_PILOT=1`. The verified web PID 2166727 was
+gracefully replaced by PID 2294973 with the same executable and runserver flags.
+The separate port-8000 service and import workers were not touched. No Python
+application code or source profile changed. The live migration plan was empty;
+no migration or live-data change was made.
+
+The release passed `manage.py check`, `migrate --plan`,
+`makemigrations --check --dry-run`, and `findstatic` for both generated editor
+assets. `npm ci` and `npm run build` succeeded in the release; npm reported its
+existing Node/npm compatibility warning. Home and version 103 Read returned
+HTTP 200. Workspace CSS, public-workspace JS and both generated editor assets
+returned HTTP 200 and matched the release files byte-for-byte. The actual
+read-only guest Read page exposed a named pane with `overflow-y: auto`, a
+574px client height and 8,271px of content. Automated validation before
+deployment passed 333 frontend tests and 49 isolated Django workspace/reader
+tests. This bounded deployment check does not complete V32-V35: saved/draft
+editing journeys, native input/scrollbar tests, short/narrow screens, 200% zoom,
+print/PDF comparison and human accessibility review remain outstanding.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

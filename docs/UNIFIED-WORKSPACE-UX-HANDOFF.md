@@ -18,11 +18,12 @@ The subsequent V.e/V.f implementation request authorizes those focused fixes.
 Local deployment is authorized; remote publication, migrations and live content
 mutation are not.
 
-Follow-up V.k, requested 2026-11-14, is specification/design only. It plans a
-return to separate content and page scrolling in Read and Edit Content, without
-changing menu stacking. Earlier implementation/deployment authorization is not
-authorization to implement or deploy this new follow-up. V32-V35 below are
-unimplemented and unvalidated.
+Follow-up V.k, requested 2026-11-14, is implemented and locally deployed as
+commit `603268e`. It restores separate content and page scrolling in Read and
+Edit Content without changing menu stacking. V32-V35 remain partially validated;
+see the [local deployment record](OPERATIONS.md) and outstanding checks below.
+Remote deployment, migrations and live-data changes were not authorized or
+performed.
 
 ## Outcome, authority and supersession
 
@@ -217,7 +218,8 @@ Show a labelled Back to top button after scrolling at least one usable viewport
 height in the active content scroll area; hide it again near that area's start.
 The threshold uses the visible area below the stack and is recomputed on resize.
 The implemented V.b refinement below uses document scrolling for active main
-content. Planned V.k supersedes that ownership for Read and Edit Content only.
+content. Implemented V.k supersedes that ownership for Read and Edit Content
+only.
 Scrolling an outline, menu or dialog must not accidentally change the button's
 target.
 
@@ -869,8 +871,9 @@ their unrelated behavior and preservation requirements remain in force.
    media-rich book fixtures. Native scrollbar drags, keyboard journeys, narrow
    and short viewports, native 200% zoom, menu/dialog layering, Back/Forward,
    actual saved/draft PDF and browser print comparison, and human accessibility
-   review remain unverified. The existing localhost service points to an older
-   release; it was not restarted or used against live data.
+   review remain unverified. The previous localhost release was replaced by
+   `603268e` without migration or live-data changes; see
+   [deployment evidence](OPERATIONS.md).
 
 ### V.h: one work page for every role
 
@@ -1078,11 +1081,11 @@ placement. No new framework, personal-style system, publication model or live-da
 mutation belongs to this follow-up. V.e, V.f and V.g are independent and may land
 first as focused fixes after reproduction. V.h depends on V.d and V.g, and should
 follow M's style placement or coordinate with it. V.i follows the delivery order
-in its section. V.k, if subsequently authorized, follows its own sequence and
-revises only the stated Read/Edit scroll ownership. Stop only after the applicable
-V17-V35 and relevant V1-V16
-preservation checks are evidenced; report browser limitations rather than claiming
-full acceptance from jsdom tests.
+in its section. V.k is implemented and locally deployed; its V32-V35 acceptance
+remains open and revises only the stated Read/Edit scroll ownership. Stop only
+after the applicable V17-V35 and relevant V1-V16 preservation checks are
+evidenced; report browser limitations rather than claiming full acceptance from
+jsdom tests.
 
 ## Implementation discovery map
 
@@ -1158,7 +1161,8 @@ unsaved edits. Track implementation and validation independently.
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
 Stop when the authorized scope is implemented and validated, not when tabs merely
-look alike. V.k remains planning-only until implementation is requested.
+look alike. V.k is implemented and locally deployed, but V32-V35 acceptance
+remains partial.
 First reproduce context drift and state loss risks in isolated fixtures; deliver
 the shell/state and shared projection/export slices with focused regression tests
 and validated checkpoint commits. Run existing editor checks/build for frontend
