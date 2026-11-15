@@ -612,15 +612,21 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, "Choose a working copy")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
 
-    def test_edit_panel_has_its_own_scroll_owner_and_no_empty_context_or_scope_help(self):
+    def test_edit_uses_content_and_outline_scroll_owners_without_an_edit_panel_scroll_box(self):
+        from bs4 import BeautifulSoup
+
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response, 'id="workspace-panel-edit" data-workspace-scroll-pane',
+        page = BeautifulSoup(response.content, "html.parser")
+        self.assertFalse(
+            page.select_one("#workspace-panel-edit").has_attr("data-workspace-scroll-pane")
         )
+        self.assertIsNotNone(page.select_one(".editor-outline[data-workspace-scroll-pane]"))
+        self.assertIsNotNone(page.select_one("#editor-surface[data-workspace-scroll-pane]"))
         self.assertNotContains(response, 'class="workspace-notices"')
         self.assertNotContains(response, 'editor-scope-help')
         self.assertContains(response, 'id="workspace-baseline-state"')
+        self.assertContains(response, 'class="workspace-tabs editor-tabs"')
 
     def test_reading_style_controls_are_in_read_not_edit_and_never_style_editor(self):
         from bs4 import BeautifulSoup

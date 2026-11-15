@@ -44,6 +44,39 @@
   color: var(--accent);
 }
 .workspace-tabs [role="tab"]:focus-visible { outline-offset: -3px; }
+.workspace-command-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .5rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-raised, #eef1ea);
+  color: var(--ink);
+}
+.workspace-command-bar :is(button, .button) {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: .35rem .6rem;
+  font: 600 .85rem/1.4 system-ui, sans-serif;
+}
+.workspace-command-bar label {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: .35rem;
+  margin: 0;
+  font: 400 .85rem/1.4 system-ui, sans-serif;
+}
+.workspace-command-bar select {
+  min-width: 0;
+  max-width: 13rem;
+  min-height: 2.25rem;
+  padding: .25rem;
+  font: inherit;
+}
 .workspace-action-status {
   margin: 0;
   padding: .3rem .75rem;
@@ -54,11 +87,6 @@
 .workspace-action-status > p { margin: 0; }
 .workspace-action-status:empty { display: none; }
 .workspace-view-panel { min-width: 0; }
-#workspace-panel-edit {
-  max-height: max(5rem, calc(100dvh - 1rem));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
 .workspace-scroll-panel { min-height: 16rem; }
 .workspace-read-preview { padding: 0; }
 .workspace-preview-heading { padding: .75rem; border-bottom: 1px solid var(--line); }
@@ -66,7 +94,7 @@
 .workspace-preview-heading h2 { margin: .1rem 0; overflow-wrap: anywhere; }
 .workspace-preview-heading p { margin: .25rem 0; }
 .workspace-scroll-panel .document-lineage { max-width: none; padding: .5rem; }
-.workspace-read-actions, .workspace-filter-bar {
+.workspace-filter-bar {
   position: static;
   display: flex;
   flex-wrap: wrap;
@@ -82,11 +110,6 @@
 }
 .workspace-panel-edit .editor-workspace { border: 0; }
 .workspace-read-actions { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
-.workspace-read-actions :is(button, .button) {
-  min-height: 2.25rem;
-  padding: .4rem .7rem;
-  font: 600 .9rem/1.35 system-ui, sans-serif;
-}
 .workspace-reader-modes { display: flex; flex-wrap: wrap; gap: .4rem .6rem; }
 .workspace-reader-modes button[aria-pressed="true"] {
   border-color: var(--accent);

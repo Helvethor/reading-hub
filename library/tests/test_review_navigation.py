@@ -29,7 +29,10 @@ class ReviewNavigationTests(TestCase):
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertIsNone(self.menu(response))
         self.assertEqual(
-            [tab.get_text(strip=True) for tab in soup.select(".workspace-tabs [role=tab]")],
+            [
+                tab.get_text(strip=True)
+                for tab in soup.select('[aria-label="Work views"] [role=tab]')
+            ],
             ["Read", "Versions", "Sources"],
         )
         self.assertIsNone(soup.select_one("#workspace-tab-edit"))
@@ -74,7 +77,10 @@ class ReviewNavigationTests(TestCase):
         self.assertEqual([heading.get_text(strip=True) for heading in soup.find_all("h1")],
                          [version.title])
         self.assertEqual(
-            [tab.get_text(strip=True) for tab in soup.select(".workspace-tabs [role=tab]")],
+            [
+                tab.get_text(strip=True)
+                for tab in soup.select('[aria-label="Work views"] [role=tab]')
+            ],
             ["Read", "Edit", "Versions", "Sources"],
         )
         self.assertNotIn("generated/public-workspace.js", " ".join(

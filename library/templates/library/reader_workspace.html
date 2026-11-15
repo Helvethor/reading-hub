@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v60-fixes">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-vp-v66">
 <link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>
 {% endblock %}
 {% block content %}
@@ -39,7 +39,7 @@
       <div class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></div>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1">
-      <div class="workspace-read-actions" role="group" aria-label="Read actions">
+      <div class="workspace-read-actions workspace-command-bar" role="group" aria-label="Read actions">
         <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>PDF</a>
         {% if reader_target and reader_target.pk != version.pk %}
         <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default edition {{ reader_target.pk }}</a>

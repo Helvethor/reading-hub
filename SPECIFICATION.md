@@ -168,7 +168,7 @@ live-editor mouse/selection freeze still needs reproduction: native input works
 on isolated short and 50-section synthetic fixtures, which does not certify the
 affected live working copy.
 
-**Planned workspace unification V.p (2026-11-15; not implemented):**
+**Workspace unification V.p (2026-11-15; source implemented, acceptance partial):**
 unify local Edit tabs with workspace tabs, and give Read actions and Edit
 difference controls the same compact command-bar language. Remove the whole-Edit
 scroll box introduced by the V.o feedback follow-up: normal page scrolling
@@ -180,9 +180,11 @@ accessible announcements. Investigate the reported pointer/selection problem
 before assigning a cause or applying a fix. Preserve editor state, navigation,
 exact content, permissions and exports. The
 [V.p handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vp-unified-editor-and-workspace-interaction)
-defines the design and V61-V66 acceptance. When implemented, V.p supersedes only
-the conflicting whole-Edit-scroll requirement above. This request authorizes
-documentation, not implementation, deployment or live-data changes.
+defines the design and V61-V66 acceptance. Source implementation supersedes
+only the conflicting whole-Edit-scroll requirement above. Native-browser
+acceptance remains open; the reported working-copy freeze has not been
+reproduced. The user requested implementation and separately requested local
+deployment; live-data changes remain unauthorized.
 
 **Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.

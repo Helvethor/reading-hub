@@ -55,18 +55,48 @@ test("current template mounts differences and preserves the immutable baseline a
     <option value="result">Result</option><option value="diffs">Diffs</option></select>
     <select id="editor-diff-revision"><option value="0">Pinned starting version</option></select>
     <button id="editor-diff-baseline" type="button">Update comparison</button>
-    <p id="editor-diff-status"></p>`);
+    <span id="editor-diff-status" aria-live="off"></span>
+    <p id="editor-diff-announcement" role="status" aria-live="polite"></p>`);
   const initial = {revision: 0, document: {html: "<p>Current prose.</p>"},
     baseline_document: {html: "<p>Original prose.</p>"}};
   const controls = mountDifferenceControls(form, editor, initial, assert.fail);
+  const announcement = form.querySelector("#editor-diff-announcement");
+  const textContent = Object.getOwnPropertyDescriptor(window.Node.prototype, "textContent");
+  let announcements = 0;
+  Object.defineProperty(announcement, "textContent", {
+    configurable: true,
+    get() { return textContent.get.call(this); },
+    set(value) {
+      announcements++;
+      textContent.set.call(this, value);
+    },
+  });
   const filter = form.querySelector("select");
   filter.value = "diffs";
   filter.dispatchEvent(new window.Event("change"));
   assert.match(form.querySelector("[data-diff=removed]").textContent, /Original/);
+  assert.match(form.querySelector("#editor-diff-status").textContent,
+    /Loaded baseline: the pinned starting document/);
+  const announcedDiffMode = form.querySelector("#editor-diff-announcement").textContent;
+  const visibleDiffStatus = form.querySelector("#editor-diff-status").textContent;
+  assert.equal(announcements, 1);
+  editor.commands.insertContent("Additional pending prose.");
+  assert.equal(form.querySelector("#editor-diff-status").textContent, visibleDiffStatus);
+  assert.equal(form.querySelector("#editor-diff-announcement").textContent, announcedDiffMode,
+    "Typing does not repeatedly announce a status the reader has already selected.");
+  assert.equal(announcements, 1);
+  const htmlAfterTyping = editor.getHTML();
   initial.revision = 1;
   controls.refresh();
   assert.deepEqual([...form.querySelector("#editor-diff-revision").options].map(option =>
     [option.value, option.textContent]), [["0", "Pinned starting version"], ["1", "Saved version 1"]]);
+  const revision = form.querySelector("#editor-diff-revision");
+  revision.value = "1";
+  revision.dispatchEvent(new window.Event("change"));
+  assert.match(form.querySelector("#editor-diff-status").textContent,
+    /Loaded baseline: the pinned starting document\. Selected saved revision 1 is not loaded/);
+  revision.value = "0";
+  revision.dispatchEvent(new window.Event("change"));
   assert.match(form.querySelector("#editor-diff-status").textContent, /pinned starting document/);
-  assert.equal(editor.getHTML(), "<p>Current prose.</p>");
+  assert.equal(editor.getHTML(), htmlAfterTyping);
 });

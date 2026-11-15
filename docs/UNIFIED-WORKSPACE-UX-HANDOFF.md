@@ -59,10 +59,12 @@ acceptance remains partial. The user authorized implementation and local
 deployment, not live-data changes. Deployment evidence is recorded in
 `docs/OPERATIONS.md`.
 
-Follow-up V.p, planned 2026-11-15, unifies editor and workspace interaction,
-revises Edit scroll ownership and investigates the reported pointer problem.
-It is documented only; V61-V66 are not yet implemented or validated. This
-request does not authorize implementation, deployment or live-data changes.
+Follow-up V.p, requested 2026-11-15, unifies editor and workspace interaction
+and revises Edit scroll ownership. Source implementation is delivered; V61-V66
+acceptance remains partial pending native-browser, output and accessibility
+checks. The reported working-copy pointer/selection freeze remains unreproduced.
+The user separately requested local deployment; live-data changes are not
+authorized.
 
 ## Outcome, authority and supersession
 
@@ -1633,7 +1635,8 @@ This deployment does not certify the reported live-editor freeze as fixed.
 
 ### V.p: unified editor and workspace interaction
 
-Planned 2026-11-15; documentation only. A reviewer opens an isolated long book,
+Source implementation delivered following the 2026-11-15 request; acceptance is
+partial. A reviewer opens an isolated long book,
 selects text in Content, navigates to a late section in the outline, edits it,
 checks differences and switches between Read, Metadata and Content without losing
 the pending work. The controls feel like one workspace; the editor and outline
@@ -1642,21 +1645,19 @@ and other Edit views reachable.
 
 #### Evidence and supersession
 
-The current `#workspace-panel-edit` owns a bounded scrollbar, the editor surface
-has a separate `min(70dvh, 60rem)` height, and the outline has no independent
-desktop overflow bound. Local editor tabs use a different selected-tab shape
-from the workspace tabs; Read actions, difference controls and the editor
-toolbar have separate styling. Editor and difference status nodes contain both
-routine information and important state or guidance. The V.o feedback checks
-above observed native selection on isolated fixtures but did not reproduce the
-reported live working-copy freeze. A workspace element intercepting pointer
-events is a hypothesis, not a confirmed cause.
+The implementation removes the `#workspace-panel-edit` scroll box, gives the
+viewport-sized Content stage independent canvas and outline scroll owners,
+shares the workspace tab and command-bar styling, and consolidates routine save
+and comparison status while retaining the loaded baseline and error reporting.
+Focused frontend tests and the production build pass. Those checks do not
+measure native browser geometry or certify the pointer/selection issue; the
+reported live working-copy freeze remains unreproduced, and no cause is assigned.
 
 V.p replaces the V.o feedback follow-up's whole-Edit-panel scrolling and its
-associated secondary-tab scroll-owner requirements when implemented. It does
-not reverse V.o's reading navigation, V.n's normal-flow chrome and in-flow
-menus, or earlier preservation requirements. Historical deployment and
-validation evidence remains historical, not evidence that V.p is complete.
+associated secondary-tab scroll-owner requirements. It does not reverse V.o's
+reading navigation, V.n's normal-flow chrome and in-flow menus, or earlier
+preservation requirements. This source implementation does not complete V61-V66
+or certify earlier partial acceptance.
 
 #### Scope and design
 

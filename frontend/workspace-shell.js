@@ -96,6 +96,7 @@ export function mountWorkspaceShell({
   let readRequest = 0;
   const lineageRequests = {versions: 0, sources: 0};
   let lastEditorFocus = null;
+  let editorScrollOwner = null;
   const tabPositions = new Map();
   let pendingPosition = null;
 
@@ -192,12 +193,10 @@ export function mountWorkspaceShell({
     }
     const editor = workspace.querySelector(".editor-workspace");
     if (currentTab() === "edit" && editor?.dataset.editorTab === "editor") {
-      return editor.querySelector("#editor-surface[data-workspace-scroll-pane]")
-        || document.scrollingElement;
-    }
-    if (currentTab() === "edit") {
-      return panels.get("edit").closest("[data-workspace-scroll-pane]")
-        || document.scrollingElement;
+      if (editorScrollOwner?.isConnected
+          && editorScrollOwner.closest(".editor-workspace") === editor) {
+        return editorScrollOwner;
+      }
     }
     return document.scrollingElement;
   }
@@ -257,7 +256,10 @@ export function mountWorkspaceShell({
     const restoreReadFocus = previous === "read" && tab !== "read"
       && panels.get("read")?.contains(document.activeElement);
     const switching = Boolean(previous) && previous !== tab;
-    if (switching) tabPositions.set(previous, window.scrollY);
+    if (switching) {
+      tabPositions.set(previous, window.scrollY);
+      editorScrollOwner = null;
+    }
     workspace.dataset.activeTab = tab;
     for (const button of buttons) {
       const active = button.dataset.workspaceTab === tab;
@@ -553,6 +555,10 @@ export function mountWorkspaceShell({
   }
   panels.get("edit").addEventListener("focusin", event => {
     if (event.target !== panels.get("edit")) lastEditorFocus = event.target;
+    const pane = event.target.closest?.("[data-workspace-scroll-pane]");
+    editorScrollOwner = pane?.closest(".editor-workspace") === workspace.querySelector(".editor-workspace")
+      ? pane : null;
+    updateBackToTop();
   });
   workspace.querySelector('[role="tablist"]').addEventListener("keydown", event => {
     const index = buttons.indexOf(event.target);
@@ -640,8 +646,21 @@ export function mountWorkspaceShell({
   for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
     window.addEventListener(type, () => { pendingPosition = null; }, {passive: true, capture: true});
   }
-  window.addEventListener("scroll", updateBackToTop, {passive: true});
-  workspace.addEventListener("scroll", updateBackToTop, {passive: true, capture: true});
+  window.addEventListener("scroll", () => {
+    if (currentTab() === "edit") editorScrollOwner = null;
+    updateBackToTop();
+  }, {passive: true});
+  workspace.addEventListener("scroll", event => {
+    const pane = event.target.closest?.("[data-workspace-scroll-pane]");
+    if (pane?.closest(".editor-workspace") === workspace.querySelector(".editor-workspace")) {
+      editorScrollOwner = pane;
+    }
+    updateBackToTop();
+  }, {passive: true, capture: true});
+  workspace.querySelector(".editor-workspace")?.addEventListener("editor-local-tab-change", () => {
+    editorScrollOwner = null;
+    updateBackToTop();
+  });
   backToTop.addEventListener("click", event => {
     const owner = scrollOwner();
     if (!owner) return;
@@ -654,8 +673,9 @@ export function mountWorkspaceShell({
     }
     updateBackToTop();
     if (event.detail === 0) {
-      const target = isPage || owner === panels.get("edit") ? panels.get(currentTab())
-        : owner.querySelector("[contenteditable=true]") || owner;
+      const target = isPage ? panels.get(currentTab())
+        : owner.querySelector("[contenteditable=true]")
+          || (owner.contains(document.activeElement) ? document.activeElement : owner);
       target.focus({preventScroll: true});
     }
   });

@@ -152,10 +152,9 @@ test("scrolling and resizing do not introduce density changes or reserved stack 
   }
 });
 
-test("Back to top in a secondary Edit tab scrolls and focuses the Edit panel", () => {
+test("Back to top in a secondary Edit tab scrolls and focuses the document", () => {
   const form = setup();
   const panel = document.querySelector("#workspace-panel-edit");
-  panel.setAttribute("data-workspace-scroll-pane", "");
   panel.tabIndex = -1;
   panel.innerHTML = `<div class="editor-workspace" data-editor-tab="metadata">
     <div id="editor-surface" data-workspace-scroll-pane>
@@ -164,21 +163,64 @@ test("Back to top in a secondary Edit tab scrolls and focuses the Edit panel", (
   </div>`;
   const surface = panel.querySelector("#editor-surface");
   Object.defineProperty(panel, "clientHeight", {value: 300});
-  panel.scrollTop = 500;
   surface.scrollTop = 250;
+  const pageOwner = {
+    scrollTop: 1000,
+    scrollTo({top}) { this.scrollTop = top; },
+  };
+  Object.defineProperty(document, "scrollingElement", {value: pageOwner});
   mount(form, {
     draft: null, revision: 0,
     document: {title: "T", html: "<p>T</p>", metadata: {}},
     source_tickets: [],
   });
-  window.scrollTo = () => assert.fail("Panel navigation must leave the page alone.");
+  window.scrollTo = ({top}) => { pageOwner.scrollTop = top; };
   const button = document.querySelector("#workspace-back-to-top");
   assert.equal(button.hidden, false);
   button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 0}));
-  assert.equal(panel.scrollTop, 0);
+  assert.equal(pageOwner.scrollTop, 0);
   assert.equal(surface.scrollTop, 250);
   assert.equal(document.activeElement, panel);
   assert.equal(button.hidden, true);
+});
+
+test("Back to top follows the actively scrolling editor pane, then the document", () => {
+  const form = setup();
+  const panel = document.querySelector("#workspace-panel-edit");
+  panel.replaceChildren();
+  const editorWorkspace = document.createElement("div");
+  editorWorkspace.className = "editor-workspace";
+  editorWorkspace.dataset.editorTab = "editor";
+  const outline = document.createElement("nav");
+  outline.id = "editor-outline";
+  outline.dataset.workspaceScrollPane = "";
+  outline.tabIndex = 0;
+  editorWorkspace.append(outline, form);
+  panel.append(editorWorkspace);
+  outline.scrollTop = 320;
+  const pageOwner = {
+    scrollTop: 0,
+    scrollTo({top}) { this.scrollTop = top; },
+  };
+  window.scrollTo = ({top}) => { pageOwner.scrollTop = top; };
+  Object.defineProperty(document, "scrollingElement", {value: pageOwner});
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}},
+    source_tickets: [],
+  });
+  const button = document.querySelector("#workspace-back-to-top");
+  outline.dispatchEvent(new window.Event("scroll"));
+  assert.equal(button.hidden, false);
+  button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 0}));
+  assert.equal(outline.scrollTop, 0);
+  assert.equal(document.activeElement, outline);
+
+  pageOwner.scrollTop = 1000;
+  window.dispatchEvent(new window.Event("scroll"));
+  assert.equal(button.hidden, false);
+  button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 1}));
+  assert.equal(pageOwner.scrollTop, 0);
 });
 
 test("Read uses the current captured document and tab history keeps the editor mounted", async () => {

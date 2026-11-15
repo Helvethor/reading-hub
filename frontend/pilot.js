@@ -149,7 +149,6 @@ if (form) {
     workspaceShell?.updateState({
       draft: initial.draft, revision: initial.revision, dirty,
     });
-    status.textContent = "Unsaved edits. The original edition is unchanged.";
     try {
       sessionStorage.setItem(storageKey, JSON.stringify({
         revision: initial.revision, ...formPayload(),
@@ -209,7 +208,7 @@ if (form) {
       initialRevision: initial.revision,
       initialChooseHistory: initial.choose_history === true,
     });
-    status.textContent = `Fidelity check passed. Saved draft revision: ${initial.revision}.`;
+    status.textContent = "";
     function updateSavedReview() {
       document.querySelector("#editor-saved-review").textContent = initial.saved_review
         ? `Current saved revision ${initial.revision}: ${initial.saved_review}` +
@@ -403,9 +402,6 @@ if (form) {
         storageKey = `${form.dataset.recoveryKey}:${result.draft}`;
         restore.hidden = true;
         if (dirty) remember();
-        status.textContent = dirty
-          ? `Saved version ${result.revision} as ${result.review}. Additional unsaved edits remain.`
-          : `Saved version ${result.revision}. Review scope: ${result.review}.`;
         if (result.issues.length) showError(result.issues.join("\n"));
       } catch (failure) {
         showError(failure.message);

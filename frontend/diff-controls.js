@@ -7,7 +7,8 @@ export function mountDifferenceControls(form, editor, initial, showError) {
   const revision = form.querySelector("#editor-diff-revision");
   const load = form.querySelector("#editor-diff-baseline");
   const status = form.querySelector("#editor-diff-status");
-  if (!filter || !revision || !load || !status) {
+  const announcement = form.querySelector("#editor-diff-announcement");
+  if (!filter || !revision || !load || !status || !announcement) {
     for (const control of [filter, revision, load]) {
       if (control) control.disabled = true;
     }
@@ -17,30 +18,39 @@ export function mountDifferenceControls(form, editor, initial, showError) {
     return null;
   }
   let baseline, baselineRevision = 0, pending = 0;
+  const baselineLabel = number => number === 0
+    ? "the pinned starting document" : `saved revision ${number}`;
   function parse(value) {
     const candidate = createBoundedEditor(owner.createElement("div"), value.html);
     try { return editor.schema.nodeFromJSON(candidate.state.doc.toJSON()); }
     finally { candidate.destroy(); }
   }
   baseline = parse(initial.baseline_document || initial.document);
-  function report() {
+  function report(announce = false) {
     const differences = currentDifferences(editor);
+    const selected = Number(revision.value);
+    const selectedNotice = selected === baselineRevision ? "" :
+      ` Selected ${baselineLabel(selected)} is not loaded.`;
     status.textContent = filter.value === "result"
-      ? "Result view. Differences never change saved content."
-      : `Content differences against ${baselineRevision === 0 ? "the pinned starting document" :
-        `saved revision ${baselineRevision}`}. ${differences.length} changed range(s). ` +
-        "Green = added; red = removed; changed block formatting is noted above the block. " +
-        "Right-click a change to restore it; restoration is an unsaved, undoable edit. " +
-        "Use Compare in the Review tab to inspect saved metadata differences.";
+      ? `Loaded baseline: ${baselineLabel(baselineRevision)}.${selectedNotice} Result view; differences are off.`
+      : `Loaded baseline: ${baselineLabel(baselineRevision)}.${selectedNotice} ` +
+        `${differences.length} changed range(s).`;
+    if (announce) announcement.textContent = status.textContent;
   }
-  function apply() {
+  function apply(announce = false) {
     showDocumentDifferences(editor, baseline, filter.value === "diffs");
-    report();
+    report(announce);
   }
   filter.addEventListener("change", () => {
-    try { apply(); }
-    catch (failure) { filter.value = "result"; showDocumentDifferences(editor, baseline, false); showError(failure.message); }
+    try { apply(true); }
+    catch (failure) {
+      filter.value = "result";
+      showDocumentDifferences(editor, baseline, false);
+      report(true);
+      showError(failure.message);
+    }
   });
+  revision.addEventListener("change", () => report(true));
   load.addEventListener("click", async () => {
     const number = Number(revision.value);
     if (!Number.isInteger(number) || number < 0 || number > initial.revision || revision.value === "") {
@@ -48,13 +58,15 @@ export function mountDifferenceControls(form, editor, initial, showError) {
       return;
     }
     if (!initial.draft) {
-      if (number === 0) { baselineRevision = 0; apply(); }
+      if (number === 0) { baselineRevision = 0; apply(true); }
       else showError("Save a corrected version before selecting another baseline.");
       return;
     }
     const request = ++pending;
     const draft = initial.draft;
     load.disabled = true;
+    status.textContent = `Loaded baseline: ${baselineLabel(baselineRevision)}. Loading ${baselineLabel(number)}…`;
+    announcement.textContent = status.textContent;
     try {
       const url = new URL(form.dataset.baselineUrl, location.href);
       url.searchParams.set("draft", draft);
@@ -69,11 +81,14 @@ export function mountDifferenceControls(form, editor, initial, showError) {
       baseline = parse(value.document);
       baselineRevision = number;
       showError("");
-      apply();
-    } catch (failure) { showError(failure.message); }
+      apply(true);
+    } catch (failure) {
+      showError(failure.message);
+      report();
+    }
     finally { if (request === pending) load.disabled = false; }
   });
-  editor.on("update", report);
+  editor.on("update", () => report());
   function refresh() {
     const selected = Number(revision.value);
     revision.replaceChildren(new owner.defaultView.Option("Pinned starting version", "0"));
