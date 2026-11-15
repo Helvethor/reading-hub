@@ -363,6 +363,33 @@ Coordinate shared shell/entry points with publication milestone P and title
 projection with article milestone A; do not claim those acceptance rows complete
 from workspace delivery.
 
+## Bibliographic date display follow-up (agreed 2026-11-15; documentation only)
+
+**Outcome:** bibliographic dates display as dates at their known precision,
+without exposing timestamp clock or timezone details. On the observed reader
+page for version 103, `2026-03-10T09:12:46+00:00` should display as
+`2026-03-10`. Preserve the source's written calendar date; do not convert it
+through a timezone. The timezone determines a date only when converting an
+instant, which this display-only milestone does not do.
+
+The [specification](SPECIFICATION.md#agreed-bibliographic-date-display-follow-up-2026-11-15-documentation-only)
+owns the presentation contract. Keep exact lineage/history timestamps unchanged.
+No metadata, parser evidence, immutable edition, or live record is to be
+rewritten. This request consolidates the milestone documentation; code
+implementation, deployment and live-data changes have not been authorized.
+
+- [ ] Normalize typed date-role values and legacy publication fallback for
+  reader metadata, editor preview, generated title and metadata pages, and PDF.
+- [ ] Preserve `YYYY`, `YYYY-MM` and `YYYY-MM-DD` precision; format ISO
+  date-time values using their written calendar-date portion only, without
+  timezone conversion or a timezone suffix. Apply the same rule to both ends
+  of a date range.
+- [ ] Leave malformed or free-text date values unchanged; preserve all
+  non-date metadata, and do not mutate source values while rendering.
+- [ ] Add focused isolated checks for precision, timezone-bearing timestamps,
+  ranges, legacy fallback and unrecognized values; verify reader/editor/PDF
+  output with a synthetic fixture and record unobserved workflow evidence.
+
 ## UX follow-up milestone P: publication completion and defaults (2026-11-11)
 
 **Status:** implementation present; focused automated validation passes; full

@@ -121,6 +121,20 @@ Focused automated checks pass; authenticated
 browser, long-book, PDF/print, and human accessibility/usability acceptance
 remain outstanding.
 
+**Agreed bibliographic date display follow-up (2026-11-15; documentation only):**
+show date metadata at its known calendar precision, not as a full timestamp.
+For ISO date-time strings, preserve the date as written and do not convert it
+between timezones or append a timezone when the time is hidden. Preserve
+year-only and year-month precision, and preserve unrecognized/free-text values.
+Apply the same display formatting to typed date roles and legacy publication
+values wherever bibliographic metadata appears, including reader, editor
+preview, generated title/metadata pages and PDF. This is display-only: stored
+metadata, parser evidence and immutable editions remain unchanged. Exact
+timestamp displays for lineage/history records are outside this follow-up.
+The [date display milestone](TASKS.md#bibliographic-date-display-follow-up)
+owns its acceptance criteria. Implementation, deployment and live-data changes
+have not been authorized.
+
 **Shared structural guideline:** use consistent gutters, spacing, control sizes,
 headings, status presentation and form/error/action placement. Reading, form and
 workspace widths may differ intentionally, but major regions align to a shared
