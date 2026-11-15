@@ -24,7 +24,7 @@ button:disabled { opacity: .55; cursor: wait; }
 [hidden] { display: none !important; }
 .skip-link { position: absolute; top: -5rem; left: 1rem; background: white; padding: .5rem; z-index: 10; }
 .skip-link:focus { top: 1rem; }
-.site-header { min-height: 88px; padding: 1.2rem max(5vw, 1.25rem); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.site-header { min-height: 4rem; padding: .55rem max(5vw, 1.25rem); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .brand { display: inline-flex; gap: .65rem; align-items: center; text-decoration: none; font-family: Georgia, serif; font-size: 1.45rem; font-weight: 600; color: var(--ink); }
 .brand-mark { display: grid; place-items: center; background: var(--accent); color: var(--paper); width: 34px; height: 38px; border-radius: 3px 10px 3px 3px; font-size: 1.4rem; }
 .local-badge, .muted, .help, .cache-note { color: var(--muted); font-size: .85rem; }

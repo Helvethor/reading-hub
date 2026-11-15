@@ -6,11 +6,11 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v47-flow">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v60">
 <link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>
 {% endblock %}
 {% block content %}
-<div class="page-container work-page">
+<div class="page-container work-page workspace-page-container">
   <section class="unified-workspace" id="unified-workspace"
     data-initial-tab="{{ initial_tab }}"
     data-versions-url="{% url 'document-lineage' version.document_id %}?filter=all&amp;scope=branch&amp;anchor=edition%3A{{ version.pk }}&amp;selected=edition%3A{{ version.pk }}&amp;embedded=1"
@@ -25,7 +25,6 @@
           <h1>{{ version.document.title|default:version.title }}</h1>
         </div>
         <div class="workspace-context-state">
-          <p>Opened saved edition {{ version.pk }}.</p>
           <p class="workspace-reader-default">
             Reader default:
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
@@ -37,7 +36,7 @@
         <button type="button" role="tab" id="workspace-tab-versions" aria-controls="workspace-panel-versions" data-workspace-tab="versions" aria-selected="false" tabindex="-1">Versions</button>
         <button type="button" role="tab" id="workspace-tab-sources" aria-controls="workspace-panel-sources" data-workspace-tab="sources" aria-selected="false" tabindex="-1">Sources</button>
       </div>
-      <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
+      <div class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></div>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1">
       <div class="workspace-read-actions" role="group" aria-label="Read actions">
@@ -69,5 +68,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v47-flow"></script>
+<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v60"></script>
 {% endblock %}

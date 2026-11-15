@@ -393,13 +393,19 @@ def _workspace_preview_context(request, source, snapshot):
     soup = BeautifulSoup(inline_quote_presentation(
         snapshot["projection"]["content_html"], versions.FORMAT_VERSION,
     ), "html.parser")
-    identifier_prefix = f"workspace-preview-{uuid.uuid4().hex}-"
-    identifiers = {
-        node["id"]: f"{identifier_prefix}{node['id']}"
-        for node in soup.select("[id]")
-    }
+    identifier_prefix = f"workspace-preview-{source.pk}-"
+    identifiers = {}
+    used_identifiers = set()
     for node in soup.select("[id]"):
-        node["id"] = identifiers[node["id"]]
+        original = node["id"]
+        identifier = f"{identifier_prefix}{original}"
+        suffix = 2
+        while identifier in used_identifiers:
+            identifier = f"{identifier_prefix}{original}-{suffix}"
+            suffix += 1
+        used_identifiers.add(identifier)
+        identifiers.setdefault(original, identifier)
+        node["id"] = identifier
     for node in soup.select("[href^='#']"):
         target = node["href"][1:]
         if target in identifiers:
@@ -415,22 +421,30 @@ def _workspace_preview_context(request, source, snapshot):
                     identifiers.get(value, value)
                     for value in node[attribute].split()
                 )
-    entries = [
-        {**entry, "id": identifiers.get(entry["id"], f"workspace-preview-{entry['id']}")}
-        for entry in snapshot["projection"]["entries"]
-    ]
+    entries = []
+    for entry in snapshot["projection"]["entries"]:
+        original = entry["id"]
+        while original not in identifiers and original.startswith("workspace-preview-"):
+            original = original.removeprefix("workspace-preview-")
+        identifier = identifiers.get(original)
+        if identifier is None:
+            raise ValueError(
+                f"Draft navigation target {entry['id']!r} is missing from its content."
+            )
+        entries.append({**entry, "id": identifier})
     navigation = with_metadata_page(entries, metadata, book)
-    metadata_page_id = f"{identifier_prefix}metadata-page"
-    while metadata_page_id in identifiers.values():
-        metadata_page_id += "-workspace"
-    edition_status_id = f"{identifier_prefix}edition-status"
-    while edition_status_id in identifiers.values() or edition_status_id == metadata_page_id:
-        edition_status_id += "-workspace"
+    def endmatter_identifier(name):
+        identifier = f"{identifier_prefix}{name}"
+        while identifier in used_identifiers or f"{identifier}-heading" in used_identifiers:
+            identifier += "-workspace"
+        used_identifiers.update((identifier, f"{identifier}-heading"))
+        return identifier
+
+    metadata_page_id = endmatter_identifier("metadata-page")
+    edition_status_id = endmatter_identifier("edition-status")
     for entry in navigation:
-        entry["id"] = (
-            metadata_page_id if entry["id"] == "document-metadata"
-            else identifiers.get(entry["id"], f"{identifier_prefix}{entry['id']}")
-        )
+        if entry["id"] == "document-metadata":
+            entry["id"] = metadata_page_id
     navigation = with_edition_status(navigation, edition_status_id)
     metadata_values = metadata_context(
         metadata, document["title"], display_author, book, source.document.url,

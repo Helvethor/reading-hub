@@ -196,11 +196,13 @@ test("Reader mode buttons are exclusive and their selection survives Read rerend
     <aside id="workspace-read-toc" class="toc-panel"><details open>
       <summary>Table of Contents</summary><nav>
         <a href="#first">First</a><a href="#second">Second</a>
+        <a href="#late%20chapter">Late</a>
       </nav>
     </details></aside>
     <div class="reading-column" id="workspace-read-pane" data-workspace-scroll-pane>
       <article class="reader-content">
       <h2 id="first">First</h2><h2 id="second">Second</h2>
+      <h2 id="late chapter">Late</h2>
       </article>
     </div>
   </div>`;
@@ -247,6 +249,15 @@ test("Reader mode buttons are exclusive and their selection survives Read rerend
   assert.equal(contentsClick.defaultPrevented, true);
   assert.equal(location.hash, "#first");
   assert.equal(pane.scrollTop, 128, "Contents links navigate the document pane.");
+  const lateLink = document.querySelector(
+    '#workspace-read-toc-slot a[href="#late%20chapter"]',
+  );
+  const lateClick = new window.MouseEvent("click", {
+    bubbles: true, cancelable: true, button: 0,
+  });
+  lateLink.dispatchEvent(lateClick);
+  assert.equal(lateClick.defaultPrevented, true);
+  assert.equal(location.hash, "#late%20chapter");
 
   style.click();
   assert.equal(document.querySelector("#workspace-read-style-panel").hidden, false);

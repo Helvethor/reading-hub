@@ -53,23 +53,39 @@ class DocumentEditorViewTests(TestCase):
         }
 
     def test_workspace_read_preview_projects_unsaved_semantic_content_without_mutation(self):
+        from library.document_editor_views import _workspace_snapshot
+
         initial = self.client.get(self.url).context["initial"]
         document = canonical_document({
             **initial["document"],
             "title": "Unsaved preview title",
             "html": '<section id="c1"><h2 id="heading">Preview heading</h2>'
             '<p id="prose">Unsaved reader text.</p>'
+            '<p id="metadata-page">Metadata identifier collision.</p>'
+            '<p id="edition-status-heading">Status identifier collision.</p>'
             '<p><a href="#prose">Internal link</a></p></section>',
         })
         before = (
             DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
             self.rendition.html, self.rendition.document.reader_rendition_id,
         )
-        response = self.client.post(
-            reverse("document-editor-read-preview", args=[self.rendition.pk]),
-            json.dumps(self.workspace_payload(document)),
-            content_type="application/json",
-        )
+        def prefixed_navigation(request, source):
+            snapshot = _workspace_snapshot(request, source)
+            snapshot["projection"]["entries"] = [
+                {**entry, "id": f"workspace-preview-{entry['id']}"}
+                for entry in snapshot["projection"]["entries"]
+            ]
+            return snapshot
+
+        with patch(
+            "library.document_editor_views._workspace_snapshot",
+            side_effect=prefixed_navigation,
+        ):
+            response = self.client.post(
+                reverse("document-editor-read-preview", args=[self.rendition.pk]),
+                json.dumps(self.workspace_payload(document)),
+                content_type="application/json",
+            )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Cache-Control"], "no-store")
         markup = response.json()["html"]
@@ -78,13 +94,43 @@ class DocumentEditorViewTests(TestCase):
         self.assertIn("Unsaved editor changes are shown", markup)
         self.assertRegex(
             markup,
-            r'href="#workspace-preview-[0-9a-f]{32}-prose"',
+            rf'href="#workspace-preview-{self.rendition.pk}-prose"',
         )
         self.assertNotIn('id="prose"', markup)
+        preview = BeautifulSoup(markup, "html.parser")
+        identifiers = [node["id"] for node in preview.select("[id]")]
+        self.assertEqual(len(identifiers), len(set(identifiers)))
+        for link in preview.select('.toc-panel a[href^="#"]'):
+            self.assertIsNotNone(preview.find(id=link["href"][1:]), link["href"])
+        self.assertEqual(
+            preview.select_one('.reader-content a[href^="#"]')["href"],
+            f"#workspace-preview-{self.rendition.pk}-prose",
+        )
+        repeated = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            json.dumps(self.workspace_payload(document)),
+            content_type="application/json",
+        )
+        self.assertEqual(repeated.status_code, 200)
+        repeated_preview = BeautifulSoup(repeated.json()["html"], "html.parser")
+        self.assertEqual(
+            [node["id"] for node in repeated_preview.select(".reader-content [id]")],
+            [node["id"] for node in preview.select(".reader-content [id]")],
+        )
         self.assertEqual(before, (
             DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
             self.rendition.html, self.rendition.document.reader_rendition_id,
         ))
+
+    def test_saved_workspace_navigation_targets_exist_in_the_reading_pane(self):
+        response = Client().get(reverse("reader", args=[self.rendition.pk]) + "?tab=read")
+        self.assertEqual(response.status_code, 200)
+        page = BeautifulSoup(response.content, "html.parser")
+        pane = page.select_one("#workspace-read-pane")
+        self.assertIsNotNone(pane)
+        for link in page.select("#workspace-read-toc a[href^='#']"):
+            self.assertIsNotNone(pane.find(id=link["href"][1:]), link["href"])
+        self.assertIsNotNone(pane.select_one(".document-edition-status"))
 
     def test_workspace_unchanged_source_has_no_draft_preview_banner(self):
         self.rendition.metadata = {**self.rendition.metadata, "author": "Example author"}

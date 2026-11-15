@@ -139,7 +139,8 @@ The [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-work
 owns scope and V47-V54 acceptance. Implementation was separately authorized;
 deployment and live-data changes were not.
 
-**Agreed reading-workspace follow-up V.o (2026-11-15; planned):**
+**Agreed reading-workspace follow-up V.o (2026-11-15; implementation delivered,
+acceptance partial):**
 make document navigation reliable and give reading content the space promised
 by its controls. Fix content ToC targets in saved and draft Read, including
 preview replacement and history; retain metadata and edition-status navigation.
@@ -152,8 +153,8 @@ site header, and integrate action status with adjacent themed regions. Preserve
 essential identity, consequential distinctions, warnings, live status, focus,
 scroll ownership, unsaved edits and exact exports. The
 [V.o handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vo-reliable-space-efficient-reading)
-defines scope, evidence and V55-V60 acceptance. This documentation request does
-not authorize implementation, deployment or live-data changes.
+defines scope, evidence and V55-V60 acceptance. The user authorized source
+implementation and local deployment; live-data changes remain unauthorized.
 
 **Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.

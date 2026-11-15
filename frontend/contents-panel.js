@@ -4,6 +4,17 @@ function paneFor(content) {
   return content.querySelector("[data-workspace-scroll-pane]");
 }
 
+function targetForHash(content, hash) {
+  let identifier = hash.replace(/^#/, "");
+  try {
+    identifier = decodeURIComponent(identifier);
+  } catch {
+    return null;
+  }
+  const target = content.ownerDocument.getElementById(identifier);
+  return target && content.contains(target) ? target : null;
+}
+
 function flowBlocks(article) {
   return [...(article?.children || [])];
 }
@@ -99,14 +110,13 @@ export function mountContentsPanel(workspace, content, button) {
         link.addEventListener("click", event => {
           if (event.button !== 0 || event.metaKey || event.ctrlKey
               || event.shiftKey || event.altKey || link.target === "_blank") return;
-          const hash = link.hash.slice(1);
-          const target = content.ownerDocument.getElementById(hash);
+          const target = targetForHash(content, link.hash);
           if (!target) return;
           event.preventDefault();
           const url = new URL(location.href);
-          url.hash = hash;
+          url.hash = target.id;
           if (url.href !== location.href) {
-            history.pushState({...history.state, workspaceAnchor: hash}, "", url);
+            history.pushState({...history.state, workspaceAnchor: target.id}, "", url);
           }
           scrollElementIntoView(target);
           manualRailUntil = Date.now() + 1200;
@@ -126,7 +136,7 @@ export function mountContentsPanel(workspace, content, button) {
       if (!toc) return;
       const targets = [...toc.querySelectorAll('a[href^="#"]')].map(link => ({
         link,
-        target: content.ownerDocument.getElementById(link.hash.slice(1)),
+        target: targetForHash(content, link.hash),
       })).filter(item => item.target);
       if (!targets.length) return;
       const band = pane
@@ -186,8 +196,7 @@ export function mountContentsPanel(workspace, content, button) {
     window.addEventListener("scroll", updateActiveEntry, {passive: true});
     content.addEventListener("scroll", updateActiveEntry, {passive: true, capture: true});
     window.addEventListener("popstate", () => {
-      const hash = new URL(location.href).hash.slice(1);
-      const target = hash && content.ownerDocument.getElementById(hash);
+      const target = targetForHash(content, new URL(location.href).hash);
       if (target) scrollElementIntoView(target);
     });
     workspace.addEventListener("workspace-reading-style-before", () => {
@@ -232,7 +241,7 @@ export function mountContentsPanel(workspace, content, button) {
     if (!visible) return;
 
     const targets = [...toc.querySelectorAll('a[href^="#"]')].map(link => ({
-      link, target: content.ownerDocument.getElementById(link.hash.slice(1)),
+      link, target: targetForHash(content, link.hash),
     })).filter(item => item.target);
     if (!targets.length) return;
     const pane = paneFor(content);

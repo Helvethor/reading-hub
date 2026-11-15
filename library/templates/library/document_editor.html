@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v47-flow">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v60">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-v47-flow">
 {% endblock %}
@@ -63,7 +63,7 @@
         <button type="button" role="tab" id="workspace-tab-versions" aria-controls="workspace-panel-versions" data-workspace-tab="versions" aria-selected="{% if initial_tab == 'versions' %}true{% else %}false{% endif %}"{% if initial_tab != "versions" %} tabindex="-1"{% endif %}>Versions</button>
         <button type="button" role="tab" id="workspace-tab-sources" aria-controls="workspace-panel-sources" data-workspace-tab="sources" aria-selected="{% if initial_tab == 'sources' %}true{% else %}false{% endif %}"{% if initial_tab != "sources" %} tabindex="-1"{% endif %}>Sources</button>
       </div>
-      <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
+      <div class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></div>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1"{% if initial_tab != "read" %} hidden{% endif %}>
       <div class="workspace-read-actions" role="group" aria-label="Read actions">
@@ -586,4 +586,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-workspace-v47-flow"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-workspace-v60"></script>{% endif %}{% endblock %}

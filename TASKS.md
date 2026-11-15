@@ -304,20 +304,21 @@ without certifying its outstanding acceptance.
   PDF/print observations and human accessibility review remain unverified;
   report observed/synthetic/unverified evidence separately.
 
-Reliable, space-efficient reading V.o (agreed 2026-11-15; planned):
+Reliable, space-efficient reading V.o (agreed 2026-11-15; implementation
+delivered, acceptance partial):
 the [V.o handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vo-reliable-space-efficient-reading)
 owns the consolidated design and V55-V60 acceptance. It follows V.n's delivered
 main workspace flow without certifying V.n or earlier partial acceptance.
-The user requested the proposal be stored as a milestone, not implemented or
-deployed; no live-data changes are authorized.
+The user authorized implementation and local deployment; no live-data changes
+are authorized.
 
-- [ ] Repair content ToC targets and navigation across saved Read and draft
+- [x] Repair content ToC targets and navigation across saved Read and draft
   preview replacement, while retaining metadata/edition-status links, history,
   internal links, focus and collision-free document IDs.
-- [ ] Make Larger content widen actual text when space exists, without changing
-  persisted reading styles or PDF/print; reduce excessive screen top/bottom
-  paper space against the actual PDF and preserve reading position and palettes.
-- [ ] Remove redundant workspace context and header-to-main space, compact the
+- [x] Make Larger content widen actual text when space exists, without changing
+  persisted reading styles or PDF/print; reduce excess screen title/end margins
+  against the PDF page margins and preserve reading position and palettes.
+- [x] Remove redundant workspace context and header-to-main space, compact the
   shared site header and integrate populated action status with adjacent themed
   regions, preserving identity, material warnings and accessible live feedback.
 - [ ] Complete V55-V60 on isolated article/book saved and unsaved workflows,

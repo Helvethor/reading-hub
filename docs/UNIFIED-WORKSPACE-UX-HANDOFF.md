@@ -54,9 +54,9 @@ not their preservation invariants.
 
 Follow-up V.o, agreed 2026-11-15, consolidates reliable content navigation,
 effective Larger content, reduced reading whitespace and continuous compact
-chrome. It is planned only: the request to store the milestone did not authorize
-implementation, deployment or live-data changes. V55-V60 define acceptance
-without certifying V.n or earlier outstanding acceptance.
+chrome. Source implementation is delivered and local deployment is pending;
+V55-V60 acceptance remains partial. The user authorized implementation and local
+deployment, not live-data changes.
 
 ## Outcome, authority and supersession
 
@@ -65,10 +65,9 @@ draft, switches between Read, Edit, Versions and Sources without losing state,
 reads the current unsaved content, and exports a PDF of that same content.
 The current version/draft and its relationship to the reader default are explicit.
 
-The original request authorized documentation only. The later implementation
-instruction supersedes that scope for local code and deployment. Future mutation
-acceptance uses isolated fixtures. Follow repository preservation and validated
-local checkpoint agreements.
+The user authorized V.o source implementation and local deployment, not live-data
+changes. Acceptance uses isolated fixtures. Follow repository preservation and
+validated local checkpoint agreements.
 
 This contract supersedes the earlier requirement that Read/Edit/Versions/Sources
 be separate page-level destinations in the
@@ -1506,8 +1505,8 @@ semantics, unrelated metadata work and live-record mutation.
 
 ### V.o: reliable, space-efficient reading
 
-Agreed 2026-11-15; documentation only, not implemented or deployed. A reader of
-edition 103, "Une courte histoire de la révolution cubaine", selects
+Agreed 2026-11-15; source implementation delivered, V55-V60 acceptance partial.
+A reader of edition 103, "Une courte histoire de la révolution cubaine", selects
 "Révolution Permanente" in the ToC and reaches that heading in the reading
 pane. The reader can then select Larger content and actually gain text width,
 without losing position. The title and end of the screen paper no longer carry
@@ -1527,12 +1526,13 @@ without saving it.
   the reading column from 978px to 1327px, but the body remained 653px. At
   1024px the body did widen from 422px to 653px. These are observations of one
   page and style, not universal dimensions or authenticated acceptance.
-- At 1024px the site header measured 88px, the header-to-main gap 16px, and
-  screen paper block padding about 113px (30mm) at each end. PDF CSS specifies
-  30mm normal block margins and a 24mm first compact-content-page top margin.
-  Other screen spacing, including title margins and print controls, also affects
-  the visible gap; actual PDF comparison is still outstanding. The action-status
-  theme break is user-reported; a populated status was not observed.
+- Before the screen-spacing change, the 1440px-wide edition-103 browser view had
+  113px paper padding plus a 25px title margin at the top, and 113px padding plus
+  a 19px final-paragraph margin at the bottom. PDF CSS specifies a 24mm first
+  compact-content-page top margin and 30mm normal block margins. The V.o screen
+  overrides remove those intervening margins without changing print CSS; actual
+  post-deployment PDF and browser comparison remains to be recorded. The
+  action-status theme break is user-reported; a populated status was not observed.
 - V.o supersedes V.l/V40's requirement that Larger content always preserve the
   screen prose-width cap, and V.j/V31's fixed screen block padding where it
   conflicts with measured PDF-like whitespace. Keep the other two reader modes,
@@ -1602,9 +1602,9 @@ checks are evidenced; report browser limitations rather than claiming full
 acceptance from jsdom tests. V.n source implementation is authorized and
 delivered for the main workspace/editor flows; the remaining correction-preview
 overlays and V47-V54 acceptance still require follow-up. Do not rebuild
-superseded compaction/overlay behavior. V.o is planned documentation only;
-implement it only after separate authorization and apply its stated width and
-screen-spacing supersession without changing PDF or stored style settings.
+superseded compaction/overlay behavior. V.o source implementation and local
+deployment are authorized; apply its stated width and screen-spacing
+supersession without changing PDF or stored style settings.
 
 ## Implementation discovery map
 
@@ -1737,10 +1737,9 @@ workflows, 200% zoom, short viewport, actual PDF/print comparison and human
 accessibility/usability evidence remain outstanding. Apply V.n's explicit
 supersession rules to conflicting earlier geometry/menu assertions while
 retaining their preservation checks.
-V55-V60 define V.o acceptance, not proof of implementation or validation. Apply
-V.o's explicit Larger content and screen-spacing supersession; preserve PDF and
-style invariants. Its planning request did not authorize implementation,
-deployment or live-data changes.
+V55-V60 define V.o acceptance, not proof of full validation. Apply V.o's explicit
+Larger content and screen-spacing supersession; preserve PDF and style invariants.
+Its implementation/local-deployment request does not authorize live-data changes.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1763,5 +1762,5 @@ rewriting.
 V.n source implementation was authorized by "Implement Milestone V.n". Local or
 remote deployment, migrations and live-data changes still require separate
 authorization.
-V.o is documented only; implementation, deployment and live-data changes
+V.o source implementation and local deployment are authorized; live-data changes
 require separate authorization.
