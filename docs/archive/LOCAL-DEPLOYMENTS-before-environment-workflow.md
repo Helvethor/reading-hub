@@ -523,4 +523,3 @@ A real recovery preview using the deployed release verified all eight failed
 images in snapshot 42. Recovery was not applied: historical version 93,
 publications and selected reader targets were not changed by deployment.
 The separate port-8000 service was not touched.
-

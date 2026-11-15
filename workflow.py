@@ -346,12 +346,29 @@ def port_free(port):
             ) from exc
 
 
-def health(spec, token):
+def health(spec, token, *, supervisor=None):
     path = "/" if spec.get("legacy") else "/__environment__/"
     try:
         with urlopen(f"http://127.0.0.1:{spec['port']}{path}", timeout=1) as response:
             if spec.get("legacy"):
-                return response.status == 200
+                if response.status != 200:
+                    return False
+                if not token:
+                    return True
+                if supervisor is None:
+                    return False
+                listener = run(
+                    ["ss", "-H", "-ltnp", f"sport = :{spec['port']}"],
+                    cwd=spec["checkout"],
+                    capture=True,
+                )
+                return any(
+                    f"pid={child['pid']}," in listener
+                    and process_identity(child["pid"]) == child["start"]
+                    and Path(f"/proc/{child['pid']}/cwd").resolve()
+                    == Path(spec["checkout"]).resolve()
+                    for child in children(supervisor["pid"])
+                )
             value = json.load(response)
             return (
                 value.get("instance") == token
@@ -469,7 +486,7 @@ def start(spec, directory, *, replacement=None):
     if record_path.exists():
         record = read_json(record_path)
         if process_identity(record["pid"]) == record["start"]:
-            if owned(record) and health(spec, record["token"]):
+            if owned(record) and health(spec, record["token"], supervisor=record):
                 print(f"Already running: http://127.0.0.1:{spec['port']}/")
                 return record
             raise WorkflowError("An existing supervisor is unhealthy; inspect its log/status.")
@@ -495,9 +512,13 @@ def start(spec, directory, *, replacement=None):
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise WorkflowError(f"Startup failed; see {directory / 'server.log'}.")
-        if health(spec, token):
+        if record_path.exists():
             record = read_json(record_path)
-            if owned(record):
+            if (
+                record["pid"] == process.pid
+                and owned(record)
+                and health(spec, token, supervisor=record)
+            ):
                 print(
                     f"Ready: http://127.0.0.1:{spec['port']}/ ({spec['role']}, {spec['revision']})"
                 )
@@ -520,7 +541,7 @@ def status(directory):
     if process_identity(record["pid"]) != record["start"]:
         print(f"Stopped. Log: {directory / 'server.log'}")
         return
-    if not owned(record) or not health(spec, record["token"]):
+    if not owned(record) or not health(spec, record["token"], supervisor=record):
         raise WorkflowError(f"Environment is unhealthy or ownership changed: {directory}")
     print(f"Running {spec['role']} {spec['revision']} at http://127.0.0.1:{spec['port']}/")
     print(f"PID: {record['pid']}; isolated storage: {spec['data']}")

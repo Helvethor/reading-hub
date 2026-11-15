@@ -169,6 +169,23 @@ class EnvironmentContractTests(SimpleTestCase):
                 workflow.stop_owned(record)
             kill.assert_not_called()
 
+    def test_legacy_replacement_health_cannot_accept_the_old_listener(self):
+        spec = {
+            "legacy": True,
+            "port": 8765,
+            "checkout": str(workflow.ROOT),
+        }
+        child = workflow.process_record(os.getpid())
+        with (
+            patch("workflow.urlopen") as request,
+            patch("workflow.children", return_value=[child]),
+            patch("workflow.run", return_value="pid=123,") as listener,
+        ):
+            request.return_value.__enter__.return_value.status = 200
+            self.assertFalse(workflow.health(spec, "replacement", supervisor={"pid": 456}))
+            listener.return_value = f"pid={os.getpid()},"
+            self.assertTrue(workflow.health(spec, "replacement", supervisor={"pid": 456}))
+
     def test_candidate_source_and_assets_must_match_rehearsed_bytes(self):
         source = self.root / "source"
         source.mkdir()
