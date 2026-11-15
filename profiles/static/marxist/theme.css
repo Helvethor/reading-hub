@@ -51,7 +51,7 @@ button:hover, .button:hover { background: #7a1616; }
 .editor-workspace, .editor-metadata, .editor-review-controls,
 #editor-sections, #editor-source-blocks, #editor-source-preview,
 #editor-figure-preview { border-color: var(--editor-border); }
-.editor-pilot-toolbar, .editor-outline, #editor-view-notice,
+.workspace-read-actions, .editor-pilot-toolbar, .editor-outline, #editor-view-notice,
 #editor-selection-path { background: var(--editor-panel); border-color: var(--line); color: var(--ink); }
 #editor-surface, #editor-surface .tiptap { background: var(--editor-paper); color: var(--ink); }
 #editor-surface:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }

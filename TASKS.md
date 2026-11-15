@@ -392,27 +392,36 @@ local deployment. Live-data changes are not authorized.
   testing, event handling and initialization/working-copy transitions. The user
   reports continued mouse blockage; prior synthetic tests do not close this
   gate. Preserve intentional no-working-copy and permission restrictions.
+  Native clicks and text selection worked on isolated synthetic active article
+  and book drafts, but the reported failing state was unavailable; no live
+  working copy was tested, so V61 remains unresolved. The no-working-copy
+  choose-history route showed its explanation and left Versions operable.
 - [x] Replace whole-Edit scrolling with normal page scrolling and a
   viewport-sized Content stage with independently scrolling outline and canvas;
   adapt navigation, focus and position restoration. Native geometry and
   boundary-chaining acceptance remain open.
-- [ ] Reopen visual unification (V64): explicitly finish `.workspace-read-actions`
-  in guest and reviewer Read, including effective theme overrides, buttons,
-  links, mode-group spacing and active/focus states against the editor toolbar.
-  Shared command-bar classes are present, but the user reports the Read-action
-  outcome omitted; require computed-style and screenshot comparison, retaining
-  the implemented tab/difference-control work.
+- [ ] Keep V64 open for native 200% zoom, PDF loading/disabled states and the
+  integrated tab/difference-control checks. The cascade defect is fixed:
+  direct action styling no longer matches nested reader-mode buttons, whose
+  explicit state rules now outrank global theme button rules. In isolated
+  Chromium, guest article and reviewer book views matched the editor controls
+  for active/inactive, hover and keyboard-focus styling in light/dark themes at
+  1440, 720 and 375 CSS pixels. Computed control height (36px), padding
+  (5.6px 9.6px), typography (13.6px/19.04px, weight 600), themed bar surface,
+  wrapping and no horizontal overflow were verified with screenshots. The
+  720px viewport is not native 200% zoom; V64 remains partial.
 - [x] Consolidate routine statuses while retaining accurate comparison context,
   safety warnings, actionable failures and accessible feedback.
 - [ ] Complete V61-V66 with focused tests and isolated browser journeys; record
   actual observations and remaining input/accessibility limitations separately.
   Native browser, PDF/print, and human accessibility evidence is still pending.
 
-Corrective replan requested 2026-11-15: follow the
+Corrective replan reopened for source reimplementation: follow the
 [V.p corrective plan](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vp-corrective-replan)
 in interaction-first order, then explicit Read-action styling, then integrated
-acceptance. This is documentation authority only, not a new implementation or
-deployment request. Neither reported outcome is certified fixed.
+acceptance. This rework authorizes source implementation only; the earlier
+local deployment stays historical. Further deployment and live-data changes
+are not authorized. Neither reopened acceptance gate is fully closed.
 
 V.o feedback follow-up (locally deployed in release `000fbab`; its whole-Edit
 scroll model is planned to be superseded by V.p):

@@ -109,12 +109,39 @@
   border: 1px solid var(--line);
 }
 .workspace-panel-edit .editor-workspace { border: 0; }
-.workspace-read-actions { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
-.workspace-reader-modes { display: flex; flex-wrap: wrap; gap: .4rem .6rem; }
-.workspace-reader-modes button[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--paper);
+.workspace-read-actions {
+  padding: .5rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.workspace-read-actions > :is(a.button.secondary, button.secondary) {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+.workspace-read-actions > :is(a.button.secondary, button.secondary):hover {
+  background: var(--paper);
+  color: var(--accent);
+}
+.workspace-reader-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem;
+  padding-inline-start: .45rem;
+  border-inline-start: 1px solid var(--line);
+}
+.workspace-reader-modes button.secondary {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+.workspace-reader-modes button.secondary:hover,
+.workspace-reader-modes button.secondary[aria-pressed="true"] {
+  border-color: var(--line);
+  background: var(--paper);
+  color: var(--accent);
 }
 .workspace-panel-read:not([hidden]) {
   border-radius: 0;

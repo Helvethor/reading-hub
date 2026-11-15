@@ -1729,8 +1729,10 @@ the requested visual unification, and `.workspace-panel-edit` or
 `.editor-workspace` is reported to prevent mouse interaction with children.
 These are user-observed failures, not a confirmed stacking or event-capture
 diagnosis. Retain V.p as one milestone and reopen V61/V64 rather than treating
-another cosmetic delivery as completion. This replan authorizes documentation
-only; earlier implementation/deployment authority is historical.
+another cosmetic delivery as completion. The original replan authorized
+documentation only; the current request reopens source implementation. The
+earlier deployment remains historical, with no new deployment or live-data
+change authorized.
 
 1. **Interaction gate first (V61).** Use an isolated authorized active working
    copy and reproduce clicks on formatting controls, local tabs, outline rows,
@@ -1766,6 +1768,28 @@ only; earlier implementation/deployment authority is historical.
    Validate real native input, exact export/print and permission/working-copy
    restrictions on isolated fixtures. Use focused existing tests/builds as
    correctness evidence, not substitutes for the failing browser workflow.
+
+**Current reimplementation evidence:** The Read-action cascade conflict was
+caused by the generic `.workspace-read-actions :is(...)` selector also matching
+nested mode buttons; its specificity defeated the selected-state rule. Direct
+action styling is now limited to direct children, and explicit mode selectors
+win over global theme button rules. Isolated Chromium observations covered a
+guest article and reviewer active book draft in light/dark themes at 1440, 720
+and 375 CSS pixels. Active/inactive appearance, native pointer hover, native
+keyboard focus, 36px control height, 5.6px 9.6px padding, 13.6px/19.04px
+typography at weight 600, themed bar surface, wrapping and no horizontal
+overflow matched the editor toolbar; temporary desktop and narrow screenshots
+were captured. A 720px viewport is not native 200% zoom. Native 200% zoom,
+PDF loading/disabled states and integrated V62-V66 journeys remain unverified,
+so V64 remains partial.
+
+On isolated synthetic active article and book drafts, trusted clicks reached
+local tabs, metadata, outline, formatting controls and Read; a native drag
+selected text and formatting changed only the browser's unsaved draft. The
+reported blocked working-copy state was not available, and no live working
+copy was tested. The no-working-copy choose-history route displayed its
+explanation and left Versions operable. V61 remains unresolved; no interaction
+fix is claimed.
 
 Do not close either reopened outcome from shared selectors, synthetic
 click dispatch or a successful deployment. Stop at evidenced child interaction
