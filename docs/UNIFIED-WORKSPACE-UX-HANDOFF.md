@@ -42,6 +42,12 @@ human usability/accessibility review remain unverified. Implementation did not
 authorize deployment or live-data changes. Existing V.i delivery alone does
 not establish V.m acceptance.
 
+Follow-up V.n, agreed 2026-11-15, consolidates the permanent compact workspace
+and general in-flow menu design. It is documentation only: implementation has
+not started and implementation, deployment and live-data changes have not been
+authorized. Its V47-V54 contract supersedes conflicting earlier expanded/compact,
+sticky-stack and overlay-menu requirements, not their preservation invariants.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -154,6 +160,10 @@ versus New working copy... and exports retain Saved PDF / Draft PDF.
 Scope, exact identity and consequences stay in context/confirmation. Earlier
 literal button-label examples below are historical wording, not exceptions to
 the convention; their behavior and acceptance requirements remain unchanged.
+
+V.n below is the current design authority for shell density, identity placement,
+menu flow and joined-region styling. Conflicting descriptions below remain
+historical delivery context, not instructions to retain compaction or overlays.
 
 ### Stable shell and explicit identity
 
@@ -1361,6 +1371,126 @@ comparison, a new graph, merges, ancestry rewriting and framework migration.
 Automated checks, browser workflow observation and human accessibility/usability
 acceptance are separate evidence; no test count establishes this milestone.
 
+### V.n: permanent compact workspace and in-flow menus
+
+Agreed 2026-11-15. Status: consolidated specification and design plan only;
+implementation and V47-V54 acceptance are not started. The consolidation request
+does not authorize implementation, deployment, publication or live-data changes.
+
+#### Outcome, evidence and supersession
+
+A reader/reviewer opens edition 103, immediately sees ARTICLE, EDITION 103 and
+"Une courte histoire de la révolution cubaine", and uses Read/Edit/Versions/
+Sources in one compact shell. Menus never cover the work; normal page scrolling
+moves navigation outside the viewport and leaves room for content.
+
+Source inspection found that `frontend/workspace-navigation.js` creates sticky
+slots, measures expanded and compact geometry and changes density on scroll.
+`workspace.css` layers navigation/command bars and uses a fixed narrow-screen
+reader-tools panel; `app.css` absolutely positions Account. Editor contextual
+menus are fixed overlays, and `frontend/page-scroll.js` compensates for the
+obstructing stack. These are implementation facts, not fresh browser observations
+or a reproduced usability measurement.
+
+Replace this machinery coherently rather than permanently enabling its compact
+CSS branch. V.n supersedes earlier sticky-stack, expanded/compact transition,
+reserved-slot, ellipsized-only identity and overlay-menu instructions across
+V.a/V.c/V.g/V.j/V.k/V.l and related acceptance rows only where they conflict.
+In particular, V37 no longer requires compaction traversal and V39's narrow
+overlay/no-tools-above-document expectation yields to in-flow tools. Earlier
+requirements to clear a measured obstructing menu stack become requirements to
+reveal the target in its actual scroll owner without stale offsets.
+
+Preserve V.k's separate Read/Edit content-pane and page scrolling, V.l's
+Table of Contents/Style/Larger content choices, style scopes, meaningful warnings,
+and V.m's exact comparison and history behavior. Do not claim earlier outstanding
+acceptance complete from this redesign.
+
+#### Layout and essential identity
+
+```text
+Reading Hub   Library / Discover / Review queue   Account
+-------------------------------------------------------
+ARTICLE / EDITION 103
+Une courte histoire de la révolution cubaine
+Read   Edit   Versions   Sources
+-------------------------------------------------------
+View-specific commands / concise operational state
+-------------------------------------------------------
+Outline or tools             Document / selected view
+```
+
+- One density and stable vertical hierarchy at every scroll position. Application
+  navigation, reviewer navigation where applicable, identity, tabs and command
+  rows are normal-flow regions, not sticky/fixed layers. No spacer slots,
+  scroll-triggered collapse, auto-hide or replacement floating navigation.
+- Use a shared horizontal grid and compact spacing. Preserve chosen reading-line
+  widths while allowing the available workspace/content area to grow.
+- The identity block contains only type, exact version identity and title.
+  Use small muted uppercase type/edition metadata and an approximately 18-20px
+  medium/semibold semantic H1 with tight line-height. The example's Markdown
+  heading marker is not a literal decorative character.
+- Long titles wrap and remain fully available, including at zoom. No permanent
+  ellipsis hiding the only complete title. For working copies, identify the
+  actual draft/revision and its base without presenting unsaved content as an
+  immutable edition.
+- Place concise Saved/Unsaved/Saving/Save failed state beside relevant commands,
+  outside the identity block. Move routine ancestry, opened-edition explanations
+  and reader-default detail to Versions/contextual details; keep the explicit
+  reader-default destination reachable. Preserve exact identity at consequential
+  actions. Blocking errors and material warnings remain visible where relevant.
+
+#### Shared menu and visual contract
+
+- Ordinary menus/disclosures insert panels into layout and push later content
+  down. Apply this across shared application/account/appearance navigation,
+  reviewer tools, workspace commands and custom editor contextual menus.
+  Panels fit their container; long panels extend the page and use normal page
+  scrolling rather than floating over content or becoming menu scroll traps.
+- At narrow widths, wrap related command groups into additional rows without
+  horizontal page overflow. Contents/Style becomes an in-flow region, not a
+  fixed overlay. Preserve independent scrolling of existing desktop tools and
+  document panes; the ordinary-menu rule does not remove those content owners.
+- Replace custom floating editor menus with contextual panels near their owning
+  toolbar/outline. Preserve selection when focus moves to commands and back.
+  Common formatting, Undo, Redo, Save and Publish... stay discoverable rather
+  than all moving into More.
+- Use appropriate links/buttons/tabs/disclosures, visible focus and accurate
+  expanded/selected states. Closing a panel restores trigger focus when it owns
+  focus, without stealing focus the user moved elsewhere. Explicit operation
+  confirmation dialogs remain dialogs, not substitutes for ordinary menus.
+- Joined identity/tabs/commands/panels use square internal edges, one 1px
+  separator and consistent surfaces. No doubled borders, stacked shadows or
+  rounded corners clamped onto a continuous line. Prefer an underline/accent
+  selected-tab treatment. Small radii remain appropriate for standalone controls
+  and genuinely detached dialogs/cards.
+- Start with a 4/8/12/16px spacing scale and approximately 32-36px desktop
+  controls; validate legibility, focus and pointer use rather than shrinking
+  text indiscriminately. Preserve both themes and necessary contrast.
+
+#### Delivery, dependencies and stopping point
+
+1. **A - shell and identity:** coordinate public/reviewer templates, compact
+   styling, exact draft identity, operational state and continuous region joins.
+2. **B - page flow and menus:** remove compaction/sticky slots and obsolete stack
+   offsets; update pane capacity, focus/caret/anchor targeting, Back to top and
+   shared/contextual menu placement together. Measure actual layout where needed;
+   do not leave expanded-height reservations or hard-coded old menu offsets.
+3. **C - workflow acceptance:** complete V47-V54 on isolated article/book data,
+   including representative non-workspace consumers of shared menu styles.
+
+A-C are one bounded milestone with coherent validated checkpoints, not automatic
+deployments. Existing shell, navigation, scroll-owner and menu helpers are the
+dependencies; no framework or component-system migration is needed. V.m delivery
+is present; its remaining acceptance and the separate bibliographic date display
+milestone are not prerequisites.
+
+Stop when permanent compact identity, non-overlapping in-flow menus, continuous
+joins and the preserved end-to-end workflow are evidenced. A compact skin over
+the old sticky engine is insufficient. Defer a general scrolling-model rewrite,
+new density preferences, typography/profile redesign, new version/publication
+semantics, unrelated metadata work and live-record mutation.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -1380,7 +1510,9 @@ V.m source implementation was separately authorized and delivered; deployment
 still requires separate authorization. V41-V46 acceptance remains partial. Stop
 only after the applicable authorized V17-V46 and relevant V1-V16 preservation
 checks are evidenced; report browser limitations rather than claiming full
-acceptance from jsdom tests.
+acceptance from jsdom tests. V.n is documentation only and, when separately
+authorized, follows its A-C sequence and V47-V54 contract instead of rebuilding
+superseded compaction/overlay behavior.
 
 ## Implementation discovery map
 
@@ -1400,6 +1532,12 @@ Recheck current implementation before editing:
   asset-binding services.
 - Preservation/regression: editor state/recovery, workflow-panel, reader/PDF,
   publication, lineage, source-insertion and catalogue tests.
+- V.n shell/menu flow: `frontend/workspace-navigation.js`, `page-scroll.js`,
+  `workspace-shell.js`, `public-workspace.js`, editor menu/selection callers,
+  `library/templates/library/base.html`, `reader_workspace.html`,
+  `document_editor.html`, `review_navigation.html`, and shared `app.css`,
+  `workspace.css`, `editor-pilot.css`. Audit non-workspace consumers before
+  changing shared navigation styles; update existing focused layout/state tests.
 - Versions comparison follow-up: `library/document_lineage_views.py`,
   `library/services/document_comparison.py`, `document_lineage_comparison.html`,
   `document_lineage.html`, `frontend/lineage-controls.js`, `workspace-shell.js`,
@@ -1470,6 +1608,14 @@ unsaved edits. Track implementation and validation independently.
 | V44 | With unsaved editor text/metadata, select A, B and A rapidly and change/reverse baselines under delayed responses; only the latest pair may appear. Selector/record focus stays put unless the user moved it, loading/errors are announced, and no stale result or failure replaces a newer result. Tab switches, reload/deep links and Back/Forward restore scope, anchor, filter, selected identity and explicit comparison baseline. Compare record/content/default state before/after: no saves, review/publication/default changes, anchor movement or editor remount; selection, undo/recovery and page/content positions are preserved. A URL does not claim to contain unsaved edits. |
 | V45 | On a long media-rich book, section grouping and Previous/Next change reach the first/last difference below the measured stack and expand collapsed destination context. Expand unchanged stretches without losing selection or introducing page overflow. Exercise token/line/long-block display limits and unsupported rendering: a visible limitation identifies incomplete output, narrower section comparison and the complete evidence pair remain available, and no partial diff is described as complete or unchanged. At 375px, a short viewport and native 200% zoom, selection/results/actions remain reachable with keyboard, normal page scrolling and no horizontal page overflow or whole-tab scroll trap. |
 | V46 | Check both themes, keyboard focus, result announcements and non-colour Before/After distinctions on the isolated fixtures. Guest/non-reviewer views retain their existing comparison permissions; no reviewer-only documents/evidence are exposed. Shared-helper changes preserve Sources and standalone lineage behavior. Compare saved/draft reader and actual PDF/print output before/after for unchanged content, metadata, notes/media, output identity and absence of diff chrome; retain publication/concurrency/pending-content guards. Record focused automated correctness, synthetic checks, observed browser/output journeys and outstanding human usability/accessibility evidence separately; existing V.i test counts do not establish V.m acceptance. |
+| V47 | Guest/reviewer workspaces keep one compact density through down/up scrolling, resize, view changes and disclosure toggles. No compaction attributes changing with scroll, sticky/fixed menu layers, reserved spacer gaps or floating replacement bars. Normal page scrolling moves navigation completely outside the viewport; reverse scrolling restores its original place without a density transition. |
+| V48 | Edition 103 displays ARTICLE, EDITION 103 and the complete example title without routine explanatory paragraphs or a decorative heading marker. Long titles wrap. Saved working copies and unsaved content show truthful draft/revision/base identity and separate operational state. Routine reader-default/provenance detail remains reachable; errors, archived/stale/unsaved warnings and operation consequences remain visible where material. |
+| V49 | Open Account/appearance, reviewer and workspace disclosures plus editor contextual panels, including long contents. Measure that each ordinary menu occupies layout space and does not intersect following content; all entries are reachable by normal page scrolling. Narrow Contents/Style is in flow, not an overlay. Shared menus also work on Library, Discover, account and available reviewer/administration surfaces without horizontal page overflow. |
+| V50 | Capture both themes in Read/Edit/Versions/Sources: touching regions have square internal joins, a single separator, no clamped rounded corners, double borders or stacked shadows. Selected tabs, standalone controls and keyboard focus remain clear. Record computed control sizes and readable text; do not infer accessibility from compactness. |
+| V51 | At 1440x900 and 1280x720, capture before/after screenshots and measure normal chrome height from identity through active command rows. For equivalent identity/actions the new normal layout is no taller than the old compact layout, within 2 CSS px rounding tolerance; exclude and record expanded disclosures and necessary warnings separately. Menus scrolling away releases their viewport area without reserved blank space. Long-title wrapping is tested separately, not concealed to pass the comparison. |
+| V52 | With pending text/metadata and a retained selection, operate menus/formatting, switch Read/Edit/Versions/Sources, change comparison/filter and use Back/Forward/deep links. Preserve editor mount, selection, Undo/Redo, recovery, per-view page/content positions and latest-response ownership. Closing panels returns focus appropriately without stealing moved focus. Save/Publish/concurrency/permission guards, exact action targets and visible failures remain unchanged. Layout/menu operations cause no content, review, publication or reader-default writes. |
+| V53 | Exercise short article and long media-rich book, saved/draft and guest/reviewer fixtures, at desktop, 375px, a short viewport and native 200% zoom. Use wheel/trackpad, scrollbar dragging and keyboard through last menu/tool/content entries and footer. Preserve separate Read/Edit pane and page scrolling, reader modes/style scopes and anchor/caret/ToC/Previous-Next-change/Back-to-top targeting without obsolete stack offsets. No horizontal page overflow, covered focus, clipped commands or unreachable content. |
+| V54 | Compare actual saved/draft PDF and browser print before/after: unchanged exact content/output identity, title/type/metadata, generated/end pages, notes, links, media, margins and palettes; no menu chrome or pane clipping. Run focused existing regressions/build/checks when implementing. Record automated correctness, synthetic geometry, observed browser/output journeys and outstanding tester/human accessibility/usability evidence separately; documentation or passing jsdom tests alone cannot close V.n. |
 
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
@@ -1485,6 +1631,10 @@ V41-V46 define V.m acceptance, not proof of completion. V.m source implementatio
 was separately authorized and delivered; validation remains partial. That request
 did not authorize deployment or live-data changes and does not close V27-V30 or
 earlier acceptance.
+V47-V54 define the planned V.n acceptance, not delivery evidence or implementation
+authorization. Apply V.n's explicit supersession rules to conflicting earlier
+geometry/menu assertions while retaining their preservation checks. All V.n
+implementation and acceptance items remain open.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1504,3 +1654,6 @@ V.m source implementation was separately authorized; deployment and live-data
 changes still require separate authorization. It excludes Sources redesign,
 editable diff restoration, arbitrary source-format comparison and ancestry
 rewriting.
+V.n is documentation only. Implementation, local/remote deployment, migrations
+and live-data changes require separate authorization; earlier milestone grants
+do not authorize this follow-up.

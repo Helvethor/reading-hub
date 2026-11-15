@@ -121,6 +121,23 @@ Focused automated checks pass; authenticated
 browser, long-book, PDF/print, and human accessibility/usability acceptance
 remain outstanding.
 
+**Agreed workspace follow-up V.n (2026-11-15; documentation only):**
+use one permanent compact, vertically stacked workspace layout. Application
+navigation, workspace identity, tabs and command rows occupy normal page flow
+and scroll out of the viewport; remove expanded/compact transitions, sticky menu
+layers and reserved-height placeholders. Ordinary menus and contextual command
+panels open in flow, pushing following content down rather than covering it.
+The workspace title contains only type, exact edition/draft identity and the
+complete title; concise operational state belongs beside commands, with material
+warnings still visible. Joined regions use square internal edges and single
+separators, not rounded cards clamped to continuous lines. Preserve separate
+Read/Edit content panes, reader modes, pending edits, focus, history, exact
+exports and guarded operations. This supersedes conflicting earlier sticky-stack,
+compaction and overlay-menu requirements, including narrow-screen reader tools.
+The [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-workspace-and-in-flow-menus)
+owns scope and V47-V54 acceptance. Documentation consolidation does not authorize
+implementation, deployment or live-data changes.
+
 **Agreed bibliographic date display follow-up (2026-11-15; documentation only):**
 show date metadata at its known calendar precision, not as a full timestamp.
 For ISO date-time strings, preserve the date as written and do not convert it

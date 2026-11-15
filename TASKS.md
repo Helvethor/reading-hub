@@ -304,6 +304,34 @@ without certifying its outstanding acceptance.
   PDF/print observations and human accessibility review remain unverified;
   report observed/synthetic/unverified evidence separately.
 
+Permanent compact workspace and in-flow menus V.n (agreed 2026-11-15;
+documentation only, implementation not started):
+the [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-workspace-and-in-flow-menus)
+owns the consolidated design and V47-V54 acceptance. This is the next workspace
+layout milestone after delivered V.m, not certification of earlier acceptance.
+Replace conflicting sticky/compaction and overlay requirements; preserve V.k's
+separate Read/Edit content panes and V.l's exclusive reader modes. No dependency
+on the separate bibliographic date display follow-up is introduced.
+Implementation, deployment and live-data changes require separate authorization.
+
+- [ ] A: deliver the same permanent compact shell for guest/reviewer workspaces;
+  essential type/version/title identity, separate concise operational state,
+  visible material warnings and continuous square-edged region joins.
+- [ ] B: remove sticky/compaction slots and obsolete offsets; coordinate native
+  page flow, pane sizing and focus/anchor navigation. Convert shared navigation,
+  account/appearance, reviewer and editor contextual menus plus narrow-screen
+  reader tools to in-flow panels without covering content or losing selection.
+- [ ] C: complete V47-V54 with isolated article and media-rich book fixtures,
+  measured before/after chrome, long-menu and native scrolling journeys,
+  keyboard/zoom/short/narrow checks, pending-state/history preservation and actual
+  PDF/print comparison. Report automated, synthetic, observed and outstanding
+  human evidence separately.
+
+Stages A-C form one bounded outcome; checkpoint validated slices without
+automatically deploying them. A compact CSS skin over the old stack is not the
+stopping point. Do not expand this milestone into a framework rewrite, content
+scroll-model replacement or unrelated metadata/publication work.
+
 Comparison-first Versions follow-up V.m (agreed and implemented in source
 2026-11-14; V41-V46 acceptance partial):
 the [Versions handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vm-comparison-first-versions-inspector)
