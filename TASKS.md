@@ -58,6 +58,15 @@ Synthetic fixtures and the standalone publication fallback do not certify
 same-page publication, human usability, complete real-book fidelity or public
 production hosting.
 
+Embedded Publish follow-up (2026-11-15): the source fix ties same-origin frame
+permission to the rendered reviewer workspace rather than the old editor route
+name; the shared route resolves as `reader`. Public readers and standalone
+panels retain their framing restrictions. All 64 focused isolated panel/source
+and editor-view tests pass. An authenticated synthetic article workspace loaded
+the embedded Publish heading, saved revision and confirmation checkbox in a real
+browser without a panel error. No browser publication was submitted; native Close,
+complete publication acceptance and live deployment remain unverified.
+
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 
 Both former directions, cosmetic cleanup and workflow restructuring with shared

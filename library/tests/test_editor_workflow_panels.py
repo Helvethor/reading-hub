@@ -1,8 +1,8 @@
 import json
 from unittest.mock import patch
 
-from django.test import RequestFactory, TestCase, override_settings
-from django.urls import reverse
+from django.test import Client, RequestFactory, TestCase, override_settings
+from django.urls import resolve, reverse
 
 from library.document_editor_views import baseline
 from library.models import DocumentDraftBase, DocumentPublication
@@ -118,10 +118,18 @@ class EditorWorkflowPanelTests(TestCase):
         self.assertEqual(DocumentPublication.objects.count(), 1)
 
     def test_browser_frame_policy_only_allows_marked_panel_responses(self):
-        editor = self.client.get(self.editor)
-        self.assertIn("frame-src 'self'", editor["Content-Security-Policy"])
-        self.assertIn("frame-ancestors 'none'", editor["Content-Security-Policy"])
-        self.assertEqual(editor["X-Frame-Options"], "DENY")
+        self.assertEqual(resolve(self.editor).url_name, "reader")
+        for params in (
+            {"tab": "edit", "draft": self.draft.pk},
+            {"tab": "read"},
+            {"tab": "versions"},
+        ):
+            with self.subTest(params=params):
+                editor = self.client.get(self.editor, params)
+                self.assertEqual(editor.status_code, 200)
+                self.assertIn("frame-src 'self'", editor["Content-Security-Policy"])
+                self.assertIn("frame-ancestors 'none'", editor["Content-Security-Policy"])
+                self.assertEqual(editor["X-Frame-Options"], "DENY")
 
         # This fixture has no complete retained snapshot; exercise the rendered error panel.
         with patch("library.document_editor_views.preview_fresh_draft",
@@ -141,7 +149,12 @@ class EditorWorkflowPanelTests(TestCase):
                     self.assertIn("frame-ancestors 'self'", embedded["Content-Security-Policy"])
                     self.assertNotIn("frame-src 'self'", embedded["Content-Security-Policy"])
 
-        reader = self.client.get(reverse("reader", args=[self.rendition.pk]), {"embedded": "1"})
-        self.assertEqual(reader["X-Frame-Options"], "DENY")
-        self.assertIn("frame-ancestors 'none'", reader["Content-Security-Policy"])
-        self.assertNotIn("frame-src 'self'", reader["Content-Security-Policy"])
+        url = reverse("reader", args=[self.rendition.pk])
+        guest = Client().get(url, {"embedded": "1", "tab": "edit"})
+        with override_settings(READING_HUB_EDITOR_PILOT=False):
+            disabled = self.client.get(url, {"embedded": "1", "tab": "edit"})
+        for reader in (guest, disabled):
+            self.assertEqual(reader.status_code, 200)
+            self.assertEqual(reader["X-Frame-Options"], "DENY")
+            self.assertIn("frame-ancestors 'none'", reader["Content-Security-Policy"])
+            self.assertNotIn("frame-src 'self'", reader["Content-Security-Policy"])

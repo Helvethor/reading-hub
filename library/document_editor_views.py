@@ -265,6 +265,7 @@ def workspace(request, pk, *, read_default=False):
             else "read"
         ),
     }, status=422 if error else 200)
+    response.editor_workspace = True
     response["Cache-Control"] = "no-store"
     return response
 

@@ -17,7 +17,7 @@ class ReaderPolicyMiddleware:
             return response
         response = self.get_response(request)
         panel = getattr(response, "editor_panel", False)
-        editor = request.resolver_match and request.resolver_match.url_name == "document-editor"
+        editor = getattr(response, "editor_workspace", False)
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; style-src 'self'; script-src 'self'; "
             "img-src 'self'; font-src 'self'; connect-src 'self'; form-action 'self'; "

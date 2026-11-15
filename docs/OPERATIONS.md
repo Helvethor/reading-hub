@@ -191,10 +191,13 @@ output with retained images and reciprocal notes. Verify unsaved-content safety,
 native input and the change's specific behavior, not merely home HTTP 200.
 Record automated, observed synthetic browser, mocked and human acceptance
 separately. Synthetic publications are not certification of real library content.
-The current embedded Publish panel can be blocked by the existing workspace
-CSP. Use the standalone publication URL in the fixture manifest to complete
-the explicit confirmation journey; report that fallback rather than claiming
-same-page panel acceptance. Do not weaken CSP as a development shortcut.
+The reviewer workspace permits same-origin workflow panels through its response
+policy, independently of the shared reader/editor route name. Public readers
+still deny frames, and only explicitly embedded panel responses permit
+same-origin framing. The 2026-11-15 source fix restores embedded Publish content;
+older releases may still require the standalone publication URL in the fixture
+manifest. Report any fallback rather than claiming same-page panel acceptance.
+Do not weaken CSP as a development shortcut.
 
 When an actual reproduction needs representative private source data, separately
 authorize a minimal sanitized snapshot into a new isolated root. Do not mount or
