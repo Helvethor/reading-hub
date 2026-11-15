@@ -692,25 +692,29 @@ accessibility or reviewer acceptance.
 
 ## Editor milestone G: independent image/figure/quote/caption editing (2026-11-12)
 
-**Status:** specified only; no implementation or validation claimed. This is the
-next bounded follow-up to Q, not a reopening of Q's historical acceptance or
-authorization to implement/deploy. Unrelated milestone ordering is unchanged.
+**Status:** implemented in the current checkout; automated acceptance is partial.
+This does not complete G1-G10, reopen Q's historical acceptance, or authorize
+deployment, publication or live-content changes. Unrelated milestone ordering is
+unchanged.
 
 The [independent element editing handoff](docs/FIGURE-QUOTE-CAPTION-IMPLEMENTATION-HANDOFF.md)
 owns G1-G10 acceptance and precise design. It supersedes Q's unconditional
 quotation-figure shape and coupled grouping/quotation removal, while retaining
 input, safety, recovery and fidelity guarantees.
 
-- [ ] G.a-G.c: expose exact selected-text conversion to standalone QUOTE, without
+- [x] G.a-G.c: expose exact selected-text conversion to standalone QUOTE, without
   dialog/FIG; preserve partial-paragraph boundaries, formatting, IDs and links.
-- [ ] G.d-G.e: default new quotations without captions to standalone QUOTE;
+- [x] G.d-G.e: default new quotations without captions to standalone QUOTE;
   independently wrap/unwrap FIG, remove QUOTE formatting and attach/detach
   CAPTION without losing content or unrelated structure.
-- [ ] Validate G1-G6 with deterministic fixtures, legacy wrappers and focused
-  regressions; checkpoint each coherent validated implementation milestone.
+- [x] Add deterministic frontend regressions for exact conversion, wrapper
+  independence, caption retention/detachment, identity preservation and refusals.
+- [ ] Validate G1-G6 against the full handoff fixture set and representative
+  legacy wrappers; current automated coverage is synthetic and frontend-only.
 - [ ] Validate G7-G10 through contextual pointer/keyboard controls, undo/recovery,
   save/reopen, Read, browser print and PDFs on isolated article/book copies.
   Separate observed, synthetic, mocked and outstanding accessibility evidence.
+  Native browser/output and persistence journeys remain outstanding.
 
 Keep captionless imported figures unchanged unless explicitly edited. The
 reported image-wrapper provenance is unverified; no automatic cleanup, new image
@@ -740,22 +744,23 @@ owns I1-I10 acceptance and precise design.
 
 ## Editor milestones T and N: simple tables and retained-image insertion (2026-11-13)
 
-**Status:** specified only; no implementation or validation claimed. These are
-independently deliverable proposals; recording them does not authorize
-implementation, deployment, publication or live-content changes. Existing
-milestone ordering is unchanged.
+**Status:** T is implemented in the current checkout with synthetic frontend
+tests; N remains specified only. T1-T4/TN3-TN6 acceptance, deployment,
+publication and live-content changes are not authorized by implementation.
+Existing milestone ordering is unchanged.
 
 The [table/image handoff](docs/TABLE-IMAGE-AUTHORING-IMPLEMENTATION-HANDOFF.md)
 owns T1-T4, N1-N2 and TN3-TN6 acceptance.
 
-- [ ] T: create simple tables; insert/delete rows and columns, change individual
+- [x] T: create simple tables; insert/delete rows and columns, change individual
   header cells and add/remove captions with explicit preservation/refusal rules.
 - [ ] N: insert a draft-base-authorized retained image at a prose caret, with
   explicit alternative text or decorative choice; keep existing asset evidence
   and publication binding. No upload or remote fetch.
-- [ ] Validate each outcome on isolated article/book fixtures through recovery,
-  save/reopen, Read, actual browser print and draft/published PDFs. Preserve
-  hidden content, targets, notes, assets and immutable evidence.
+- [ ] Validate T on isolated article/book fixtures through recovery, save/reopen,
+  Read, actual browser print and draft/published PDFs. The current evidence is
+  frontend-only; these end-to-end outcomes remain unobserved.
+- [ ] Validate N independently after implementation on isolated fixtures.
 
 Complex table restructuring, arbitrary asset browsing and ticket-only image
 selection are deferred. G remains the owner of independent figure/caption

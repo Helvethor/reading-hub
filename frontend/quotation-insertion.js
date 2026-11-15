@@ -8,7 +8,7 @@ import {assertVisible, scopeIdentity, protectedNote, assertSafeInlineSplit, vali
 export function prepareQuotationInsertion(editor, readDocument = () => ({})) {
   const {doc, selection} = editor.state, {$from} = selection;
   if (!(selection instanceof TextSelection) || !selection.empty) {
-    throw new Error("Place a caret for a new quotation. To convert selected text, use Figure & caption.");
+    throw new Error("Place a caret for a new quotation. To convert selected text, use Convert to quote.");
   }
   if ($from.parent.type.name !== "p" || !["doc", "section", "div"].includes($from.node($from.depth - 1).type.name) ||
       Array.from({length: $from.depth - 1}, (_, i) => $from.node(i + 1)).some(node =>
@@ -58,10 +58,11 @@ export function buildQuotationInsertion(editor, target, {body, text = "", title 
     });
     return schema.nodes.p.create(null, content);
   }));
-  const built = buildFigure(editor, {
+  const built = text.trim() || title ? buildFigure(editor, {
     doc: target.doc, from: target.from, to: target.to, kind: "quotation",
     body: [quote], candidates: [],
-  }, {caption: typeof text === "string" && text.trim() ? "new" : "none", text, title});
+  }, {caption: typeof text === "string" && text.trim() ? "new" : "none", text, title})
+    : {figure: quote};
   const {paragraph, offset} = target;
   const prefix = offset ? paragraph.copy(paragraph.content.cut(0, offset)) :
     !paragraph.content.size && (paragraph.attrs.id || paragraph.attrs.class) ? paragraph : null;
@@ -71,8 +72,9 @@ export function buildQuotationInsertion(editor, target, {body, text = "", title 
   const replacement = [...(prefix ? [prefix] : []), built.figure, ...(suffix ? [suffix] : [])];
   const tr = closeHistory(editor.state.tr).replaceWith(target.from, target.to, Fragment.fromArray(replacement));
   const figureAt = target.from + (prefix?.nodeSize || 0);
+  const quoteAt = figureAt + (built.figure.type.name === "figure" ? 1 : 0);
   const last = quote.lastChild;
-  const caret = figureAt + 2 + quote.content.size - last.nodeSize + 1 + last.content.size;
+  const caret = quoteAt + 2 + quote.content.size - last.nodeSize + last.content.size;
   tr.setSelection(TextSelection.create(tr.doc, caret));
   validateCandidate(editor, tr.doc, target.readDocument);
   return {tr, figure: built.figure};

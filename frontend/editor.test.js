@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {afterEach, test} from "node:test";
 import {JSDOM} from "jsdom";
 import {undo, redo} from "@tiptap/pm/history";
-import {NodeSelection, Selection} from "@tiptap/pm/state";
+import {NodeSelection, Selection, TextSelection} from "@tiptap/pm/state";
 import {
   createBoundedEditor, contentSignature, isInlineStyleActive, toggleInlineStyle,
   applyPlainTextPaste, preparePlainTextPaste, MAX_PASTE_BYTES,
@@ -22,9 +22,10 @@ import {
 } from "./editor.js";
 import {
   canEditQuotation, canRemoveQuotation, prepareQuotation, applyQuotation,
-  canMoveAttribution, moveAttribution, removeQuotation,
+  canMoveAttribution, moveAttribution, removeQuotation, canConvertSelectionToQuote,
+  prepareSelectionQuote, buildSelectionQuote, applySelectionQuote,
 } from "./quotations.js";
-import {canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure} from "./figures.js";
+import {canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure, wrapInFigure} from "./figures.js";
 import {prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion} from "./quotation-insertion.js";
 import {applyList, handleListKey, listState} from "./lists.js";
 import {insertHorizontalRule} from "./horizontal-rule.js";
@@ -53,6 +54,10 @@ import {titlePageRows} from "./book-views.js";
 import {partLayout, contentSeparation, setDocumentLayout, setPartSeparation} from "./part-layout.js";
 import {applyTocNumbering, automaticallyHidden, tocMarker, tocNumberingEntries, tocVisibilityEntries} from "./toc-numbering.js";
 import {prepareNoteRepair, applyNoteRepair} from "./note-repairs.js";
+import {
+  prepareTableInsertion, buildTableInsertion, applyTableInsertion, canEditTable,
+  prepareTableEdit, buildTableEdit, applyTableEdit,
+} from "./tables.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -3892,8 +3897,8 @@ test("new quotation proposals insert at empty, beginning, middle and end carets 
     const built = buildQuotationInsertion(editor, target, {body: "Quote"});
     assert.equal(editor.getHTML(), original, "Preview is inert.");
     applyQuotationInsertion(editor, target, {body: "Quote"});
-    const figure = '<figure class="quotation"><blockquote><p>Quote</p></blockquote></figure>';
-    assert.equal(editor.getHTML(), expected.includes("|") ? expected.replace("|", figure) : expected + figure);
+    const quote = "<blockquote><p>Quote</p></blockquote>";
+    assert.equal(editor.getHTML(), expected.includes("|") ? expected.replace("|", quote) : expected + quote);
     assert.equal(editor.state.selection.$from.parent.type.name, "p");
     assert.equal(editor.state.selection.$from.parent.textContent, "Quote");
     assert.equal(editor.state.selection.$from.parentOffset, 5);
@@ -3971,10 +3976,95 @@ test("quotation creation uses whole adjacent paragraphs and optional literal att
   applyQuotation(editor, proposal, 'Author <title> & date');
   assert.equal(editor.getHTML(), '<figure class="quotation"><blockquote>' +
     '<p id="one">First <em>quotation</em></p><p id="two">Second.</p></blockquote>' +
-    '<figcaption>Author &lt;title&gt; &amp; date</figcaption></figure><p>Outside.</p>');
+    '<figcaption><p>Author &lt;title&gt; &amp; date</p></figcaption></figure><p>Outside.</p>');
   assert(undo(editor.state, editor.view.dispatch));
   assert(!editor.getHTML().includes("<figure"));
   assert(redo(editor.state, editor.view.dispatch));
+});
+
+test("selected prose converts to an exact standalone quotation with one-step history", () => {
+  open('<p id="a">Before quoted after</p>');
+  selectText("quoted", "quoted".length);
+  assert(canConvertSelectionToQuote(editor));
+  const proposal = prepareSelectionQuote(editor);
+  const preview = buildSelectionQuote(editor, proposal);
+  assert.equal(editor.getHTML(), '<p id="a">Before quoted after</p>');
+  assert.equal(preview.tr.doc.textContent, "Before quoted after");
+  applySelectionQuote(editor, proposal);
+  assert.equal(editor.getHTML(),
+    '<p id="a">Before </p><blockquote><p>quoted</p></blockquote><p> after</p>');
+  assert.equal(editor.state.doc.textBetween(
+    editor.state.selection.from, editor.state.selection.to,
+  ), "quoted");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), '<p id="a">Before quoted after</p>');
+  assert(!undo(editor.state));
+  assert(redo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(),
+    '<p id="a">Before </p><blockquote><p>quoted</p></blockquote><p> after</p>');
+});
+
+test("selected quotation preserves paragraph boundaries, inline marks and first-survivor IDs", () => {
+  open('<p id="one">Before <em>selected</em></p><p id="two"><a href="#one">Middle</a> after</p>');
+  selectText("selected", "selected".length);
+  const start = editor.state.selection.from;
+  selectText("Mid", "Mid".length);
+  const end = editor.state.selection.to;
+  editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, start, end)));
+  assert(canConvertSelectionToQuote(editor));
+  applySelectionQuote(editor, prepareSelectionQuote(editor));
+  assert.equal(editor.getHTML(),
+    '<p id="one">Before </p><blockquote><p><em>selected</em></p><p id="two"><a href="#one">Mid</a></p></blockquote><p><a href="#one">dle</a> after</p>');
+  assert.equal((editor.getHTML().match(/id="one"/g) || []).length, 1);
+  assert.equal((editor.getHTML().match(/id="two"/g) || []).length, 1);
+});
+
+test("quotation selection respects paragraph-opening boundaries and reverse direction", () => {
+  open("<p>Quoted</p><p>Next paragraph</p>");
+  selectText("Quoted", 0);
+  const from = editor.state.selection.from;
+  let nextStart;
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === "p" && node.textContent === "Next paragraph") nextStart = pos + 1;
+  });
+  editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, from, nextStart)));
+  assert(canConvertSelectionToQuote(editor));
+  applySelectionQuote(editor, prepareSelectionQuote(editor));
+  assert.equal(editor.getHTML(), "<blockquote><p>Quoted</p></blockquote><p>Next paragraph</p>");
+
+  editor.destroy();
+  open("<p>Before quoted after</p>");
+  selectText("quoted", "quoted".length);
+  const {from: start, to: end} = editor.state.selection;
+  editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, end, start)));
+  applySelectionQuote(editor, prepareSelectionQuote(editor));
+  assert.equal(editor.state.selection.anchor > editor.state.selection.head, true);
+  assert.equal(editor.state.doc.textBetween(
+    editor.state.selection.from, editor.state.selection.to,
+  ), "quoted");
+});
+
+test("selected quotation refuses whitespace, protected boundaries and stale proposals without mutation", () => {
+  open("<p>   </p>");
+  editor.commands.setTextSelection({from: 1, to: 4});
+  assert(!canConvertSelectionToQuote(editor));
+  assert.throws(() => prepareSelectionQuote(editor), /non-whitespace/);
+  editor.destroy();
+  open('<p>Before <a id="target" href="#other">quoted words</a> after</p>');
+  selectText("quoted", "quoted".length);
+  assert.throws(() => prepareSelectionQuote(editor), /target-bearing/);
+  editor.destroy();
+  open('<p><a id="target" href="#other">one<em>two</em></a> after</p>');
+  selectText("one", "one".length);
+  assert.throws(() => prepareSelectionQuote(editor), /target-bearing/);
+  editor.destroy();
+  open("<p>Before quoted after</p>");
+  selectText("quoted", "quoted".length);
+  const proposal = prepareSelectionQuote(editor);
+  editor.commands.insertContentAt(1, "Changed ");
+  const changed = editor.getHTML();
+  assert.throws(() => applySelectionQuote(editor, proposal), /changed/);
+  assert.equal(editor.getHTML(), changed);
 });
 
 test("quotation removal preserves caption, citation and all container identities", () => {
@@ -3984,11 +4074,36 @@ test("quotation removal preserves caption, citation and all container identities
   selectText("Quotation");
   assert(canRemoveQuotation(editor));
   removeQuotation(editor);
-  assert.equal(editor.getHTML(), '<div id="fig" class="text-align-left"><div id="quote">' +
-    '<p id="text">Quotation</p></div><div id="caption"><p id="attribution">' +
-    '<cite id="work">Work</cite></p></div></div>');
+  assert.equal(editor.getHTML(), '<figure id="fig" class="text-align-left"><div id="quote">' +
+    '<p id="text">Quotation</p></div><figcaption id="caption"><p id="attribution">' +
+    '<cite id="work">Work</cite></p></figcaption></figure>');
   assert(undo(editor.state, editor.view.dispatch));
   assert(editor.getHTML().startsWith("<figure"));
+});
+
+test("figure and quotation structure can be wrapped and removed independently", () => {
+  open('<blockquote id="quote"><p>Quoted</p></blockquote>');
+  selectText("Quoted", "Quoted".length);
+  wrapInFigure(editor, prepareFigure(editor));
+  assert.equal(editor.getHTML(),
+    '<figure class="quotation"><blockquote id="quote"><p>Quoted</p></blockquote></figure>');
+  removeFigure(editor, prepareFigure(editor));
+  assert.equal(editor.getHTML(), '<blockquote id="quote"><p>Quoted</p></blockquote>');
+  assert(undo(editor.state, editor.view.dispatch));
+  assert(editor.getHTML().startsWith("<figure"));
+  removeQuotation(editor);
+  assert.equal(editor.getHTML(), '<figure><div id="quote"><p>Quoted</p></div></figure>');
+});
+
+test("detaching a quotation caption preserves both the caption text and captionless grouping", () => {
+  open('<figure class="quotation"><blockquote><p>Quoted</p></blockquote>' +
+    '<figcaption id="credit">Author</figcaption></figure>');
+  selectText("Quoted", "Quoted".length);
+  applyFigure(editor, prepareFigure(editor), {caption: "none"});
+  assert.equal(editor.getHTML(), '<figure class="quotation"><blockquote><p>Quoted</p></blockquote></figure>' +
+    '<div id="credit"><p>Author</p></div>');
+  assert(undo(editor.state, editor.view.dispatch));
+  assert(editor.getHTML().includes('<figcaption id="credit">Author</figcaption>'));
 });
 
 test("existing quotation captions are preserved and edited directly rather than overwritten", () => {
@@ -4035,7 +4150,7 @@ test("attribution transfer requires a distinct final paragraph and never guesses
   assert.throws(() => moveAttribution(editor), /final paragraph/);
   assert(canEditQuotation(editor));
   applyQuotation(editor, prepareQuotation(editor));
-  assert.equal(editor.getHTML(), '<figure class="quotation"><blockquote><p>Only quotation paragraph</p></blockquote></figure><p>Outside</p>');
+  assert.equal(editor.getHTML(), '<blockquote><p>Only quotation paragraph</p></blockquote><p>Outside</p>');
 });
 
 test("citation wrappers preserve full nested links and IDs and refuse partial wrapper splits", () => {
@@ -4168,6 +4283,7 @@ test("Insert quotation is available at an empty caret and shares exact preview a
   assert(!undo(editor.state));
   insert.click();
   body.value = "First\nline\n\nSecond <literal> 😀";
+  dialog.querySelector("#editor-figure-caption").value = "new";
   dialog.querySelector("#editor-quotation-attribution").value = "Author, Work";
   dialog.querySelector("#editor-figure-title").value = "Work";
   body.dispatchEvent(new dom.window.Event("input"));
@@ -4206,8 +4322,9 @@ test("stale new-quotation dialogs keep fields and refuse Apply and obsolete Canc
 
 test("unified figure panel previews caption choices, cancels and applies once", () => {
   const template = readFileSync(new URL("../library/templates/library/document_editor.html", import.meta.url), "utf8");
-  document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'),
-    template.indexOf('<dialog id="editor-image"'));
+  const imageStart = template.indexOf('<dialog id="editor-image"');
+  document.body.innerHTML = template.slice(template.indexOf('<form id="document-editor"'), imageStart) +
+    template.slice(imageStart, template.indexOf("</dialog>", imageStart) + "</dialog>".length);
   const form = document.querySelector("#document-editor");
   const surface = form.querySelector("#editor-surface");
   editor = createBoundedEditor(surface, '<p id="text">Quotation text.</p><p>Following.</p>');
@@ -4219,11 +4336,13 @@ test("unified figure panel previews caption choices, cancels and applies once", 
     dialog.open = false;
     dialog.dispatchEvent(new dom.window.Event("close"));
   };
+  const imageDialog = document.querySelector("#editor-image");
+  imageDialog.showModal = () => { imageDialog.open = true; };
   selectText("Quotation");
   surface.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, clientX: 20, clientY: 30}));
   form.querySelector('[data-quotation="edit"]').click();
   assert(dialog.open);
-  assert(dialog.querySelector("#editor-quotation-target").textContent.includes("Quotation figure"));
+  assert(dialog.querySelector("#editor-quotation-target").textContent.includes("Quotation"));
   dialog.querySelector("#editor-quotation-attribution").value = "discard";
   dialog.querySelector("#editor-quotation-cancel").click();
   assert.equal(editor.getHTML(), '<p id="text">Quotation text.</p><p>Following.</p>');
@@ -4248,10 +4367,26 @@ test("unified figure panel previews caption choices, cancels and applies once", 
   assert.equal(choice.value, "keep");
   assert.equal(dialog.querySelector("#editor-figure-title").value, "");
   dialog.close();
+  form.querySelector("[data-editor-caption]").click();
+  assert(dialog.open, "The caption handle must open actions for its containing figure.");
+  assert(editor.state.selection.node.type.name.startsWith("figcaption"));
+  dialog.close();
   form.querySelector('[data-quotation="edit"]').click();
   dialog.querySelector("#editor-figure-remove").click();
-  assert(!editor.getHTML().includes("<blockquote>"));
+  assert(editor.getHTML().includes("<blockquote>"));
+  assert(!editor.getHTML().includes("<figure"));
   assert(editor.getHTML().includes("From <cite>Work</cite>, 1852."));
+  editor.commands.insertContentAt(editor.state.doc.content.size,
+    '<p><img src="/media/retained.png" alt="A retained image"></p>');
+  let imagePosition;
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === "img") imagePosition = pos;
+  });
+  assert.equal(form.querySelector("[data-editor-image]").dataset.editorImage,
+    String(imagePosition));
+  form.querySelector("[data-editor-image]").click();
+  assert(imageDialog.open);
+  assert.equal(editor.state.selection.node.type.name, "img");
   assert.deepEqual(errors, []);
 });
 
@@ -4350,6 +4485,144 @@ test("figure grouping decorations and edit handles never enter saved HTML", () =
   assert(!editor.getHTML().includes("FIGURE 1"));
   showBlockLabels(editor, false);
   assert(!editor.view.dom.querySelector(".editor-figure-handle"));
+});
+
+test("table insertion previews the bounded rectangular shape and preserves prose targets", () => {
+  open('<p id="a">Before after</p>');
+  selectText("Before", 0);
+  editor.commands.setTextSelection(editor.state.selection.from + 4);
+  const target = prepareTableInsertion(editor);
+  const options = {rows: 2, columns: 2, header: true, caption: "Data"};
+  const built = buildTableInsertion(editor, target, options);
+  assert.equal(editor.getHTML(), '<p id="a">Before after</p>');
+  assert.equal(built.table.childCount, 3);
+  applyTableInsertion(editor, target, options);
+  assert.equal(editor.getHTML(), '<p id="a">Befo</p><table><caption>Data</caption>' +
+    '<thead><tr><th></th><th></th></tr></thead><tbody><tr><td></td><td></td></tr></tbody></table>' +
+    '<p>re after</p>');
+  assert.equal(editor.state.selection.$from.parent.type.name, "thText");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), '<p id="a">Before after</p>');
+});
+
+test("simple table row and column actions preserve groups and cell content with exact undo", () => {
+  open('<table id="data"><thead><tr><th>Heading</th><th>Other</th></tr></thead>' +
+    '<tbody><tr><td>Alpha</td><td>Beta</td></tr><tr><td>Gamma</td><td>Delta</td></tr></tbody></table>');
+  selectText("Alpha", "Alpha".length);
+  assert(canEditTable(editor));
+  let target = prepareTableEdit(editor);
+  applyTableEdit(editor, target, "insert-row-below");
+  assert.equal(editor.getHTML(), '<table id="data"><thead><tr><th>Heading</th><th>Other</th></tr></thead>' +
+    '<tbody><tr><td>Alpha</td><td>Beta</td></tr><tr><td></td><td></td></tr>' +
+    '<tr><td>Gamma</td><td>Delta</td></tr></tbody></table>');
+  assert.equal(editor.state.selection.$from.parent.type.name, "tdText");
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML().includes('<tr><td></td><td></td></tr>'), false);
+  selectText("Alpha", "Alpha".length);
+  target = prepareTableEdit(editor);
+  applyTableEdit(editor, target, "insert-column-right");
+  assert.equal(editor.getHTML(), '<table id="data"><thead><tr><th>Heading</th><th></th><th>Other</th></tr></thead>' +
+    '<tbody><tr><td>Alpha</td><td></td><td>Beta</td></tr><tr><td>Gamma</td><td></td><td>Delta</td></tr></tbody></table>');
+  assert.equal(editor.state.selection.$from.parent.type.name, "tdText");
+  assert(undo(editor.state, editor.view.dispatch));
+});
+
+test("table header conversion and captions preserve existing content and wrapper identity", () => {
+  open('<table><tbody><tr><td id="cell"><em>Value</em></td></tr></tbody></table>');
+  selectText("Value", "Value".length);
+  applyTableEdit(editor, prepareTableEdit(editor), "make-header");
+  assert.equal(editor.getHTML(), '<table><tbody><tr><th id="cell"><em>Value</em></th></tr></tbody></table>');
+  assert(undo(editor.state, editor.view.dispatch));
+  applyTableEdit(editor, prepareTableEdit(editor), "add-caption", {caption: "Results"});
+  assert.equal(editor.getHTML(), '<table><caption>Results</caption><tbody><tr><td id="cell"><em>Value</em></td></tr></tbody></table>');
+  selectText("Results", "Results".length);
+  applyTableEdit(editor, prepareTableEdit(editor), "remove-caption");
+  assert.equal(editor.getHTML(),
+    '<table><tbody><tr><td id="cell"><em>Value</em></td></tr></tbody></table><p>Results</p>');
+  assert(undo(editor.state, editor.view.dispatch));
+  assert(editor.getHTML().includes("<caption>Results</caption>"));
+});
+
+test("table deletion requires confirmation and refuses final, target-bearing and complex structures", () => {
+  open('<table><tbody><tr><td>Keep</td><td>Delete</td></tr></tbody></table>');
+  selectText("Delete", "Delete".length);
+  const target = prepareTableEdit(editor);
+  const proposal = buildTableEdit(editor, target, "delete-column");
+  assert.deepEqual(proposal.confirmation, ["Delete"]);
+  assert.equal(editor.getHTML(), '<table><tbody><tr><td>Keep</td><td>Delete</td></tr></tbody></table>');
+  applyTableEdit(editor, target, "delete-column", {confirmed: true});
+  assert.equal(editor.getHTML(), '<table><tbody><tr><td>Keep</td></tr></tbody></table>');
+  selectText("Keep", "Keep".length);
+  assert.throws(() => buildTableEdit(editor, prepareTableEdit(editor), "delete-column"), /final table column/);
+  editor.destroy();
+  open('<table><tbody><tr><td id="target">Delete</td><td>Keep</td></tr></tbody></table>');
+  selectText("Delete", "Delete".length);
+  assert.throws(() => buildTableEdit(editor, prepareTableEdit(editor), "delete-column"), /identity/);
+  editor.destroy();
+  open('<table><tbody><tr><td colspan="2">Merged</td><td>Keep</td></tr></tbody></table>');
+  selectText("Merged", "Merged".length);
+  assert.throws(() => buildTableEdit(editor, prepareTableEdit(editor), "insert-row-below"), /without spans/);
+  assert.equal(editor.getHTML(), '<table><tbody><tr><td colspan="2">Merged</td><td>Keep</td></tr></tbody></table>');
+  editor.destroy();
+  open('<table><tbody><tr><td><section data-section-role="notes"><p>Protected</p></section></td>' +
+    '<td>Keep</td></tr></tbody></table>');
+  selectText("Protected", "Protected".length);
+  assert.throws(() => buildTableEdit(editor, prepareTableEdit(editor), "delete-column"), /protected notes/);
+});
+
+test("table structure refusals leave unsupported tables intact and enforce creation bounds", () => {
+  for (const html of [
+    "<table><tbody><tr><td>One</td><td>Two</td></tr><tr><td>Short</td></tr></tbody></table>",
+    "<table><tr><td>One</td></tr><tbody><tr><td>Two</td></tr></tbody></table>",
+    "<table><tbody><tr><td>One</td></tr></tbody><tfoot><tr><td>Footer</td></tr></tfoot></table>",
+    "<table><tbody><tr><td><table><tbody><tr><td>Nested</td></tr></tbody></table></td><td>One</td></tr></tbody></table>",
+  ]) {
+    editor?.destroy();
+    open(html);
+    const before = editor.getHTML();
+    selectText("One", "One".length);
+    assert.throws(() => buildTableEdit(editor, prepareTableEdit(editor), "insert-row-below"));
+    assert.equal(editor.getHTML(), before);
+  }
+  editor.destroy();
+  open("<p>Text</p>");
+  const target = prepareTableInsertion(editor);
+  for (const options of [
+    {rows: 0, columns: 1}, {rows: 51, columns: 1},
+    {rows: 1, columns: 13}, {rows: 1, columns: 1, caption: "x\n"},
+    {rows: 1, columns: 1, caption: "x".repeat(4001)},
+  ]) assert.throws(() => buildTableInsertion(editor, target, options));
+  assert.equal(editor.getHTML(), "<p>Text</p>");
+});
+
+test("Selection tools convert prose directly and apply a confirmed table preview once", () => {
+  const form = mountSectionWorkspace('<p id="text">Before quoted after</p>');
+  selectText("quoted", "quoted".length);
+  const convert = form.querySelector('[data-quote-action="convert"]');
+  assert(!convert.hidden && !convert.disabled);
+  convert.click();
+  assert.equal(editor.getHTML(),
+    '<p id="text">Before </p><blockquote><p>quoted</p></blockquote><p> after</p>');
+
+  editor.destroy();
+  document.body.replaceChildren();
+  const tableForm = mountSectionWorkspace("<p>Before after</p>");
+  selectText("Before", 0);
+  editor.commands.setTextSelection(editor.state.selection.from + 4);
+  const insert = tableForm.querySelector('[data-table-action="insert-table"]');
+  assert(!insert.hidden && !insert.disabled);
+  insert.click();
+  const dialog = document.querySelector("#editor-table");
+  assert(dialog.open);
+  dialog.querySelector("#editor-table-header").checked = true;
+  dialog.querySelector("#editor-table-caption").value = "Data";
+  dialog.querySelector("#editor-table-caption").dispatchEvent(new dom.window.Event("input"));
+  assert(dialog.querySelector("#editor-table-preview thead"));
+  assert(dialog.querySelector("#editor-table-preview caption"));
+  dialog.querySelector("#editor-table-apply").click();
+  assert.equal((editor.getHTML().match(/<table/g) || []).length, 1);
+  assert.equal((editor.getHTML().match(/<th>/g) || []).length, 2);
+  assert.equal((editor.getHTML().match(/<td>/g) || []).length, 2);
 });
 
 test("nested block labels identify their own hierarchy instead of inheriting quote or caption labels", () => {

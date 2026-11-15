@@ -11,11 +11,21 @@ import {
   removeInlineSemantic, changeInlineSemantic,
 } from "./editor.js";
 import {
-  canEditFigure, prepareFigure, buildFigure, applyFigure, removeFigure,
+  canEditFigure, canWrapInFigure, canRemoveFigure, prepareFigure, buildFigure, applyFigure,
+  removeFigure, wrapInFigure,
 } from "./figures.js";
 import {
   prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsertion, checkQuotationInsertion,
 } from "./quotation-insertion.js";
+import {
+  canConvertSelectionToQuote, canRemoveQuotation, prepareSelectionQuote, applySelectionQuote,
+  removeQuotation,
+} from "./quotations.js";
+import {
+  canInsertTable, canEditTable, tableCaptionAction, tableHeaderAction,
+  prepareTableInsertion, buildTableInsertion, applyTableInsertion, prepareTableEdit,
+  buildTableEdit, applyTableEdit,
+} from "./tables.js";
 import {semanticDOM} from "./semantic-structure.js";
 import {applyList, listState, mountListEditing} from "./lists.js";
 import {insertHorizontalRule} from "./horizontal-rule.js";
@@ -63,8 +73,10 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const linkDialog = owner.querySelector("#editor-link");
   const inlineQuotationDialog = owner.querySelector("#editor-inline-q");
   const quotationDialog = owner.querySelector("#editor-quotation");
+  const tableDialog = owner.querySelector("#editor-table");
   let quotationProposal = null;
   let quotationApplied = false;
+  let tableProposal = null, tableAction = null, tableNeedsConfirmation = false;
   const figureHelp = quotationDialog?.querySelector("#editor-quotation-help").textContent;
   let linkProposal = null;
   let inlineQuotationProposal = null;
@@ -109,8 +121,11 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         return;
       }
       const built = buildFigure(editor, quotationProposal, options);
-      const quote = built.figure.firstChild;
-      const caption = built.figure.lastChild;
+      const grouped = built.figure.type.name === "figure";
+      const quote = grouped && built.figure.firstChild.type.name === "blockquote"
+        ? built.figure.firstChild : built.figure.type.name === "blockquote" ? built.figure : null;
+      const caption = grouped && ["figcaption", "figcaptionText"].includes(built.figure.lastChild.type.name)
+        ? built.figure.lastChild : null;
       const main = owner.createElement("div");
       const heading = owner.createElement("strong");
       heading.textContent = quotationProposal.kind === "quotation" ? "QUOTE" : "IMAGE";
@@ -137,8 +152,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         main.append(unchanged);
       }
       const relation = owner.createElement("p");
-      relation.textContent = ["figcaption", "figcaptionText"].includes(caption.type.name)
-        ? `CAPTION / ATTRIBUTION: ${caption.textContent}` : "CAPTION: none";
+      relation.textContent = caption ? `CAPTION / ATTRIBUTION: ${caption.textContent}` : "CAPTION: none";
       const sources = [];
       built.figure.descendants(node => {
         if (node.isText && node.marks.some(mark => mark.attrs.tag === "cite")) sources.push(node.text);
@@ -157,6 +171,78 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       quotationDialog.querySelector('[role="alert"]').textContent = failure.message;
       quotationDialog.querySelector("#editor-quotation-apply").disabled = true;
     }
+  }
+  function tableOptions() {
+    return {
+      rows: Number(tableDialog.querySelector("#editor-table-rows").value),
+      columns: Number(tableDialog.querySelector("#editor-table-columns").value),
+      header: tableDialog.querySelector("#editor-table-header").checked,
+      caption: tableDialog.querySelector("#editor-table-caption").value,
+    };
+  }
+  function previewTable() {
+    const preview = tableDialog.querySelector("#editor-table-preview");
+    const alert = tableDialog.querySelector('[role="alert"]');
+    const apply = tableDialog.querySelector("#editor-table-apply");
+    preview.replaceChildren();
+    tableNeedsConfirmation = false;
+    try {
+      let built, table, detached = [];
+      if (tableAction === "insert-table") {
+        built = buildTableInsertion(editor, tableProposal, tableOptions());
+        table = built.table;
+      } else {
+        built = buildTableEdit(editor, tableProposal, tableAction,
+          tableAction === "add-caption" ? {caption: tableDialog.querySelector("#editor-table-caption").value} : {});
+        if (built.confirmation) {
+          tableNeedsConfirmation = true;
+          const notice = owner.createElement("p");
+          notice.textContent = `This removes content from ${built.confirmation.length} cell(s): ${built.confirmation.join("; ")}. Confirm deletion to continue.`;
+          preview.append(notice);
+          built = buildTableEdit(editor, tableProposal, tableAction, {confirmed: true});
+        }
+        table = built.table;
+        detached = built.detached;
+      }
+      preview.append(semanticDOM(editor.schema.nodes.doc.create(null, [table, ...detached]), owner));
+      alert.textContent = "";
+      apply.disabled = false;
+      apply.textContent = tableNeedsConfirmation ? "Confirm deletion" :
+        tableAction === "insert-table" ? "Insert table" : "Apply";
+    } catch (failure) {
+      alert.textContent = failure.message;
+      apply.disabled = true;
+    }
+  }
+  function openTableDialog(action) {
+    if (!tableDialog) throw new Error("Table tools are unavailable in this editor view.");
+    tableAction = action;
+    tableProposal = action === "insert-table"
+      ? prepareTableInsertion(editor, readDocument) : prepareTableEdit(editor, readDocument);
+    tableDialog.querySelector("#editor-table-heading").textContent =
+      action === "insert-table" ? "Insert simple table" :
+        action.replaceAll("-", " ").replace(/^./, letter => letter.toUpperCase());
+    const insertion = action === "insert-table";
+    const tableNode = tableProposal.node;
+    const identity = tableNode?.attrs.id ? ` #${tableNode.attrs.id}` : " without a target ID";
+    tableDialog.querySelector("#editor-table-target").textContent = insertion
+      ? `Insert at the captured prose caret (${tableProposal.offset} of ${tableProposal.paragraph.content.size}).`
+      : `Table${identity}${tableProposal.cell
+        ? `; row ${tableProposal.cell.rowIndex + 1}, column ${tableProposal.cell.columnIndex + 1}.`
+        : "."}`;
+    tableDialog.querySelector("#editor-table-insert-fields").hidden = !insertion;
+    tableDialog.querySelector("#editor-table-caption-field").hidden =
+      !insertion && action !== "add-caption";
+    tableDialog.querySelector("#editor-table-rows").value = "2";
+    tableDialog.querySelector("#editor-table-columns").value = "2";
+    tableDialog.querySelector("#editor-table-header").checked = false;
+    tableDialog.querySelector("#editor-table-caption").value = "";
+    tableDialog.querySelector('[role="alert"]').textContent = "";
+    previewTable();
+    tableDialog.showModal();
+    (insertion ? tableDialog.querySelector("#editor-table-rows") :
+      action === "add-caption" ? tableDialog.querySelector("#editor-table-caption") :
+        tableDialog.querySelector("#editor-table-apply")).focus();
   }
   function refreshLinkTargets() {
     const query = linkDialog.querySelector("#editor-link-search").value.trim().toLowerCase();
@@ -347,6 +433,24 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       excerptParent?.type.name === "section");
     for (const button of form.querySelectorAll("[data-quotation]")) {
       available(button, button.dataset.quotation === "insert" || canEditFigure(editor));
+    }
+    const quotationActions = {
+      convert: canConvertSelectionToQuote(editor),
+      wrap: canWrapInFigure(editor),
+      "remove-quote": canRemoveQuotation(editor),
+      "remove-figure": canRemoveFigure(editor),
+    };
+    for (const button of form.querySelectorAll("[data-quote-action]")) {
+      available(button, quotationActions[button.dataset.quoteAction]);
+    }
+    for (const button of form.querySelectorAll("[data-table-action]")) {
+      const action = button.dataset.tableAction;
+      const applicable = action === "insert-table" ? canInsertTable(editor) :
+        action === "add-caption" || action === "remove-caption"
+          ? tableCaptionAction(editor) === action :
+            action === "make-header" || action === "make-data"
+              ? tableHeaderAction(editor) === action : canEditTable(editor);
+      available(button, applicable);
     }
     for (const button of form.querySelectorAll("[data-rule-insert]")) available(button, true);
     const lists = listState(editor);
@@ -541,12 +645,27 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         editor.view.dispatch(editor.state.tr.setSelection(menuTarget.bookmark.resolve(editor.state.doc)));
       }
       closeMenu();
+      if (button.dataset.quoteAction) {
+        const action = button.dataset.quoteAction;
+        if (action === "convert") {
+          applySelectionQuote(editor, prepareSelectionQuote(editor, readDocument));
+        } else if (action === "wrap") {
+          wrapInFigure(editor, prepareFigure(editor));
+        } else if (action === "remove-quote") removeQuotation(editor);
+        else if (action === "remove-figure") removeFigure(editor, prepareFigure(editor));
+        editor.commands.focus();
+        return;
+      }
+      if (button.dataset.tableAction) {
+        openTableDialog(button.dataset.tableAction);
+        return;
+      }
       if (button.dataset.quotation) {
         const insertion = button.dataset.quotation === "insert";
         quotationProposal = insertion ? prepareQuotationInsertion(editor, readDocument) : prepareFigure(editor);
         quotationApplied = false;
         quotationDialog.querySelector("#editor-quotation-heading").textContent =
-          insertion ? "Insert quotation" : "Figure & caption";
+          insertion ? "Insert quotation" : "Caption relationship";
         quotationDialog.querySelector("#editor-quotation-body-field").hidden = !insertion;
         quotationDialog.querySelector("#editor-quotation-body").value = "";
         quotationDialog.querySelector('label[for="editor-quotation-attribution"]').textContent =
@@ -558,14 +677,14 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
           : figureHelp;
         quotationDialog.querySelector("#editor-quotation-target").textContent =
           insertion ? `Insert at the captured paragraph caret (${quotationProposal.offset} of ${quotationProposal.paragraph.content.size}). Surrounding text and targets are preserved.`
-          : `${quotationProposal.kind === "quotation" ? "Quotation" : "Image"} figure. Choose the caption below; Apply changes the whole group once.`;
+          : `${quotationProposal.kind === "quotation" ? "Quotation" : "Image"}${quotationProposal.figure ? " figure" : ""}. Choose a caption relationship; Apply changes the named element once.`;
         const choices = quotationDialog.querySelector("#editor-figure-caption");
         choices.replaceChildren(new Option(insertion ? "No attribution" :
           quotationProposal.caption ? "Keep existing caption" : "No caption yet", insertion ? "none" : "keep"));
         for (const candidate of quotationProposal.candidates || []) choices.add(new Option(candidate.label, candidate.value));
         choices.add(new Option("Write a new caption", "new"));
         if (quotationProposal.caption) choices.add(new Option("Detach caption (keep as ordinary text)", "none"));
-        choices.value = insertion ? "new" : "keep";
+        choices.value = insertion ? "none" : "keep";
         const input = quotationDialog.querySelector("#editor-quotation-attribution");
         input.value = "";
         input.disabled = false;
@@ -654,7 +773,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showError(failure.message);
     }
   }
-  for (const button of form.querySelectorAll("[data-mark], [data-inline-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-list], [data-rule-insert]")) {
+  for (const button of form.querySelectorAll("[data-mark], [data-inline-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-quote-action], [data-table-action], [data-list], [data-rule-insert]")) {
     button.addEventListener("click", () => perform(button));
   }
   menu.addEventListener("click", event => {
@@ -695,15 +814,20 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   form.addEventListener("keydown", workspaceHistory);
   surface.addEventListener("click", event => {
-    const handle = event.target.closest("[data-editor-figure]");
+    const handle = event.target.closest(
+      "[data-editor-figure], [data-editor-image], [data-editor-caption]",
+    );
     if (!handle) return;
     event.preventDefault();
     try {
-      const position = Number(handle.dataset.editorFigure);
+      const position = Number(handle.dataset.editorFigure || handle.dataset.editorImage ||
+        handle.dataset.editorCaption);
       editor.view.dispatch(editor.state.tr.setSelection(
         NodeSelection.create(editor.state.doc, position),
       ));
-      perform(form.querySelector('[data-quotation="edit"]'));
+      perform(handle.hasAttribute("data-editor-image")
+        ? form.querySelector("[data-image]")
+        : form.querySelector('[data-quotation="edit"]'));
     } catch (failure) {
       showError(failure.message);
     }
@@ -749,6 +873,33 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         quotationDialog.close();
       } catch (failure) {
         quotationDialog.querySelector('[role="alert"]').textContent = failure.message;
+      }
+    });
+  }
+  if (tableDialog) {
+    tableDialog.querySelector("#editor-table-cancel").addEventListener("click", () => tableDialog.close());
+    tableDialog.addEventListener("close", () => {
+      tableProposal = null;
+      tableAction = null;
+      tableNeedsConfirmation = false;
+      tableDialog.querySelector("#editor-table-preview").replaceChildren();
+      editor.commands.focus();
+    });
+    for (const control of tableDialog.querySelectorAll("input")) {
+      control.addEventListener("input", previewTable);
+      control.addEventListener("change", previewTable);
+    }
+    tableDialog.querySelector("#editor-table-apply").addEventListener("click", () => {
+      try {
+        if (!tableProposal || !tableAction) return;
+        if (tableAction === "insert-table") applyTableInsertion(editor, tableProposal, tableOptions());
+        else applyTableEdit(editor, tableProposal, tableAction,
+          tableAction === "add-caption"
+            ? {caption: tableDialog.querySelector("#editor-table-caption").value}
+            : tableNeedsConfirmation ? {confirmed: true} : {});
+        tableDialog.close();
+      } catch (failure) {
+        tableDialog.querySelector('[role="alert"]').textContent = failure.message;
       }
     });
   }

@@ -175,13 +175,12 @@ function decorations(doc, scope, labels, folds = [], context = {}) {
         heading.from + heading.node.nodeSize,
         {class: "editor-section-title", "data-editor-title": "Section title"}));
     }
-    const resolved = doc.resolve(pos);
-    if (node.isTextblock && node.childCount === 1 && node.firstChild.type.name === "img") {
+    const imageOnly = node.isTextblock && node.childCount === 1 &&
+      node.firstChild.type.name === "img";
+    if (imageOnly) {
       result.push(Decoration.node(pos, end, {class: "editor-image-only"}));
     }
-    if (labels && ["figure", "blockquote"].includes(node.type.name) &&
-        !Array.from({length: resolved.depth}, (_, i) => resolved.node(i + 1).type.name)
-          .includes("figure")) {
+    if (labels && ["figure", "blockquote"].includes(node.type.name)) {
       const figure = node.type.name === "figure";
       if (figure) figureNumber++;
       const label = figure ? `FIGURE ${figureNumber}` : "QUOTE";
@@ -194,11 +193,41 @@ function decorations(doc, scope, labels, folds = [], context = {}) {
         button.className = "editor-figure-handle";
         button.textContent = `${label} · edit`;
         button.dataset.editorFigure = String(pos);
-        button.setAttribute("aria-label", `${label}: edit content and caption relationship`);
+        button.setAttribute("aria-label", `${label}: open actions for this element`);
         button.contentEditable = "false";
         button.addEventListener("mousedown", event => event.preventDefault());
         return button;
       }, {side: -1, key: `figure-${pos}-${label}`, stopEvent: () => true}));
+    }
+    if (labels && (node.type.name === "imgBlock" || imageOnly)) {
+      const imagePosition = imageOnly ? pos + 1 : pos;
+      const at = imageOnly ? imagePosition : end;
+      result.push(Decoration.widget(at, view => {
+        const button = view.dom.ownerDocument.createElement("button");
+        button.type = "button";
+        button.className = "editor-element-handle";
+        button.textContent = "IMG · edit";
+        button.dataset.editorImage = String(imagePosition);
+        button.setAttribute("aria-label", "IMG: edit alternative text for this image");
+        button.contentEditable = "false";
+        button.addEventListener("mousedown", event => event.preventDefault());
+        return button;
+      }, {side: imageOnly ? -1 : 1, key: `image-${pos}`, stopEvent: () => true}));
+    }
+    if (labels && node.type.name.startsWith("figcaption") &&
+        (!node.type.name.endsWith("Text") ||
+          doc.resolve(pos).parent.type.name !== "figcaption")) {
+      result.push(Decoration.widget(pos + 1, view => {
+        const button = view.dom.ownerDocument.createElement("button");
+        button.type = "button";
+        button.className = "editor-element-handle";
+        button.textContent = "CAPTION · edit";
+        button.dataset.editorCaption = String(pos);
+        button.setAttribute("aria-label", "CAPTION: edit this figure's caption relationship");
+        button.contentEditable = "false";
+        button.addEventListener("mousedown", event => event.preventDefault());
+        return button;
+      }, {side: -1, key: `caption-${pos}`, stopEvent: () => true}));
     }
     const label = labels && blockLabel(doc, pos, node);
     if (label) {

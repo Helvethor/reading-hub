@@ -1,8 +1,9 @@
 # Milestone G: independent image, figure, quotation and caption editing
 
-Requested 2026-11-12. **Status: specified only; not implemented or validated.**
-Recording this plan does not authorize implementation, deployment, publication,
-source regeneration or live-content changes.
+Requested 2026-11-12. **Status: implementation present in the current checkout;
+acceptance is partial.** Automated frontend coverage does not complete G1-G10
+or authorize deployment, publication, source regeneration or live-content
+changes.
 
 ## Outcome and starting evidence
 
@@ -185,9 +186,13 @@ rather than duplicating a second quotation/figure model.
 
 ## Achievement sequence and acceptance
 
-All rows are pending. A code checkpoint is not completion of browser/output
-acceptance. Use isolated representative article and two-chapter media-rich book
-fixtures; publication/PDF validation, if needed, is on copies only.
+Overall G1-G10 acceptance remains pending. Current synthetic frontend tests cover
+exact selected-range conversion, standalone insertion defaults, independent
+figure/quotation structure, caption preservation/detachment, identity handling,
+and stale/unsafe refusals. They do not establish native browser behavior,
+recovery/save/reopen, Read, print, PDF, or accessibility acceptance. Use
+isolated representative article and two-chapter media-rich book fixtures;
+publication/PDF validation, if needed, is on copies only.
 
 | ID | Observable pass condition |
 |---|---|
@@ -202,12 +207,10 @@ fixtures; publication/PDF validation, if needed, is on copies only.
 | G9 | Isolated article/book Read, actual browser print and actual draft/published PDFs preserve expected text/order, images, quotation styling and captions without editor labels/chrome. Compare standalone and grouped forms; do not infer whole-document fidelity from text extraction alone. |
 | G10 | Focused frontend/backend tests, required asset build and semantic fidelity checks pass. Record synthetic, mocked, actual browser/rendering and untested evidence separately; no live data/default/publication changes. |
 
-1. **G.a-G.c / G1-G3:** establish exact target/selection transformations and
-   independent conversion; checkpoint validated code with focused regressions.
-2. **G.d-G.e / G4-G6:** change insertion defaults, expose independent grouping/
-   caption/quote actions and preserve legacy wrappers; checkpoint validated code.
-3. **G7-G10:** complete contextual UI, recovery, save/reopen and rendered-output
-   journeys; record remaining human/accessibility limits and checkpoint evidence.
+1. **G.a-G.e / G1-G6:** implementation and focused synthetic frontend regressions
+   are present. Complete the full legacy fixture matrix and record any gaps.
+2. **G7-G10:** complete contextual browser interaction, recovery, save/reopen
+   and rendered-output journeys; record remaining human/accessibility limits.
 
 Stop when these bounded workflows pass. Defer automatic figure cleanup,
 provenance-based repair without a reproduced example, arbitrary media grouping,

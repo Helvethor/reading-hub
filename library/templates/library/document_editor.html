@@ -298,8 +298,23 @@
       </div>
       <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
+      <button type="button" role="menuitem" data-quote-action="convert" disabled>Convert to quote</button>
+      <button type="button" role="menuitem" data-quote-action="wrap" disabled>Wrap in figure</button>
+      <button type="button" role="menuitem" data-quote-action="remove-quote" disabled>Remove quotation formatting</button>
+      <button type="button" role="menuitem" data-quote-action="remove-figure" disabled>Remove figure grouping</button>
+      <button type="button" role="menuitem" data-table-action="insert-table" disabled>Insert table…</button>
+      <button type="button" role="menuitem" data-table-action="insert-row-above" disabled>Insert row above</button>
+      <button type="button" role="menuitem" data-table-action="insert-row-below" disabled>Insert row below</button>
+      <button type="button" role="menuitem" data-table-action="insert-column-left" disabled>Insert column left</button>
+      <button type="button" role="menuitem" data-table-action="insert-column-right" disabled>Insert column right</button>
+      <button type="button" role="menuitem" data-table-action="delete-row" disabled>Delete row…</button>
+      <button type="button" role="menuitem" data-table-action="delete-column" disabled>Delete column…</button>
+      <button type="button" role="menuitem" data-table-action="make-header" disabled>Make header cell</button>
+      <button type="button" role="menuitem" data-table-action="make-data" disabled>Make data cell</button>
+      <button type="button" role="menuitem" data-table-action="add-caption" disabled>Add table caption…</button>
+      <button type="button" role="menuitem" data-table-action="remove-caption" disabled>Remove table caption…</button>
       <button type="button" role="menuitem" data-rule-insert disabled>Insert horizontal rule</button>
-      <button type="button" role="menuitem" data-quotation="edit" disabled>Figure &amp; caption…</button>
+      <button type="button" role="menuitem" data-quotation="edit" disabled>Add / edit caption…</button>
       <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
       <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
       <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
@@ -489,7 +504,7 @@
       <label for="editor-quotation-body">Quoted text (required)</label>
       <textarea id="editor-quotation-body" rows="7" aria-required="true" aria-describedby="editor-quotation-help"></textarea>
     </div>
-    <label for="editor-figure-caption">Caption / attribution belongs to this figure</label>
+    <label for="editor-figure-caption">Caption relationship</label>
     <select id="editor-figure-caption" aria-describedby="editor-quotation-help"></select>
     <div id="editor-figure-new" hidden>
       <label for="editor-quotation-attribution">New caption text</label>
@@ -507,6 +522,26 @@
     <p class="error" role="alert"></p>
     <button type="button" id="editor-quotation-apply">Apply</button>
     <button type="button" id="editor-quotation-cancel">Cancel</button>
+  </dialog>
+  <dialog id="editor-table" aria-labelledby="editor-table-heading">
+    <h2 id="editor-table-heading">Insert simple table</h2>
+    <p id="editor-table-target"></p>
+    <div id="editor-table-insert-fields">
+      <label for="editor-table-rows">Rows</label>
+      <input id="editor-table-rows" type="number" min="1" max="50" value="2">
+      <label for="editor-table-columns">Columns</label>
+      <input id="editor-table-columns" type="number" min="1" max="12" value="2">
+      <label><input id="editor-table-header" type="checkbox"> First row is header cells</label>
+    </div>
+    <div id="editor-table-caption-field" hidden>
+      <label for="editor-table-caption">Table caption</label>
+      <input id="editor-table-caption" type="text" maxlength="4000">
+    </div>
+    <p>Tables are rectangular and unmerged. Header associations are not inferred. Existing complex tables are not structurally rewritten.</p>
+    <section id="editor-table-preview" aria-label="Proposed table structure" aria-live="polite"></section>
+    <p class="error" role="alert"></p>
+    <button type="button" id="editor-table-apply">Insert table</button>
+    <button type="button" id="editor-table-cancel">Cancel</button>
   </dialog>
   <dialog id="editor-link" aria-labelledby="editor-link-heading">
     <h2 id="editor-link-heading">Edit link destination</h2>

@@ -294,13 +294,21 @@
 #editor-figure-preview p { margin: .4rem 0; }
 #editor-figure-preview img { display: block; max-width: 100%; max-height: 10rem; margin: .5rem auto; }
 #editor-surface .tiptap .editor-figure-group { position: relative; border-inline-start: 2px solid #718968; padding-inline-start: .8rem; margin-block: 1.5rem; }
-#editor-surface .tiptap .editor-figure-handle { display: block; width: fit-content; max-width: 100%; margin: 0 0 .5rem; padding: .2rem .35rem; border: 1px solid #718968; background: #edf3e8; color: #263d22; font: 700 .7rem/1.4 system-ui, sans-serif; cursor: pointer; white-space: normal; }
-#editor-surface .tiptap .editor-figure-handle:focus-visible { outline: 3px solid #486b38; outline-offset: 2px; }
+#editor-surface .tiptap .editor-figure-handle,
+#editor-surface .tiptap .editor-element-handle { display: block; width: fit-content; max-width: 100%; margin: 0 0 .5rem; padding: .2rem .35rem; border: 1px solid #718968; background: #edf3e8; color: #263d22; font: 700 .7rem/1.4 system-ui, sans-serif; cursor: pointer; white-space: normal; }
+#editor-surface .tiptap .editor-figure-handle:focus-visible,
+#editor-surface .tiptap .editor-element-handle:focus-visible { outline: 3px solid #486b38; outline-offset: 2px; }
 #editor-surface .tiptap cite { text-decoration: underline dotted #718968; text-underline-offset: .2em; }
 #editor-surface .tiptap q { background: color-mix(in srgb, #718968 10%, transparent); text-decoration: underline dotted #718968; text-underline-offset: .2em; }
 #editor-inline-q { width: min(34rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; }
 #editor-inline-q span { overflow-wrap: anywhere; }
 #editor-quotation::backdrop { background: rgb(0 0 0 / .35); }
+#editor-table { width: min(42rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; }
+#editor-table input[type="number"], #editor-table input[type="text"] { box-sizing: border-box; max-width: 100%; font: inherit; }
+#editor-table-preview { max-height: 18rem; overflow: auto; margin: 1rem 0; padding: .7rem; border: 1px solid #9aa38f; }
+#editor-table-preview table { border-collapse: collapse; }
+#editor-table-preview :is(td, th, caption) { border: 1px solid #9aa38f; padding: .25rem; }
+#editor-table::backdrop { background: rgb(0 0 0 / .35); }
 #editor-surface .tiptap figure.quotation { margin-block: 1.5rem; }
 #editor-surface .tiptap .quotation blockquote:not(.editor-labelled-block) { margin: 0; padding-left: 1.2rem; border-left: 3px solid #a9b7a1; }
 #editor-surface .tiptap .quotation figcaption { margin-top: .65rem; font-size: .9em; }

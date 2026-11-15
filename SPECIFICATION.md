@@ -2222,13 +2222,13 @@ Quotation operations are independently undoable and guard exact document identit
 and whole-target visibility. Hidden chapters remain in saves and JSON recovery.
 Edits reset review to partial and do not alter or publish the original rendition.
 
-### Independent image, figure, quotation and caption editing (planned 2026-11-12)
+### Independent image, figure, quotation and caption editing (implemented in checkout; acceptance partial)
 
-Milestone G is specified only. The
+Milestone G implementation is present in the current checkout; native browser,
+persistence and rendered-output acceptance remain outstanding. The
 [independent element editing handoff](docs/FIGURE-QUOTE-CAPTION-IMPLEMENTATION-HANDOFF.md)
-owns G1-G10 and supersedes the unconditional quotation-figure shape and coupled
-structural removal described above once implemented. Earlier Q evidence does not
-validate this new behavior.
+owns G1-G10 and supersedes Q's unconditional quotation-figure shape and coupled
+structural removal. Earlier Q evidence does not validate this new behavior.
 
 IMG is image content; QUOTE is a standalone blockquote; FIG is optional explicit
 grouping; CAPTION belongs to FIG. Captionless figures are valid. Neither absent
@@ -2252,8 +2252,9 @@ element independently, without a new permanent toolbar row.
 The handoff fixes selection boundaries/ID ownership, supported contexts, stale/
 hidden-target refusals, one-step undo, recovery, save/reopen and Read/print/PDF
 acceptance. Automatic cleanup, arbitrary grouping, new image insertion and live
-record changes are excluded. Recording this plan does not authorize implementation
-or deployment.
+record changes are excluded. Implementation does not authorize deployment, publication or live-content
+changes. Current automated evidence is synthetic and frontend-only; it does not
+establish Read, browser print, PDF, recovery/save/reopen or accessibility acceptance.
 
 ### Reviewer-managed inline CITE and Q (implemented 2026-11-13)
 
@@ -2274,20 +2275,23 @@ double them. Automatic detection, bibliography management, inline-to-block
 conversion and historical Q recovery are excluded. Automated validation is
 complete; native-browser and browser-print acceptance remains outstanding.
 
-### Simple tables and retained-image insertion (planned 2026-11-13)
+### Simple tables and retained-image insertion (T implemented in checkout; N planned)
 
-Milestones T and N are specified only. The
+Milestone T is implemented in the current checkout with synthetic frontend
+coverage. Native browser and end-to-end acceptance remain outstanding; N is still
+specified only. The
 [table/image handoff](docs/TABLE-IMAGE-AUTHORING-IMPLEMENTATION-HANDOFF.md)
 owns precise supported shapes, safety rules and T1-T4, N1-N2 and TN3-TN6
-acceptance. Neither milestone changes G or I or authorizes implementation,
-deployment, publication or live-content mutation.
+acceptance. Neither milestone changes G or I or authorizes deployment,
+publication or live-content mutation.
 
 T creates simple rectangular tables and provides explicit row/column insertion
 and deletion, individual header-cell changes and table-caption editing. Preserve
 cell content, targets and identity; confirm nonempty deletion and refuse unsafe
 or complex structural edits without rewriting existing tables. The current
 semantic schema does not support full header associations; no accessibility
-certification is implied.
+certification is implied. Current automated coverage does not establish
+recovery/save/reopen, Read, print, PDF, or human accessibility acceptance.
 
 N inserts a standalone image chosen from assets already authorized by the
 current draft's base evidence. The reviewer supplies alt text or explicitly

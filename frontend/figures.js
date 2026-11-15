@@ -26,10 +26,6 @@ function targetFigure(editor) {
   if (selection.node?.type.name === "figure") {
     figure = {node: selection.node, from: selection.from, to: selection.to};
   }
-  if (selection.node?.type.name === "blockquote") {
-    return {node: selection.node, from: selection.from, to: selection.to,
-      kind: "quotation", body: [selection.node], quote: selection.node};
-  }
   if (figure) {
     const children = nodes(figure.node);
     const captions = children.filter(child => captionTypes.has(child.node.type.name));
@@ -39,6 +35,10 @@ function targetFigure(editor) {
     for (const {node} of body) {
       if (["img", "imgBlock"].includes(node.type.name)) images++;
       else node.descendants(child => { if (["img", "imgBlock"].includes(child.type.name)) images++; });
+    }
+    if (selection.node?.type.name === "blockquote") {
+      return {node: selection.node, from: selection.from, to: selection.to,
+        kind: "quotation", body: [selection.node], quote: selection.node};
     }
     const quote = body.length === 1 && body[0].node.type.name === "blockquote";
     if (!quote && images !== 1) return null;
@@ -70,6 +70,18 @@ function visible(editor, target) {
 export function canEditFigure(editor) {
   const target = targetFigure(editor);
   return Boolean(target && visible(editor, target));
+}
+
+export function canWrapInFigure(editor) {
+  const target = targetFigure(editor);
+  return Boolean(target && !target.figure &&
+    (target.kind === "quotation" ? target.quote : target.kind === "image") &&
+    visible(editor, target));
+}
+
+export function canRemoveFigure(editor) {
+  const target = targetFigure(editor);
+  return Boolean(target?.figure && visible(editor, target));
 }
 
 export function prepareFigure(editor) {
@@ -159,7 +171,8 @@ export function buildFigure(editor, target, options) {
   if (target.kind === "quotation") {
     attrs.class = [...new Set([...(attrs.class || "").split(/\s+/).filter(Boolean), "quotation"])].join(" ");
   }
-  let figure = schema.nodes.figure.create(attrs, [...body, ...(resultCaption ? [resultCaption] : [])]);
+  let figure = !target.figure && target.kind === "quotation" && !resultCaption
+    ? body[0] : schema.nodes.figure.create(attrs, [...body, ...(resultCaption ? [resultCaption] : [])]);
   let doc = schema.nodes.doc.create(null, figure);
   if (removeCites && resultCaption) {
     const map = node => {
@@ -199,7 +212,20 @@ export function applyFigure(editor, target, options) {
   const replacement = [built.figure, ...built.detached];
   if (built.to === target.to && target.figure && !built.detached.length &&
       built.figure.eq(target.node)) return;
+  if (!target.figure && !built.detached.length && target.body.length === 1 &&
+      built.figure.eq(target.body[0])) return;
   commit(editor, target, built.to, replacement);
+}
+
+export function wrapInFigure(editor, target) {
+  check(editor, target);
+  if (target.figure) throw new Error("This content is already grouped in a figure.");
+  if (!["quotation", "image"].includes(target.kind)) {
+    throw new Error("Choose one standalone image or quotation to wrap in a figure.");
+  }
+  const attrs = target.kind === "quotation" ? {class: "quotation"} : {};
+  const figure = editor.schema.nodes.figure.create(attrs, target.body);
+  commit(editor, target, target.to, [figure]);
 }
 
 function commit(editor, target, to, replacement) {
@@ -212,8 +238,7 @@ function commit(editor, target, to, replacement) {
 
 export function removeFigure(editor, target) {
   check(editor, target);
-  let content = target.kind === "quotation"
-    ? target.body.flatMap(node => unwrap(editor.schema, node)) : target.body;
+  let content = [...target.body];
   if (target.caption) content = [...content, ...unwrap(editor.schema, target.caption)];
   const attrs = target.figure ? {...target.node.attrs} : {};
   if (attrs.class) attrs.class = attrs.class.split(/\s+/).filter(value => value !== "quotation").join(" ") || null;

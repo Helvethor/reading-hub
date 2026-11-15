@@ -1,8 +1,9 @@
 # Milestones T and N: simple tables and retained-image insertion
 
-Requested 2026-11-13. **Status: specified only; not implemented or validated.**
-This plan does not authorize implementation, deployment, source regeneration,
-publication, or changes to live corrections.
+Requested 2026-11-13. **Status: T is implemented in the current checkout with
+synthetic frontend coverage; N remains specified only.** T1-T4/TN3-TN6
+acceptance, deployment, source regeneration, publication and changes to live
+corrections are not established or authorized by this implementation.
 
 ## Outcomes and starting evidence
 
@@ -167,10 +168,14 @@ eligible base asset exists, obtaining one is a separate workflow.
 
 ## Acceptance and delivery sequence
 
-All rows are pending. Use isolated article and two-chapter book fixtures; do
-not modify live drafts, reader defaults or publications. Test actual browser
-print and generated draft/published PDFs on copies; distinguish synthetic,
-mocked, observed and untested behavior.
+T's current frontend tests cover table creation, row/column edits, header cell
+changes, captions, preservation, deletion confirmation and representative
+refusals. They do not establish native browser behavior, recovery/save/reopen,
+Read, print, PDF or accessibility acceptance. Overall T1-T4/TN3-TN6 remain
+pending; N1-N2 remain unimplemented. Use isolated article and two-chapter book
+fixtures; do not modify live drafts, reader defaults or publications. Test actual
+browser print and generated draft/published PDFs on copies; distinguish
+synthetic, mocked, observed and untested behavior.
 
 | ID | Observable pass condition |
 |---|---|
@@ -185,12 +190,11 @@ mocked, observed and untested behavior.
 | TN5 | Isolated article and book Read, actual browser print and draft/published PDFs display the table, caption and inserted image in order, without editor chrome. Inspect visual output as well as semantic/text evidence; publication binds the chosen digest and does not change the default. |
 | TN6 | Focused frontend/backend/semantic and authorization regressions, asset build and fidelity checks pass. No unrelated source, rendition, version or live-data changes occur. |
 
-1. **T.a / T1:** safe insertion and simple-table shape; validate and checkpoint.
-2. **T.b / T2-T4:** contextual row/column/header/caption operations and
-   refusals; validate and checkpoint.
-3. **N / N1-N2:** authorized base-asset selection and insertion, with exact
-   evidence and safety checks; validate and checkpoint independently of T.
-4. **TN3-TN6:** complete both isolated end-to-end journeys and record evidence.
+1. **T.a-T.b / T1-T4:** implementation and synthetic frontend tests are present;
+   complete native browser and full end-to-end validation.
+2. **N / N1-N2:** implement authorized base-asset selection and insertion with
+   exact evidence and safety checks, independently of T.
+3. **TN3-TN6:** complete both isolated end-to-end journeys and record evidence.
    A code checkpoint alone is not browser/output acceptance.
 
 Stop after these bounded outcomes. T and N may be implemented independently;
