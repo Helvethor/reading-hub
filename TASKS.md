@@ -30,8 +30,9 @@ with HTTP-200 PDFs. The pre-existing embedded Publish panel was blocked by CSP;
 this is not certification of the same-page panel journey. Two concurrent
 worktrees retained independent sessions and revisions.
 
-Final source checkpoint `d05e326` passed 102 focused isolated backend tests,
-24 frozen-candidate tests, 337 frontend tests and the frontend build. Python,
+Validation passed 102 focused isolated backend tests against the working checkout,
+24 tests against frozen source checkpoint `d05e326`, 337 frontend tests and the
+frontend build. Concurrent unrelated checkout edits were left intact. Python,
 template and executed frontend reloads were observed together; conditional asset
 requests returned HTTP 200 with `no-store`. Stopping the second checkout left
 the first checkout and staging responsive. Exact frozen-source inventory/assets
