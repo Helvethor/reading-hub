@@ -67,6 +67,19 @@ the embedded Publish heading, saved revision and confirmation checkbox in a real
 browser without a panel error. No browser publication was submitted; native Close,
 complete publication acceptance and live deployment remain unverified.
 
+Local deployment follow-up (2026-11-15): frozen candidate `4937d9a` passed the
+same 64 isolated tests and was explicitly promoted to `127.0.0.1:8765`.
+Exact live revision, reader, editor bundle and PDF responses were verified.
+The originally linked older revision now renders its stale-preview warning
+inside the panel; the current saved revision renders the Publish confirmation.
+No publication was submitted. Six previously running workers were gracefully
+stopped and restored through the administration form, returning to running/idle
+with new PIDs and heartbeats; catalogue states and queue counts were unchanged.
+Browser pointer automation did not activate the worker buttons, so their native
+forms were submitted with `requestSubmit`, not a direct API or database edit.
+Promotion applied no migrations or content changes. Full publication and human
+interaction acceptance remain incomplete.
+
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 
 Both former directions, cosmetic cleanup and workflow restructuring with shared
