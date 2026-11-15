@@ -10,7 +10,39 @@ another target. Default to the documented local Reading Hub service, not public
 or remote hosting. Consult the [operations guide](../../../docs/OPERATIONS.md)
 and relevant specification or task status when needed.
 
-## Routine deploy: default
+## Routine promotion: default
+
+Use [the environment lifecycle](../../../docs/OPERATIONS.md#explicit-live-promotion-and-recovery).
+Ordinary implementation/preview requests use `dev init` / `dev start`, not this
+skill's live phase. A requested local deployment is an explicit live operation:
+
+1. Preserve unrelated work and checkpoint the intended exact revision.
+2. Prepare `python workflow.py stage prepare COMMIT`; reuse relevant validation
+   or run `stage test COMMIT SELECTORS` and observe the relevant fixture journey.
+   Candidate-local locked dependencies and generated assets are required.
+3. Verify the existing owned live listener. If not registered, use
+   `live register --pid PID` only after checking its exact localhost command,
+   checkout/data/profile and ownership. Registration does not restart it.
+4. Save pending live editor changes. Inspect Manage workers, record which were
+   active and stop those gracefully through the UI. The current native promotion
+   gate refuses active managed/standalone workers; do not bypass it or change
+   crawl/queue policy.
+5. Run `python workflow.py live promote COMMIT --confirm-live`. The command
+   validates source/assets/profile, existing live data/key and migration readiness
+   before its independent replacement stops the verified old web PID.
+6. Verify the resulting revision/environment, relevant HTTP/static/PDF outcomes,
+   and preservation evidence. Restore only previously active workers via the UI.
+   Report failures and incomplete product/human acceptance explicitly.
+
+The launcher refuses pending migrations; separately authorize backup/rehearsal
+and the actual live schema/data operation. It never copies staging content to
+live. `live rollback --confirm-live` is source-only recovery, not database undo.
+Startup failure attempts restoration and reports failures rather than success.
+
+## Legacy server recovery
+
+Use the following only when the existing arrangement cannot yet use the launcher.
+It is not an alternate way to bypass migration or worker gates.
 
 For a clear target with no required live migration or data transformation:
 

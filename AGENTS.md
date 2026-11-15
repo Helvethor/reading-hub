@@ -11,6 +11,31 @@
 - Implementation does not automatically authorize deployment, publication,
   review certification or mutation of live corrections.
 
+## Development, staging and live boundary
+
+- Use [the environment lifecycle](docs/OPERATIONS.md#environment-contract).
+  `python workflow.py dev init` and `dev start` provide the ordinary preview;
+  never deploy to the live port 8765 merely to test source changes.
+- Each checkout/worktree has private synthetic data and local test identities.
+  Use a distinct free preview port, `dev status` and ownership-checked `dev stop`.
+  Python/templates autoreload and frontend assets watch; refresh the browser.
+- Run focused backend tests through `python workflow.py test SELECTORS`, or
+  `stage test COMMIT SELECTORS` for a frozen candidate. Use `dev manage COMMAND`
+  for isolated management checks. Never inherit live database/blob/key paths.
+- Staging archives an exact committed revision and builds its own ignored assets.
+  Uncommitted changes stay in development. Do not modify or delete frozen
+  candidate source/dependencies that may be serving live.
+- Workers remain disabled in previews unless isolated import processing is
+  explicitly intended; `--allow-workers` only permits later UI starts and must
+  not resume catalogues or live workers.
+- Live registration/adoption and `live promote COMMIT --confirm-live` are
+  separate authorized operations, not implementation follow-through. Promotion
+  refuses pending migrations and active workers; use the documented UI and
+  separately authorized backup/migration procedure rather than bypassing gates.
+- Never copy live credentials or user records into previews. A reproduction
+  snapshot requires separate authorization and sanitization. Report synthetic,
+  mocked, actual browser and human acceptance evidence distinctly.
+
 ## Website-wide action naming
 
 - Apply the [action-naming contract](SPECIFICATION.md#website-wide-action-naming)
@@ -56,13 +81,14 @@
 
 ## Local maintenance account
 
-- The local development site has a dedicated `copilot-maintenance` account for
+- The existing live localhost site has a dedicated `copilot-maintenance` account for
   authenticated admin and worker-maintenance UI access at `127.0.0.1:8765`.
   It is staff-only, not a superuser, and has no Django model or group
   permissions.
 - Its credentials are stored outside Git in
   `data/agent-maintenance-credentials.json`, readable only by the local account
-  owner. Use them only for this local site. Never print, log, commit, copy, or
+  owner. Use them only for this live local site, never for development or staging.
+  Never print, log, commit, copy, or
   send the password elsewhere.
 - Use the worker UI for worker inspection and control; do not manipulate worker
   processes or the database directly. Follow deployment authorization and

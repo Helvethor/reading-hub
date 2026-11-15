@@ -35,6 +35,17 @@ class ThemeTests(TestCase):
         self.client.cookies[COOKIE] = "../../invalid.css"
         self.assertContains(self.client.get("/"), "/static/marxist/theme.css")
 
+    def test_preview_theme_cookies_ignore_other_environments(self):
+        self.client.cookies["reading_hub_theme"] = "dark"
+        with override_settings(READING_HUB_THEME_COOKIE_NAME="isolated-preview-theme"):
+            self.assertContains(self.client.get("/"), "/static/marxist/theme.css")
+            response = self.choose("dark")
+            self.assertIn("isolated-preview-theme", response.cookies)
+            self.assertNotIn("reading_hub_theme", response.cookies)
+            self.assertContains(self.client.get("/"), "/static/marxist/dark.css")
+            self.choose("")
+            self.assertContains(self.client.get("/"), "/static/marxist/theme.css")
+
     @override_settings(READING_HUB_PROFILE="profiles.marxist.dark")
     def test_configured_default_is_overridable(self):
         self.assertContains(self.client.get("/"), "/static/marxist/dark.css")

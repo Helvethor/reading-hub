@@ -85,4 +85,10 @@ def validate_environment(role, checkout, data, database):
             raise ValueError(f"{role} cannot use protected live storage: {candidate}")
         if not resolved.is_relative_to(data):
             raise ValueError(f"Runtime paths must remain inside isolated storage: {candidate}")
+    if data.is_relative_to(Path(checkout).resolve()):
+        raise ValueError("Non-live runtime data must be outside the source checkout.")
+    for path in protected:
+        live_database = path if path.is_file() else path / "library.sqlite3"
+        if database.exists() and live_database.exists() and database.samefile(live_database):
+            raise ValueError("An isolated database cannot be a hardlink to live storage.")
     return data, database

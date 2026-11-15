@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from django.core.management import call_command
+from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import CommandError
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
@@ -59,6 +59,19 @@ class EnvironmentContractTests(SimpleTestCase):
         with self.assertRaisesRegex(ValueError, "inside their isolated"):
             validate_environment("development", self.checkout, isolated, live / "library.sqlite3")
         self.assertFalse(isolated.exists())
+
+    def test_checkout_runtime_and_hardlinked_live_database_are_refused(self):
+        inside = self.checkout / "runtime"
+        with self.assertRaisesRegex(ValueError, "outside the source"):
+            validate_environment("test", self.checkout, inside, inside / "library.sqlite3")
+        live = self.checkout / "data"
+        live.mkdir()
+        (live / "library.sqlite3").write_bytes(b"synthetic database")
+        isolated = self.root / "isolated"
+        isolated.mkdir()
+        os.link(live / "library.sqlite3", isolated / "library.sqlite3")
+        with self.assertRaisesRegex(ValueError, "hardlink"):
+            validate_environment("test", self.checkout, isolated, isolated / "library.sqlite3")
 
     def test_symlinked_root_and_runtime_files_cannot_escape_isolation(self):
         live = self.checkout / "data"
@@ -118,6 +131,7 @@ class EnvironmentContractTests(SimpleTestCase):
                     "-c",
                     "import json, hashlib; from config import settings as s; "
                     "print(json.dumps([s.DEBUG, s.SESSION_COOKIE_NAME, s.CSRF_COOKIE_NAME, "
+                    "s.READING_HUB_THEME_COOKIE_NAME, "
                     "hashlib.sha256(s.SECRET_KEY.encode()).hexdigest(), str(s.DATABASE_PATH)]))",
                 ],
                 cwd=workflow.ROOT,
@@ -133,7 +147,7 @@ class EnvironmentContractTests(SimpleTestCase):
             )
             results.append(json.loads(result.stdout))
         self.assertTrue(all(result[0] for result in results))
-        for index in (1, 2, 3, 4):
+        for index in (1, 2, 3, 4, 5):
             self.assertNotEqual(results[0][index], results[1][index])
 
     def test_occupied_port_never_stops_its_owner(self):
@@ -174,6 +188,15 @@ class EnvironmentContractTests(SimpleTestCase):
         with patch("workflow.build_hashes", return_value={"bundle": "changed"}):
             with self.assertRaisesRegex(workflow.WorkflowError, "assets changed"):
                 workflow.verify_candidate(spec)
+        extra = source / "extra.py"
+        extra.write_text("print('unexpected source')", encoding="ascii")
+        with self.assertRaisesRegex(workflow.WorkflowError, "inventory changed"):
+            workflow.verify_candidate(spec)
+        extra.unlink()
+        path.unlink()
+        path.symlink_to(extra)
+        with self.assertRaisesRegex(workflow.WorkflowError, "symlink"):
+            workflow.verify_candidate(spec)
 
     def test_development_static_responses_ignore_old_conditional_requests(self):
         captured = {}
@@ -210,6 +233,29 @@ class EnvironmentContractTests(SimpleTestCase):
                 "Cache-Control": "no-store",
             },
         )
+
+    @override_settings(READING_HUB_ENVIRONMENT="development", DEBUG=True)
+    def test_registered_runserver_serves_changed_assets_without_conditional_caching(self):
+        command = load_command_class(get_commands()["runserver"], "runserver")
+        handler = command.get_handler(use_static_handler=True, insecure_serving=True)
+        request = RequestFactory().get(
+            "/static/library/app.css",
+            HTTP_IF_MODIFIED_SINCE="Sun, 15 Nov 2037 19:00:00 GMT",
+        )
+        captured = {}
+
+        def response(status, headers, exc_info=None):
+            captured.update(status=status, headers=dict(headers))
+
+        output = handler(request.environ, response)
+        try:
+            body = b"".join(output)
+        finally:
+            if hasattr(output, "close"):
+                output.close()
+        self.assertEqual(captured["status"], "200 OK")
+        self.assertEqual(captured["headers"]["Cache-Control"], "no-store")
+        self.assertTrue(body)
 
     @override_settings(
         READING_HUB_INSTANCE="owned-token",

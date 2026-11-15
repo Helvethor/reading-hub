@@ -16,6 +16,7 @@ import sys
 import tarfile
 import time
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
@@ -88,6 +89,18 @@ def ensure_state(checkout):
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
 
 
+@contextmanager
+def live_operation():
+    with (state_directory() / "live-operation.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise WorkflowError(
+                "Another live operation is in progress; leave it untouched."
+            ) from exc
+        yield
+
+
 def environment(spec, *, instance=""):
     role = spec["role"]
     data, database = validate_environment(
@@ -126,6 +139,8 @@ def check_overrides(spec):
 
 
 def dependencies(checkout):
+    if sys.version_info < (3, 14):
+        raise WorkflowError("Run the launcher with Python >= 3.14.")
     python = checkout / ".venv" / "bin" / "python"
     if not python.exists():
         run([sys.executable, "-m", "venv", checkout / ".venv"], cwd=checkout)
@@ -244,6 +259,26 @@ def stage_prepare(checkout, revision, port):
 
 def verify_candidate(spec):
     source = Path(spec["checkout"])
+    observed = set()
+    for directory, directories, files in source.walk():
+        directories[:] = [
+            name
+            for name in directories
+            if name not in {".venv", "node_modules", "__pycache__", ".ruff_cache"}
+            and not name.endswith(".egg-info")
+            and directory / name != source / "library/static/library/generated"
+        ]
+        for name in directories + files:
+            path = directory / name
+            if path.is_symlink():
+                raise WorkflowError(f"Frozen candidate source became a symlink: {path}")
+        observed.update(
+            (directory / name).relative_to(source).as_posix()
+            for name in files
+            if not name.endswith((".pyc", ".pyo"))
+        )
+    if observed != set(spec["source_hashes"]):
+        raise WorkflowError("Frozen candidate source inventory changed; prepare a new candidate.")
     for name, digest in spec["source_hashes"].items():
         if hashlib.sha256((source / name).read_bytes()).hexdigest() != digest:
             raise WorkflowError(f"Frozen candidate source changed: {name}")
@@ -302,6 +337,7 @@ def port_free(port):
     if not 1024 <= port <= 65535:
         raise WorkflowError("Choose an unprivileged port between 1024 and 65535.")
     with socket.socket() as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             listener.bind(("127.0.0.1", port))
         except OSError as exc:
@@ -490,9 +526,15 @@ def status(directory):
     print(f"PID: {record['pid']}; isolated storage: {spec['data']}")
 
 
-def test(checkout, selectors):
+def test(checkout, selectors, *, revision=None):
     directory = instance_directory(checkout) / "tests" / uuid.uuid4().hex
-    spec = new_spec(checkout, directory, "test", f"{commit(checkout)[:12]} working tree", 8766)
+    spec = new_spec(
+        checkout,
+        directory,
+        "test",
+        revision or f"{commit(checkout)[:12]} working tree",
+        8766,
+    )
     spec["python"] = str(checkout / ".venv" / "bin" / "python")
     if not Path(spec["python"]).exists():
         raise WorkflowError("Initialize development dependencies before running tests.")
@@ -523,6 +565,11 @@ def register_live(checkout, pid):
     args = [
         value.decode() for value in Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0") if value
     ]
+    script = Path(args[1]) if len(args) > 1 else Path("")
+    if not script.is_absolute():
+        script = Path(record["checkout"]) / script
+    if script.resolve() != Path(record["checkout"]) / "manage.py":
+        raise WorkflowError("The listener is not running this checkout's manage.py.")
     binding = next((value for value in args if value.startswith("127.0.0.1:")), "")
     if not binding or "--insecure" not in args:
         raise WorkflowError("Expected a localhost-only runserver with --noreload --insecure.")
@@ -681,6 +728,14 @@ def main():
             if action == "start":
                 operation.add_argument("--port", type=int)
                 operation.add_argument("--allow-workers", action="store_true")
+        management = actions.add_parser("manage")
+        if group == "stage":
+            management.add_argument("revision")
+        management.add_argument("arguments", nargs=argparse.REMAINDER)
+        if group == "stage":
+            validation = actions.add_parser("test")
+            validation.add_argument("revision")
+            validation.add_argument("selectors", nargs="*")
     tests = commands.add_parser("test")
     tests.add_argument("selectors", nargs="*")
     live = commands.add_parser("live")
@@ -699,17 +754,24 @@ def main():
     if args.group == "test":
         test(checkout, args.selectors)
     elif args.group == "live":
-        if args.action == "register":
-            register_live(checkout, args.pid)
-        elif args.action == "status":
+        if args.action == "status":
             spec = live_registration()
             if not spec or not owned(spec["process"]):
                 raise WorkflowError("No owned live listener is registered.")
             print(f"Registered live {spec['revision']} at http://127.0.0.1:{spec['port']}/")
         else:
-            promote(checkout, getattr(args, "revision", None), rollback=args.action == "rollback")
+            with live_operation():
+                if args.action == "register":
+                    register_live(checkout, args.pid)
+                else:
+                    promote(
+                        checkout,
+                        getattr(args, "revision", None),
+                        rollback=args.action == "rollback",
+                    )
     elif args.action in {"init", "prepare"}:
-        port_free(args.port)
+        if not 1024 <= args.port <= 65535:
+            raise WorkflowError("Choose an unprivileged port between 1024 and 65535.")
         if args.group == "dev":
             dev_init(checkout, args.port)
         else:
@@ -721,7 +783,17 @@ def main():
             else candidate_directory(checkout, args.revision)
         )
         spec = read_json(directory / "environment.json")
-        if args.action == "start":
+        if args.action in {"manage", "test"}:
+            check_overrides(spec)
+            if args.group == "stage":
+                verify_candidate(spec)
+            if args.action == "test":
+                test(Path(spec["checkout"]), args.selectors, revision=spec["revision"])
+            else:
+                if not args.arguments:
+                    raise WorkflowError("Supply a Django management command.")
+                django(spec, *args.arguments)
+        elif args.action == "start":
             if args.group == "stage":
                 verify_candidate(spec)
             else:

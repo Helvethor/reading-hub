@@ -46,8 +46,8 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
     "library",
+    "django.contrib.staticfiles",
 ]
 READING_HUB_PROFILE = os.environ.get("READING_HUB_PROFILE", "profiles.marxist.site")
 READING_HUB_EDITOR_PILOT = os.environ.get("READING_HUB_EDITOR_PILOT", "1") == "1"
@@ -99,10 +99,13 @@ LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
+READING_HUB_THEME_COOKIE_NAME = "reading_hub_theme"
 if READING_HUB_ENVIRONMENT != "live":
     cookie_suffix = hashlib.sha256(str(DATA_DIR).encode()).hexdigest()[:16]
     SESSION_COOKIE_NAME = f"reading_hub_{cookie_suffix}_session"
     CSRF_COOKIE_NAME = f"reading_hub_{cookie_suffix}_csrf"
+    READING_HUB_THEME_COOKIE_NAME = f"reading_hub_{cookie_suffix}_theme"
+    MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {

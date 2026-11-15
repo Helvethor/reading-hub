@@ -5,6 +5,33 @@ article hierarchy design accepted 2026-11-09. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
+## Contributor workflow separation (2026-11-15)
+
+The user authorized development, staging, explicit live promotion and
+documentation consolidation. This does not authorize changing the running
+live instance or any real library data. The
+[environment lifecycle](docs/OPERATIONS.md#environment-contract) owns the routine.
+
+- [x] Implement environment identity, isolated paths/cookies and safe owned
+  preview controls, preserving legacy live startup.
+- [x] Provide offline article/book fixtures, authenticated test identities,
+  real saved histories/publications, Python autoreload and frontend watch.
+- [x] Freeze committed staging candidates with their own dependencies/assets;
+  gate explicit live promotion and source-only recovery.
+- [x] Consolidate the quickstart, operations and agent guidance; archive historical
+  deployment logs without dropping the retained-source operational instructions.
+- [ ] Complete concurrent-worktree, reload, candidate-promotion/recovery and
+  final focused regression acceptance, recording synthetic/browser limitations.
+
+Initial checkpoint `e1fef4d` passed 89 isolated backend tests and the frontend
+suite/build. Native synthetic article/book edits saved and reopened with images
+and reciprocal notes, then published through standalone confirmation pages
+with HTTP-200 PDFs. The pre-existing embedded Publish panel was blocked by CSP;
+this is not certification of the same-page panel journey. Two concurrent
+worktrees retained independent sessions and revisions. Live promotion has not
+been performed against the real instance; remaining acceptance below must use
+synthetic, task-owned listeners only.
+
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 
 Both former directions, cosmetic cleanup and workflow restructuring with shared

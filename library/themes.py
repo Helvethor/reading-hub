@@ -1,12 +1,13 @@
 from dataclasses import replace
 
 from django import forms
+from django.conf import settings
 from django.templatetags.static import static
 
 from library import profile as site_profiles
 from library.models import UserSettings
 
-COOKIE = "reading_hub_theme"
+COOKIE = settings.READING_HUB_THEME_COOKIE_NAME
 THEMES = {
     "paper": ("Marxist Paper", "marxist/theme.css", "marxist/admin.css", "#faf5ef", "#302221"),
     "dark": ("Marxist Dark", "marxist/dark.css", "marxist/dark-admin.css", "#181818", "#e6e6e6"),
@@ -32,7 +33,7 @@ class ThemeForm(forms.Form):
 def selected_theme(request):
     if hasattr(request, "reading_hub_theme"):
         return request.reading_hub_theme
-    choice = request.COOKIES.get(COOKIE, "")
+    choice = request.COOKIES.get(settings.READING_HUB_THEME_COOKIE_NAME, "")
     if request.user.is_authenticated:
         saved = (
             UserSettings.objects.filter(user=request.user).values_list("theme", flat=True).first()

@@ -9,6 +9,20 @@ work; [Operations](docs/OPERATIONS.md) explains running it. The
 is historical evidence, not additional scope. "Planned" below does not mean
 implemented. A backlog idea is not authorization to implement it immediately.
 
+### Contributor environment contract (2026-11-15)
+
+Development previews the current checkout immediately using isolated synthetic
+data, autoreload and locally watched assets. Tests use fresh private storage.
+Staging freezes an exact committed revision with its own locked dependencies,
+assets and representative data. Only separately authorized promotion changes
+the live localhost service; staging records are never promoted as live content.
+Preserve live keys, cookies, data, worker/crawl policy and existing reader choices.
+Promotion refuses pending migrations and active workers; schema/data operations
+require separate authorization and recovery evidence. See
+[Operations](docs/OPERATIONS.md#environment-contract) for the executable routine,
+ownership/path guards, acceptance and source-only rollback. This workflow is
+not public-hosting hardening, a sandbox or product acceptance certification.
+
 ### Coherent UI/UX contract (agreed 2026-11-08; deployed locally, acceptance incomplete)
 
 The work-centred workflow is implemented, but its usability is not established

@@ -3,6 +3,7 @@ from io import BytesIO
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -233,7 +234,7 @@ class ReadingStyleCascadeTests(TestCase):
 
     def test_guest_output_override_is_ephemeral_until_explicit_login_import(self):
         guest = Client()
-        guest.cookies["reading_hub_theme"] = "dark"
+        guest.cookies[settings.READING_HUB_THEME_COOKIE_NAME] = "dark"
         preview = self.post_style(
             guest,
             scope="output",

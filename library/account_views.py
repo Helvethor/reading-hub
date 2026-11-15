@@ -1,5 +1,6 @@
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
@@ -14,7 +15,7 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST
 
 from library.models import UserSettings
-from library.themes import COOKIE, ThemeForm, selected_theme, theme_payload
+from library.themes import ThemeForm, selected_theme, theme_payload
 
 
 def save_theme(request, choice):
@@ -25,10 +26,11 @@ def save_theme(request, choice):
 
 def theme_cookie(request, response, choice):
     if choice:
-        response.set_cookie(COOKIE, choice, max_age=365 * 24 * 60 * 60,
+        response.set_cookie(settings.READING_HUB_THEME_COOKIE_NAME, choice,
+                            max_age=365 * 24 * 60 * 60,
                             httponly=True, samesite="Lax", secure=request.is_secure())
     else:
-        response.delete_cookie(COOKIE, samesite="Lax")
+        response.delete_cookie(settings.READING_HUB_THEME_COOKIE_NAME, samesite="Lax")
     return response
 
 
