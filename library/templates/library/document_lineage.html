@@ -55,7 +55,7 @@
     </details>
     {% endif %}
   </details>
-  <form method="get" class="lineage-controls" aria-label="Scope and filter lineage" aria-describedby="lineage-filter-help" data-workspace-subbar>
+  <form method="get" class="lineage-controls" aria-label="Scope and filter lineage" aria-describedby="lineage-filter-help">
     {% if embedded %}<input type="hidden" name="embedded" value="1">{% endif %}
     {% if selected_id %}<input type="hidden" name="selected" value="{{ selected_id }}">{% endif %}
     <input type="hidden" name="anchor" value="{{ anchor_id }}">
@@ -299,5 +299,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-{% if not embedded %}<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v28"></script>{% endif %}
+{% if not embedded %}<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v47-flow"></script>{% endif %}
 {% endblock %}

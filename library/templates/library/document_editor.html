@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v37-reader-modes">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v47-flow">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-scroll-v12">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-v47-flow">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -32,7 +32,8 @@
         <div class="workspace-identity">
           <p class="eyebrow">{% if initial.structure.book %}BOOK{% else %}ARTICLE{% endif %} · EDITION {{ version.pk }}</p>
           <h1>{{ initial.document.title }}</h1>
-          <p id="workspace-compact-state" class="workspace-compact-state" role="status"></p>
+        </div>
+        <div class="workspace-context-state">
           <p id="workspace-baseline-state">
             {% if choose_history %}
               Choose a working copy in Versions for saved edition {{ version.pk }}.
@@ -43,14 +44,10 @@
               Starting from saved edition {{ version.pk }}. No working copy has been created.
             {% endif %}
           </p>
-          <p id="workspace-save-state" role="status">
-            {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
-          </p>
           <p class="workspace-reader-default">
             Reader default:
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
           </p>
-          {% if reader_target and reader_target.pk != version.pk %}<a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default</a>{% endif %}
         </div>
         <div class="workspace-notices" aria-label="Work status">
           {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
@@ -69,8 +66,11 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1"{% if initial_tab != "read" %} hidden{% endif %}>
-      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar>
+      <div class="workspace-read-actions" role="group" aria-label="Read actions">
         <button type="button" class="secondary" id="workspace-download-pdf" disabled>PDF</button>
+        {% if reader_target and reader_target.pk != version.pk %}
+        <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default edition {{ reader_target.pk }}</a>
+        {% endif %}
         <div class="workspace-reader-modes" role="group" aria-label="Reader mode">
           <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-stage">Table of Contents</button>
           <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-controls="workspace-read-stage">Style</button>
@@ -87,7 +87,7 @@
     <section class="workspace-view-panel" id="workspace-panel-edit" role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1"{% if initial_tab != "edit" %} hidden{% endif %}>
   <div class="editor-workspace" data-editor-tab="editor">
     <details class="context-help editor-scope-help"><summary>About corrected versions</summary><p>Editing version {{ version.pk }} creates immutable saved versions. Publication is separate; source evidence, catalogue membership and older editions are unchanged.</p></details>
-    <div class="editor-tabs" role="tablist" aria-label="Edit tools" data-workspace-subbar>
+    <div class="editor-tabs" role="tablist" aria-label="Edit tools">
       <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
       <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
@@ -102,7 +102,7 @@
       <label><input name="approve_conversion" type="checkbox"> I approve this exact conversion for the draft.</label>
     </details>
     {% endif %}
-      <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands" data-workspace-subbar>
+      <div class="editor-pilot-toolbar" role="group" aria-label="Editor commands">
         <div class="editor-format-toolbar" role="group" aria-label="Common formatting">
           <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
           <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
@@ -118,6 +118,9 @@
         <button type="button" data-history="undo" disabled>Undo</button>
         <button type="button" data-history="redo" disabled>Redo</button>
         <button type="submit" class="editor-save" disabled>Save</button>
+        <span id="workspace-save-state" role="status">
+          {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
+        </span>
         <a id="editor-publication" class="button secondary" data-workflow-panel="Publish" hidden>Publish&hellip;</a>
         <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
         <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" aria-describedby="editor-view-notice" disabled><option value="">All sections</option></select></label>
@@ -242,7 +245,7 @@
       <p>Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy semantic content, preserving formatting, links and retained images; external paste opens a preview. Ctrl/Cmd+Z and outline Undo restore edits.</p>
       <p>Bulleted list and Numbered list act on a paragraph or complete sibling items; click the active type to remove list formatting. New plain items contain text directly, without paragraph wrappers; paragraphs with IDs or styling are retained. Selection tools includes Indent item, Outdent item and Move item up/down. Enter splits an item; Shift+Enter adds a line break. Enter removes an empty interior item or exits a final empty item one level, preserving targets and styling. Backspace at an item's start or Delete at its end joins compatible siblings. Unsafe target/style loss, internal structural joins and numbering resets are refused without changing content. Tab moves focus normally.</p>
       <p>HR / Insert horizontal rule adds a rule at an ordinary paragraph caret, outside lists, figures, tables and notes. Text after the caret stays in a following paragraph. Undo restores the original. List labels and vertical bars belong to UL/OL containers, not LI items. These and HR cues are editor-only; they do not appear in Read or PDF.</p>
-      <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The canvas scrolls with the page; the outline stays beside it and scrolls on its own.</p>
+      <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The outline and toolbar stay in normal page flow; the desktop content canvas scrolls independently.</p>
       <p>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a>.</p>
     </details>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
@@ -583,4 +586,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-unified-workspace-v38-reader-modes"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-workspace-v47-flow"></script>{% endif %}{% endblock %}

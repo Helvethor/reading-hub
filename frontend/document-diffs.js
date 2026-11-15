@@ -6,6 +6,7 @@ import {closeHistory} from "@tiptap/pm/history";
 import {visiblePart, foldedDocumentParts, blockLabel, leafLabel, blockLabelsShown,
   workspaceChanged} from "./workspace.js";
 import {sectionHeading} from "./section-info.js";
+import {attachContextualPanel} from "./contextual-panels.js";
 
 const key = new PluginKey("readingHubDifferences");
 const MAX_CELLS = 1000000;
@@ -594,7 +595,11 @@ function differenceMenu(editor, onError) {
   const formatting = item("Restore previous formatting", "markup");
   const structure = item("Restore previous structure (replaces this block, including its later edits)", "structure");
   menu.append(target, selected, all, replace, keyboard, formatting, structure);
-  owner.body.append(menu);
+  const editorWorkspace = editor.view.dom.closest("#document-editor")
+    || editor.view.dom.closest(".editor-workspace")
+    || editor.view.dom.parentElement;
+  attachContextualPanel(editorWorkspace, menu,
+    editorWorkspace?.querySelector(".editor-diff-controls"));
   let current = null;
   function close(focus = true) {
     if (menu.hidden) return;
@@ -621,9 +626,11 @@ function differenceMenu(editor, onError) {
   menu.addEventListener("keydown", event => {
     const items = [...menu.querySelectorAll("button:not(:disabled):not([hidden])")];
     const index = items.indexOf(owner.activeElement);
-    if (event.key === "Escape" || event.key === "Tab") {
+    if (event.key === "Escape") {
       event.preventDefault();
       close();
+    } else if (event.key === "Tab") {
+      close(false);
     } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
       event.preventDefault();
       const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
@@ -634,7 +641,7 @@ function differenceMenu(editor, onError) {
   const outside = event => { if (!menu.contains(event.target)) close(false); };
   owner.addEventListener("pointerdown", outside, true);
   owner.addEventListener("mousedown", outside, true);
-  function open(change, root, origin, x, y) {
+  function open(change, root, origin) {
     let range = null, problem = "";
     try { range = selectionPositions(owner, root, change); }
     catch (failure) { problem = failure.message; }
@@ -653,10 +660,6 @@ function differenceMenu(editor, onError) {
       : "Removed content: select part of it first to restore only that text") +
       (change.coarse ? ". Large change: displayed as one exact replacement." : ".");
     menu.hidden = false;
-    const bounds = menu.getBoundingClientRect();
-    const view = owner.defaultView;
-    menu.style.left = `${Math.max(8, Math.min(x, view.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(y, view.innerHeight - bounds.height - 8))}px`;
     menu.querySelector("button:not(:disabled):not([hidden])")?.focus({preventScroll: true});
   }
   return {open, close, destroy() {
@@ -719,14 +722,13 @@ function attachMenu(root, focus, change, menu) {
     event.stopPropagation();
     if (event.shiftKey) return;
     event.preventDefault();
-    menu.open(change, root, focus, event.clientX, event.clientY);
+    menu.open(change, root, focus);
   });
   root.addEventListener("keydown", event => {
     event.stopPropagation();
     if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
       event.preventDefault();
-      const bounds = focus.getBoundingClientRect();
-      menu.open(change, root, focus, bounds.left, bounds.bottom);
+      menu.open(change, root, focus);
     }
   });
 }

@@ -27,14 +27,14 @@
 .editor-book-structure summary { cursor: pointer; font-weight: 700; }
 .editor-book-structure li { overflow-wrap: anywhere; }
 .editor-structure-link { font-weight: 700; }
-.editor-pilot-toolbar { position: sticky; top: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .5rem; border-bottom: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
+.editor-pilot-toolbar { position: static; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .5rem; border-bottom: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
 .editor-pilot-toolbar button, .editor-pilot-toolbar label, .editor-pilot-toolbar #editor-publication { font: 400 .85rem/1.4 system-ui, sans-serif; }
 .editor-pilot-toolbar label { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.45rem; margin: 0; white-space: nowrap; }
-.editor-pilot-toolbar button, .editor-pilot-toolbar #editor-publication { display: inline-flex; align-items: center; justify-content: center; min-height: 2.45rem; padding: .4rem .6rem; }
-.editor-pilot-toolbar select { min-width: 0; min-height: 2.45rem; font: inherit; padding: .25rem; max-width: 13rem; }
+.editor-pilot-toolbar button, .editor-pilot-toolbar #editor-publication { display: inline-flex; align-items: center; justify-content: center; min-height: 2.25rem; padding: .35rem .6rem; }
+.editor-pilot-toolbar select { min-width: 0; min-height: 2.25rem; font: inherit; padding: .25rem; max-width: 13rem; }
 .editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding-inline-end: .45rem; border-inline-end: 1px solid var(--line); }
 .editor-format-toolbar button {
-  min-width: 2.45rem;
+  min-width: 2.25rem;
   padding: .35rem .5rem;
   background: transparent;
   color: var(--ink);
@@ -45,14 +45,17 @@
 .editor-pilot-toolbar .editor-save { background: var(--accent); color: var(--paper); }
 .editor-pilot-toolbar #editor-publication { margin: 0; background: transparent; color: var(--accent); }
 #document-editor button:disabled { cursor: not-allowed; }
-/* No overflow clipping here: it would disable the sticky tabs and command row. */
-.editor-workspace { border: 1px solid #98a48e; border-radius: .4rem; }
+/* Keep workspace content visible while the page owns vertical scrolling. */
+.editor-workspace { border-inline: 1px solid var(--line); }
+.editor-contextual-panels { display: grid; gap: .5rem; }
+.editor-contextual-panels:empty { display: none; }
+#workspace-save-state { flex: 1 1 16rem; color: var(--muted); font-size: .78rem; }
 #editor-status, #editor-error { margin: 0; padding: .4rem .75rem; font-size: .85rem; }
 #editor-error:empty { display: none; }
 .editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); min-height: 0; }
-.editor-outline { position: sticky; top: var(--workspace-full-stack, 0px); align-self: start; box-sizing: border-box; max-height: calc(100dvh - var(--workspace-full-stack, 0px)); min-height: 0; overflow: auto; overflow-anchor: none; padding: .75rem; background: #f8f9f5; border-right: 1px solid #cbd1c4; }
+.editor-outline { position: static; align-self: start; box-sizing: border-box; min-height: 0; padding: .75rem; background: var(--surface-raised, #f8f9f5); border-right: 1px solid var(--line); }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
-.editor-section-controls { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: #f8f9f5; }
+.editor-section-controls { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: var(--surface-raised, #f8f9f5); }
 .editor-outline-help { font-size: .85rem; }
 .editor-section-controls button { font-size: .8rem; padding: .4rem; }
 #editor-surface .editor-section-boundary { border: 1px solid #718b63; border-inline-start: 3px solid #486b38; padding: .5rem .75rem; margin-block: 1rem; }
@@ -61,7 +64,7 @@
 #editor-surface .editor-section-end { border-top: 1px dashed #718b63; }
 #editor-surface .editor-section-title { outline: 1px dashed #718b63; }
 #editor-surface .editor-section-title::after { content: "Section title"; display: inline-block; margin-inline-start: .5rem; color: #344a2e; font: .7rem system-ui, sans-serif; user-select: none; }
-#editor-section-actions { position: fixed; z-index: 1000; display: flex; flex-direction: column; max-width: min(25rem, 95vw); max-height: 85vh; overflow: auto; padding: .4rem; border: 1px solid #98a48e; background: white; box-shadow: 0 .3rem 1.5rem #0003; }
+#editor-section-actions { display: flex; flex-direction: column; }
 #editor-section-actions[hidden] { display: none; }
 #editor-section-actions button { padding: .5rem; text-align: start; font-size: .85rem; }
 #editor-section-details, #editor-add-section { width: min(48rem, 90vw); max-height: 85vh; overflow: auto; }
@@ -131,7 +134,7 @@
 .editor-metadata-page h2 { margin-top: 0; }
 .editor-metadata-page .document-metadata-table { margin-top: .75rem; font-size: .9rem; }
 #editor-outline-items .editor-book-row-disabled .editor-outline-title { font-style: italic; opacity: .7; }
-.editor-tabs { position: sticky; top: var(--workspace-subbar-top, 0px); z-index: 5; display: flex; flex-wrap: wrap; gap: .15rem; padding: .35rem .35rem 0; border-bottom: 1px solid #cbd1c4; background: #eef1ea; }
+.editor-tabs { position: static; display: flex; flex-wrap: wrap; gap: .15rem; padding: .35rem .35rem 0; border-bottom: 1px solid var(--line); background: var(--surface-raised, #eef1ea); }
 .editor-tabs [role="tab"] { margin-bottom: -1px; padding: .35rem .85rem; border: 1px solid transparent; border-bottom: 0; border-radius: .3rem .3rem 0 0; background: transparent; color: #4c554b; font: 600 .8rem/1.3 system-ui, sans-serif; cursor: pointer; }
 .editor-tabs [role="tab"]:hover { background: #e5eadf; color: #302221; }
 .editor-tabs [role="tab"][aria-selected="true"] { border-color: #cbd1c4; background: #f8f9f5; color: #302221; }
@@ -147,7 +150,7 @@
 #editor-outline-items [data-outline-fold], #editor-outline-items [data-content-fold] { text-align: center; padding-inline: .15rem; }
 #editor-surface .editor-folded-content { display: none !important; }
 #editor-surface .tiptap .editor-fold-placeholder { display: block; margin-block: .5rem; padding: .5rem .75rem; border: 1px dashed #486b38; background: #edf1e8; color: #344a2e; font: .85rem system-ui, sans-serif; cursor: pointer; white-space: normal; }
-#editor-outline-menu { position: fixed; z-index: 1000; padding: .4rem; border: 1px solid #98a48e; border-radius: .4rem; background: white; box-shadow: 0 .3rem 1.5rem #0003; }
+#editor-outline-menu { position: static; padding: .4rem; border: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
 #editor-outline-menu[hidden] { display: none; }
 #editor-outline-menu button { padding: .4rem .6rem; border: 0; background: transparent; color: #302221; font: .85rem system-ui, sans-serif; }
 #editor-outline-menu button:hover, #editor-outline-menu button:focus-visible { background: #e5eadf; outline: 2px solid #486b38; }
@@ -172,7 +175,8 @@
 #editor-surface { flex: 1; min-height: 0; background: white; }
 #editor-surface[data-workspace-scroll-pane] {
   box-sizing: border-box;
-  max-height: max(5rem, calc(100dvh - var(--workspace-pane-stack-reservation, var(--workspace-full-stack, 0px)) - var(--workspace-edit-flow-height, 0px) - 1rem));
+  height: min(70dvh, 60rem);
+  min-height: 5rem;
   overflow-y: auto;
 }
 /* The editor canvas uses the available width; the reading measure applies to publications. */
@@ -240,7 +244,7 @@
 #editor-surface .tiptap .editor-external-block-label { margin-block-start: 0; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
-:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) { box-sizing: border-box; position: fixed; z-index: 1000; width: min(19rem, calc(100vw - 1rem)); max-height: min(38rem, calc(100dvh - 1rem)); overflow: auto; padding: .4rem; border: 1px solid #98a48e; border-radius: .4rem; background: #fff; color: #302221; box-shadow: 0 .3rem 1.5rem #0003; }
+:is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) { box-sizing: border-box; position: static; z-index: auto; width: 100%; max-height: none; overflow: visible; padding: .4rem; border: 1px solid var(--line); border-radius: 0; background: var(--surface-raised, #f8f9f5); color: var(--ink, #302221); box-shadow: none; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu)[hidden], :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) [hidden] { display: none !important; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button { padding: .3rem .4rem; border: 0; border-radius: .2rem; background: transparent; color: #302221; font: 400 .8rem/1.35 system-ui, sans-serif; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button:hover, :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button:focus-visible { background: #e5eadf; }
@@ -274,12 +278,13 @@
 #editor-link-targets button { display: block; width: 100%; text-align: start; white-space: normal; overflow-wrap: anywhere; margin-block: .3rem; }
 @media (max-width: 760px) {
   .editor-workspace-body { grid-template-columns: minmax(0, 1fr); min-height: 0; }
-  .editor-outline { display: none; }
+  .editor-outline { display: none; border-right: 0; border-bottom: 1px solid var(--line); }
   #editor-outline-toggle { display: inline-block; }
   .editor-workspace-body.editor-outline-open { grid-template-rows: auto minmax(0, 1fr); }
-  .editor-outline-open .editor-outline { display: block; position: static; max-height: 40dvh; border-right: 0; border-bottom: 1px solid #cbd1c4; }
+  .editor-outline-open .editor-outline { display: block; position: static; max-height: none; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
   .editor-part-control { order: 1; flex-basis: 100%; }
   #editor-part { width: calc(100% - 3rem); }
+  #editor-surface[data-workspace-scroll-pane] { height: auto; min-height: 0; overflow: visible; }
   #editor-surface .tiptap { padding-inline: .7rem; }
   #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font-size: .65rem; }
 }
@@ -326,9 +331,4 @@
   margin-block-start: 2rem;
   padding-block-start: 1rem;
   border-block-start: 1px solid var(--line);
-}
-.unified-workspace .editor-pilot-toolbar { top: var(--workspace-subbar-top, var(--workspace-stack-height, 0px)); }
-/* A wrapped toolbar would leave little room for text on small screens. */
-@media (max-width: 760px), (max-height: 520px) {
-  .unified-workspace .editor-pilot-toolbar { position: static; }
 }

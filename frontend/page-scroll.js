@@ -1,10 +1,3 @@
-export function stackOffset(doc = document) {
-  const workspace = doc.querySelector("#unified-workspace");
-  const value = workspace?.style.getPropertyValue("--workspace-full-stack")
-    || workspace?.style.getPropertyValue("--workspace-stack-height");
-  return Number.parseFloat(value) || 0;
-}
-
 function paneFor(element, includeSelf = false) {
   const pane = element.closest?.("[data-workspace-scroll-pane]");
   return pane && (includeSelf || pane !== element) ? pane : null;
@@ -17,7 +10,7 @@ function paneBand(pane) {
   const top = rect.top + (pane.clientTop || 0);
   const bottom = top + (pane.clientHeight || rect.height);
   return {
-    top: Math.max(top, stackOffset(doc), 0),
+    top: Math.max(top, 0),
     bottom: Math.min(bottom, win.innerHeight || bottom),
   };
 }
@@ -30,7 +23,7 @@ export function revealScrollPane(element, gap = 8) {
   const rect = pane.getBoundingClientRect();
   const band = paneBand(pane);
   if (rect.bottom <= band.top || rect.top >= band.bottom) {
-    const top = rect.top + win.scrollY - stackOffset(doc) - gap;
+    const top = rect.top + win.scrollY - gap;
     win.scrollTo({top: Math.max(0, top), behavior: "auto"});
   }
   return paneBand(pane);
@@ -59,24 +52,14 @@ export function scrollElementIntoView(element, gap = 8) {
     }
     return;
   }
-  const place = () => {
-    const top = element.getBoundingClientRect().top + win.scrollY - stackOffset(doc) - gap;
-    win.scrollTo({top: Math.max(0, top), behavior: "auto"});
-  };
-  place();
-  // The stack can compact after the first jump, which changes its height once.
-  if (typeof win.requestAnimationFrame === "function") {
-    win.requestAnimationFrame(() => {
-      const offset = element.getBoundingClientRect().top - stackOffset(doc) - gap;
-      if (Math.abs(offset) > 1) place();
-    });
-  }
+  const top = element.getBoundingClientRect().top + win.scrollY - gap;
+  win.scrollTo({top: Math.max(0, top), behavior: "auto"});
 }
 
 export function revealStart(element, gap = 0) {
   const doc = element.ownerDocument;
   const top = element.getBoundingClientRect().top;
-  if (top < stackOffset(doc) + gap) scrollElementIntoView(element, gap);
+  if (top < gap) scrollElementIntoView(element, gap);
 }
 
 export function visibleBand(element) {
@@ -85,7 +68,7 @@ export function visibleBand(element) {
   if (pane) return paneBand(pane);
   const rect = element.getBoundingClientRect();
   return {
-    top: Math.max(rect.top, stackOffset(doc)),
+    top: Math.max(rect.top, 0),
     bottom: Math.min(rect.bottom, doc.defaultView.innerHeight || rect.bottom),
   };
 }

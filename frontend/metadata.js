@@ -1,5 +1,6 @@
 import {dateFields, editorialNoteLines, fieldLabels, parseEditorialNote, personKeys,
   titlePageFields, titlePageSelection} from "./metadata-fields.js";
+import {attachContextualPanel} from "./contextual-panels.js";
 
 const roleChoices = [
   ["author", "Author"], ["editor", "Editor"], ["translator", "Translator"],
@@ -258,7 +259,7 @@ export function mountMetadata(form, initial, changed) {
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Metadata fields");
   menu.hidden = true;
-  form.append(menu);
+  attachContextualPanel(form, menu);
   let returnFocus = null;
   function closeMenu() { menu.hidden = true; }
   function rowLabel(row) {
@@ -349,11 +350,6 @@ export function mountMetadata(form, initial, changed) {
       menuItem(`Remove ${rowLabel(row)}`, () => removeRow(row)).dataset.metadataRemove = "";
     }
     menu.hidden = false;
-    const target = event.target.getBoundingClientRect(), bounds = menu.getBoundingClientRect();
-    const x = event.type === "keydown" ? target.left : event.clientX;
-    const y = event.type === "keydown" ? target.bottom : event.clientY;
-    menu.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - bounds.height - 8))}px`;
     menu.querySelector("button")?.focus();
   }
   sheet.addEventListener("contextmenu", event => openMenu(event, event.target.closest("tr")));
@@ -379,8 +375,6 @@ export function mountMetadata(form, initial, changed) {
   });
   function outside(event) { if (!menu.contains(event.target)) closeMenu(); }
   owner.addEventListener("pointerdown", outside);
-  owner.addEventListener("scroll", outside, true);
-  owner.defaultView.addEventListener("resize", closeMenu);
   const linkDialog = section.querySelector("#editor-person-link");
   const linkSearch = linkDialog?.querySelector("#editor-person-search");
   const linkResults = linkDialog?.querySelector("#editor-person-results");

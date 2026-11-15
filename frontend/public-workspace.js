@@ -1,6 +1,5 @@
 import {scrollElementIntoView} from "./page-scroll.js";
 import {mountContentsPanel} from "./contents-panel.js";
-import {mountStickyStack} from "./workspace-navigation.js";
 import {mountLineageControls, replaceLineageContent} from "./lineage-controls.js";
 
 export function mountPublicWorkspace(workspace = document.querySelector("#unified-workspace")) {
@@ -27,7 +26,6 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
   };
   const requests = {versions: 0, sources: 0};
   const positions = new Map();
-  let refreshSticky = () => {};
   const updateContents = mountContentsPanel(workspace, contents, contentsButton);
 
   function currentTab() {
@@ -53,13 +51,9 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
 
   function updateBackToTop() {
     const owner = scrollOwner();
-    const stackHeight = Number.parseFloat(
-      workspace.style.getPropertyValue("--workspace-full-stack")
-        || workspace.style.getPropertyValue("--workspace-stack-height"),
-    ) || 0;
     const isPage = owner === document.scrollingElement;
     const visibleHeight = isPage
-      ? window.innerHeight - stackHeight : owner?.clientHeight || 0;
+      ? window.innerHeight : owner?.clientHeight || 0;
     backToTop.hidden = !owner || Boolean(document.querySelector("dialog[open]"))
       || owner.scrollTop < Math.max(120, visibleHeight);
     backToTop.setAttribute("aria-controls",
@@ -134,14 +128,12 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     for (const filter of content.querySelectorAll('form[method="get"], form:not([method])')) {
       if (filter.querySelector('select[name="filter"]')) {
         filter.classList.add("workspace-filter-bar");
-        filter.dataset.workspaceSubbar = "";
       }
     }
     const target = lineagePanels[tab];
     replaceLineageContent(target, content);
     target.dataset.loadedUrl = destination.href;
     target.dataset.currentUrl = destination.href;
-    refreshSticky();
     updateBackToTop();
   }
 
@@ -201,7 +193,6 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     if (restoreReadFocus) {
       buttons.find(button => button.dataset.workspaceTab === tab).focus({preventScroll: true});
     }
-    refreshSticky();
     if (previous && previous !== tab) {
       window.scrollTo({top: positions.get(tab) ?? 0, behavior: "auto"});
     }
@@ -273,7 +264,6 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     const isPage = owner === document.scrollingElement;
     if (isPage) {
       window.scrollTo({top: 0, behavior: "auto"});
-      refreshSticky();
     } else {
       owner.scrollTo?.({top: 0, behavior: "auto"});
       if (!owner.scrollTo) owner.scrollTop = 0;
@@ -290,8 +280,6 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
   dialogObserver?.observe(document.body, {
     attributes: true, attributeFilter: ["open"], subtree: true,
   });
-  refreshSticky = mountStickyStack(workspace, updateBackToTop);
-
   const initial = workspace.dataset.initialTab;
   selectTab(panels.has(initial) ? initial : "read");
   updateContents();

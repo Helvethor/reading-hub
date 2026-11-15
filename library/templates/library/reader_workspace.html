@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-{{ reading_style_version }}-opening-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v37-reader-modes">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v47-flow">
 <link rel="stylesheet" href="{{ reading_style_url }}" data-reading-style>
 {% endblock %}
 {% block content %}
@@ -23,15 +23,13 @@
         <div class="workspace-identity">
           <p class="eyebrow">{% if version.structure.book %}BOOK{% else %}ARTICLE{% endif %} · EDITION {{ version.pk }}</p>
           <h1>{{ version.document.title|default:version.title }}</h1>
-          <p class="workspace-compact-state" role="status">Edition {{ version.pk }}</p>
+        </div>
+        <div class="workspace-context-state">
           <p>Opened saved edition {{ version.pk }}.</p>
           <p class="workspace-reader-default">
             Reader default:
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
           </p>
-          {% if reader_target and reader_target.pk != version.pk %}
-          <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default</a>
-          {% endif %}
         </div>
       </header>
       <div class="workspace-tabs" role="tablist" aria-label="Work views">
@@ -42,8 +40,11 @@
       <p class="workspace-action-status" id="workspace-action-status" role="status" aria-live="polite"></p>
     </div>
     <section class="workspace-view-panel workspace-scroll-panel" id="workspace-panel-read" role="tabpanel" aria-labelledby="workspace-tab-read" tabindex="-1">
-      <div class="workspace-read-actions" role="group" aria-label="Read actions" data-workspace-subbar>
+      <div class="workspace-read-actions" role="group" aria-label="Read actions">
         <a class="button secondary" href="{% url 'reader-pdf' version.pk %}?presentation={{ reading_presentation_token|urlencode }}" data-reading-pdf>PDF</a>
+        {% if reader_target and reader_target.pk != version.pk %}
+        <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default edition {{ reader_target.pk }}</a>
+        {% endif %}
         <div class="workspace-reader-modes" role="group" aria-label="Reader mode">
           <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-stage">Table of Contents</button>
           <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-controls="workspace-read-stage">Style</button>
@@ -68,5 +69,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v38-reader-modes"></script>
+<script type="module" src="{% static 'library/generated/public-workspace.js' %}?v={{ app_version }}-workspace-v47-flow"></script>
 {% endblock %}

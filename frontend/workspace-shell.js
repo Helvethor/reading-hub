@@ -1,5 +1,4 @@
 import {scrollElementIntoView} from "./page-scroll.js";
-import {mountStickyStack} from "./workspace-navigation.js";
 import {
   captureReadingPosition, mountContentsPanel, restoreReadingPosition,
 } from "./contents-panel.js";
@@ -79,7 +78,6 @@ export function mountWorkspaceShell({
   const status = workspace.querySelector("#workspace-action-status");
   const savedIdentity = workspace.querySelector("#workspace-baseline-state");
   const saveState = workspace.querySelector("#workspace-save-state");
-  const compactState = workspace.querySelector("#workspace-compact-state");
   const readContent = workspace.querySelector("#workspace-read-content");
   const downloadButton = workspace.querySelector("#workspace-download-pdf");
   const contentsButton = workspace.querySelector("#workspace-contents-toggle");
@@ -98,7 +96,6 @@ export function mountWorkspaceShell({
   let readRequest = 0;
   const lineageRequests = {versions: 0, sources: 0};
   let lastEditorFocus = null;
-  let refreshStickyStack = () => {};
   const tabPositions = new Map();
   let pendingPosition = null;
 
@@ -161,9 +158,6 @@ export function mountWorkspaceShell({
   }
 
   function updateState({draft, revision, dirty}) {
-    compactState.textContent = `Edition ${workspace.dataset.versionId}` +
-      (draft ? ` · rev ${revision || "0"}` : " · source") +
-      (dirty ? " · unsaved" : initialChooseHistory && !draft ? " · choose copy" : "");
     savedIdentity.textContent = initialChooseHistory && !draft
       ? `Choose a working copy in Versions for saved edition ${workspace.dataset.versionId}.`
       : draft
@@ -236,13 +230,9 @@ export function mountWorkspaceShell({
 
   function updateBackToTop() {
     const owner = scrollOwner();
-    const stackHeight = Number.parseFloat(
-      workspace.style.getPropertyValue("--workspace-full-stack")
-        || workspace.style.getPropertyValue("--workspace-stack-height"),
-    ) || 0;
     const isPage = owner === document.scrollingElement;
     const visibleHeight = isPage
-      ? window.innerHeight - stackHeight : owner?.clientHeight || 0;
+      ? window.innerHeight : owner?.clientHeight || 0;
     backToTop.hidden = !owner || modalOwnsFocus()
       || owner.scrollTop < Math.max(120, visibleHeight);
     backToTop.setAttribute("aria-controls",
@@ -288,7 +278,6 @@ export function mountWorkspaceShell({
       link.dataset.workspaceReadingStyle = "";
       document.head.append(link);
     }
-    refreshStickyStack();
     if (switching) {
       pendingPosition = {tab, top: tabPositions.get(tab) ?? 0};
       applyPendingPosition();
@@ -440,13 +429,11 @@ export function mountWorkspaceShell({
     for (const filter of content.querySelectorAll('form[method="get"], form:not([method])')) {
       if (filter.querySelector('select[name="filter"]')) {
         filter.classList.add("workspace-filter-bar");
-        filter.dataset.workspaceSubbar = "";
       }
     }
     keepActivePosition(tab, () => replaceLineageContent(target, content));
     target.dataset.loadedUrl = destination.href;
     target.dataset.currentUrl = destination.href;
-    refreshStickyStack();
     updateBackToTop();
   }
 
@@ -645,9 +632,6 @@ export function mountWorkspaceShell({
     }
   });
 
-  document.querySelector(".editor-workspace")?.addEventListener(
-    "editor-local-tab-change", () => refreshStickyStack(),
-  );
   // Explicit user scrolling supersedes a remembered position awaiting content.
   for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
     window.addEventListener(type, () => { pendingPosition = null; }, {passive: true, capture: true});
@@ -660,7 +644,6 @@ export function mountWorkspaceShell({
     const isPage = owner === document.scrollingElement;
     if (isPage) {
       scrollToTop();
-      refreshStickyStack();
     } else {
       owner.scrollTo?.({top: 0, behavior: "auto"});
       if (!owner.scrollTo) owner.scrollTop = 0;
@@ -678,7 +661,6 @@ export function mountWorkspaceShell({
   dialogObserver?.observe(document.body, {
     attributes: true, attributeFilter: ["open"], subtree: true,
   });
-  refreshStickyStack = mountStickyStack(workspace, () => updateBackToTop());
   const updateReadContents = mountContentsPanel(workspace, readContent, contentsButton);
 
   const initialTab = workspace.dataset.initialTab;

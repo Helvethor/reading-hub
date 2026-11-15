@@ -6,6 +6,7 @@ import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEnt
 import {contentSeparation, layoutPreset, partLayout, separations,
   setDocumentLayout, setPartSeparation} from "./part-layout.js";
 import {closeHistory} from "@tiptap/pm/history";
+import {attachContextualPanel} from "./contextual-panels.js";
 
 export {titlePageRows};
 
@@ -63,7 +64,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "ToC numbering style");
   menu.hidden = true;
-  form.append(menu);
+  attachContextualPanel(form, menu);
   let selected = new Set(), selectionDoc = editor.state.doc, currentParts = [], hierarchy = [];
   function closeMenu() { menu.hidden = true; }
   function updateSelection() {
@@ -131,11 +132,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       menu.append(button);
     }
     menu.hidden = false;
-    const target = event.target.getBoundingClientRect(), bounds = menu.getBoundingClientRect();
-    const x = event.type === "keydown" ? target.left : event.clientX;
-    const y = event.type === "keydown" ? target.bottom : event.clientY;
-    menu.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - bounds.height - 8))}px`;
     menu.querySelector("button")?.focus();
   }
   toc.addEventListener("mousedown", event => {
@@ -174,7 +170,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   fieldMenu.setAttribute("role", "menu");
   fieldMenu.setAttribute("aria-label", "Title page fields");
   fieldMenu.hidden = true;
-  form.append(fieldMenu);
+  attachContextualPanel(form, fieldMenu);
   let fieldReturn = null;
   function chooseFields(fields) {
     form.dispatchEvent(new owner.defaultView.CustomEvent("editor-title-fields", {detail: {fields}}));
@@ -213,11 +209,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     if (Array.isArray(metadata.title_page_fields)) item("Reset to default fields", null, {titleReset: ""});
     pageItems(fieldMenu, "title", () => { fieldMenu.hidden = true; });
     fieldMenu.hidden = false;
-    const target = event.target.getBoundingClientRect(), bounds = fieldMenu.getBoundingClientRect();
-    const x = event.type === "keydown" ? target.left : event.clientX;
-    const y = event.type === "keydown" ? target.bottom : event.clientY;
-    fieldMenu.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - bounds.width - 8))}px`;
-    fieldMenu.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - bounds.height - 8))}px`;
     fieldMenu.querySelector("button")?.focus();
   }
   preview.addEventListener("contextmenu", event => {
@@ -249,7 +240,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   pageMenu.setAttribute("role", "menu");
   pageMenu.setAttribute("aria-label", "Generated page settings");
   pageMenu.hidden = true;
-  form.append(pageMenu);
+  attachContextualPanel(form, pageMenu);
   let pageReturn = null;
   function setPage(key, value) {
     const current = editor.state.doc.attrs.pages || Object.fromEntries(
@@ -395,13 +386,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   });
   layoutSummary.append(layoutSummaryLabel, layoutSummaryText, useDefaults);
   form.querySelector(".editor-outline")?.prepend(layoutSummary);
-  function placeMenu(target, event) {
+  function placeMenu(target) {
     target.hidden = false;
-    const anchor = event.target.getBoundingClientRect(), box = target.getBoundingClientRect();
-    const x = event.type === "keydown" ? anchor.left : event.clientX;
-    const y = event.type === "keydown" ? anchor.bottom : event.clientY;
-    target.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - box.width - 8))}px`;
-    target.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - box.height - 8))}px`;
     target.querySelector("button")?.focus();
   }
   function openPageMenu(event, page) {
@@ -423,7 +409,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       });
       pageMenu.append(edit);
     }
-    placeMenu(pageMenu, event);
+    placeMenu(pageMenu);
   }
   function showMetadataTab() {
     form.dispatchEvent(new owner.defaultView.CustomEvent("editor-show-tab", {detail: {tab: "metadata", focus: true}}));
@@ -469,12 +455,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     pageMenu.hidden = true;
   }
   owner.addEventListener("pointerdown", outside);
-  owner.addEventListener("scroll", outside, true);
-  owner.defaultView.addEventListener("resize", closeMenus);
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);
-    owner.removeEventListener("scroll", outside, true);
-    owner.defaultView.removeEventListener("resize", closeMenus);
     menu.remove();
     fieldMenu.remove();
     pageMenu.remove();

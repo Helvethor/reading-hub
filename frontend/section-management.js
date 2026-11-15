@@ -7,6 +7,7 @@ import {
   documentParts, getWorkspaceContext, showDocumentPart, expandDocumentFolds,
 } from "./workspace.js";
 import {applySourceInsertion} from "./source-insertion.js";
+import {attachContextualPanel} from "./contextual-panels.js";
 
 function uniqueTarget(doc, base) {
   const ids = new Set();
@@ -470,7 +471,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Section management");
   menu.hidden = true;
-  form.append(menu);
+  attachContextualPanel(form, menu, outline);
   let selected = null, dragged = null;
   function closeMenu() { menu.hidden = true; }
   function selectedPart(button) {
@@ -539,10 +540,11 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     }
   }
   missingSections();
-  function openMenu(event, keyboard = false) {
+  function openMenu(event) {
     const button = event.target.closest("[data-part]") ||
       event.target.closest(".editor-outline-row")?.querySelector("[data-part]");
-    if (!button || button.dataset.part === "" || event.shiftKey && !keyboard) return;
+    if (!button || button.dataset.part === "" ||
+        event.shiftKey && event.type === "contextmenu") return;
     event.preventDefault();
     selected = selectedPart(button);
     menu.replaceChildren();
@@ -571,18 +573,14 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     });
     action("Repair heading into section…", () => boundary(selected.part), selected.part.kind !== "Section");
     menu.hidden = false;
-    const rect = button.getBoundingClientRect();
-    const bounds = menu.getBoundingClientRect();
-    menu.style.left = `${Math.max(8, Math.min(keyboard ? rect.left : event.clientX, owner.defaultView.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(keyboard ? rect.bottom : event.clientY, owner.defaultView.innerHeight - bounds.height - 8))}px`;
     menu.querySelector("button:not(:disabled)")?.focus();
   }
   outline.addEventListener("contextmenu", event => openMenu(event));
   outline.addEventListener("click", event => {
-    if (event.target.closest("[data-section-actions]")) openMenu(event, true);
+    if (event.target.closest("[data-section-actions]")) openMenu(event);
   });
   outline.addEventListener("keydown", event => {
-    if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") openMenu(event, true);
+    if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") openMenu(event);
   });
   menu.addEventListener("keydown", event => {
     const buttons = [...menu.querySelectorAll("button:not(:disabled)")];
@@ -602,7 +600,6 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   });
   function outside(event) { if (!menu.contains(event.target)) closeMenu(); }
   owner.addEventListener("pointerdown", outside);
-  owner.addEventListener("scroll", outside, true);
   const dropNotice = owner.createElement("p");
   dropNotice.setAttribute("role", "status");
   dropNotice.className = "editor-section-drop-notice";
@@ -659,7 +656,6 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   });
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);
-    owner.removeEventListener("scroll", outside, true);
     menu.remove();
   });
 }

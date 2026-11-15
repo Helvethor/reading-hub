@@ -156,17 +156,6 @@ export function mountContentsPanel(workspace, content, button) {
       for (const [name, trigger] of Object.entries(modeButtons)) {
         trigger.setAttribute("aria-pressed", String(name === activeMode));
       }
-      positionNarrowTools();
-    }
-
-    function positionNarrowTools() {
-      if (activeMode === "larger" || !window.matchMedia?.("(max-width: 760px)").matches) return;
-      const stackHeight = Number.parseFloat(
-        workspace.style.getPropertyValue("--workspace-full-stack")
-          || workspace.style.getPropertyValue("--workspace-stack-height"),
-      ) || 0;
-      const top = Math.max(toolbar.getBoundingClientRect().bottom, stackHeight) + 8;
-      tools.style.setProperty("--workspace-tools-top", `${Math.max(8, Math.min(top, window.innerHeight - 120))}px`);
     }
 
     function setLayout(change) {
@@ -195,9 +184,7 @@ export function mountContentsPanel(workspace, content, button) {
     tools.addEventListener("keydown", markRailInteraction);
     tools.addEventListener("focusin", markRailInteraction);
     window.addEventListener("scroll", updateActiveEntry, {passive: true});
-    window.addEventListener("scroll", positionNarrowTools, {passive: true});
     content.addEventListener("scroll", updateActiveEntry, {passive: true, capture: true});
-    window.addEventListener("resize", positionNarrowTools);
     window.addEventListener("popstate", () => {
       const hash = new URL(location.href).hash.slice(1);
       const target = hash && content.ownerDocument.getElementById(hash);

@@ -24,7 +24,7 @@ import {
   workspaceContext, setWorkspaceContext,
 } from "./workspace.js";
 import {mountDynamicOutline} from "./outline.js";
-import {revealStart, scrollElementIntoView, visibleBand} from "./page-scroll.js";
+import {revealStart, scrollElementIntoView} from "./page-scroll.js";
 import {movableSections, mountSectionMoves} from "./section-moves.js";
 import {mountContentMoves} from "./content-moves.js";
 import {mountSectionCreation} from "./section-creation.js";
@@ -36,6 +36,7 @@ import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
 import {isTocNumberingChange, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 import {mountNoteRepairs} from "./note-repairs.js";
+import {attachContextualPanel} from "./contextual-panels.js";
 
 function bookNotice(pages) {
   const parts = [pages.title_layout === "compact" ? "compact title" : "full title page",
@@ -56,6 +57,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const viewNotice = form.querySelector("#editor-view-notice");
   const path = form.querySelector("#editor-selection-path");
   const menu = form.querySelector("#editor-context-menu");
+  attachContextualPanel(form, menu);
   const trigger = form.querySelector("#editor-tools");
   const imageDialog = owner.querySelector("#editor-image");
   const linkDialog = owner.querySelector("#editor-link");
@@ -453,7 +455,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       " Ctrl-click toggles blocks; Escape clears selection.";
     if (selectedImage(editor)) path.textContent += " / Image";
   }
-  function openMenu(x, y) {
+  function openMenu() {
     closeMenu();
     menuTarget = {doc: editor.state.doc, bookmark: editor.state.selection.getBookmark()};
     updateTools();
@@ -467,17 +469,10 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       ? "At the cursor" : "Selected text: styling applies only to this selection";
     menu.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
-    const bounds = menu.getBoundingClientRect();
-    menu.style.left = `${Math.max(8, Math.min(x, owner.defaultView.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(y, owner.defaultView.innerHeight - bounds.height - 8))}px`;
     menu.querySelector("button:not(:disabled):not([hidden])")?.focus();
   }
   function openAtSelection() {
-    const coords = editor.view.coordsAtPos(editor.state.selection.head);
-    const bounds = visibleBand(surface);
-    const visible = coords.top >= bounds.top && coords.bottom <= bounds.bottom;
-    const fallback = trigger.getBoundingClientRect();
-    openMenu(visible ? coords.left : fallback.left, visible ? coords.bottom : fallback.bottom);
+    openMenu();
   }
   trigger.addEventListener("click", openAtSelection);
   function preserveContextSelection(event) {
@@ -511,7 +506,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         TextSelection.near(editor.state.doc.resolve(position.pos)),
       ));
     }
-    openMenu(event.clientX, event.clientY);
+    openMenu();
   });
   surface.addEventListener("keydown", event => {
     if (!editor.view.dom.contains(event.target) || editor.view.dom.hidden) return;
@@ -533,7 +528,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       closeMenu(true);
     } else if (event.key === "Tab") {
       closeMenu();
-      trigger.focus();
     }
   });
   form.querySelector("#editor-menu-close").addEventListener("click", () => closeMenu(true));
@@ -836,14 +830,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   function outside(event) {
     if (!menu.contains(event.target) && !trigger.contains(event.target)) closeMenu();
   }
-  function scrolled() { closeMenu(); }
-  function pageScrolled(event) {
-    if (!menu.contains(event.target)) closeMenu();
-  }
   owner.addEventListener("pointerdown", outside);
-  owner.addEventListener("scroll", pageScrolled, true);
-  owner.defaultView.addEventListener("resize", scrolled);
-  surface.addEventListener("scroll", scrolled);
   let lastScope = visiblePart(editor);
   let lastFolds = foldedDocumentParts(editor);
   editor.on("transaction", ({transaction}) => {
@@ -862,8 +849,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   });
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);
-    owner.removeEventListener("scroll", pageScrolled, true);
-    owner.defaultView.removeEventListener("resize", scrolled);
   });
   function updateWorkspaceContext() {
     const next = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});

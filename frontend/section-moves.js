@@ -4,6 +4,7 @@ import {
   documentParts, getWorkspaceContext, showDocumentPart, visiblePart,
 } from "./workspace.js";
 import {headingLabel, sectionHeading} from "./section-info.js";
+import {attachContextualPanel} from "./contextual-panels.js";
 
 export function movableSections(doc, context = {}) {
   const sections = [];
@@ -121,7 +122,7 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
   move.setAttribute("role", "menuitem");
   move.textContent = "Move section…";
   menu.append(move);
-  form.append(menu);
+  attachContextualPanel(form, menu, outline);
   let menuTarget = null;
   function closeMenu(focus = false) {
     const target = menuTarget?.button;
@@ -138,12 +139,6 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
     menuTarget = {button, index: Number(button.dataset.sectionMove), doc: editor.state.doc};
     button.setAttribute("aria-expanded", "true");
     menu.hidden = false;
-    const anchor = button.getBoundingClientRect();
-    const bounds = menu.getBoundingClientRect();
-    menu.style.left = `${Math.max(8, Math.min(keyboard ? anchor.left : event.clientX,
-      owner.defaultView.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(keyboard ? anchor.bottom : event.clientY,
-      owner.defaultView.innerHeight - bounds.height - 8))}px`;
     move.focus();
   }
   if (!externalMenu) {
@@ -164,23 +159,17 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
   menu.addEventListener("keydown", event => {
     if (event.key === "Escape" || event.key === "Tab") {
       if (event.key === "Escape") event.preventDefault();
-      closeMenu(true);
+      closeMenu(event.key === "Escape");
     } else if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
       event.preventDefault();
       move.focus();
     }
   });
   function outside(event) { if (!menu.contains(event.target)) closeMenu(); }
-  function scroll(event) { if (!menu.contains(event.target)) closeMenu(); }
-  function resize() { closeMenu(); }
   owner.addEventListener("pointerdown", outside);
-  owner.addEventListener("scroll", scroll, true);
-  owner.defaultView.addEventListener("resize", resize);
   editor.on("transaction", ({transaction}) => { if (transaction.docChanged) closeMenu(); });
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);
-    owner.removeEventListener("scroll", scroll, true);
-    owner.defaultView.removeEventListener("resize", resize);
     menu.remove();
   });
   source.addEventListener("change", refresh);

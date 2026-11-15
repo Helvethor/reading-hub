@@ -517,6 +517,10 @@ test("selection context menu separates paragraphs and exposes excerpt origins an
     new dom.window.MouseEvent("contextmenu", {bubbles: true, clientX: 20, clientY: 20}),
   );
   assert(!form.querySelector("#editor-context-menu").hidden);
+  assert.equal(form.querySelector("#editor-context-menu").parentElement.className,
+    "editor-contextual-panels");
+  assert.equal(form.querySelector("#editor-context-menu").style.left, "");
+  assert.equal(form.querySelector("#editor-context-menu").style.top, "");
   form.querySelector("#editor-section-excerpt-open").click();
   const dialog = document.querySelector("#editor-section-excerpt");
   assert(dialog.open);
@@ -532,6 +536,7 @@ test("selection context menu separates paragraphs and exposes excerpt origins an
     .find(button => button.textContent.includes("Independent excerpt"));
   excerpt.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
   const actions = document.querySelector("#editor-section-actions");
+  assert.equal(actions.parentElement.className, "editor-contextual-panels");
   [...actions.querySelectorAll("button")].find(button => button.textContent.startsWith("Edit title")).click();
   assert(document.querySelector("#editor-section-details [data-origin]").textContent.includes("#parent"));
   document.querySelector("#editor-section-details [data-cancel]").click();

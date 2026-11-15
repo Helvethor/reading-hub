@@ -43,10 +43,14 @@ authorize deployment or live-data changes. Existing V.i delivery alone does
 not establish V.m acceptance.
 
 Follow-up V.n, agreed 2026-11-15, consolidates the permanent compact workspace
-and general in-flow menu design. It is documentation only: implementation has
-not started and implementation, deployment and live-data changes have not been
-authorized. Its V47-V54 contract supersedes conflicting earlier expanded/compact,
-sticky-stack and overlay-menu requirements, not their preservation invariants.
+and general in-flow menu design. Source implementation was authorized by
+"Implement Milestone V.n". The main workspace/editor shell and contextual-panel
+flow are implemented; focused automated checks and synthetic browser geometry
+checks pass. Legacy correction-preview menus/help still use native overlay
+behavior, so V49 and overall V47-V54 acceptance remain partial. No deployment
+or live-data changes were made or authorized. Its V47-V54 contract supersedes
+conflicting earlier expanded/compact, sticky-stack and overlay-menu requirements,
+not their preservation invariants.
 
 ## Outcome, authority and supersession
 
@@ -1373,9 +1377,12 @@ acceptance are separate evidence; no test count establishes this milestone.
 
 ### V.n: permanent compact workspace and in-flow menus
 
-Agreed 2026-11-15. Status: consolidated specification and design plan only;
-implementation and V47-V54 acceptance are not started. The consolidation request
-does not authorize implementation, deployment, publication or live-data changes.
+Agreed 2026-11-15. Status: main workspace/editor source implementation delivered;
+V47-V54 acceptance remains partial. Focused frontend/backend checks pass, and a
+synthetic fixture was observed at desktop and narrow widths. Legacy
+correction-preview menus/help still use overlays; actual application workflows,
+PDF/print and human accessibility/usability acceptance remain unverified. No
+deployment, publication or live-data changes were performed.
 
 #### Outcome, evidence and supersession
 
@@ -1510,8 +1517,9 @@ V.m source implementation was separately authorized and delivered; deployment
 still requires separate authorization. V41-V46 acceptance remains partial. Stop
 only after the applicable authorized V17-V46 and relevant V1-V16 preservation
 checks are evidenced; report browser limitations rather than claiming full
-acceptance from jsdom tests. V.n is documentation only and, when separately
-authorized, follows its A-C sequence and V47-V54 contract instead of rebuilding
+acceptance from jsdom tests. V.n source implementation is authorized and
+delivered for the main workspace/editor flows; the remaining correction-preview
+overlays and V47-V54 acceptance still require follow-up. Do not rebuild
 superseded compaction/overlay behavior.
 
 ## Implementation discovery map
@@ -1631,10 +1639,13 @@ V41-V46 define V.m acceptance, not proof of completion. V.m source implementatio
 was separately authorized and delivered; validation remains partial. That request
 did not authorize deployment or live-data changes and does not close V27-V30 or
 earlier acceptance.
-V47-V54 define the planned V.n acceptance, not delivery evidence or implementation
-authorization. Apply V.n's explicit supersession rules to conflicting earlier
-geometry/menu assertions while retaining their preservation checks. All V.n
-implementation and acceptance items remain open.
+V47-V54 define V.n acceptance, not proof of completion. The main workspace/editor
+flow is implemented and focused checks plus synthetic desktop/narrow geometry
+were observed. Correction-preview menus/help remain overlays; real application
+workflows, 200% zoom, short viewport, actual PDF/print comparison and human
+accessibility/usability evidence remain outstanding. Apply V.n's explicit
+supersession rules to conflicting earlier geometry/menu assertions while
+retaining their preservation checks.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1654,6 +1665,6 @@ V.m source implementation was separately authorized; deployment and live-data
 changes still require separate authorization. It excludes Sources redesign,
 editable diff restoration, arbitrary source-format comparison and ancestry
 rewriting.
-V.n is documentation only. Implementation, local/remote deployment, migrations
-and live-data changes require separate authorization; earlier milestone grants
-do not authorize this follow-up.
+V.n source implementation was authorized by "Implement Milestone V.n". Local or
+remote deployment, migrations and live-data changes still require separate
+authorization.

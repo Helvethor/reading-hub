@@ -29,7 +29,7 @@ function setup(query = "") {
       data-sources-url="/documents/5/lineage/?filter=sources&amp;selected=snapshot%3A4&amp;embedded=1"
       data-lineage-path="/documents/5/lineage/" data-version-id="12">
       <div class="workspace-chrome">
-        <p id="workspace-baseline-state"></p><p id="workspace-save-state"></p><p id="workspace-compact-state"></p>
+        <p id="workspace-baseline-state"></p><p id="workspace-save-state"></p>
         <div role="tablist">
           <button role="tab" data-workspace-tab="read" aria-controls="workspace-panel-read">Read</button>
           <button role="tab" data-workspace-tab="edit" aria-controls="workspace-panel-edit">Edit</button>
@@ -103,7 +103,7 @@ function mount(form, snapshot) {
   });
 }
 
-test("Back to top refreshes the sticky stack and button without a scroll event", () => {
+test("Back to top scrolls the active content owner without creating sticky chrome", () => {
   const form = setup();
   const owner = {
     scrollTop: 500,
@@ -120,101 +120,36 @@ test("Back to top refreshes the sticky stack and button without a scroll event",
   const chrome = document.querySelector(".workspace-chrome");
   const button = document.querySelector("#workspace-back-to-top");
 
-  assert.equal(header.dataset.compact, "false");
-  assert.equal(chrome.dataset.compact, "false");
-  header.dataset.compact = "true";
-  chrome.dataset.compact = "true";
+  assert.equal(header.hasAttribute("data-compact"), false);
+  assert.equal(chrome.hasAttribute("data-compact"), false);
   button.hidden = false;
   button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 1}));
 
   assert.equal(owner.scrollTop, 0);
-  assert.equal(header.dataset.compact, "false");
-  assert.equal(chrome.dataset.compact, "false");
+  assert.equal(header.parentElement.classList.contains("workspace-sticky-slot"), false);
+  assert.equal(chrome.parentElement.classList.contains("workspace-sticky-slot"), false);
   assert.equal(button.hidden, true);
   assert.equal(shell.selectTab instanceof Function, true);
 });
 
-test("tiny scrolling preserves flow geometry through compaction, reversal and resize", () => {
+test("scrolling and resizing do not introduce density changes or reserved stack space", () => {
   const form = setup();
   const header = document.querySelector(".site-header");
   const chrome = document.querySelector(".workspace-chrome");
-  const review = document.querySelector(".review-navigation");
-  let y = 0;
-  let expandedHeader = 120;
-  let expandedChrome = 220;
-  const box = (top, height) => ({top, bottom: top + height, height});
-  const headerHeight = () => header.dataset.compact === "true" ? 56 : expandedHeader;
-  const chromeHeight = () => chrome.dataset.compact === "true" ? 72 : expandedChrome;
-  const reserved = (element, height) => {
-    const slot = element.parentElement;
-    return slot.classList.contains("workspace-sticky-slot")
-      ? parseFloat(slot.style.height) || height() : height();
-  };
-  const range = () => 5000 + reserved(header, headerHeight) + reserved(chrome, chromeHeight);
-  let lastRange = range();
-  // Model anchoring at each forced layout, not merely after the scroll handler.
-  const flushLayout = () => {
-    const next = range();
-    y += next - lastRange;
-    lastRange = next;
-  };
-  header.getBoundingClientRect = () => { flushLayout(); return box(0, headerHeight()); };
-  chrome.getBoundingClientRect = () => { flushLayout(); return box(0, chromeHeight()); };
-  review.getBoundingClientRect = () => box(0, 40);
-  const create = document.createElement.bind(document);
-  document.createElement = name => {
-    const element = create(name);
-    if (name === "span") {
-      element.getBoundingClientRect = () => {
-        flushLayout();
-        const origin = element.nextElementSibling?.contains(chrome)
-          ? reserved(header, headerHeight) + 160 : 0;
-        return box(origin - y, 0);
-      };
-    }
-    return element;
-  };
   mount(form, {
     draft: null, revision: 0,
     document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
   });
   const workspace = document.querySelector("#unified-workspace");
-  let paneReservation = workspace.style.getPropertyValue(
-    "--workspace-pane-stack-reservation",
-  );
-  const scroll = target => {
-    y = target;
-    const before = range();
+  for (const target of [0, 1, 150, 1000, 0]) {
+    window.scrollTo({top: target});
     window.dispatchEvent(new window.Event("scroll"));
-    flushLayout();
-    assert.equal(y, target, "A transition must not move the scroll position.");
-    assert.equal(range(), before, "A transition must not change the scroll range.");
-    assert.equal(workspace.style.getPropertyValue(
-      "--workspace-pane-stack-reservation",
-    ), paneReservation, "Compaction must not resize the content pane.");
-    const state = [header.dataset.compact, chrome.dataset.compact];
-    for (let i = 0; i < 3; i++) window.dispatchEvent(new window.Event("scroll"));
-    assert.deepEqual([header.dataset.compact, chrome.dataset.compact], state,
-      "No further input must leave the state stable.");
-    return state;
-  };
-  for (let i = 0; i <= 150; i++) scroll(i);
-  assert.deepEqual(scroll(150), ["true", "true"]);
-  for (let i = 150; i >= 0; i--) scroll(i);
-  assert.deepEqual(scroll(0), ["false", "false"]);
-  assert.deepEqual(scroll(1000), ["true", "true"]);
-  expandedHeader = 180;
-  expandedChrome = 320;
-  window.dispatchEvent(new window.Event("resize"));
-  paneReservation = workspace.style.getPropertyValue(
-    "--workspace-pane-stack-reservation",
-  );
-  assert.equal(paneReservation, "540px", "A real viewport/layout change remeasures the reservation.");
-  assert.equal(header.parentElement.style.height, "180px");
-  assert.equal(chrome.parentElement.style.height, "320px");
-  const resizedY = y;
-  assert.deepEqual(scroll(resizedY), ["true", "true"]);
-  assert.deepEqual(scroll(0), ["false", "false"]);
+    window.dispatchEvent(new window.Event("resize"));
+    assert.equal(header.hasAttribute("data-compact"), false);
+    assert.equal(chrome.hasAttribute("data-compact"), false);
+    assert.equal(workspace.querySelector(".workspace-sticky-slot"), null);
+    assert.equal(workspace.style.length, 0);
+  }
 });
 
 test("Read uses the current captured document and tab history keeps the editor mounted", async () => {
@@ -247,7 +182,6 @@ test("Read uses the current captured document and tab history keeps the editor m
   assert.equal(new URL(location.href).searchParams.get("tab"), "read");
   assert.equal(document.querySelector("#workspace-save-state").textContent,
     "No working copy has been created; the original saved edition is unchanged.");
-  assert.equal(document.querySelector("#workspace-compact-state").textContent, "Edition 12 · source");
   assert.equal(shell.selectTab instanceof Function, true);
   history.replaceState({}, "", "?tab=edit");
   window.dispatchEvent(new window.PopStateEvent("popstate"));
@@ -1029,146 +963,16 @@ test("a late Read response does not move the page of another active tab", async 
   assert.match(document.querySelector("#workspace-read-content").textContent, /Rendered/);
 });
 
-test("Read and Reader tools share a stage height from compact measured chrome", () => {
+test("workspace tabs and commands do not create sticky reservations", () => {
   const form = setup();
-  const header = document.querySelector(".site-header");
-  const navigation = document.querySelector(".review-navigation");
-  const chrome = document.querySelector(".workspace-chrome");
-  const readPanel = document.querySelector("#workspace-panel-read");
-  const actions = document.querySelector(".workspace-read-actions");
-  let actionHeight = 45;
-  header.getBoundingClientRect = () => {
-    const height = header.dataset.compact === "true" ? 40 : 80;
-    return {top: 0, bottom: height, height, left: 0, right: 0, width: 0};
-  };
-  navigation.getBoundingClientRect = () => ({
-    top: 0, bottom: 20, height: 20, left: 0, right: 0, width: 0,
-  });
-  chrome.getBoundingClientRect = () => {
-    const height = chrome.dataset.compact === "true" ? 30 : 70;
-    return {top: 0, bottom: height, height, left: 0, right: 0, width: 0};
-  };
-  actions.getBoundingClientRect = () => ({
-    top: 0, bottom: actionHeight, height: actionHeight, left: 0, right: 0, width: 0,
-  });
-  readPanel.hidden = true;
+  const edit = document.querySelector("#workspace-panel-edit");
   mount(form, {
     draft: null, revision: 0,
     document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
   });
   const workspace = document.querySelector("#unified-workspace");
-  assert.equal(readPanel.hidden, true, "Measuring a hidden Read tab does not expose it.");
-  assert.equal(
-    workspace.style.getPropertyValue("--workspace-read-compact-reservation"), "135px",
-  );
-  header.dataset.compact = "true";
-  chrome.dataset.compact = "true";
-  window.dispatchEvent(new window.Event("scroll"));
-  assert.equal(
-    workspace.style.getPropertyValue("--workspace-read-compact-reservation"), "135px",
-    "Ordinary compaction does not resize the reading stage.",
-  );
-  actionHeight = 55;
-  window.dispatchEvent(new window.Event("resize"));
-  assert.equal(
-    workspace.style.getPropertyValue("--workspace-read-compact-reservation"), "145px",
-    "A measured action-row change recalculates the available stage height.",
-  );
-});
-
-test("visible secondary bars stack below the shared navigation and hidden ones are ignored", () => {
-  const form = setup();
-  const read = document.querySelector("#workspace-panel-read");
-  const edit = document.querySelector("#workspace-panel-edit");
-  const bar = (parent, height) => {
-    const element = document.createElement("div");
-    element.dataset.workspaceSubbar = "";
-    element.getBoundingClientRect = () => ({top: 0, bottom: height, height, left: 0, right: 0, width: 0});
-    parent.prepend(element);
-    return element;
-  };
-  const readBar = bar(read, 30);
-  const tabs = bar(edit, 20);
-  const commands = bar(edit, 40);
-  edit.append(commands);
-  document.querySelector(".workspace-chrome").getBoundingClientRect =
-    () => ({top: 0, bottom: 50, height: 50, left: 0, right: 0, width: 0});
-  mount(form, {
-    draft: null, revision: 0,
-    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
-  });
-  const workspace = document.querySelector("#unified-workspace");
-  assert.equal(tabs.style.getPropertyValue("--workspace-subbar-top"), "50px");
-  assert.equal(commands.style.getPropertyValue("--workspace-subbar-top"), "70px");
-  assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "110px");
-  assert.equal(readBar.style.getPropertyValue("--workspace-subbar-top"), "");
-});
-
-test("resizing command rows updates following sticky offsets without a window resize", () => {
-  const form = setup();
-  const edit = document.querySelector("#workspace-panel-edit");
-  const commands = document.createElement("div"), following = document.createElement("div");
-  let commandHeight = 89;
-  for (const bar of [commands, following]) {
-    bar.dataset.workspaceSubbar = "";
-    edit.append(bar);
-  }
-  commands.getBoundingClientRect = () => ({height: commandHeight});
-  following.getBoundingClientRect = () => ({height: 20});
-  document.querySelector(".workspace-chrome").getBoundingClientRect = () => ({height: 50});
-  const previous = globalThis.ResizeObserver;
-  let resize;
-  globalThis.ResizeObserver = class {
-    constructor(callback) {
-      const observed = new Set();
-      this.observe = element => observed.add(element);
-      resize = element => { if (observed.has(element)) callback(); };
-    }
-  };
-  try {
-    mount(form, {
-      draft: null, revision: 0,
-      document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
-    });
-    const workspace = document.querySelector("#unified-workspace");
-    assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "159px");
-    commandHeight = 56;
-    resize(commands);
-    assert.equal(following.style.getPropertyValue("--workspace-subbar-top"), "106px");
-    assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "126px");
-    commandHeight = 102;
-    resize(commands);
-    assert.equal(following.style.getPropertyValue("--workspace-subbar-top"), "152px");
-    assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "172px");
-  } finally {
-    if (previous === undefined) delete globalThis.ResizeObserver;
-    else globalThis.ResizeObserver = previous;
-  }
-});
-
-test("unstuck secondary bars take no space in the sticky stack", () => {
-  const form = setup();
-  const edit = document.querySelector("#workspace-panel-edit");
-  const bar = (height, position) => {
-    const element = document.createElement("div");
-    element.dataset.workspaceSubbar = "";
-    if (position) element.style.position = position;
-    element.getBoundingClientRect = () => ({top: 0, bottom: height, height, left: 0, right: 0, width: 0});
-    edit.append(element);
-    return element;
-  };
-  const tabs = bar(20);
-  const toolbar = bar(300, "static");
-  const after = bar(10);
-  document.querySelector(".workspace-chrome").getBoundingClientRect =
-    () => ({top: 0, bottom: 50, height: 50, left: 0, right: 0, width: 0});
-  mount(form, {
-    draft: null, revision: 0,
-    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
-  });
-  const workspace = document.querySelector("#unified-workspace");
-  assert.equal(tabs.style.getPropertyValue("--workspace-subbar-top"), "50px");
-  assert.equal(toolbar.style.getPropertyValue("--workspace-subbar-top"), "70px");
-  assert.equal(after.style.getPropertyValue("--workspace-subbar-top"), "70px");
-  assert.equal(workspace.style.getPropertyValue("--workspace-full-stack"), "80px");
+  assert.equal(edit.querySelector("[data-workspace-subbar]"), null);
+  assert.equal(workspace.querySelector(".workspace-sticky-marker"), null);
+  assert.equal(workspace.querySelector(".workspace-sticky-slot"), null);
+  assert.equal(workspace.style.length, 0);
 });

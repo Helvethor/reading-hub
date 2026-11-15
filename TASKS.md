@@ -305,14 +305,19 @@ without certifying its outstanding acceptance.
   report observed/synthetic/unverified evidence separately.
 
 Permanent compact workspace and in-flow menus V.n (agreed 2026-11-15;
-documentation only, implementation not started):
+main workspace/editor source implementation delivered, acceptance partial):
 the [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-workspace-and-in-flow-menus)
 owns the consolidated design and V47-V54 acceptance. This is the next workspace
 layout milestone after delivered V.m, not certification of earlier acceptance.
 Replace conflicting sticky/compaction and overlay requirements; preserve V.k's
 separate Read/Edit content panes and V.l's exclusive reader modes. No dependency
 on the separate bibliographic date display follow-up is introduced.
-Implementation, deployment and live-data changes require separate authorization.
+The user authorized source implementation with "Implement Milestone V.n".
+Focused frontend/backend checks pass, and a synthetic fixture was observed at
+desktop and narrow widths. Legacy correction-preview menus/help still use
+overlays; actual application, PDF/print, 200% zoom, short-viewport and human
+accessibility/usability acceptance remain open. No deployment or live-data
+changes were performed.
 
 - [ ] A: deliver the same permanent compact shell for guest/reviewer workspaces;
   essential type/version/title identity, separate concise operational state,
@@ -321,6 +326,8 @@ Implementation, deployment and live-data changes require separate authorization.
   page flow, pane sizing and focus/anchor navigation. Convert shared navigation,
   account/appearance, reviewer and editor contextual menus plus narrow-screen
   reader tools to in-flow panels without covering content or losing selection.
+  Main workspace/editor flow is implemented; legacy correction-preview menus
+  and help popovers remain a known V49 gap.
 - [ ] C: complete V47-V54 with isolated article and media-rich book fixtures,
   measured before/after chrome, long-menu and native scrolling journeys,
   keyboard/zoom/short/narrow checks, pending-state/history preservation and actual

@@ -428,7 +428,8 @@ class DocumentEditorViewTests(TestCase):
         download = workspace.select_one("#workspace-panel-read #workspace-download-pdf")
         self.assertEqual(download.get_text(strip=True), "PDF")
         self.assertTrue(download.has_attr("disabled"))
-        self.assertTrue(download.find_parent(attrs={"data-workspace-subbar": True}))
+        self.assertTrue(download.find_parent(class_="workspace-read-actions"))
+        self.assertFalse(download.find_parent(attrs={"data-workspace-subbar": True}))
         structure_tab = workspace.select_one('#editor-tab-structure[role="tab"]')
         self.assertEqual(structure_tab.get_text(strip=True), "Pinned source structure")
         structure = workspace.select_one("#editor-panel-structure")
@@ -441,7 +442,7 @@ class DocumentEditorViewTests(TestCase):
             workspace.select_one("#workspace-panel-edit > details.editor-book-structure"),
         )
         for selector in (".editor-tabs", ".editor-pilot-toolbar"):
-            self.assertTrue(workspace.select_one(selector).has_attr("data-workspace-subbar"))
+            self.assertFalse(workspace.select_one(selector).has_attr("data-workspace-subbar"))
         self.assertNotContains(response, 'aria-label="Work destinations"', html=False)
         self.assertNotContains(response, 'aria-label="Work reviewer tools"')
         self.assertContains(
@@ -482,7 +483,7 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'aria-label="Book parts"')
         self.assertContains(response, "Whole book")
         self.assertNotContains(response, "lower-right handle")
-        self.assertContains(response, "The canvas scrolls with the page")
+        self.assertContains(response, "The outline and toolbar stay in normal page flow")
         for value, label in (("book", "Whole book"), ("title", "Title"),
                              ("toc", "ToC"), ("sections", "Sections")):
             self.assertContains(response, f'<option value="{value}">{label}</option>')
