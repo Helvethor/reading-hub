@@ -187,6 +187,20 @@ acceptance remains open; the reported working-copy freeze has not been
 reproduced. The user authorized implementation and local deployment; live-data
 changes remain unauthorized.
 
+**V.p corrective replan (2026-11-15; documentation only):**
+the user reports that `.workspace-read-actions` styling is still not unified
+and child elements under `.workspace-panel-edit` or `.editor-workspace` cannot
+receive mouse interaction. Reopen both outcomes; shared CSS classes and passing
+synthetic tests are not completion evidence. First diagnose and restore native
+interaction in an authorized active working copy, checking ancestor inertness,
+disabled states, hit testing, event handling and initialization/state transitions
+without removing working-copy or permission guards. Then explicitly unify the
+computed Read-action and editor-command styling, including theme overrides,
+buttons, links, reader-mode groups and selected/focus states in public and
+reviewer Read. The [V.p corrective plan](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vp-corrective-replan)
+orders these gates and strengthens V61/V64 acceptance. Earlier deployment stays
+historical; this replan does not authorize further implementation or deployment.
+
 **Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.
 For ISO date-time strings, preserve the date as written and do not convert it
