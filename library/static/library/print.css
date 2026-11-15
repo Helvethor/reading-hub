@@ -37,6 +37,8 @@
   .document-header h1 { string-set: book-title content(); }
   .document-contents h2 { string-set: section-title content(); }
   [data-pdf-section] { string-set: section-title attr(data-pdf-section); }
+  /* A zero-height start marker avoids resetting the title on each section fragment. */
+  .pdf-section-start { display: block; height: 0; line-height: 0; }
   html, body { margin: 0; background: white !important; color: black; }
   .site-header, .site-footer, .reader-toolbar, .reader-review-entry, .review-navigation, .toc-panel, .version-details, .reading-style-controls,
   .site-messages, .skip-link, .print-options, .reading-column > noscript { display: none !important; }

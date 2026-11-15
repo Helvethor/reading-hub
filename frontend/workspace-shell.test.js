@@ -947,6 +947,10 @@ test("pdfFilename prefers RFC 5987 names and tolerates plain parameters", () => 
   assert.equal(pdfFilenameFromTitle("Why? Now"), "Why - Now.pdf");
   assert.equal(pdfFilenameFromTitle("La homiĝo – étude"), "La homiĝo – étude.pdf");
   assert.equal(pdfFilenameFromTitle("A?? / : B"), "A - B.pdf");
+  assert.equal(pdfFilenameFromTitle("Qu’est-ce que la révolution permanente - : Thèses-1"),
+    "Qu’est-ce que la révolution permanente - Thèses-1.pdf");
+  assert.equal(pdfFilenameFromTitle("A - - B"), "A - B.pdf");
+  assert.equal(pdfFilenameFromTitle("keep-this — and this"), "keep-this — and this.pdf");
   assert.equal(pdfFilenameFromTitle("?title?"), "-title-.pdf");
   assert.equal(pdfFilenameFromTitle("CON"), "_CON.pdf");
 });

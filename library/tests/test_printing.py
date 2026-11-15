@@ -22,6 +22,7 @@ from library.services.pdf import (
     mark_pdf_flow,
     pdf_filename,
     render_pdf,
+    running_sections,
     split_pdf_paragraph,
 )
 from library.services.storage import store_blob
@@ -802,6 +803,81 @@ class PrintingTests(TestCase):
         self.assertAlmostEqual(min(top for top, _bottom in line_boxes), 24, delta=0.25)
         self.assertLess(max(bottom for _top, bottom in line_boxes), page_height - 18)
 
+    def test_article_running_headers_follow_outline_on_continuation_pages(self):
+        self.version.title = "Article identity"
+        self.version.metadata.update(
+            work_type="article", title_layout="compact", metadata_page=False,
+            layout={"version": 1, "overrides": {}},
+        )
+        self.version.structure = {"book": False, "toc": []}
+        self.version.html = (
+            '<section id="c1" data-section-role="article">'
+            "<p>" + "Introductory passage. " * 1200 + "</p>"
+            '<h2 id="first">First section</h2>'
+            "<p>" + "First section passage. " * 1200 + "</p>"
+            '<h4 id="second">Second section</h4>'
+            "<p>" + "Second section passage. " * 1200 + "</p></section>"
+        )
+        self.version.save(update_fields=["title", "metadata", "structure", "html"])
+        pdf = self.pdf()
+
+        def page_text_and_header(page):
+            header = []
+
+            def capture_header(text, cm, tm, font, size):
+                x = cm[0] * tm[4] + cm[2] * tm[5] + cm[4]
+                y = cm[1] * tm[4] + cm[3] * tm[5] + cm[5]
+                if x > float(page.mediabox.width) / 2 and y > float(page.mediabox.height) - 85:
+                    header.append(text)
+
+            body = page.extract_text(visitor_text=capture_header)
+            return body, "".join(header)
+
+        pages = [page_text_and_header(page) for page in pdf.pages[1:]]
+        for body, header in (
+            ("Introductory passage", "Article identity"),
+            ("First section passage", "First section"),
+            ("Second section passage", "Second section"),
+        ):
+            self.assertTrue(
+                any(text.count(body) > 5 and header in running
+                    for text, running in pages),
+                f"Missing {header!r} in continuation-page headers: "
+                f"{[running for _, running in pages]!r}",
+            )
+        self.assertTrue(all("c1" not in header for _, header in pages))
+        self.assertEqual(pdf.metadata.title, "Article identity")
+
+    def test_article_running_headers_retain_local_title_and_nested_boundaries(self):
+        markup = (
+            '<article class="reader-content"><section id="book"><h2>Book part</h2>'
+            '<section id="story" data-section-role="article" data-section-label="Story title">'
+            '<p>Introduction</p><h2 id="one">First heading</h2>'
+            '<section id="child"><h2>Child title</h2></section>'
+            '<h3 id="two">Next heading</h3></section></section></article>'
+        )
+        soup = BeautifulSoup(running_sections(markup, "Book", book=True), "html.parser")
+        self.assertEqual(soup.select_one("#story > .pdf-section-start")["data-pdf-section"],
+                         "Story title")
+        self.assertEqual(soup.select_one("#one")["data-pdf-section"], "First heading")
+        self.assertEqual(soup.select_one("#child h2")["data-pdf-section"], "Child title")
+        self.assertEqual(soup.select_one("#two")["data-pdf-section"], "Next heading")
+
+    def test_legacy_article_headers_use_navigation_titles_without_changing_prose(self):
+        markup = (
+            '<article class="reader-content"><section id="c1"><p>Introduction</p>'
+            '<h2 id="one" data-reading-marker="I. ">First heading</h2>'
+            '<p>Body</p></section></article>'
+        )
+        soup = BeautifulSoup(running_sections(
+            markup, "Article title", work_type="article",
+            entries=[{"id": "one", "title": "Outline title"}],
+        ), "html.parser")
+        self.assertEqual(soup.select_one(".pdf-section-start")["data-pdf-section"],
+                         "Article title")
+        self.assertEqual(soup.select_one("#one")["data-pdf-section"], "I. Outline title")
+        self.assertEqual(soup.get_text(), BeautifulSoup(markup, "html.parser").get_text())
+
     def test_title_based_filename_preserves_unicode_and_is_filesystem_safe(self):
         for title, expected in [
             ("Print test", "Print test.pdf"),
@@ -811,6 +887,10 @@ class PrintingTests(TestCase):
             ("A/B", "A - B.pdf"),
             ('Why? A/B: "test"', "Why - A - B - test-.pdf"),
             ("A?? / : B", "A - B.pdf"),
+            ("Qu’est-ce que la révolution permanente - : Thèses-1",
+             "Qu’est-ce que la révolution permanente - Thèses-1.pdf"),
+            ("A - - B", "A - B.pdf"),
+            ("A-?-B", "A- - -B.pdf"),
             (" A ? B ", "A - B.pdf"),
             ("keep-this — and this", "keep-this — and this.pdf"),
             ("../CON", "-CON.pdf"),
@@ -914,6 +994,14 @@ class PrintingTests(TestCase):
             from urllib.parse import unquote
 
             self.assertIn("La homiĝo – étude.pdf", unquote(response.headers["Content-Disposition"]))
+            response.close()
+            self.version.title = "Qu’est-ce que la révolution permanente - : Thèses-1"
+            self.version.save(update_fields=["title"])
+            response = self.client.get(f"/versions/{self.version.pk}/download.pdf")
+            self.assertIn(
+                "Qu’est-ce que la révolution permanente - Thèses-1.pdf",
+                unquote(response.headers["Content-Disposition"]),
+            )
             response.close()
         with patch("library.views.cached_pdf", side_effect=PDFExportError("Please retry")):
             with self.assertLogs("library", level="ERROR"):

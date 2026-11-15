@@ -57,6 +57,7 @@ export function pdfFilenameFromTitle(title) {
   name = name.replace(/\s+/g, " ").trim().replace(/^[ .]+|[ .]+$/g, "").slice(0, 150)
     .replace(/[ .]+$/g, "") || "Untitled";
   name = name.replaceAll(separator, " - ");
+  name = name.replace(/(?<=\s)-(?:\s+-)+(?=\s|$)/g, "-");
   if (name.startsWith(" - ")) name = `-${name.slice(3)}`;
   if (name.endsWith(" - ")) name = `${name.slice(0, -3)}-`;
   if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i.test(name)) name = `_${name}`;

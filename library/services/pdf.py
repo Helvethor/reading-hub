@@ -20,7 +20,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 16
+PDF_PRESENTATION_VERSION = 17
 PDF_XMP_NAMESPACE = "urn:reading-hub:pdf:1.0"
 
 
@@ -351,6 +351,7 @@ def pdf_filename(title):
     name = re.sub(r"(?:\s*\x00\s*)+", separator, name)
     name = " ".join(name.split()).strip(" .")[:150].rstrip(" .") or "Untitled"
     name = name.replace(separator, " - ")
+    name = re.sub(r"(?<=\s)-(?:\s+-)+(?=\s|$)", "-", name)
     if name.startswith(" - "):
         name = "-" + name[3:]
     if name.endswith(" - "):
@@ -369,13 +370,33 @@ class RenderErrors(logging.Handler):
         self.messages.append(record.getMessage())
 
 
-def running_sections(markup):
+def running_sections(markup, document_title="", *, book=False, work_type="", entries=()):
     from bs4 import BeautifulSoup
 
-    from library.services.book_views import section_title
+    from library.services.book_views import heading_label, section_title
 
     soup = BeautifulSoup(markup, "html.parser")
-    for section in soup.select(".reader-content section"):
+    sections = soup.select(".reader-content section")
+    roots = [section for section in sections if section.find_parent("section") is None]
+    titles = {entry["id"]: entry["title"] for entry in entries if entry.get("id")}
+    for section in sections:
+        root_article = not book and len(roots) == 1 and section is roots[0]
+        article = section.get("data-section-role") == "article" or (
+            root_article and work_type == "article" and not section.get("data-section-role")
+        )
+        if article:
+            title = titles.get(section.get("id")) or (
+                document_title if root_article else section.get("data-section-label", "")
+            )
+            start = soup.new_tag("span")
+            start["class"] = "pdf-section-start"
+            start["data-pdf-section"] = title.strip() or "Untitled article"
+            section.insert(0, start)
+            for heading in section.find_all(["h2", "h3", "h4", "h5", "h6"]):
+                if heading.find_parent("section") is section:
+                    label = titles.get(heading.get("id")) or heading_label(heading).strip()
+                    heading["data-pdf-section"] = heading.get("data-reading-marker", "") + label
+            continue
         title = section_title(section)
         if title is not None:
             title["data-pdf-section"] = title.get("data-reading-marker", "") + title.get_text(
@@ -520,7 +541,10 @@ def render_pdf(
                 profile=profile_for_theme(theme),
             ), url_fetcher=fetch, font_config=font_config),
         ]
-        markup = mark_pdf_flow(running_sections(markup))
+        markup = mark_pdf_flow(running_sections(
+            markup, version.title, book=generated_book, work_type=metadata.get("work_type", ""),
+            entries=projection["entries"],
+        ))
         # Moves are forward-only; remeasure after each layout rather than treating
         # an earlier move as proof that later image gaps have been filled.
         for attempt in range(32):

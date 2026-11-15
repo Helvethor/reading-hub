@@ -345,6 +345,8 @@ unsafe-character runs become spaced ` - ` separators (for example,
 `Title: Subtitle` -> `Title - Subtitle.pdf`). Preserve original legal hyphens,
 Unicode, filename safety/length limits and M.k title-only naming. Stored titles,
 PDF title metadata, content and retained output identity are unchanged.
+Adjacent standalone hyphen separators collapse to one in download filenames;
+hyphens within words are retained.
 Follow-up M.i (specified only, M20-M21) unifies Metadata and Edition/review
 status with shared end-matter typography, spacing and width, subtly distinguished
 from main prose by a fine divider and opening space. Preserve readable contrast,
@@ -1188,6 +1190,8 @@ right (including continuation pages), and current/total page numbers centered
 below, only on content pages. Title/metadata and generated contents pages,
 including continuations, have no running headers or footers. Header titles and
 page numbers use 9pt text; page counters still include all PDF pages.
+Article content starts with the article's own title as its running section;
+its subsequent H2-H6 headings update that title to match navigation.
 Long running titles occupy separate bounded columns, top-aligned at a fixed 6mm
 inset from the page edge. Wrapping extends downward without changing the first
 line's position or the 18mm body margin. These margin boxes
