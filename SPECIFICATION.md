@@ -149,8 +149,9 @@ preview, generated title/metadata pages and PDF. This is display-only: stored
 metadata, parser evidence and immutable editions remain unchanged. Exact
 timestamp displays for lineage/history records are outside this follow-up.
 The [date display milestone](TASKS.md#bibliographic-date-display-follow-up)
-owns its acceptance criteria. Source implementation is recorded in TASKS.md;
-deployment and live-data changes remain unauthorized.
+owns its acceptance criteria. Source implementation and the separately
+requested localhost deployment are recorded in TASKS.md. No migration or
+live-record change was authorized or performed.
 
 **Shared structural guideline:** use consistent gutters, spacing, control sizes,
 headings, status presentation and form/error/action placement. Reading, form and

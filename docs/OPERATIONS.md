@@ -962,6 +962,26 @@ click timed out, so no live browser interaction acceptance is claimed. No
 application Python or source-profile code changed, so no worker action was
 taken. V36-V40 browser/PDF/human acceptance remains partial.
 
+Bibliographic date display local deployment (2026-11-15): commit `e66496f`
+serves from `data/releases/e66496f` on `127.0.0.1:8765`, retaining the existing
+data root and `READING_HUB_EDITOR_PILOT=1`. The verified web PID 2532853 was
+gracefully replaced by PID 2727987; the port-8000 service was not touched.
+`manage.py check` passed against the actual data root, `migrate --plan` was
+empty, and `makemigrations --check --dry-run` found no changes. No migration or
+live-record change was made.
+
+Release-local locked frontend dependencies and the editor bundle were built;
+`findstatic` resolved both editor assets. The home and version 103 reader
+returned HTTP 200, as did the generated editor JS/CSS, public-workspace bundle,
+workspace stylesheet and lineage stylesheet. Browser inspection of version
+103 showed its Published value as `2026-03-10`, without clock or timezone.
+The version 103 PDF endpoint returned HTTP 200 with `application/pdf`, but its
+deployed text was not extracted (`pdftotext` is unavailable). The worker page
+redirected to sign-in, so worker states could not be verified and no workers
+were restarted; active workers may still require a code refresh. This is a
+bounded local deployment check, not full PDF, usability or accessibility
+acceptance, and is not a public release.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

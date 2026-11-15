@@ -400,8 +400,9 @@ from workspace delivery.
 
 ## Bibliographic date display follow-up
 
-**Status:** implemented; synthetic checks pass; live/browser acceptance remains
-unverified (agreed 2026-11-15).
+**Status:** implemented; synthetic checks pass; localhost deployment complete,
+with version 103's reader date observed in the browser. Deployed PDF date output
+and human usability/accessibility remain unverified (agreed 2026-11-15).
 
 **Outcome:** bibliographic dates display as dates at their known precision,
 without exposing timestamp clock or timezone details. On the observed reader
@@ -413,8 +414,9 @@ instant, which this display-only milestone does not do.
 The [specification](SPECIFICATION.md#agreed-bibliographic-date-display-follow-up)
 owns the presentation contract. Keep exact lineage/history timestamps unchanged.
 No metadata, parser evidence, immutable edition, or live record is to be
-rewritten. This request authorizes display-only source changes, not deployment,
-migration or live-record changes.
+rewritten. The user authorized display-only source changes and later separately
+requested local deployment; no migration or live-record change was authorized
+or performed.
 
 - [x] Normalize typed date-role values and legacy publication fallback for
   reader metadata, editor preview, generated title and metadata pages, and PDF.
@@ -441,13 +443,17 @@ findings in legacy test code, and whole-file formatting remains non-clean
 because of pre-existing style in these Python files. No unrelated lint fixes or
 reformatting were applied.
 
-**Observed evidence:** the version 103 timestamp above is the user's reported
-observation and acceptance example; it was not independently checked against
-the local service or a browser during this implementation.
+**Observed evidence (2026-11-15):** the local release `e66496f` serves on
+`127.0.0.1:8765`. Browser inspection of version 103 showed the Published value
+as `2026-03-10`, with no clock time or timezone. The home and reader routes,
+five relevant static assets, and the version 103 PDF endpoint returned HTTP 200.
+The PDF response was `application/pdf`; its deployed text was not extracted.
+No migration or live-record change was made. Worker status could not be verified
+because the worker page redirected to sign-in; no workers were restarted.
 
-**Unverified:** live version 103 browser rendering, human usability/accessibility,
-and deployed PDF/browser behavior. No deployment, migration, or live-record
-change was performed.
+**Unverified:** the deployed PDF's date text, human usability/accessibility, and
+worker states. The observed reader page is a bounded local browser check, not
+full workflow or accessibility acceptance.
 
 ## UX follow-up milestone P: publication completion and defaults (2026-11-11)
 
