@@ -23,6 +23,8 @@ class ProcessPersistenceTests(SimpleTestCase):
             environment = {
                 **os.environ,
                 "READING_HUB_DATA": str(Path(directory, "data")),
+                "READING_HUB_DATABASE_PATH": str(Path(directory, "data", "library.sqlite3")),
+                "READING_HUB_ENVIRONMENT": "test",
                 "PYTHONPATH": os.pathsep.join([directory, str(settings.BASE_DIR)]),
             }
             script = """
@@ -107,7 +109,11 @@ finally:
 
     def test_crawler_html_survives_restart_and_formats_without_network(self):
         with tempfile.TemporaryDirectory(prefix="reading-hub-crawl-cache-test-") as directory:
-            environment = {**os.environ, "READING_HUB_DATA": directory}
+            environment = {
+                **os.environ, "READING_HUB_DATA": directory,
+                "READING_HUB_DATABASE_PATH": os.path.join(directory, "library.sqlite3"),
+                "READING_HUB_ENVIRONMENT": "test",
+            }
             setup = (
                 "import os; os.environ['DJANGO_SETTINGS_MODULE']='config.settings';"
                 "import django; django.setup();"
@@ -175,6 +181,8 @@ print('persistent crawler cache reused')
             environment = {
                 **os.environ,
                 "READING_HUB_DATA": str(Path(directory, "data")),
+                "READING_HUB_DATABASE_PATH": str(Path(directory, "data", "library.sqlite3")),
+                "READING_HUB_ENVIRONMENT": "test",
                 "READING_HUB_PROFILE": "custom_profile",
                 "PYTHONPATH": os.pathsep.join([directory, str(settings.BASE_DIR)]),
             }
@@ -204,7 +212,11 @@ print('custom profile ready')
 
     def test_concurrent_requests_and_process_restart_keep_the_same_cache(self):
         with tempfile.TemporaryDirectory(prefix="reading-hub-process-test-") as directory:
-            environment = {**os.environ, "READING_HUB_DATA": directory}
+            environment = {
+                **os.environ, "READING_HUB_DATA": directory,
+                "READING_HUB_DATABASE_PATH": os.path.join(directory, "library.sqlite3"),
+                "READING_HUB_ENVIRONMENT": "test",
+            }
 
             def execute(script):
                 result = subprocess.run(

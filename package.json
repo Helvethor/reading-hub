@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node frontend/build.mjs",
+    "watch": "node frontend/build.mjs --watch",
     "check:editor": "node frontend/check.mjs",
     "test": "node --test frontend/editor.test.js frontend/reading-styles.test.js frontend/themes.test.js frontend/document-diffs.test.js frontend/diff-controls.test.js frontend/workflow-panels.test.js frontend/workspace-shell.test.js frontend/reader-workspace.test.js frontend/public-workspace.test.js frontend/page-scroll.test.js"
   },

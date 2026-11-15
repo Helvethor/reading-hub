@@ -5,6 +5,34 @@ configured websites in a consistent format. Retain original sources, generate
 tables of contents, cache immutable editions, and review extraction mistakes
 without overwriting historical readers.
 
+## Contributor workflow
+
+Use an isolated preview, not the live localhost instance, to develop and test:
+
+```sh
+python workflow.py dev init
+python workflow.py dev start
+python workflow.py test library.tests.test_document_editor_views
+python workflow.py dev status
+python workflow.py dev stop
+```
+
+Python >= 3.14, Node/npm and WeasyPrint's system libraries are prerequisites.
+Initialization installs missing locked dependencies, migrates only private
+development storage and creates offline article/book fixtures with local test
+identities. The command prints the private credential-file location, never its
+contents. Development defaults to `127.0.0.1:8766`; code/templates reload and
+frontend assets rebuild automatically. Refresh the browser after an edit.
+Each checkout/worktree has separate data, cookies, assets and process controls;
+use `dev start --port PORT` for concurrent previews.
+
+For a frozen candidate use `stage prepare COMMIT` then `stage start COMMIT`;
+staging defaults to port 8767. Live promotion requires a registered, verified
+listener and the explicit `live promote COMMIT --confirm-live` command.
+Developing, testing or preparing staging never authorizes live deployment.
+See the [environment lifecycle](docs/OPERATIONS.md) for setup, acceptance,
+staging, migration gates and rollback.
+
 See the [project assessment](docs/PROJECT-ASSESSMENT.md) and current
 [roadmap](TASKS.md) for direction and bounded acceptance evidence. The work-centred
 workflow is implemented; both visual cleanup and structural UI/UX consolidation

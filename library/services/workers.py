@@ -95,6 +95,11 @@ def reconcile(worker):
 
 
 def _start(worker):
+    if not settings.READING_HUB_ALLOW_WORKERS:
+        raise WorkerControlError(
+            "Workers are disabled in this environment. Restart its preview with --allow-workers "
+            "only when isolated import processing is intended."
+        )
     if reconcile(worker):
         if not worker.desired_running:
             raise WorkerControlError("Worker is stopping. Wait for it to finish before starting.")

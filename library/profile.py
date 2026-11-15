@@ -190,6 +190,8 @@ def site_context(request):
         "site": profile,
         "reading_hub_profile": profile,
         "app_version": APP_VERSION,
+        "runtime_environment": settings.READING_HUB_ENVIRONMENT,
+        "runtime_revision": settings.READING_HUB_REVISION,
         "theme_choices": theme_choices(),
         "selected_theme": selected_theme(request),
         "sort_labels": [

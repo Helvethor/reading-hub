@@ -1,8 +1,20 @@
+from django.conf import settings
+from django.http import JsonResponse
+
+
 class ReaderPolicyMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.path == "/__environment__/" and settings.READING_HUB_INSTANCE:
+            response = JsonResponse({
+                "environment": settings.READING_HUB_ENVIRONMENT,
+                "revision": settings.READING_HUB_REVISION,
+                "instance": settings.READING_HUB_INSTANCE,
+            })
+            response.headers["Cache-Control"] = "no-store"
+            return response
         response = self.get_response(request)
         panel = getattr(response, "editor_panel", False)
         editor = request.resolver_match and request.resolver_match.url_name == "document-editor"

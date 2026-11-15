@@ -26,6 +26,8 @@ class Command(BaseCommand):
         parser.add_argument("--token")
 
     def handle(self, *args, **options):
+        if not settings.READING_HUB_ALLOW_WORKERS:
+            raise CommandError("Workers are disabled in this isolated environment.")
         worker = None
         if options["worker_id"] is not None:
             worker = WorkerInstance.objects.filter(

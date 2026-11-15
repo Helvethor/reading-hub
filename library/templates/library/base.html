@@ -44,6 +44,7 @@
       </div>
     </details>
   </header>
+  <aside class="site-messages" aria-label="Runtime environment"><p class="notice" data-runtime-environment="{{ runtime_environment }}">{{ runtime_environment|capfirst }} &middot; {{ runtime_revision }}</p></aside>
   {% if messages %}<div class="site-messages" role="status">{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}</div>{% endif %}
   <main id="main">{% include "library/review_navigation.html" %}{% block content %}{% endblock %}</main>
   <footer class="site-footer">{{ site.footer }}</footer>

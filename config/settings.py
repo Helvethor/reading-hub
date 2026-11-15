@@ -1,9 +1,34 @@
+import hashlib
 import os
 import secrets
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
+from config.environments import validate_environment
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get("READING_HUB_DATA", BASE_DIR / "data"))
+READING_HUB_ENVIRONMENT = os.environ.get("READING_HUB_ENVIRONMENT", "live")
+if READING_HUB_ENVIRONMENT != "live" and not os.environ.get("READING_HUB_DATA"):
+    raise ImproperlyConfigured("Non-live environments require an explicit READING_HUB_DATA.")
+try:
+    DATA_DIR, DATABASE_PATH = validate_environment(
+        READING_HUB_ENVIRONMENT,
+        BASE_DIR,
+        os.environ.get("READING_HUB_DATA", BASE_DIR / "data"),
+        os.environ.get(
+            "READING_HUB_DATABASE_PATH",
+            Path(os.environ.get("READING_HUB_DATA", BASE_DIR / "data")) / "library.sqlite3",
+        ),
+    )
+except (ValueError, OSError) as exc:
+    raise ImproperlyConfigured(str(exc)) from exc
+READING_HUB_REVISION = os.environ.get("READING_HUB_REVISION", "unmanaged")
+READING_HUB_INSTANCE = os.environ.get("READING_HUB_INSTANCE", "")
+READING_HUB_ALLOW_WORKERS = (
+    READING_HUB_ENVIRONMENT in {"live", "test"}
+    or os.environ.get("READING_HUB_ALLOW_WORKERS") == "1"
+)
 DATA_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
 secret_path = DATA_DIR / "secret-key"
 try:
@@ -13,7 +38,7 @@ try:
 except FileExistsError:
     pass
 SECRET_KEY = secret_path.read_text(encoding="ascii").strip()
-DEBUG = False
+DEBUG = READING_HUB_ENVIRONMENT == "development"
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -56,9 +81,7 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.environ.get(
-            "READING_HUB_DATABASE_PATH", DATA_DIR / "library.sqlite3",
-        ),
+        "NAME": DATABASE_PATH,
         "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
     }
 }
@@ -76,6 +99,10 @@ LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
+if READING_HUB_ENVIRONMENT != "live":
+    cookie_suffix = hashlib.sha256(str(DATA_DIR).encode()).hexdigest()[:16]
+    SESSION_COOKIE_NAME = f"reading_hub_{cookie_suffix}_session"
+    CSRF_COOKIE_NAME = f"reading_hub_{cookie_suffix}_csrf"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
