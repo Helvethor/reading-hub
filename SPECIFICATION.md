@@ -138,7 +138,7 @@ The [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-work
 owns scope and V47-V54 acceptance. Documentation consolidation does not authorize
 implementation, deployment or live-data changes.
 
-**Agreed bibliographic date display follow-up (2026-11-15; documentation only):**
+**Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.
 For ISO date-time strings, preserve the date as written and do not convert it
 between timezones or append a timezone when the time is hidden. Preserve
@@ -149,8 +149,8 @@ preview, generated title/metadata pages and PDF. This is display-only: stored
 metadata, parser evidence and immutable editions remain unchanged. Exact
 timestamp displays for lineage/history records are outside this follow-up.
 The [date display milestone](TASKS.md#bibliographic-date-display-follow-up)
-owns its acceptance criteria. Implementation, deployment and live-data changes
-have not been authorized.
+owns its acceptance criteria. Source implementation is recorded in TASKS.md;
+deployment and live-data changes remain unauthorized.
 
 **Shared structural guideline:** use consistent gutters, spacing, control sizes,
 headings, status presentation and form/error/action placement. Reading, form and

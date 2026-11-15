@@ -398,7 +398,10 @@ Coordinate shared shell/entry points with publication milestone P and title
 projection with article milestone A; do not claim those acceptance rows complete
 from workspace delivery.
 
-## Bibliographic date display follow-up (agreed 2026-11-15; documentation only)
+## Bibliographic date display follow-up
+
+**Status:** implemented; synthetic checks pass; live/browser acceptance remains
+unverified (agreed 2026-11-15).
 
 **Outcome:** bibliographic dates display as dates at their known precision,
 without exposing timestamp clock or timezone details. On the observed reader
@@ -407,23 +410,43 @@ page for version 103, `2026-03-10T09:12:46+00:00` should display as
 through a timezone. The timezone determines a date only when converting an
 instant, which this display-only milestone does not do.
 
-The [specification](SPECIFICATION.md#agreed-bibliographic-date-display-follow-up-2026-11-15-documentation-only)
+The [specification](SPECIFICATION.md#agreed-bibliographic-date-display-follow-up)
 owns the presentation contract. Keep exact lineage/history timestamps unchanged.
 No metadata, parser evidence, immutable edition, or live record is to be
-rewritten. This request consolidates the milestone documentation; code
-implementation, deployment and live-data changes have not been authorized.
+rewritten. This request authorizes display-only source changes, not deployment,
+migration or live-record changes.
 
-- [ ] Normalize typed date-role values and legacy publication fallback for
+- [x] Normalize typed date-role values and legacy publication fallback for
   reader metadata, editor preview, generated title and metadata pages, and PDF.
-- [ ] Preserve `YYYY`, `YYYY-MM` and `YYYY-MM-DD` precision; format ISO
+- [x] Preserve `YYYY`, `YYYY-MM` and `YYYY-MM-DD` precision; format ISO
   date-time values using their written calendar-date portion only, without
   timezone conversion or a timezone suffix. Apply the same rule to both ends
   of a date range.
-- [ ] Leave malformed or free-text date values unchanged; preserve all
+- [x] Leave malformed or free-text date values unchanged; preserve all
   non-date metadata, and do not mutate source values while rendering.
-- [ ] Add focused isolated checks for precision, timezone-bearing timestamps,
+- [x] Add focused isolated checks for precision, timezone-bearing timestamps,
   ranges, legacy fallback and unrecognized values; verify reader/editor/PDF
   output with a synthetic fixture and record unobserved workflow evidence.
+
+**Synthetic evidence (2026-11-15):** 45 isolated tests passed across
+`test_editor_metadata` and `test_printing`; the reader HTML and extracted PDF
+text show normalized typed dates and legacy publication fallback. The editor
+test rendered generated title and metadata pages in jsdom and confirmed the
+input metadata remained unchanged. All 277 `frontend/editor.test.js` tests
+passed. `npm run build`, isolated `manage.py check`,
+`makemigrations --check --dry-run`, targeted Ruff lint/import checks, and
+whitespace validation passed. The build emitted existing Node/npm compatibility
+and configuration warnings. A whole-file Ruff format check remains non-clean
+because of pre-existing formatting in these legacy Python files; no unrelated
+reformatting was applied.
+
+**Observed evidence:** the version 103 timestamp above is the user's reported
+observation and acceptance example; it was not independently checked against
+the local service or a browser during this implementation.
+
+**Unverified:** live version 103 browser rendering, human usability/accessibility,
+and deployed PDF/browser behavior. No deployment, migration, or live-record
+change was performed.
 
 ## UX follow-up milestone P: publication completion and defaults (2026-11-11)
 

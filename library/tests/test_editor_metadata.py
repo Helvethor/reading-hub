@@ -2,14 +2,20 @@ import io
 from copy import deepcopy
 from unittest.mock import patch
 
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from pypdf import PdfReader
 
 from library.models import CanonicalAuthor
 from library.services.document_edits import save_revision, validate_editor_metadata
 from library.services.document_metadata import (
-    book_pages, fact_spans, metadata_entries, metadata_rows, page_preset, title_facts,
+    book_pages,
+    fact_spans,
+    metadata_entries,
+    metadata_page_rows,
+    metadata_rows,
+    page_preset,
+    title_facts,
 )
 from library.services.document_publication import prepare_publication, publish_revision
 from library.services.pdf import render_pdf
@@ -60,6 +66,56 @@ class EditorMetadataTests(TestCase):
         self.assertIn(("Editor", "An Editor"), entries)
         self.assertIn(("Online edition", "2026-10-25"), entries)
         self.assertNotIn(("Author", "Not an author"), entries)
+
+    def test_bibliographic_dates_keep_precision_and_render_without_mutation(self):
+        metadata = {
+            "publisher": "Press 2026-03-10T09:12:46+00:00",
+            "title_page_fields": ["written", "delivered", "publication", "online_edition", "date"],
+            "date_facts": [
+                {"type": "written", "value": "2026", "end_value": "2026-03"},
+                {
+                    "type": "delivered", "value": "2026-03-10T23:12:46-04:00",
+                    "end_value": "2026-03-11T01:12:46+14:00",
+                },
+                {"type": "online_edition", "value": "2026-03-10T09:12:46Z"},
+                {"type": "unknown", "value": "2026-03-10"},
+                {"type": "unknown", "value": "c. 1902"},
+                {"type": "unknown", "value": "2026-02-31T09:12:46Z"},
+            ],
+            "published": "2026-03-10T09:12:46+00:00",
+        }
+        original = deepcopy(metadata)
+        expected = [
+            ("Written", "2026 / 2026-03"),
+            ("Delivered", "2026-03-10 / 2026-03-11"),
+            ("Online edition", "2026-03-10"),
+            ("Date (role unconfirmed)", "2026-03-10"),
+            ("Date (role unconfirmed)", "c. 1902"),
+            ("Date (role unconfirmed)", "2026-02-31T09:12:46Z"),
+            ("Published", "2026-03-10"),
+        ]
+        date_labels = {
+            "Written",
+            "Delivered",
+            "Online edition",
+            "Date (role unconfirmed)",
+            "Published",
+        }
+        entries = metadata_entries(metadata)
+        date_entries = [(label, value) for _key, label, value in entries if label in date_labels]
+        self.assertEqual(date_entries, expected)
+        self.assertEqual(metadata_rows(metadata), expected)
+        metadata_page = metadata_page_rows(metadata, "Title", "Source")
+        self.assertEqual(
+            [(label, value) for label, value in metadata_page if label in date_labels],
+            expected,
+        )
+        self.assertEqual(
+            [fact["value"] for fact in title_facts(metadata, "Source")],
+            [value for _label, value in expected],
+        )
+        self.assertEqual(entries[0], ("publisher", "Publisher", original["publisher"]))
+        self.assertEqual(metadata, original)
 
     def test_bibliographic_text_fields_and_original_language_are_editable(self):
         original = self.draft.document["metadata"]
@@ -191,7 +247,7 @@ class EditorMetadataTests(TestCase):
         )
         candidate = prepare_publication(self.draft, row.revision)
         published = publish_revision(self.draft, self.reviewer, row.revision, candidate["digest"])
-        reader = self.client.get(reverse("reader", args=[published.rendition_id]))
+        reader = Client().get(reverse("reader", args=[published.rendition_id]))
         self.assertContains(reader, "<dt>Rights</dt><dd>Public Domain</dd>", html=False)
         self.assertNotContains(reader, "<dt>Translator</dt>")
         html = reader.content.decode()
@@ -331,7 +387,7 @@ class EditorMetadataTests(TestCase):
         self.assertEqual(candidate["output"]["metadata"], row.document["metadata"])
         published = publish_revision(self.draft, self.reviewer, 1, candidate["digest"])
         self.assertEqual(published.rendition.metadata, row.document["metadata"])
-        reader = self.client.get(reverse("reader", args=[published.rendition_id]))
+        reader = Client().get(reverse("reader", args=[published.rendition_id]))
         self.assertContains(reader, "A Translator")
         self.assertContains(reader, "1891 / 1892")
         self.assertContains(reader, "History, Philosophy")

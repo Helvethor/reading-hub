@@ -60,6 +60,30 @@ export function bookPages(metadata, book) {
 
 const textValue = value => value.split("\n").map(line => line.trim()).filter(Boolean).join("; ");
 
+const dateTimePattern = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}(?::?\d{2})?)?$/;
+
+function validCalendarDate(year, month, day) {
+  if (month < 1 || month > 12) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= days[month - 1];
+}
+
+function formatBibliographicDate(value) {
+  if (typeof value !== "string") return value;
+  const match = dateTimePattern.exec(value);
+  if (!match) return value;
+  const [year, month, day] = match[1].split("-").map(Number);
+  const hour = Number(match[2]), minute = Number(match[3]);
+  const second = match[4] === undefined ? 0 : Number(match[4]);
+  if (!validCalendarDate(year, month, day) || hour > 23 || minute > 59 || second > 59) return value;
+  if (match[5] && match[5] !== "Z") {
+    const [offsetHour, offsetMinute = "00"] = match[5].slice(1).replace(":", "").match(/.{2}/g);
+    if (Number(offsetHour) > 23 || Number(offsetMinute) > 59) return value;
+  }
+  return match[1];
+}
+
 export function metadataEntries(metadata, presentation = {}) {
   const entries = [];
   const type = workTypes.find(([key]) => key === metadata.work_type);
@@ -76,10 +100,11 @@ export function metadataEntries(metadata, presentation = {}) {
   }
   for (const date of metadata.date_facts || []) {
     const [key, label] = dateFields[date.type] || dateFields.unknown;
-    entries.push([key, label, date.value + (date.end_value ? ` / ${date.end_value}` : "")]);
+    entries.push([key, label, formatBibliographicDate(date.value) +
+      (date.end_value ? ` / ${formatBibliographicDate(date.end_value)}` : "")]);
   }
   if (metadata.published && !metadata.date_facts?.some(date => date.type === "publication")) {
-    entries.push(["publication", "Published", metadata.published]);
+    entries.push(["publication", "Published", formatBibliographicDate(metadata.published)]);
   }
   for (const [key, label] of textFields.slice(3)) {
     if (metadata[key]) entries.push([key, label, textValue(metadata[key])]);

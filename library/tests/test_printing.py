@@ -3,6 +3,7 @@ import io
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
@@ -170,6 +171,54 @@ class PrintingTests(TestCase):
             self.assertNotIn(internal, all_text)
         self.assertNotIn("Hidden Person", final)
         self.assertNotIn("Original prose", final)
+
+    def test_reader_and_pdf_render_bibliographic_dates_without_mutating_metadata(self):
+        metadata = {
+            **self.version.metadata,
+            "title_layout": "full",
+            "title_page_fields": [
+                "author", "written", "delivered", "publication", "online_edition", "date",
+            ],
+            "date_facts": [
+                {"type": "written", "value": "2026", "end_value": "2026-03"},
+                {
+                    "type": "delivered", "value": "2026-03-10T23:12:46-04:00",
+                    "end_value": "2026-03-11T01:12:46+14:00",
+                },
+                {"type": "online_edition", "value": "2026-03-10T09:12:46Z"},
+                {"type": "unknown", "value": "2026-02-31T10:11:12Z"},
+            ],
+            "published": "2026-03-10T09:12:46+00:00",
+        }
+        original = deepcopy(metadata)
+        self.version.metadata = metadata
+        self.version.save(update_fields=["metadata"])
+
+        response = self.client.get(f"/versions/{self.version.pk}/")
+        self.assertEqual(response.status_code, 200)
+        header = BeautifulSoup(response.content, "html.parser").select_one(".document-header")
+        reader_rows = list(zip(
+            [node.get_text() for node in header.select("dt")],
+            [node.get_text() for node in header.select("dd")],
+            strict=True,
+        ))
+        self.assertIn(("Published", "2026-03-10"), reader_rows)
+        self.assertIn(("Written", "2026 / 2026-03"), reader_rows)
+        self.assertIn(("Delivered", "2026-03-10 / 2026-03-11"), reader_rows)
+        self.assertIn(("Online edition", "2026-03-10"), reader_rows)
+        self.assertIn(("Date (role unconfirmed)", "2026-02-31T10:11:12Z"), reader_rows)
+        self.assertNotIn("09:12:46", header.get_text())
+        self.assertNotIn("+00:00", header.get_text())
+
+        pdf = self.pdf()
+        all_text = "\n".join(page.extract_text() for page in pdf.pages)
+        for value in ("2026-03-10", "2026 / 2026-03", "2026-03-10 / 2026-03-11",
+                      "2026-02-31T10:11:12Z"):
+            self.assertIn(value, all_text)
+        for detail in ("09:12:46", "23:12:46-04:00", "01:12:46+14:00", "+00:00"):
+            self.assertNotIn(detail, all_text)
+        self.version.refresh_from_db()
+        self.assertEqual(self.version.metadata, original)
 
     def test_pdf_metadata_round_trips_bounded_unicode_dates_and_review_evidence(self):
         self.version.metadata = {

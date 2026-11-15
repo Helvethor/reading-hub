@@ -986,6 +986,46 @@ test("generated title reflects live metadata and explicit clears without inserti
   assert.equal(editor.getHTML(), original);
 });
 
+test("generated editor pages format bibliographic dates without changing metadata", () => {
+  const value = {title: "Date display", metadata: {
+    title_layout: "full",
+    title_page_fields: ["written", "delivered", "publication", "online_edition", "date"],
+    date_facts: [
+      {type: "written", value: "2026", end_value: "2026-03"},
+      {type: "delivered", value: "2026-03-10T23:12:46-04:00",
+        end_value: "2026-03-11T01:12:46+14:00"},
+      {type: "online_edition", value: "2026-03-10T09:12:46Z"},
+      {type: "unknown", value: "2026-03-10"},
+      {type: "unknown", value: "c. 1902"},
+      {type: "unknown", value: "2026-02-31T09:12:46Z"},
+    ],
+    published: "2026-03-10T09:12:46+00:00",
+  }};
+  const original = JSON.stringify(value);
+  const form = mountSectionWorkspace("<p>Body</p>", {}, {readDocument: () => value});
+  const title = form.querySelector(".editor-title-page");
+  assert.deepEqual([...title.querySelectorAll("dd")].map(row => row.textContent), [
+    "2026 / 2026-03", "2026-03-10 / 2026-03-11", "2026-03-10",
+    "2026-03-10", "c. 1902", "2026-02-31T09:12:46Z", "2026-03-10",
+  ]);
+  const metadataPage = form.querySelector(".editor-metadata-page");
+  const rows = [...metadataPage.querySelectorAll("tr")].map(row => [
+    row.querySelector("th").textContent, row.querySelector("td").textContent,
+  ]);
+  assert.deepEqual(rows.filter(([label]) => [
+    "Written", "Delivered", "Published", "Online edition", "Date (role unconfirmed)",
+  ].includes(label)), [
+    ["Written", "2026 / 2026-03"],
+    ["Delivered", "2026-03-10 / 2026-03-11"],
+    ["Online edition", "2026-03-10"],
+    ["Date (role unconfirmed)", "2026-03-10"],
+    ["Date (role unconfirmed)", "c. 1902"],
+    ["Date (role unconfirmed)", "2026-02-31T09:12:46Z"],
+    ["Published", "2026-03-10"],
+  ]);
+  assert.equal(JSON.stringify(value), original);
+});
+
 test("ToC regenerates after section reorder, rename, undo and article replacement without adding targets", () => {
   const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>First body.</p></section>' +
     '<section id="b"><h2>Second</h2><p>Second body.</p></section>');

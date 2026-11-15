@@ -1,5 +1,7 @@
 """Shared bibliographic presentation for retained reader and PDF metadata."""
 
+import re
+
 from django.conf.locale import LANG_INFO
 from django.utils.translation import get_language_info
 
@@ -47,6 +49,43 @@ WORK_TYPES = (
 # Book-like works open with a full title page and a contents page; shorter works start
 # their text right below a compact title block. Explicit choices override these presets.
 BOOK_LIKE = frozenset({"book", "anthology", "pamphlet", "report"})
+DATE_TIME = re.compile(
+    r"^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?"
+    r"(Z|[+-]\d{2}(?::?\d{2})?)?$"
+)
+
+
+def _valid_calendar_date(year, month, day):
+    if not 1 <= month <= 12:
+        return False
+    leap = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    days_in_month = (31, 29 if leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    return 1 <= day <= days_in_month[month - 1]
+
+
+def _valid_time_and_offset(match):
+    _date, hour, minute, second, timezone = match.groups()
+    if int(hour) > 23 or int(minute) > 59 or (second is not None and int(second) > 59):
+        return False
+    if timezone and timezone != "Z":
+        offset = timezone[1:].replace(":", "")
+        offset_hour, offset_minute = int(offset[:2]), int(offset[2:] or "0")
+        if offset_hour > 23 or offset_minute > 59:
+            return False
+    return True
+
+
+def format_bibliographic_date(value):
+    """Hide an ISO timestamp's time while preserving its written calendar date."""
+    if not isinstance(value, str):
+        return value
+    date_time = DATE_TIME.fullmatch(value)
+    if not date_time:
+        return value
+    year, month, day = map(int, date_time.group(1).split("-"))
+    if not _valid_calendar_date(year, month, day) or not _valid_time_and_offset(date_time):
+        return value
+    return date_time.group(1)
 
 
 def page_preset(work_type, book):
@@ -121,13 +160,19 @@ def metadata_entries(metadata):
             entries.append((key, label, metadata[key]))
     dates = metadata.get("date_facts", [])
     for date in dates:
-        value = date["value"]
+        value = format_bibliographic_date(date["value"])
         if date.get("end_value"):
-            value += f" / {date['end_value']}"
+            value += f" / {format_bibliographic_date(date['end_value'])}"
         key, label = DATE_FIELDS[date["type"]]
         entries.append((key, label, value))
     if metadata.get("published") and not any(date["type"] == "publication" for date in dates):
-        entries.append(("publication", "Published", metadata["published"]))
+        entries.append(
+            (
+                "publication",
+                "Published",
+                format_bibliographic_date(metadata["published"]),
+            )
+        )
     for key, label in TEXT_FIELDS[3:]:
         if metadata.get(key):
             entries.append((key, label, text_value(metadata, key)))
