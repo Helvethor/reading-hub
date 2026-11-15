@@ -436,9 +436,10 @@ input metadata remained unchanged. All 277 `frontend/editor.test.js` tests
 passed. `npm run build`, isolated `manage.py check`,
 `makemigrations --check --dry-run`, targeted Ruff lint/import checks, and
 whitespace validation passed. The build emitted existing Node/npm compatibility
-and configuration warnings. A whole-file Ruff format check remains non-clean
-because of pre-existing formatting in these legacy Python files; no unrelated
-reformatting was applied.
+and configuration warnings. A broader Ruff check reports existing E501/B023
+findings in legacy test code, and whole-file formatting remains non-clean
+because of pre-existing style in these Python files. No unrelated lint fixes or
+reformatting were applied.
 
 **Observed evidence:** the version 103 timestamp above is the user's reported
 observation and acceptance example; it was not independently checked against
