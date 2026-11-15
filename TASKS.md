@@ -326,12 +326,13 @@ are authorized.
   narrow/short viewports and zoom. Separate observed, synthetic and untested
   evidence; do not mutate live records or claim earlier acceptance is complete.
 
-Unified editor and workspace interaction V.p (source implemented 2026-11-15;
-acceptance partial): the [V.p handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vp-unified-editor-and-workspace-interaction)
+Unified editor and workspace interaction V.p (source and local deployment
+delivered 2026-11-15 in release `2f54237`; acceptance partial): the
+[V.p handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vp-unified-editor-and-workspace-interaction)
 owns the coordinated design and V61-V66 acceptance. It supersedes the
 whole-Edit-scroll portion of the V.o feedback follow-up, not the other reading
-and preservation requirements. Source implementation is authorized; local
-deployment is separately requested. Live-data changes are not authorized.
+and preservation requirements. The user authorized source implementation and
+local deployment. Live-data changes are not authorized.
 
 - [ ] Reproduce and diagnose the reported pointer/selection problem on isolated
   representative data; current automated tests are synthetic and do not

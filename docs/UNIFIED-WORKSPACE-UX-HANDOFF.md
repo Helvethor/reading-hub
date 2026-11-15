@@ -60,10 +60,10 @@ deployment, not live-data changes. Deployment evidence is recorded in
 `docs/OPERATIONS.md`.
 
 Follow-up V.p, requested 2026-11-15, unifies editor and workspace interaction
-and revises Edit scroll ownership. Source implementation is delivered; V61-V66
-acceptance remains partial pending native-browser, output and accessibility
-checks. The reported working-copy pointer/selection freeze remains unreproduced.
-The user separately requested local deployment; live-data changes are not
+and revises Edit scroll ownership. Source implementation and local deployment
+are delivered in release `2f54237`; V61-V66 acceptance remains partial pending
+native-browser, output and accessibility checks. The reported working-copy
+pointer/selection freeze remains unreproduced. Live-data changes are not
 authorized.
 
 ## Outcome, authority and supersession
@@ -1635,8 +1635,9 @@ This deployment does not certify the reported live-editor freeze as fixed.
 
 ### V.p: unified editor and workspace interaction
 
-Source implementation delivered following the 2026-11-15 request; acceptance is
-partial. A reviewer opens an isolated long book,
+Source implementation and local deployment delivered following the 2026-11-15
+request in release `2f54237`; acceptance is partial. A reviewer opens an
+isolated long book,
 selects text in Content, navigates to a late section in the outline, edits it,
 checks differences and switches between Read, Metadata and Content without losing
 the pending work. The controls feel like one workspace; the editor and outline
@@ -1910,3 +1911,6 @@ remote deployment, migrations and live-data changes still require separate
 authorization.
 V.o source implementation and local deployment are delivered; live-data changes
 require separate authorization.
+V.p source implementation and local deployment are delivered in release
+`2f54237`; native-browser, PDF/print and human accessibility acceptance remain
+open. Live-data changes are not authorized.

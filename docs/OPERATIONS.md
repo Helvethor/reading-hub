@@ -1042,6 +1042,32 @@ freeze remains unreproduced; earlier isolated desktop/narrow native-input
 checks are not proof that it is fixed. PDF/print and wider human acceptance were
 not rerun for this source-only feedback deployment.
 
+V.p unified workspace local deployment (2026-11-15): release `2f54237` serves
+from `data/releases/2f54237` on `127.0.0.1:8765`, preserving the existing data
+root, `READING_HUB_EDITOR_PILOT=1`, Python executable and runserver flags. The
+verified web process from release `fb4c78f` (PID 2992074) was gracefully
+replaced by PID 2999421. The separate port-8000 service was not touched.
+
+Release-local `npm ci` and `npm run build` succeeded; npm's Node-version and
+existing `unsafe-perm` configuration warnings were nonfatal. Against the actual
+data root, `manage.py check` passed and `migrate --check --plan` reported no
+planned migration operations. `findstatic` resolved both generated editor
+assets, public-workspace JS and workspace/editor CSS. The isolated editor-view
+suite passed 45 tests for the cache-key correction; the implementation
+validation for `fb4c78f` passed 337 frontend tests, 49 isolated editor/navigation
+tests and its production build.
+
+Home and edition 103 Read returned HTTP 200. Workspace/editor CSS and the
+generated editor JS/CSS and public-workspace JS also returned HTTP 200 and
+matched the release bytes. The Read HTML contains the V.p workspace style cache
+key, and the isolated editor-view test verifies the editor bundle cache key.
+No migration or live-record change was made. Python and worker profile were
+unchanged, so no worker action was needed or performed; the separate port-8000
+service and unrelated untracked skills remain untouched. V61-V66 acceptance is
+still partial: native-browser geometry/input, actual PDF/print and human
+accessibility/usability checks remain open, and the reported pointer/selection
+freeze remains unreproduced. This is a local, not public, deployment.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not
