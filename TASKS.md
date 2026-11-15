@@ -326,7 +326,27 @@ are authorized.
   narrow/short viewports and zoom. Separate observed, synthetic and untested
   evidence; do not mutate live records or claim earlier acceptance is complete.
 
-V.o feedback follow-up (locally deployed in release `000fbab`):
+Unified editor and workspace interaction V.p (planned 2026-11-15; not
+implemented): the [V.p handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vp-unified-editor-and-workspace-interaction)
+owns the coordinated design and V61-V66 acceptance. It supersedes the
+whole-Edit-scroll portion of the V.o feedback follow-up when implemented, not
+the other reading and preservation requirements. Documentation is authorized;
+implementation, deployment and live-data changes are not.
+
+- [ ] Reproduce and diagnose the reported pointer/selection problem on isolated
+  representative data; record hit targets, scroll owners and limitations.
+- [ ] Replace whole-Edit scrolling with normal page scrolling and a
+  viewport-sized Content stage with independently scrolling outline and canvas;
+  adapt navigation, focus and position restoration.
+- [ ] Align editor tabs, Read actions and difference controls with the shared
+  workspace design in both supported themes and public/reviewer Read.
+- [ ] Consolidate routine statuses while retaining accurate comparison context,
+  safety warnings, actionable failures and accessible feedback.
+- [ ] Complete V61-V66 with focused tests and isolated browser journeys; record
+  actual observations and remaining input/accessibility limitations separately.
+
+V.o feedback follow-up (locally deployed in release `000fbab`; its whole-Edit
+scroll model is planned to be superseded by V.p):
 
 - [x] Remove the remaining editor page top margin, empty context-notice row
   and editor scope help, preserving material identity and warnings.

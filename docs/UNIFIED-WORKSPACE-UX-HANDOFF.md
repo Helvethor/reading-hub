@@ -59,6 +59,11 @@ acceptance remains partial. The user authorized implementation and local
 deployment, not live-data changes. Deployment evidence is recorded in
 `docs/OPERATIONS.md`.
 
+Follow-up V.p, planned 2026-11-15, unifies editor and workspace interaction,
+revises Edit scroll ownership and investigates the reported pointer problem.
+It is documented only; V61-V66 are not yet implemented or validated. This
+request does not authorize implementation, deployment or live-data changes.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -1626,6 +1631,91 @@ as release `000fbab` on 2026-11-15. Home, edition 103 Read and all five checked
 workspace/editor assets returned HTTP 200; asset bytes matched that release.
 This deployment does not certify the reported live-editor freeze as fixed.
 
+### V.p: unified editor and workspace interaction
+
+Planned 2026-11-15; documentation only. A reviewer opens an isolated long book,
+selects text in Content, navigates to a late section in the outline, edits it,
+checks differences and switches between Read, Metadata and Content without losing
+the pending work. The controls feel like one workspace; the editor and outline
+scroll independently while normal page scrolling keeps the surrounding chrome
+and other Edit views reachable.
+
+#### Evidence and supersession
+
+The current `#workspace-panel-edit` owns a bounded scrollbar, the editor surface
+has a separate `min(70dvh, 60rem)` height, and the outline has no independent
+desktop overflow bound. Local editor tabs use a different selected-tab shape
+from the workspace tabs; Read actions, difference controls and the editor
+toolbar have separate styling. Editor and difference status nodes contain both
+routine information and important state or guidance. The V.o feedback checks
+above observed native selection on isolated fixtures but did not reproduce the
+reported live working-copy freeze. A workspace element intercepting pointer
+events is a hypothesis, not a confirmed cause.
+
+V.p replaces the V.o feedback follow-up's whole-Edit-panel scrolling and its
+associated secondary-tab scroll-owner requirements when implemented. It does
+not reverse V.o's reading navigation, V.n's normal-flow chrome and in-flow
+menus, or earlier preservation requirements. Historical deployment and
+validation evidence remains historical, not evidence that V.p is complete.
+
+#### Scope and design
+
+- First reproduce the reported input failure where possible on an isolated
+  representative article or long-book working copy. Record viewport, active
+  tab, scroll positions, native hit targets and stacking/geometry, pointer
+  events, selection and any error. Compare with the previously successful
+  synthetic input checks; do not infer a live fix from an unreproduced symptom.
+  Correct an evidenced cause without globally disabling pointer events or
+  bypassing editor safety and focus behavior.
+- Remove the whole-Edit scroll box. Keep browser page scrolling and non-sticky,
+  in-flow workspace chrome; the Content stage itself fills approximately a
+  viewport, with a small consistent gutter, rather than a fixed 70dvh/60rem
+  content cap. A stage can extend below chrome in normal flow; do not make the
+  chrome sticky or require the entire page to fit simultaneously. Within the
+  bounded stage, the canvas content and outline each have their own native
+  vertical scroll owner, with no second scroller on the editor root. Their
+  size is independent of document length and stable while scrolling. Preserve
+  native wheel/trackpad, scrollbar, keyboard and boundary-chaining behavior.
+  On short or narrow screens, use an accessible fallback with reachable controls,
+  final content and footer; avoid clipping or a keyboard trap.
+- Metadata, Review and pinned structure remain fully reachable without a
+  whole-Edit scroll container. Adapt tab and page/content position restoration,
+  Back to top, caret reveal, outline following, internal links and focus return
+  to the real scroll owners. Keep in-flow contextual panels and dialogs usable
+  without clipping or covering their targets.
+- Use the workspace-tab visual pattern for local editor tabs, keeping both
+  tablists and their distinct semantic relationships, selected states and
+  keyboard behavior. Make reviewer and public Read actions and the editor
+  difference controls visually coherent with the compact editor toolbar:
+  spacing, typography, sizing, surfaces and focus treatment should agree without
+  turning actions into tabs or changing reader modes, destinations or behavior.
+  Retain light/dark theme contrast, responsive wrapping and accessible labels.
+- Remove redundant persistent status strips, consolidating routine editing state
+  with the existing save-state presentation. Keep loading, unsaved/saved and
+  unavailable states accurate; show material warnings and actionable save,
+  recovery, initialization and comparison failures. Keep the actual loaded
+  comparison baseline distinguishable from a selected but not yet loaded one.
+  Convey difference mode, added/removed meaning and restore/undo guidance
+  concisely or in discoverable contextual help; retain accessible live feedback
+  without repetitive announcements. Do not silently discard information.
+- Preserve the same editor instance, pending edits, undo/redo, selection, source
+  bindings, recovery, guarded actions, exact version/draft and permissions
+  across tabs and history. Layout and navigation must not save, publish, create
+  review events, alter reader defaults or persist style preferences. Saved and
+  draft Read, PDF/print, retained notes/media and public reader routes are
+  unchanged except for the intended screen presentation.
+
+#### Delivery and stopping point
+
+Treat diagnosis, scroll ownership, coherent controls/status and end-to-end
+validation as one bounded milestone, with coherent checkpoints as appropriate.
+Reuse existing workspace and scroll helpers, audit their callers and existing
+focused tests; do not introduce a framework, scrolling preference, new
+publication semantics or a general theme redesign. Use isolated data and native
+browser input; do not touch live corrections. V61-V66 are the acceptance
+contract, not proof of implementation or resolution of the reported freeze.
+Implementation, deployment and live-data changes require separate authority.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -1762,6 +1852,13 @@ unsaved edits. Track implementation and validation independently.
 | V59 | In guest and reviewer workspaces, remove redundant context space while keeping the exact full work/edition/draft identity and consequential reader-default distinction available. Exercise a populated pending/success status and an error under supported themes: its background, text and boundaries integrate with adjacent regions, remain legible and are announced; empty status reserves no strip. Material warnings stay visible and no pending edits or guarded operations are lost. |
 | V60 | Complete the whole saved/unsaved journey on isolated article and media-rich book fixtures using native pointer and keyboard input, desktop, narrow/short screens and 200% zoom. Verify position, editor selection/undo/recovery, permissions, history, notes/media and exact saved/draft PDF and browser print output before/after. Layout/navigation alone creates no preference, content, review, publication or reader-default writes. Record automated correctness, synthetic measurements, observed browser/PDF behavior and outstanding human accessibility/usability evidence separately. |
 
+| V61 | On isolated short-article and long-book drafts, use native pointer click, drag selection, outline interaction, wheel and keyboard input. Record the hit target, stacking/geometry, scroll owners and errors when investigating the reported freeze; exercise multiple positions and tab switches. Identify and fix any reproduced cause, then repeat the same input sequence. If the live symptom cannot be reproduced, record that limitation rather than claiming it fixed or changing live content. |
+| V62 | At 1440x900 and 1280x720, measure the Content stage against the viewport: when its top is aligned with the viewport top, its bottom is within a 1rem gutter, allowing 2 CSS px rounding tolerance. The whole Edit panel has no independent vertical scroll range; long editor content and a long outline have separate native scroll ranges, and each can reach its last item. Verify stable heights during scrolling, native boundary chaining, scrollbar dragging and page/footer reachability; short content does not create artificial prose overflow. Check short and 375px viewports and native 200% zoom for accessible controls and content without horizontal page overflow or a keyboard trap. |
+| V63 | Give page, canvas and outline distinct positions on an unsaved draft; switch local and main tabs and use Back/Forward. Restore the applicable positions and preserve the editor instance, selection, undo/redo and recovery. Exercise outline navigation/following, caret reveal, internal links, contextual panels, dialog focus return and Back to top: each targets the correct owner, without unexpected page jumps, clipping or hidden focus. Metadata, Review and pinned structure remain fully reachable without an Edit-panel scrollbar. |
+| V64 | Compare local Edit and workspace tabs in light and dark themes: selected state, sizing, spacing and focus treatment share the same visual language, while each tablist retains its own labels, keyboard navigation and panel relationships. In guest and reviewer Read and Edit, compare action/diff bars with the editor toolbar, including active reader modes, wrapped controls, desktop, 375px and 200% zoom. Buttons, links, select labels, destinations and mode behavior remain correct and usable. |
+| V65 | Exercise editor loading, unsaved, saved, additional-unsaved-after-save, unavailable and failure states, plus Result/Diffs, baseline selection before and after loading, changed ranges and failed baseline loads. Routine information does not occupy redundant persistent strips; the actual loaded baseline, diff meaning and restore/undo guidance remain available. Material warnings and actionable errors remain visible, accurate and accessible, with meaningful non-duplicated live announcements. |
+| V66 | Complete a saved/unsaved article and media-rich book journey through Read, Edit, Metadata, comparison and history on isolated fixtures. Verify exact content, notes/media, permissions, guarded actions, recovery and saved/draft PDF and browser print; layout/navigation alone makes no content, review, publication, reader-default or style-preference writes. Run focused existing regressions and build; report automated, synthetic, real-browser/output and untested/human accessibility evidence separately. V.p does not certify earlier partial acceptance. |
+
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
 Stop when the authorized scope is implemented and validated, not when tabs merely
@@ -1786,6 +1883,8 @@ retaining their preservation checks.
 V55-V60 define V.o acceptance, not proof of full validation. Apply V.o's explicit
 Larger content and screen-spacing supersession; preserve PDF and style invariants.
 Its implementation/local-deployment request does not authorize live-data changes.
+V61-V66 define the planned V.p acceptance; none is a completion claim or
+authorization to implement, deploy or change live data.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
