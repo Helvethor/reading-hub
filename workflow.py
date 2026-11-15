@@ -486,9 +486,28 @@ def start(spec, directory, *, replacement=None):
     if record_path.exists():
         record = read_json(record_path)
         if process_identity(record["pid"]) == record["start"]:
-            if owned(record) and health(spec, record["token"], supervisor=record):
-                print(f"Already running: http://127.0.0.1:{spec['port']}/")
-                return record
+            if owned(record):
+                existing = read_json(directory / "environment.json")
+                if any(
+                    existing.get(name) != spec.get(name)
+                    for name in (
+                        "role",
+                        "checkout",
+                        "data",
+                        "database",
+                        "python",
+                        "profile",
+                        "port",
+                        "allow_workers",
+                        "editor_pilot",
+                    )
+                ):
+                    raise WorkflowError(
+                        "Stop this environment before changing its runtime configuration."
+                    )
+                if health(existing, record["token"], supervisor=record):
+                    print(f"Already running: http://127.0.0.1:{existing['port']}/")
+                    return record
             raise WorkflowError("An existing supervisor is unhealthy; inspect its log/status.")
     if not replacement:
         port_free(spec["port"])
@@ -642,7 +661,13 @@ def live_preflight(spec):
     if not Path(spec["database"]).is_file() or not (Path(spec["data"]) / "secret-key").is_file():
         raise WorkflowError("Live database/key missing; refusing to create replacements.")
     django(spec, "check")
-    django(spec, "migrate", "--check")
+    try:
+        django(spec, "migrate", "--check")
+    except WorkflowError as exc:
+        raise WorkflowError(
+            "Live migration readiness failed; pending migrations require a separately "
+            "authorized backup/migration procedure. No process was stopped."
+        ) from exc
     with sqlite3.connect(Path(spec["database"]).as_uri() + "?mode=ro", uri=True) as database:
         active = database.execute(
             "SELECT id FROM library_workerinstance WHERE desired_running = 1 "

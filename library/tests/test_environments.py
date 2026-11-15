@@ -186,6 +186,30 @@ class EnvironmentContractTests(SimpleTestCase):
             listener.return_value = f"pid={os.getpid()},"
             self.assertTrue(workflow.health(spec, "replacement", supervisor={"pid": 456}))
 
+    def test_running_development_accepts_a_new_checkpoint_but_not_changed_permissions(self):
+        directory = self.root / "development"
+        old = workflow.new_spec(self.checkout, directory, "development", "old working tree", 8766)
+        record = workflow.process_record(os.getpid(), token="preview")
+        workflow.write_json(directory / "environment.json", old)
+        workflow.write_json(directory / "process.json", record)
+        requested = {**old, "revision": "new working tree"}
+        with (
+            patch("workflow.check_overrides"),
+            patch("workflow.environment"),
+            patch("workflow.owned", return_value=True),
+            patch("workflow.health", side_effect=lambda spec, *args, **kwargs: spec == old),
+            patch("workflow.subprocess.Popen") as launch,
+            patch("sys.stdout", new_callable=io.StringIO),
+        ):
+            self.assertEqual(workflow.start(requested, directory), record)
+            for changes in ({"allow_workers": True}, {"port": 8776}):
+                with (
+                    self.subTest(changes=changes),
+                    self.assertRaisesRegex(workflow.WorkflowError, "Stop this environment"),
+                ):
+                    workflow.start({**requested, **changes}, directory)
+            launch.assert_not_called()
+
     def test_candidate_source_and_assets_must_match_rehearsed_bytes(self):
         source = self.root / "source"
         source.mkdir()

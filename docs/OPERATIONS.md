@@ -124,6 +124,9 @@ token, terminating only descendants of that owned preview. An occupied port
 never authorizes stopping its owner. Processes are not boot services or crash
 respawners. An agent may use this bounded start command directly; do not replace
 its supervisor with a conversation-attached server or shell background trick.
+Repeated `dev start` remains idempotent after a new checkpoint; the displayed
+development revision identifies its startup base plus the current working tree.
+Stop before changing a running preview's port or worker permission.
 If the execution environment disallows independent processes, report that
 limitation rather than changing the live service.
 
