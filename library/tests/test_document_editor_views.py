@@ -627,6 +627,8 @@ class DocumentEditorViewTests(TestCase):
         self.assertNotContains(response, 'editor-scope-help')
         self.assertContains(response, 'id="workspace-baseline-state"')
         self.assertContains(response, 'class="workspace-tabs editor-tabs"')
+        editor_bundle = page.select_one('script[src*="library/generated/editor-pilot.js"]')
+        self.assertIn("workspace-vp-v66", editor_bundle["src"])
 
     def test_reading_style_controls_are_in_read_not_edit_and_never_style_editor(self):
         from bs4 import BeautifulSoup
