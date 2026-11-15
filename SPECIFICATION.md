@@ -121,7 +121,8 @@ Focused automated checks pass; authenticated
 browser, long-book, PDF/print, and human accessibility/usability acceptance
 remain outstanding.
 
-**Agreed workspace follow-up V.n (2026-11-15; documentation only):**
+**Agreed workspace follow-up V.n (2026-11-15; main source implementation
+delivered, acceptance partial):**
 use one permanent compact, vertically stacked workspace layout. Application
 navigation, workspace identity, tabs and command rows occupy normal page flow
 and scroll out of the viewport; remove expanded/compact transitions, sticky menu
@@ -135,8 +136,24 @@ Read/Edit content panes, reader modes, pending edits, focus, history, exact
 exports and guarded operations. This supersedes conflicting earlier sticky-stack,
 compaction and overlay-menu requirements, including narrow-screen reader tools.
 The [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-workspace-and-in-flow-menus)
-owns scope and V47-V54 acceptance. Documentation consolidation does not authorize
-implementation, deployment or live-data changes.
+owns scope and V47-V54 acceptance. Implementation was separately authorized;
+deployment and live-data changes were not.
+
+**Agreed reading-workspace follow-up V.o (2026-11-15; planned):**
+make document navigation reliable and give reading content the space promised
+by its controls. Fix content ToC targets in saved and draft Read, including
+preview replacement and history; retain metadata and edition-status navigation.
+In Larger content, use freed space for actual text, not just its container,
+without changing stored style settings or PDF output. This supersedes V.l's
+conflicting screen prose-width limit for Larger content only. Reduce screen
+paper's top and bottom whitespace toward the actual PDF margins, remove the
+unnecessary workspace context space and header-to-main gap, compact the shared
+site header, and integrate action status with adjacent themed regions. Preserve
+essential identity, consequential distinctions, warnings, live status, focus,
+scroll ownership, unsaved edits and exact exports. The
+[V.o handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vo-reliable-space-efficient-reading)
+defines scope, evidence and V55-V60 acceptance. This documentation request does
+not authorize implementation, deployment or live-data changes.
 
 **Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.

@@ -52,6 +52,12 @@ or live-data changes were made or authorized. Its V47-V54 contract supersedes
 conflicting earlier expanded/compact, sticky-stack and overlay-menu requirements,
 not their preservation invariants.
 
+Follow-up V.o, agreed 2026-11-15, consolidates reliable content navigation,
+effective Larger content, reduced reading whitespace and continuous compact
+chrome. It is planned only: the request to store the milestone did not authorize
+implementation, deployment or live-data changes. V55-V60 define acceptance
+without certifying V.n or earlier outstanding acceptance.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -1498,6 +1504,82 @@ the old sticky engine is insufficient. Defer a general scrolling-model rewrite,
 new density preferences, typography/profile redesign, new version/publication
 semantics, unrelated metadata work and live-record mutation.
 
+### V.o: reliable, space-efficient reading
+
+Agreed 2026-11-15; documentation only, not implemented or deployed. A reader of
+edition 103, "Une courte histoire de la révolution cubaine", selects
+"Révolution Permanente" in the ToC and reaches that heading in the reading
+pane. The reader can then select Larger content and actually gain text width,
+without losing position. The title and end of the screen paper no longer carry
+excess whitespace, and compact, continuous site/workspace chrome leaves more
+room for the work. The same journey works for an unsaved reviewer preview
+without saving it.
+
+#### Evidence and supersession
+
+- The reported URL had a doubly prefixed preview fragment with no matching ID
+  when opened as a saved-edition page. Source inspection of
+  `library/document_editor_views.py` indicates preview navigation entries can
+  receive the preview prefix twice, while content IDs receive it once. The
+  actual authenticated draft journey and all causes still need reproduction;
+  do not infer that saved-edition ToC links are all broken.
+- At a 1440px viewport in the opened saved edition, switching modes increased
+  the reading column from 978px to 1327px, but the body remained 653px. At
+  1024px the body did widen from 422px to 653px. These are observations of one
+  page and style, not universal dimensions or authenticated acceptance.
+- At 1024px the site header measured 88px, the header-to-main gap 16px, and
+  screen paper block padding about 113px (30mm) at each end. PDF CSS specifies
+  30mm normal block margins and a 24mm first compact-content-page top margin.
+  Other screen spacing, including title margins and print controls, also affects
+  the visible gap; actual PDF comparison is still outstanding. The action-status
+  theme break is user-reported; a populated status was not observed.
+- V.o supersedes V.l/V40's requirement that Larger content always preserve the
+  screen prose-width cap, and V.j/V31's fixed screen block padding where it
+  conflicts with measured PDF-like whitespace. Keep the other two reader modes,
+  their normal style limits and all style/PDF preservation requirements. V.n's
+  normal-flow shell, exact identity and warnings remain in force.
+
+#### Scope and preservation
+
+- Make ToC links to content, metadata and edition status resolve to the intended
+  unique target in the active reading pane for saved editions and unsaved
+  previews. Keep internal content links and ID-reference relationships correct.
+  Preserve navigation and visible position through asynchronous replacement,
+  mode/tab switches and Back/Forward. Support refresh/deep links where the
+  referenced content exists; an unsaved URL must not imply it can reconstruct
+  unsaved editor state. Prevent preview ID collisions and stale or double
+  prefixing rather than merely masking missing targets.
+- Larger content hides tools and expands actual prose and aligned document
+  sections when space permits, bounded by the available reading area. It is a
+  session-local screen layout mode, not a change to typography, stored
+  line-width values, scope/reset semantics, or PDF/print. Returning to Contents
+  or Style restores their configured width and preserves position and focus.
+- Adjust the complete screen title/top and final-content/bottom spacing against
+  actual PDF output, accounting for margins, paper padding and other intervening
+  elements. Adapt gracefully to narrow screens and explicit paper palettes.
+  Do not paginate the screen or change PDF/print geometry or content.
+- Remove the redundant workspace context space, not essential information:
+  retain exact edition/draft identity, full title, consequential reader-default
+  distinctions, visible material warnings and guarded actions. Remove the
+  unnecessary gap between header and main without hiding site messages or
+  reviewer navigation. Compact the shared header site-wide, retaining its
+  controls, normal-flow menus, legibility, focus and responsive wrapping.
+- Integrate populated action status with its adjacent themed regions, preserving
+  successful, pending and error messages and their live-region semantics; an
+  empty status must not reserve an extra strip. Maintain contrast and visible
+  focus in the supported themes.
+
+#### Delivery and stopping point
+
+Use the existing preview, scroll-owner, style and shared-header mechanisms; do
+not redesign the scrolling model, editor, versions, publication or theme systems.
+The site-wide header change includes representative non-workspace consumers.
+The remaining V.n legacy overlay work is not a prerequisite or part of V.o.
+Use isolated representative data and measure the actual browser and PDF, not
+only mocked geometry. V55-V60 are the stopping point for this milestone; earlier
+partial acceptance remains open. Deployment and live-data changes require
+separate authorization.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -1520,7 +1602,9 @@ checks are evidenced; report browser limitations rather than claiming full
 acceptance from jsdom tests. V.n source implementation is authorized and
 delivered for the main workspace/editor flows; the remaining correction-preview
 overlays and V47-V54 acceptance still require follow-up. Do not rebuild
-superseded compaction/overlay behavior.
+superseded compaction/overlay behavior. V.o is planned documentation only;
+implement it only after separate authorization and apply its stated width and
+screen-spacing supersession without changing PDF or stored style settings.
 
 ## Implementation discovery map
 
@@ -1625,6 +1709,13 @@ unsaved edits. Track implementation and validation independently.
 | V53 | Exercise short article and long media-rich book, saved/draft and guest/reviewer fixtures, at desktop, 375px, a short viewport and native 200% zoom. Use wheel/trackpad, scrollbar dragging and keyboard through last menu/tool/content entries and footer. Preserve separate Read/Edit pane and page scrolling, reader modes/style scopes and anchor/caret/ToC/Previous-Next-change/Back-to-top targeting without obsolete stack offsets. No horizontal page overflow, covered focus, clipped commands or unreachable content. |
 | V54 | Compare actual saved/draft PDF and browser print before/after: unchanged exact content/output identity, title/type/metadata, generated/end pages, notes, links, media, margins and palettes; no menu chrome or pane clipping. Run focused existing regressions/build/checks when implementing. Record automated correctness, synthetic geometry, observed browser/output journeys and outstanding tester/human accessibility/usability evidence separately; documentation or passing jsdom tests alone cannot close V.n. |
 
+| V55 | On isolated short-article and long-book saved and unsaved Read, select multiple content headings including a late chapter using pointer and keyboard. Each link resolves to the intended unique target and visibly reveals it in the document pane; metadata, edition-status and internal links also resolve. Test collision-prone IDs and ID references, preview replacement, main-tab changes, Back/Forward and refresh where content exists. No preview prefix is duplicated, no stale response overrides later navigation, and no URL claims to restore unsaved content it does not contain. |
+| V56 | At 1440x900 with the default style and a representative long-book fixture, measure the actual body content box in Contents and Larger content modes: Larger content is at least 20% wider when the available paper allows it. At 1024px and 375px verify actual width gains when space exists and no horizontal page overflow. Return to Contents and Style and restore configured limits, position and focus. Repeated mode changes do not persist a style or modify content; explicit style scope/reset behavior remains intact. |
+| V57 | Capture and measure top-of-title and end-of-content spacing in the browser alongside actual saved and draft PDF/print on the same fixtures. Screen whitespace reflects the relevant first-page/normal PDF margins rather than an accumulated paper padding plus unrelated control/heading gaps; measure those contributions explicitly. Narrow screens and explicit light/dark paper palettes remain usable. PDF page margins and output content are unchanged; unused remainder of a paginated last PDF page is not treated as a screen margin. |
+| V58 | Compare site header and header-to-main spacing before/after at 1024px with the same unwrapped guest navigation: the header is shorter than the observed 88px baseline and no empty 16px workspace gap remains. Exercise Library, discovery and a representative reviewer/admin page, long labels, notices, open account/appearance menus, 375px and 200% zoom. Navigation, site messages and reviewer navigation remain visible, usable and in flow without overflow or clipped focus. |
+| V59 | In guest and reviewer workspaces, remove redundant context space while keeping the exact full work/edition/draft identity and consequential reader-default distinction available. Exercise a populated pending/success status and an error under supported themes: its background, text and boundaries integrate with adjacent regions, remain legible and are announced; empty status reserves no strip. Material warnings stay visible and no pending edits or guarded operations are lost. |
+| V60 | Complete the whole saved/unsaved journey on isolated article and media-rich book fixtures using native pointer and keyboard input, desktop, narrow/short screens and 200% zoom. Verify position, editor selection/undo/recovery, permissions, history, notes/media and exact saved/draft PDF and browser print output before/after. Layout/navigation alone creates no preference, content, review, publication or reader-default writes. Record automated correctness, synthetic measurements, observed browser/PDF behavior and outstanding human accessibility/usability evidence separately. |
+
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
 Stop when the authorized scope is implemented and validated, not when tabs merely
@@ -1646,6 +1737,10 @@ workflows, 200% zoom, short viewport, actual PDF/print comparison and human
 accessibility/usability evidence remain outstanding. Apply V.n's explicit
 supersession rules to conflicting earlier geometry/menu assertions while
 retaining their preservation checks.
+V55-V60 define V.o acceptance, not proof of implementation or validation. Apply
+V.o's explicit Larger content and screen-spacing supersession; preserve PDF and
+style invariants. Its planning request did not authorize implementation,
+deployment or live-data changes.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify
@@ -1668,3 +1763,5 @@ rewriting.
 V.n source implementation was authorized by "Implement Milestone V.n". Local or
 remote deployment, migrations and live-data changes still require separate
 authorization.
+V.o is documented only; implementation, deployment and live-data changes
+require separate authorization.
