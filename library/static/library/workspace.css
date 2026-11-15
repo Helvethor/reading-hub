@@ -224,7 +224,7 @@
   .workspace-reader-tool-panel { overflow: visible; }
 }
 @media screen {
-  .workspace-read-content .publication-content { padding: 24mm 18mm 30mm; }
+  .workspace-read-content .publication-content { padding: 30mm 18mm 30mm; }
   .workspace-read-content .workspace-content-type { display: none; }
   .workspace-read-content .document-header > h2 { margin-block-start: 0; }
   .workspace-read-content .document-edition-status > :last-child { margin-block-end: 0; }
