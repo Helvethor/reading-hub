@@ -139,8 +139,8 @@ The [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-work
 owns scope and V47-V54 acceptance. Implementation was separately authorized;
 deployment and live-data changes were not.
 
-**Agreed reading-workspace follow-up V.o (2026-11-15; implementation delivered,
-acceptance partial):**
+**Agreed reading-workspace follow-up V.o (2026-11-15; implementation and local
+deployment delivered, acceptance partial):**
 make document navigation reliable and give reading content the space promised
 by its controls. Fix content ToC targets in saved and draft Read, including
 preview replacement and history; retain metadata and edition-status navigation.

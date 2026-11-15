@@ -982,6 +982,37 @@ were restarted; active workers may still require a code refresh. This is a
 bounded local deployment check, not full PDF, usability or accessibility
 acceptance, and is not a public release.
 
+Reliable, space-efficient reading V.o local deployment (2026-11-15): commit
+`185ea6a` serves from `data/releases/185ea6a` on `127.0.0.1:8765`, retaining the
+existing data root and `READING_HUB_EDITOR_PILOT=1`. The verified web process
+from release `8ab42bf` (PID 2797415) was gracefully replaced by PID 2804749;
+the separate port-8000 service remained available and was not touched. The
+release-local locked dependency install and frontend build succeeded with the
+existing Node/npm compatibility warnings. `manage.py check` passed against the
+actual data root, `migrate --check` found no pending migrations, and
+`findstatic` resolved both generated editor assets. No migration or live-record
+change was made.
+
+The isolated editor-view suite passed 44 tests, the workspace frontend suite
+passed 21 tests, the focused Ruff check passed, and the production build
+succeeded. After deployment, home, version 103 Read, app/workspace CSS, the
+public-workspace bundle, editor JS/CSS and the PDF route returned HTTP 200.
+Browser DOM measurements on version 103 showed the title and final-text insets
+at 113.375px (30mm), and Larger content widened prose from 653px to 840px.
+Programmatic DOM activation of the ToC reached its existing heading target and
+scrolled the reading pane; native mouse/keyboard automation did not activate
+the controls. At 375x812, the workspace had no horizontal overflow. The home
+header measured 64px at 1440px with its navigation visible.
+
+The PDF endpoint returned `application/pdf` and the same cached 9-page A4 file
+hash before and after deployment. Fresh renders from the previous and final
+releases also had matching 9-page A4 geometry and extracted-text digests; their
+PDF bytes were not identical. The worker page redirected to sign-in, so worker
+states could not be inspected and no workers were restarted; any active workers
+may still need a code refresh after the Python change. No live content was
+edited or published. V55-V60 and earlier usability/accessibility acceptance
+remain partial; this is a local, not public, deployment.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not

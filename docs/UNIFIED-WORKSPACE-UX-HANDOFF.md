@@ -54,9 +54,10 @@ not their preservation invariants.
 
 Follow-up V.o, agreed 2026-11-15, consolidates reliable content navigation,
 effective Larger content, reduced reading whitespace and continuous compact
-chrome. Source implementation is delivered and local deployment is pending;
-V55-V60 acceptance remains partial. The user authorized implementation and local
-deployment, not live-data changes.
+chrome. Source implementation and local deployment are delivered; V55-V60
+acceptance remains partial. The user authorized implementation and local
+deployment, not live-data changes. Deployment evidence is recorded in
+`docs/OPERATIONS.md`.
 
 ## Outcome, authority and supersession
 
@@ -1505,7 +1506,8 @@ semantics, unrelated metadata work and live-record mutation.
 
 ### V.o: reliable, space-efficient reading
 
-Agreed 2026-11-15; source implementation delivered, V55-V60 acceptance partial.
+Agreed 2026-11-15; implemented and deployed in release `185ea6a`, V55-V60
+acceptance partial.
 A reader of edition 103, "Une courte histoire de la révolution cubaine", selects
 "Révolution Permanente" in the ToC and reaches that heading in the reading
 pane. The reader can then select Larger content and actually gain text width,
@@ -1522,17 +1524,25 @@ without saving it.
   receive the preview prefix twice, while content IDs receive it once. The
   actual authenticated draft journey and all causes still need reproduction;
   do not infer that saved-edition ToC links are all broken.
-- At a 1440px viewport in the opened saved edition, switching modes increased
-  the reading column from 978px to 1327px, but the body remained 653px. At
-  1024px the body did widen from 422px to 653px. These are observations of one
-  page and style, not universal dimensions or authenticated acceptance.
+- At a 1440x900 browser viewport on saved edition 103, programmatic browser DOM
+  activation of the ToC link reached "Révolution Permanente", updated the hash,
+  and scrolled the active pane. Activating Larger content increased the actual
+  prose width from 653px to 840px. Native mouse/keyboard automation did not
+  activate these controls, so this is not physical-user-input acceptance.
 - Before the screen-spacing change, the 1440px-wide edition-103 browser view had
   113px paper padding plus a 25px title margin at the top, and 113px padding plus
-  a 19px final-paragraph margin at the bottom. PDF CSS specifies a 24mm first
-  compact-content-page top margin and 30mm normal block margins. The V.o screen
-  overrides remove those intervening margins without changing print CSS; actual
-  post-deployment PDF and browser comparison remains to be recorded. The
-  action-status theme break is user-reported; a populated status was not observed.
+  a 19px final-paragraph margin at the bottom. After deployment, title and final
+  text insets measured 113.375px against 113.386px padding (30mm); intervening
+  margins are zero. The PDF title page uses its default 30mm margin; the separate
+  first compact article page uses 24mm. Print CSS is unchanged. The PDF endpoint
+  returned the same cached 9-page A4 output before and after deployment; fresh
+  old/final-release renders had matching page sizes and extracted-text digests.
+- On the home page the shared header measured 64px at 1440px, with visible
+  navigation and no horizontal overflow. At 375x812, the workspace had no
+  horizontal overflow and the header wrapped to 122px. The empty status region
+  had `display:none` and zero height. These are single-page/default-theme
+  measurements; the action-status theme break is user-reported and a populated
+  status was not observed.
 - V.o supersedes V.l/V40's requirement that Larger content always preserve the
   screen prose-width cap, and V.j/V31's fixed screen block padding where it
   conflicts with measured PDF-like whitespace. Keep the other two reader modes,
@@ -1577,8 +1587,8 @@ The site-wide header change includes representative non-workspace consumers.
 The remaining V.n legacy overlay work is not a prerequisite or part of V.o.
 Use isolated representative data and measure the actual browser and PDF, not
 only mocked geometry. V55-V60 are the stopping point for this milestone; earlier
-partial acceptance remains open. Deployment and live-data changes require
-separate authorization.
+partial acceptance remains open. The requested local deployment is delivered;
+further deployment and live-data changes require separate authorization.
 
 ### Delivery boundaries and implementation-agent handoff
 
@@ -1603,8 +1613,8 @@ acceptance from jsdom tests. V.n source implementation is authorized and
 delivered for the main workspace/editor flows; the remaining correction-preview
 overlays and V47-V54 acceptance still require follow-up. Do not rebuild
 superseded compaction/overlay behavior. V.o source implementation and local
-deployment are authorized; apply its stated width and screen-spacing
-supersession without changing PDF or stored style settings.
+deployment are delivered; apply its stated width and screen-spacing supersession
+without changing PDF or stored style settings.
 
 ## Implementation discovery map
 
@@ -1762,5 +1772,5 @@ rewriting.
 V.n source implementation was authorized by "Implement Milestone V.n". Local or
 remote deployment, migrations and live-data changes still require separate
 authorization.
-V.o source implementation and local deployment are authorized; live-data changes
+V.o source implementation and local deployment are delivered; live-data changes
 require separate authorization.

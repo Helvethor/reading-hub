@@ -304,8 +304,8 @@ without certifying its outstanding acceptance.
   PDF/print observations and human accessibility review remain unverified;
   report observed/synthetic/unverified evidence separately.
 
-Reliable, space-efficient reading V.o (agreed 2026-11-15; implementation
-delivered, acceptance partial):
+Reliable, space-efficient reading V.o (agreed 2026-11-15; implementation and
+local deployment delivered, acceptance partial):
 the [V.o handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vo-reliable-space-efficient-reading)
 owns the consolidated design and V55-V60 acceptance. It follows V.n's delivered
 main workspace flow without certifying V.n or earlier partial acceptance.
