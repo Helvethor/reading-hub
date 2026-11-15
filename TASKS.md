@@ -326,7 +326,7 @@ are authorized.
   narrow/short viewports and zoom. Separate observed, synthetic and untested
   evidence; do not mutate live records or claim earlier acceptance is complete.
 
-V.o feedback follow-up (source changes only; not locally deployed):
+V.o feedback follow-up (locally deployed in release `000fbab`):
 
 - [x] Remove the remaining editor page top margin, empty context-notice row
   and editor scope help, preserving material identity and warnings.

@@ -156,7 +156,7 @@ scroll ownership, unsaved edits and exact exports. The
 defines scope, evidence and V55-V60 acceptance. The user authorized source
 implementation and local deployment; live-data changes remain unauthorized.
 
-**V.o feedback follow-up (source changes, not deployed):**
+**V.o feedback follow-up (locally deployed in release `000fbab`):**
 remove the editor page's remaining top margin, empty workspace-context notice
 row and corrected-version scope help. Bound the whole Edit panel with its own
 scrollbar, retaining the separately bounded content surface and per-secondary-tab

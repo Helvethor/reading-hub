@@ -1621,8 +1621,10 @@ acceptance were not rerun for these feedback fixes.
 The earlier integrated browser's hidden-page native-input failures are not
 evidence of an application freeze. The user-reported live working-copy freeze
 has not been reproduced or certified fixed. No safety guard was removed and
-no live corrections were changed. These follow-up fixes are not deployed;
-release `185ea6a` remains the last documented application deployment.
+no live corrections were changed. These follow-up fixes were locally deployed
+as release `000fbab` on 2026-11-15. Home, edition 103 Read and all five checked
+workspace/editor assets returned HTTP 200; asset bytes matched that release.
+This deployment does not certify the reported live-editor freeze as fixed.
 
 ### Delivery boundaries and implementation-agent handoff
 

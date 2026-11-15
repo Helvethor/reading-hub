@@ -1013,6 +1013,35 @@ may still need a code refresh after the Python change. No live content was
 edited or published. V55-V60 and earlier usability/accessibility acceptance
 remain partial; this is a local, not public, deployment.
 
+V.o feedback fixes local deployment (2026-11-15): application commit `000fbab`
+serves from `data/releases/000fbab` on `127.0.0.1:8765`, preserving the existing
+data root, default profile and `READING_HUB_EDITOR_PILOT=1`. Web PID 2804749
+was gracefully stopped. The initial independent replacement launcher aborted
+because its socket was briefly still occupied during teardown; after confirming
+the port was free, the prepared release was independently started as PID
+2876091 with the same executable and runserver flags. Readiness, process
+identity, working directory and configuration were verified.
+
+The exact source revision's earlier validation was reused: 45 isolated
+editor-view tests, 27 navigation/workspace/public-workspace tests and the
+focused local-tab scroll-position test passed, as did Ruff with the existing
+I001 findings excluded. The release initially lacked local npm dependencies;
+its locked `npm ci` and frontend build then succeeded, with existing Node/npm
+compatibility warnings. Release checks against the actual data root passed:
+`manage.py check`, `migrate --check` and `findstatic` for both generated editor
+assets and the public-workspace bundle. No migration was pending or applied.
+
+Home and edition 103 Read returned HTTP 200. Workspace CSS, editor CSS, editor
+JS/generated CSS and public-workspace JS returned HTTP 200 and matched release
+bytes. The reader included the new cache suffix and retained the guest Edit
+access boundary. Runtime Python and the source profile were unchanged, so no
+worker restart was needed or performed. The separate port-8000 service and
+unrelated untracked skills were untouched. No live draft, publication or
+reader-default record was changed. The reported live-editor mouse/selection
+freeze remains unreproduced; earlier isolated desktop/narrow native-input
+checks are not proof that it is fixed. PDF/print and wider human acceptance were
+not rerun for this source-only feedback deployment.
+
 Under **Structure options**, remove existing cite markings (text/IDs stay), or
 **Ungroup figure (keep all content)**. To dissociate an existing caption, choose
 **Detach caption**: it becomes ordinary text immediately after the figure, not
