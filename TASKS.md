@@ -20,7 +20,7 @@ live instance or any real library data. The
   gate explicit live promotion and source-only recovery.
 - [x] Consolidate the quickstart, operations and agent guidance; archive historical
   deployment logs without dropping the retained-source operational instructions.
-- [ ] Complete concurrent-worktree, reload, candidate-promotion/recovery and
+- [x] Complete concurrent-worktree, reload, candidate-promotion/recovery and
   final focused regression acceptance, recording synthetic/browser limitations.
 
 Initial checkpoint `e1fef4d` passed 89 isolated backend tests and the frontend
@@ -28,9 +28,34 @@ suite/build. Native synthetic article/book edits saved and reopened with images
 and reciprocal notes, then published through standalone confirmation pages
 with HTTP-200 PDFs. The pre-existing embedded Publish panel was blocked by CSP;
 this is not certification of the same-page panel journey. Two concurrent
-worktrees retained independent sessions and revisions. Live promotion has not
-been performed against the real instance; remaining acceptance below must use
-synthetic, task-owned listeners only.
+worktrees retained independent sessions and revisions.
+
+Final source checkpoint `d05e326` passed 102 focused isolated backend tests,
+24 frozen-candidate tests, 337 frontend tests and the frontend build. Python,
+template and executed frontend reloads were observed together; conditional asset
+requests returned HTTP 200 with `no-store`. Stopping the second checkout left
+the first checkout and staging responsive. Exact frozen-source inventory/assets
+and scoped management/test commands were checked.
+
+A disposable synthetic live listener exercised registration, exact-candidate
+promotion, source rollback and restoration after an injected runserver startup
+failure. Managed-worker, standalone-worker-lock, concurrent-operation and pending
+migration gates refused before stopping the listener. Database schema/rows,
+retained blobs and signing key matched across promotion/rollback/recovery, and
+other previews remained responsive. This exposed and fixed a legacy-listener
+readiness race; repeated development startup also remains idempotent after commits.
+No real live deployment or real library mutation was performed.
+
+Two existing theme/cascade tests still fail on frozen baseline `e1fef4d`:
+`test_follow_theme_css_uses_preference_without_changing_signed_style` expects an
+implicit stylesheet theme, and
+`test_guest_output_override_is_ephemeral_until_explicit_login_import` expects
+stylesheet cache version 7 rather than 9. They are not included in the passing
+focused count. Existing-file Ruff formatting/unused-import issues also remain
+outside this workflow change; changed/new workflow code passes focused lint.
+Synthetic fixtures and the standalone publication fallback do not certify
+same-page publication, human usability, complete real-book fidelity or public
+production hosting.
 
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 

@@ -265,6 +265,14 @@ The existing port-8000 service, live library, accounts, crawls and reader target
 must not change as a side effect of development or staging. Do not push,
 publish a remote release or expose these local runservers as public hosting.
 
+Workflow validation is recorded in
+[the contributor milestone](../TASKS.md#contributor-workflow-separation-2026-11-15):
+concurrent previews and executed reloads, native synthetic save/publication/PDF,
+and promotion/rollback/startup-failure recovery on a disposable synthetic
+listener were observed. These checks did not deploy or mutate the real live
+instance; existing publication-panel CSP and baseline theme-test limitations
+are reported there.
+
 ### Optional Marxist Dark theme
 
 The black/red, VS Code Dark-inspired theme reuses the existing Lenin image.
