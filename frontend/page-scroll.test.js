@@ -50,3 +50,32 @@ test("a pane itself scrolls into the viewport without a stack offset", () => {
   assert.equal(pageTop, 312);
   dom.window.close();
 });
+
+test("start navigation top-aligns both visible and offscreen targets in the pane", () => {
+  const dom = new JSDOM(`<div data-workspace-scroll-pane><h2>Target</h2></div>`);
+  const {document, window} = dom.window;
+  const pane = document.querySelector("div");
+  const target = document.querySelector("h2");
+  Object.defineProperties(pane, {
+    clientHeight: {value: 300},
+    clientTop: {value: 2},
+  });
+  window.scrollTo = () => assert.fail("An onscreen pane must not move the page.");
+  let frame;
+  window.requestAnimationFrame = callback => { frame = callback; };
+  pane.getBoundingClientRect = () => ({top: 100, bottom: 404, height: 304});
+  for (const targetTop of [180, 700]) {
+    pane.scrollTop = 40;
+    const contentOffset = targetTop + pane.scrollTop;
+    target.getBoundingClientRect = () => ({
+      top: contentOffset - pane.scrollTop,
+      bottom: contentOffset - pane.scrollTop + 20,
+      height: 20,
+    });
+    scrollElementIntoView(target, 0, "start");
+    assert.equal(target.getBoundingClientRect().top, 102);
+    frame();
+    assert.equal(target.getBoundingClientRect().top, 102);
+  }
+  dom.window.close();
+});

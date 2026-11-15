@@ -152,6 +152,35 @@ test("scrolling and resizing do not introduce density changes or reserved stack 
   }
 });
 
+test("Back to top in a secondary Edit tab scrolls and focuses the Edit panel", () => {
+  const form = setup();
+  const panel = document.querySelector("#workspace-panel-edit");
+  panel.setAttribute("data-workspace-scroll-pane", "");
+  panel.tabIndex = -1;
+  panel.innerHTML = `<div class="editor-workspace" data-editor-tab="metadata">
+    <div id="editor-surface" data-workspace-scroll-pane>
+      <div contenteditable="true"></div>
+    </div>
+  </div>`;
+  const surface = panel.querySelector("#editor-surface");
+  Object.defineProperty(panel, "clientHeight", {value: 300});
+  panel.scrollTop = 500;
+  surface.scrollTop = 250;
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}},
+    source_tickets: [],
+  });
+  window.scrollTo = () => assert.fail("Panel navigation must leave the page alone.");
+  const button = document.querySelector("#workspace-back-to-top");
+  assert.equal(button.hidden, false);
+  button.dispatchEvent(new window.MouseEvent("click", {bubbles: true, detail: 0}));
+  assert.equal(panel.scrollTop, 0);
+  assert.equal(surface.scrollTop, 250);
+  assert.equal(document.activeElement, panel);
+  assert.equal(button.hidden, true);
+});
+
 test("Read uses the current captured document and tab history keeps the editor mounted", async () => {
   const form = setup();
   const surface = document.querySelector("#editor-surface");
@@ -248,7 +277,7 @@ test("Reader mode buttons are exclusive and their selection survives Read rerend
   contentsLink.dispatchEvent(contentsClick);
   assert.equal(contentsClick.defaultPrevented, true);
   assert.equal(location.hash, "#first");
-  assert.equal(pane.scrollTop, 128, "Contents links navigate the document pane.");
+  assert.equal(pane.scrollTop, 400, "Contents links top-align in the document pane.");
   const lateLink = document.querySelector(
     '#workspace-read-toc-slot a[href="#late%20chapter"]',
   );

@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="{% static 'library/print.css' %}?v={{ app_version }}-inline-q1" media="print">
 <link rel="stylesheet" href="{% static 'library/reading-style-controls.css' %}?v={{ app_version }}-mg1">
 <link rel="stylesheet" href="{% static 'library/lineage.css' %}?v={{ app_version }}-lineage-controls-v2">
-<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v60">
+<link rel="stylesheet" href="{% static 'library/workspace.css' %}?v={{ app_version }}-workspace-v60-fixes">
 <link rel="stylesheet" href="{% static 'library/generated/editor-pilot.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-v47-flow">
+<link rel="stylesheet" href="{% static 'library/editor-pilot.css' %}?v={{ app_version }}-workspace-v60-fixes">
 {% endblock %}
 {% block content %}
 <div class="page-container editor-page">
@@ -49,6 +49,7 @@
             {% if reader_target %}saved edition {{ reader_target.pk }} — {{ reader_target.title }}{% else %}unavailable{% endif %}
           </p>
         </div>
+        {% if draft.evidence.kind == "fresh-retained-source" or evaluation_run or draft_archived or draft.evidence.correction_origin or editor_error %}
         <div class="workspace-notices" aria-label="Work status">
           {% if draft.evidence.kind == "fresh-retained-source" %}<p class="notice">This draft starts from a fresh offline generation of snapshot {{ draft.evidence.snapshot }}, not from the original edition's HTML. Saved edits and verification from other drafts were not replayed.</p>{% endif %}
           {% if evaluation_run %}<p class="notice">Isolated evaluation working draft. <a href="{% url 'reviewer-run' evaluation_run.pk %}" target="_blank" rel="noopener">Task instructions and result form (new tab)</a>. Save here before recording a result; evaluation does not publish or verify.</p>{% endif %}
@@ -56,6 +57,7 @@
           {% if draft.evidence.correction_origin %}<p class="notice">Starting from saved version {{ draft.evidence.correction_origin.revision }} of another correction history. Its content is retained exactly; review approval is not inherited.</p>{% endif %}
           {% if editor_error %}<p class="error" role="alert">{{ editor_error }}</p>{% endif %}
         </div>
+        {% endif %}
       </header>
       <div class="workspace-tabs" role="tablist" aria-label="Work views">
         <button type="button" role="tab" id="workspace-tab-read" aria-controls="workspace-panel-read" data-workspace-tab="read" aria-selected="{% if initial_tab == 'read' %}true{% else %}false{% endif %}"{% if initial_tab != "read" %} tabindex="-1"{% endif %}>Read</button>
@@ -84,9 +86,8 @@
         </div>
       </div>
     </section>
-    <section class="workspace-view-panel" id="workspace-panel-edit" role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1"{% if initial_tab != "edit" %} hidden{% endif %}>
+    <section class="workspace-view-panel" id="workspace-panel-edit" data-workspace-scroll-pane role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1"{% if initial_tab != "edit" %} hidden{% endif %}>
   <div class="editor-workspace" data-editor-tab="editor">
-    <details class="context-help editor-scope-help"><summary>About corrected versions</summary><p>Editing version {{ version.pk }} creates immutable saved versions. Publication is separate; source evidence, catalogue membership and older editions are unchanged.</p></details>
     <div class="editor-tabs" role="tablist" aria-label="Edit tools">
       <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
@@ -586,4 +587,4 @@
   {% endif %}
 </div>
 {% endblock %}
-{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-workspace-v60"></script>{% endif %}{% endblock %}
+{% block scripts %}{% if initial %}<script type="module" src="{% static 'library/generated/editor-pilot.js' %}?v={{ app_version }}-workspace-v60-fixes"></script>{% endif %}{% endblock %}

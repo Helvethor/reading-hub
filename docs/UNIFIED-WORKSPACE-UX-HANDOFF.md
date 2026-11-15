@@ -1590,6 +1590,40 @@ only mocked geometry. V55-V60 are the stopping point for this milestone; earlier
 partial acceptance remains open. The requested local deployment is delivered;
 further deployment and live-data changes require separate authorization.
 
+#### V.o user-feedback follow-up
+
+Source fixes remove the editor page's remaining 24px top margin, the empty
+context-notice row and `editor-scope-help`, without removing edition/draft
+identity or material warnings. The whole Edit tab now has a viewport-bounded
+independent scrollbar, and its Content surface no longer stretches with the
+outline. Secondary tabs remember their Edit-panel and page positions separately
+from the content surface; Back to top targets the appropriate owner and does not
+focus a hidden editor. This explicitly supersedes earlier requirements against
+a whole-Edit-tab scroll box and page-only secondary Edit scrolling, but does not
+make chrome sticky or change Versions/Sources scrolling.
+
+ToC clicks and Back/Forward top-align the target to the visible reading viewport
+instead of only revealing its bottom edge. Native scroll limits still apply.
+Caret, outline and lineage navigation retain their existing minimal-reveal/gap
+behavior.
+
+Verification used isolated data only: 45 editor-view tests, 27 page-scroll/
+workspace/public-workspace tests, the focused local-tab position test and the
+frontend build pass. At 1440x900, native headless Chromium measured zero
+header-to-editor gap, an 882px Edit panel and a 630px Content surface, with
+independent scroll ranges on a 50-section synthetic book. Native paragraph
+clicks/word selection and Content/Metadata tab clicks worked; repeated ToC
+clicks reached the middle chapter within 0.04px of the visible pane top.
+At 375x812, the Edit panel measured 794px and the Content surface 568px,
+with no horizontal page overflow; native selection, tab clicks and repeated
+ToC top alignment also worked. PDF/print and human usability/accessibility
+acceptance were not rerun for these feedback fixes.
+The earlier integrated browser's hidden-page native-input failures are not
+evidence of an application freeze. The user-reported live working-copy freeze
+has not been reproduced or certified fixed. No safety guard was removed and
+no live corrections were changed. These follow-up fixes are not deployed;
+release `185ea6a` remains the last documented application deployment.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where

@@ -463,7 +463,7 @@ class DocumentEditorViewTests(TestCase):
         ):
             self.assertContains(response, f'/static/{asset}?v={APP_VERSION}')
         self.assertContains(response, "BOOK · EDITION")
-        self.assertContains(response, "immutable saved versions")
+        self.assertNotContains(response, "editor-scope-help")
         self.assertContains(response, 'aria-label="Work views"')
         self.assertContains(response, 'id="workspace-tab-read"')
         self.assertContains(response, 'id="workspace-tab-edit"')
@@ -611,6 +611,16 @@ class DocumentEditorViewTests(TestCase):
         self.assertIsNone(response.context["draft"])
         self.assertContains(response, "Choose a working copy")
         self.assertEqual(DocumentEditRevision.objects.count(), 0)
+
+    def test_edit_panel_has_its_own_scroll_owner_and_no_empty_context_or_scope_help(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, 'id="workspace-panel-edit" data-workspace-scroll-pane',
+        )
+        self.assertNotContains(response, 'class="workspace-notices"')
+        self.assertNotContains(response, 'editor-scope-help')
+        self.assertContains(response, 'id="workspace-baseline-state"')
 
     def test_reading_style_controls_are_in_read_not_edit_and_never_style_editor(self):
         from bs4 import BeautifulSoup

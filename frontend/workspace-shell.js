@@ -195,6 +195,10 @@ export function mountWorkspaceShell({
       return editor.querySelector("#editor-surface[data-workspace-scroll-pane]")
         || document.scrollingElement;
     }
+    if (currentTab() === "edit") {
+      return panels.get("edit").closest("[data-workspace-scroll-pane]")
+        || document.scrollingElement;
+    }
     return document.scrollingElement;
   }
 
@@ -650,7 +654,7 @@ export function mountWorkspaceShell({
     }
     updateBackToTop();
     if (event.detail === 0) {
-      const target = isPage ? panels.get(currentTab())
+      const target = isPage || owner === panels.get("edit") ? panels.get(currentTab())
         : owner.querySelector("[contenteditable=true]") || owner;
       target.focus({preventScroll: true});
     }

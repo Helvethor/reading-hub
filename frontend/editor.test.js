@@ -6205,8 +6205,13 @@ test("editor widget tabs switch panels by click, arrow keys and events while sha
   assert.throws(() => tabs.select("missing"), /supported editor tab/);
 });
 
-test("local tabs retain page positions separately from the editor content pane", () => {
+test("local tabs retain Edit panel and page positions separately from the content pane", () => {
   const form = mountSectionWorkspace("<p>Body</p>");
+  const workspace = form.closest(".editor-workspace");
+  const editPanel = document.createElement("section");
+  editPanel.setAttribute("data-workspace-scroll-pane", "");
+  workspace.before(editPanel);
+  editPanel.append(workspace);
   const surface = form.querySelector("#editor-surface");
   surface.scrollTop = 450;
   const tabs = mountEditorTabs(form);
@@ -6220,13 +6225,21 @@ test("local tabs retain page positions separately from the editor content pane",
 
   try {
     pageY = 320;
+    editPanel.scrollTop = 200;
     tabs.select("metadata");
     assert.equal(pageY, 0);
+    assert.equal(editPanel.scrollTop, 0);
     pageY = 80;
+    editPanel.scrollTop = 120;
     tabs.select("review");
     assert.equal(pageY, 0);
+    assert.equal(editPanel.scrollTop, 0);
+    tabs.select("metadata");
+    assert.equal(pageY, 80);
+    assert.equal(editPanel.scrollTop, 120);
     tabs.select("editor");
     assert.equal(pageY, 320);
+    assert.equal(editPanel.scrollTop, 200);
     assert.equal(surface.scrollTop, 450);
   } finally {
     if (previousScrollY) Object.defineProperty(window, "scrollY", previousScrollY);

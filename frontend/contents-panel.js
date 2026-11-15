@@ -118,7 +118,7 @@ export function mountContentsPanel(workspace, content, button) {
           if (url.href !== location.href) {
             history.pushState({...history.state, workspaceAnchor: target.id}, "", url);
           }
-          scrollElementIntoView(target);
+          scrollElementIntoView(target, 0, "start");
           manualRailUntil = Date.now() + 1200;
           updateActiveEntry();
         });
@@ -197,7 +197,7 @@ export function mountContentsPanel(workspace, content, button) {
     content.addEventListener("scroll", updateActiveEntry, {passive: true, capture: true});
     window.addEventListener("popstate", () => {
       const target = targetForHash(content, new URL(location.href).hash);
-      if (target) scrollElementIntoView(target);
+      if (target) scrollElementIntoView(target, 0, "start");
     });
     workspace.addEventListener("workspace-reading-style-before", () => {
       stylePosition = captureReadingPosition(content);

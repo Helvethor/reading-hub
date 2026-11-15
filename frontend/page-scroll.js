@@ -29,11 +29,11 @@ export function revealScrollPane(element, gap = 8) {
   return paneBand(pane);
 }
 
-function scrollPaneTargetIntoView(element, pane, gap) {
+function scrollPaneTargetIntoView(element, pane, gap, block) {
   revealScrollPane(pane, gap);
   const band = paneBand(pane);
   const rect = element.getBoundingClientRect();
-  const delta = rect.top < band.top + gap
+  const delta = block === "start" || rect.top < band.top + gap
     ? rect.top - band.top - gap
     : rect.bottom > band.bottom - gap
       ? rect.bottom - band.bottom + gap
@@ -41,14 +41,14 @@ function scrollPaneTargetIntoView(element, pane, gap) {
   if (delta) pane.scrollTop += delta;
 }
 
-export function scrollElementIntoView(element, gap = 8) {
+export function scrollElementIntoView(element, gap = 8, block = "nearest") {
   const doc = element.ownerDocument;
   const win = doc.defaultView;
   const pane = paneFor(element);
   if (pane) {
-    scrollPaneTargetIntoView(element, pane, gap);
+    scrollPaneTargetIntoView(element, pane, gap, block);
     if (typeof win.requestAnimationFrame === "function") {
-      win.requestAnimationFrame(() => scrollPaneTargetIntoView(element, pane, gap));
+      win.requestAnimationFrame(() => scrollPaneTargetIntoView(element, pane, gap, block));
     }
     return;
   }

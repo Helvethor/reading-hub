@@ -156,6 +156,18 @@ scroll ownership, unsaved edits and exact exports. The
 defines scope, evidence and V55-V60 acceptance. The user authorized source
 implementation and local deployment; live-data changes remain unauthorized.
 
+**V.o feedback follow-up (source changes, not deployed):**
+remove the editor page's remaining top margin, empty workspace-context notice
+row and corrected-version scope help. Bound the whole Edit panel with its own
+scrollbar, retaining the separately bounded content surface and per-secondary-tab
+positions; this supersedes earlier page-only secondary Edit scrolling. ToC clicks
+and history navigation top-align content targets in the visible reading viewport,
+subject to the native scroll range, without changing minimal caret/outline reveal.
+Keep identity, warnings, drafts, selection and safety guards intact. The reported
+live-editor mouse/selection freeze still needs reproduction: native input works
+on isolated short and 50-section synthetic fixtures, which does not certify the
+affected live working copy.
+
 **Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.
 For ISO date-time strings, preserve the date as written and do not convert it

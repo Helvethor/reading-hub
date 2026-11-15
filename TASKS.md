@@ -326,6 +326,18 @@ are authorized.
   narrow/short viewports and zoom. Separate observed, synthetic and untested
   evidence; do not mutate live records or claim earlier acceptance is complete.
 
+V.o feedback follow-up (source changes only; not locally deployed):
+
+- [x] Remove the remaining editor page top margin, empty context-notice row
+  and editor scope help, preserving material identity and warnings.
+- [x] Cap the whole Edit panel and content surface independently; preserve
+  secondary-tab pane/page positions and target Back to top at the active owner.
+- [x] Top-align ToC clicks and history navigation in the visible reading pane,
+  keeping other caret/outline/lineage navigation behavior unchanged.
+- [ ] Reproduce and resolve the reported live-editor mouse/selection freeze.
+  Native Chromium clicks, selection and tab switches work on isolated short
+  and 50-section synthetic fixtures; the affected live state is unverified.
+
 Permanent compact workspace and in-flow menus V.n (agreed 2026-11-15;
 main workspace/editor source implementation delivered, acceptance partial):
 the [V.n handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vn-permanent-compact-workspace-and-in-flow-menus)
