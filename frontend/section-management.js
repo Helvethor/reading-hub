@@ -7,7 +7,7 @@ import {
   documentParts, getWorkspaceContext, showDocumentPart, expandDocumentFolds,
 } from "./workspace.js";
 import {applySourceInsertion} from "./source-insertion.js";
-import {attachContextualPanel} from "./contextual-panels.js";
+import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
 function uniqueTarget(doc, base) {
   const ids = new Set();
@@ -471,7 +471,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Section management");
   menu.hidden = true;
-  attachContextualPanel(form, menu, outline);
+  attachContextualPanel(form, menu, outline, editor);
   let selected = null, dragged = null;
   function closeMenu() { menu.hidden = true; }
   function selectedPart(button) {
@@ -481,13 +481,15 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
       .findIndex(section => section.from + 1 === part?.from);
     return {doc: editor.state.doc, part, index, button};
   }
-  function action(label, handler, enabled = true) {
+  function action(label, handler, enabled = true, icon = "", divider = false) {
     const button = owner.createElement("button");
     button.type = "button";
     button.textContent = label;
     button.setAttribute("role", "menuitem");
     button.disabled = !enabled;
     button.hidden = !enabled;
+    button.dataset.menuIcon = icon;
+    if (divider) button.classList.add("editor-menu-divider");
     button.addEventListener("click", () => {
       closeMenu();
       try {
@@ -496,6 +498,7 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
       } catch (failure) { showError(failure.message); }
     });
     menu.append(button);
+    return button;
   }
   function boundary(part) {
     whole();
@@ -549,12 +552,17 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     selected = selectedPart(button);
     menu.replaceChildren();
     action("Layout and separation\u2026", () => form.dispatchEvent(
-      new owner.defaultView.CustomEvent("editor-layout-part", {detail: {part: selected.part}})));
-    action("Edit title / URL / role…", () => edit(selected.index), selected.index >= 0);
-    action("Remove section…", () => remove(selected.index), selected.index >= 0);
-    action("Move section…", () => moves.open(selected.index), selected.index >= 0);
+      new owner.defaultView.CustomEvent("editor-layout-part", {detail: {part: selected.part}})), true, "↔");
+    action("Edit title / URL / role…", () => edit(selected.index), selected.index >= 0, "✎");
+    action("Move section…", () => moves.open(selected.index), selected.index >= 0, "↗", true);
+    const directions = owner.createElement("div");
+    directions.className = "editor-menu-directions";
+    directions.setAttribute("role", "group");
+    directions.setAttribute("aria-label", "Move section");
+    directions.hidden = selected.index < 0;
+    menu.append(directions);
     for (const [label, direction] of [["Move section up", -1], ["Move section down", 1]]) {
-      action(label, () => {
+      directions.append(action(label, () => {
         whole();
         const sections = movableSections(editor.state.doc, getWorkspaceContext(editor));
         const current = sections[selected.index];
@@ -564,16 +572,16 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
         if (!destination) throw new Error("The section is already at that end of its container.");
         moveSection(editor, {doc: editor.state.doc}, selected.index,
           direction < 0 ? "before" : "after", sections.indexOf(destination));
-      }, selected.index >= 0);
+      }, selected.index >= 0, direction < 0 ? "↑" : "↓"));
     }
-    action("Add / restore section here…", () => openAdd(selected.index >= 0 ? selected.index : null));
+    action("Add / restore section here…", () => openAdd(selected.index >= 0 ? selected.index : null), true, "+", true);
     action("New empty section…", () => {
       whole();
       creation.open(sectionInsertionTarget(editor, selected.index >= 0 ? selected.index : null));
-    });
-    action("Repair heading into section…", () => boundary(selected.part), selected.part.kind !== "Section");
-    menu.hidden = false;
-    menu.querySelector("button:not(:disabled)")?.focus();
+    }, true, "+");
+    action("Repair heading into section…", () => boundary(selected.part), selected.part.kind !== "Section", "¶");
+    action("Remove section…", () => remove(selected.index), selected.index >= 0, "−", true);
+    showContextMenu(menu, event, button);
   }
   outline.addEventListener("contextmenu", event => openMenu(event));
   outline.addEventListener("click", event => {

@@ -4,7 +4,7 @@ import {
   documentParts, getWorkspaceContext, showDocumentPart, visiblePart,
 } from "./workspace.js";
 import {headingLabel, sectionHeading} from "./section-info.js";
-import {attachContextualPanel} from "./contextual-panels.js";
+import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
 export function movableSections(doc, context = {}) {
   const sections = [];
@@ -121,8 +121,9 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
   move.type = "button";
   move.setAttribute("role", "menuitem");
   move.textContent = "Move section…";
+  move.dataset.menuIcon = "↗";
   menu.append(move);
-  attachContextualPanel(form, menu, outline);
+  attachContextualPanel(form, menu, outline, editor);
   let menuTarget = null;
   function closeMenu(focus = false) {
     const target = menuTarget?.button;
@@ -137,9 +138,9 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
     event.preventDefault();
     closeMenu();
     menuTarget = {button, index: Number(button.dataset.sectionMove), doc: editor.state.doc};
+    button.setAttribute("aria-controls", menu.id);
     button.setAttribute("aria-expanded", "true");
-    menu.hidden = false;
-    move.focus();
+    showContextMenu(menu, event, button);
   }
   if (!externalMenu) {
     outline?.addEventListener("contextmenu", event => openMenu(event));
@@ -162,7 +163,10 @@ export function mountSectionMoves(form, editor, showError, {externalMenu = false
       closeMenu(event.key === "Escape");
     } else if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
       event.preventDefault();
-      move.focus();
+      const buttons = [...menu.querySelectorAll("button:not(:disabled):not([hidden])")];
+      const index = buttons.indexOf(owner.activeElement);
+      buttons[event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 :
+        (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length]?.focus();
     }
   });
   function outside(event) { if (!menu.contains(event.target)) closeMenu(); }

@@ -6,7 +6,7 @@ import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEnt
 import {contentSeparation, layoutPreset, partLayout, separations,
   setDocumentLayout, setPartSeparation} from "./part-layout.js";
 import {closeHistory} from "@tiptap/pm/history";
-import {attachContextualPanel} from "./contextual-panels.js";
+import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
 export {titlePageRows};
 
@@ -64,7 +64,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "ToC numbering style");
   menu.hidden = true;
-  attachContextualPanel(form, menu);
+  attachContextualPanel(form, menu, null, editor);
   let selected = new Set(), selectionDoc = editor.state.doc, currentParts = [], hierarchy = [];
   function closeMenu() { menu.hidden = true; }
   function updateSelection() {
@@ -96,6 +96,10 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       const button = owner.createElement("button");
       button.type = "button";
       button.dataset.tocStyle = style;
+      button.dataset.menuIcon = {
+        none: "−", disc: "•", decimal: "1.", "upper-roman": "I.",
+        "lower-roman": "i.", "upper-alpha": "A.", "lower-alpha": "a.",
+      }[style];
       button.setAttribute("role", "menuitemradio");
       button.setAttribute("aria-checked", String(styles.size === 1 && styles.has(style)));
       button.textContent = label;
@@ -118,6 +122,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       const button = owner.createElement("button");
       button.type = "button";
       button.dataset.tocEntry = setting;
+      button.dataset.menuIcon = setting === "hide" ? "−" : "☰";
       button.setAttribute("role", "menuitemradio");
       button.setAttribute("aria-checked", String(settings.size === 1 && settings.has(setting)));
       button.textContent = label;
@@ -131,8 +136,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       });
       menu.append(button);
     }
-    menu.hidden = false;
-    menu.querySelector("button")?.focus();
+    showContextMenu(menu, event);
   }
   toc.addEventListener("mousedown", event => {
     if (event.target.closest("[data-toc-part]") && (event.button === 2 || event.ctrlKey || event.metaKey)) {
@@ -170,7 +174,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   fieldMenu.setAttribute("role", "menu");
   fieldMenu.setAttribute("aria-label", "Title page fields");
   fieldMenu.hidden = true;
-  attachContextualPanel(form, fieldMenu);
+  attachContextualPanel(form, fieldMenu, null, editor);
   let fieldReturn = null;
   function chooseFields(fields) {
     form.dispatchEvent(new owner.defaultView.CustomEvent("editor-title-fields", {detail: {fields}}));
@@ -188,6 +192,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       button.type = "button";
       button.setAttribute("role", "menuitem");
       Object.assign(button.dataset, data);
+      button.dataset.menuIcon = "titleReset" in data ? "↶" : "titleHide" in data ? "−" : "+";
       button.addEventListener("click", () => {
         fieldMenu.hidden = true;
         chooseFields(fields);
@@ -208,8 +213,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     }
     if (Array.isArray(metadata.title_page_fields)) item("Reset to default fields", null, {titleReset: ""});
     pageItems(fieldMenu, "title", () => { fieldMenu.hidden = true; });
-    fieldMenu.hidden = false;
-    fieldMenu.querySelector("button")?.focus();
+    showContextMenu(fieldMenu, event);
   }
   preview.addEventListener("contextmenu", event => {
     if (event.target.closest(".document-metadata")) openFieldMenu(event);
@@ -240,7 +244,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   pageMenu.setAttribute("role", "menu");
   pageMenu.setAttribute("aria-label", "Generated page settings");
   pageMenu.hidden = true;
-  attachContextualPanel(form, pageMenu);
+  attachContextualPanel(form, pageMenu, null, editor);
   let pageReturn = null;
   function setPage(key, value) {
     const current = editor.state.doc.attrs.pages || Object.fromEntries(
@@ -269,6 +273,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       item.setAttribute("role", role);
       if (checked !== null) item.setAttribute("aria-checked", String(checked));
       Object.assign(item.dataset, data);
+      item.dataset.menuIcon = "pageReset" in data ? "↶" : "pageLayout" in data ? "¶" : "☰";
       item.addEventListener("click", () => {
         close();
         setPage(key, value);
@@ -293,6 +298,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     }
     const separation = element("button", "Layout and separation\u2026");
     separation.type = "button";
+    separation.dataset.menuIcon = "↔";
+    separation.className = "editor-menu-divider";
     separation.setAttribute("role", "menuitem");
     separation.addEventListener("click", () => { close(); openSeparation(page); });
     container.append(separation);
@@ -386,10 +393,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   });
   layoutSummary.append(layoutSummaryLabel, layoutSummaryText, useDefaults);
   form.querySelector(".editor-outline")?.prepend(layoutSummary);
-  function placeMenu(target) {
-    target.hidden = false;
-    target.querySelector("button")?.focus();
-  }
   function openPageMenu(event, page) {
     if (event.shiftKey && event.type === "contextmenu") return;
     event.preventDefault();
@@ -403,13 +406,14 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       edit.type = "button";
       edit.setAttribute("role", "menuitem");
       edit.dataset.pageEdit = "metadata";
+      edit.dataset.menuIcon = "✎";
       edit.addEventListener("click", () => {
         pageMenu.hidden = true;
         showMetadataTab();
       });
       pageMenu.append(edit);
     }
-    placeMenu(pageMenu);
+    showContextMenu(pageMenu, event, pageReturn);
   }
   function showMetadataTab() {
     form.dispatchEvent(new owner.defaultView.CustomEvent("editor-show-tab", {detail: {tab: "metadata", focus: true}}));

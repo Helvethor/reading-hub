@@ -1,6 +1,6 @@
 import {dateFields, editorialNoteLines, fieldLabels, parseEditorialNote, personKeys,
   titlePageFields, titlePageSelection} from "./metadata-fields.js";
-import {attachContextualPanel} from "./contextual-panels.js";
+import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
 const roleChoices = [
   ["author", "Author"], ["editor", "Editor"], ["translator", "Translator"],
@@ -46,7 +46,7 @@ const dateSignature = rows => JSON.stringify(rows.filter(row => row.value.trim()
   .map(row => [row.value.trim(), (row.end_value || "").trim(), row.type]));
 const topicList = text => text.split("\n").map(value => value.trim()).filter(Boolean);
 
-export function mountMetadata(form, initial, changed) {
+export function mountMetadata(form, initial, changed, editor = null) {
   const owner = form.ownerDocument;
   const people = form.querySelector("#editor-contributors");
   const dates = form.querySelector("#editor-dates");
@@ -259,7 +259,7 @@ export function mountMetadata(form, initial, changed) {
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Metadata fields");
   menu.hidden = true;
-  attachContextualPanel(form, menu);
+  attachContextualPanel(form, menu, null, editor);
   let returnFocus = null;
   function closeMenu() { menu.hidden = true; }
   function rowLabel(row) {
@@ -349,8 +349,13 @@ export function mountMetadata(form, initial, changed) {
       menu.append(cell("p", "Remove field"));
       menuItem(`Remove ${rowLabel(row)}`, () => removeRow(row)).dataset.metadataRemove = "";
     }
-    menu.hidden = false;
-    menu.querySelector("button")?.focus();
+    for (const button of menu.querySelectorAll("button")) {
+      button.dataset.menuIcon = button.hasAttribute("data-metadata-remove") ? "−" :
+        button.hasAttribute("data-title-reset") ? "↶" :
+          button.hasAttribute("data-metadata-link") ? "↗" :
+            button.hasAttribute("data-title-hide") ? "−" : "+";
+    }
+    showContextMenu(menu, event);
   }
   sheet.addEventListener("contextmenu", event => openMenu(event, event.target.closest("tr")));
   sheet.addEventListener("keydown", event => {

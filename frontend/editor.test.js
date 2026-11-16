@@ -796,6 +796,47 @@ test("selection tools float at pointer, caret or trigger and dismiss without los
   assert.equal(editor.getHTML(), original);
 });
 
+test("page, section, ToC and title-field menus share floating placement and dismissal", () => {
+  const form = mountSectionWorkspace('<section id="s"><h2>Section</h2><p>Body</p></section>',
+    {}, {readDocument: () => ({title: "Book", metadata: {author: "Writer"}})});
+  const original = editor.getHTML();
+  const cases = [
+    [".editor-title-page h1", "#editor-page-menu"],
+    ['[data-book-row="title"] button', "#editor-page-menu"],
+    ['#editor-outline-items [data-part="0"]', "#editor-section-actions"],
+    [".editor-toc-page [data-toc-part]", "#editor-toc-menu"],
+    [".editor-title-preview dd", "#editor-title-menu"],
+  ];
+  for (const [selector, id] of cases) {
+    const target = form.querySelector(selector), menu = form.querySelector(id);
+    menu.getBoundingClientRect = () => ({width: 352, height: 300});
+    target.dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+      bubbles: true, cancelable: true, clientX: 100, clientY: 120,
+    }));
+    assert(!menu.hidden, id);
+    assert.equal(menu.style.left, "100px", id);
+    assert.equal(menu.style.top, "120px", id);
+    assert(menu.classList.contains("editor-floating-menu"));
+    assert(menu.querySelector("[data-menu-icon]"));
+    assert.equal(form.querySelectorAll(".editor-floating-menu:not([hidden])").length, 1);
+    const footer = menu.querySelector(".editor-menu-footer button");
+    footer.click();
+    assert(menu.hidden);
+    target.getBoundingClientRect = () => ({left: 80, bottom: 90});
+    target.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+      bubbles: true, cancelable: true, key: "F10", shiftKey: true,
+    }));
+    assert(!menu.hidden);
+    assert.equal(menu.style.left, "80px");
+    assert.equal(menu.style.top, "90px");
+    menu.dispatchEvent(new dom.window.Event("scroll"));
+    assert(!menu.hidden);
+    window.dispatchEvent(new dom.window.Event("resize"));
+    assert(menu.hidden);
+  }
+  assert.equal(editor.getHTML(), original);
+});
+
 test("compact selection tools navigate icon rows and preserve selection through history", () => {
   const form = mountSectionWorkspace('<section id="s"><p>First paragraph.</p>' +
     '<p>Second paragraph.</p></section>');
@@ -1415,6 +1456,8 @@ test("ToC selection rejects a different parent without losing the set and expose
   const menu = form.querySelector("#editor-toc-menu");
   assert(!menu.hidden);
   menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "End", bubbles: true}));
+  assert.equal(document.activeElement.textContent, "Close");
+  menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "ArrowUp", bubbles: true}));
   assert.equal(document.activeElement.dataset.tocEntry, "hide");
   menu.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
   assert(menu.hidden);
@@ -2910,7 +2953,11 @@ function metadataForm(value) {
 
 function metadataMenu(target, init = {}) {
   target.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true, ...init}));
-  return document.querySelector("#editor-metadata-menu");
+  const menu = document.querySelector("#editor-metadata-menu");
+  assert(menu.classList.contains("editor-floating-menu"));
+  assert.equal(menu.style.left, `${Math.max(8, init.clientX || 0)}px`);
+  assert.equal(menu.style.top, `${Math.max(8, init.clientY || 0)}px`);
+  return menu;
 }
 
 function typeInto(field, value) {
@@ -2935,7 +2982,7 @@ test("metadata sheet shows default rows without inventing changes and edits fiel
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent), [
     "Author", "Editor", "Translator", "Contributor (role unconfirmed)", "Publication date", "Written date",
     "Delivered date", "Online edition date", "Date (role unconfirmed)", "Hide Author on title page",
-    "Link registered author…", "Remove Author “Writer”"]);
+    "Link registered author…", "Remove Author “Writer”", "Close"]);
   menu.querySelector('[data-metadata-add="person:editor"]').click();
   assert(menu.hidden);
   const added = personRows()[1];
@@ -3129,7 +3176,7 @@ test("title page preview right-click hides, shows and resets filled fields", () 
   assert(!menu.hidden);
   const layout = ["Full title presentation", "Compact title presentation", "Layout and separation\u2026"];
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent),
-    ["Hide Rights", "Show Publisher", ...layout]);
+    ["Hide Rights", "Show Publisher", ...layout, "Close"]);
   menu.querySelector('[data-title-hide="rights"]').click();
   assert(menu.hidden);
   assert(!events[0].includes("rights") && events[0].includes("author") && !events[0].includes("publisher"));
@@ -3137,7 +3184,7 @@ test("title page preview right-click hides, shows and resets filled fields", () 
   preview.querySelector(".document-metadata").dispatchEvent(new dom.window.KeyboardEvent("keydown",
     {key: "F10", shiftKey: true, bubbles: true, cancelable: true}));
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent),
-    ["Show Author", "Show Rights", "Reset to default fields", ...layout]);
+    ["Show Author", "Show Rights", "Reset to default fields", ...layout, "Close"]);
   menu.querySelector("[data-title-reset]").click();
   assert.equal(events[1], null);
 });
@@ -3404,6 +3451,10 @@ test("section move panel uses outline source, filters descendants, cancels and r
   mountSectionMoves(form, editor, message => { if (message) assert.fail(message); });
   form.querySelector("[data-section-move]").dispatchEvent(new dom.window.MouseEvent("contextmenu",
     {bubbles: true, clientX: 20, clientY: 30}));
+  const menu = form.querySelector("#editor-outline-menu");
+  assert.equal(menu.style.left, "20px");
+  assert.equal(menu.style.top, "30px");
+  assert(menu.classList.contains("editor-floating-menu"));
   form.querySelector("#editor-outline-menu button").click();
   assert.equal(dialog.querySelector("[name=section]").value, "1");
   assert.equal(dialog.querySelector("[name=destination]").options.length, 2);
@@ -6497,14 +6548,14 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   };
   let items = open(outline.querySelector('[data-book-view="toc"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
-    [["Include table of contents page", "false"], ["Layout and separation\u2026", null]]);
+    [["Include table of contents page", "false"], ["Layout and separation\u2026", null], ["Close", null]]);
   items[0].click();
   assert(menu.hidden);
   assert.deepEqual(events.at(-1), {key: "contents_page", value: true});
   items = open(outline.querySelector('[data-book-view="title"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
     [["Full title presentation", "false"], ["Compact title presentation", "true"],
-      ["Layout and separation\u2026", null]]);
+      ["Layout and separation\u2026", null], ["Close", null]]);
   items[0].click();
   assert.deepEqual(events.at(-1), {key: "title_layout", value: "full"});
   value = {...value, metadata: {...value.metadata, title_layout: "full", contents_page: true}};
@@ -6513,13 +6564,13 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   assert(toc.querySelector("[data-toc-part]"), "Including the ToC page restores the entries.");
   items = open(toc.querySelector("h2"));
   assert.deepEqual(items.map(item => item.textContent),
-    ["Include table of contents page", "Reset to article preset (omitted)", "Layout and separation\u2026"]);
+    ["Include table of contents page", "Reset to article preset (omitted)", "Layout and separation\u2026", "Close"]);
   items[1].click();
   assert.deepEqual(events.at(-1), {key: "contents_page", value: null});
   const page = form.querySelector(".editor-metadata-page");
   items = open(page.querySelector("h2"));
   assert.deepEqual(items.map(item => item.textContent), ["Include metadata page at the end",
-    "Layout and separation\u2026", "Edit complete metadata\u2026"]);
+    "Layout and separation\u2026", "Edit complete metadata\u2026", "Close"]);
   items[2].click();
   assert.deepEqual(tabs, ["metadata"]);
   page.querySelector(".editor-metadata-page-edit").click();

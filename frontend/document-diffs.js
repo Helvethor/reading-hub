@@ -6,7 +6,7 @@ import {closeHistory} from "@tiptap/pm/history";
 import {visiblePart, foldedDocumentParts, blockLabel, leafLabel, blockLabelsShown,
   workspaceChanged} from "./workspace.js";
 import {sectionHeading} from "./section-info.js";
-import {attachContextualPanel} from "./contextual-panels.js";
+import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
 const key = new PluginKey("readingHubDifferences");
 const MAX_CELLS = 1000000;
@@ -585,6 +585,8 @@ function differenceMenu(editor, onError) {
     button.setAttribute("role", "menuitem");
     button.textContent = text;
     button.dataset.diffAction = action;
+    button.dataset.menuIcon = action === "keyboard" ? "⌨" : "↶";
+    if (action === "replace") button.classList.add("editor-menu-divider");
     button.addEventListener("mousedown", event => event.preventDefault());
     return button;
   };
@@ -599,7 +601,7 @@ function differenceMenu(editor, onError) {
     || editor.view.dom.closest(".editor-workspace")
     || editor.view.dom.parentElement;
   attachContextualPanel(editorWorkspace, menu,
-    editorWorkspace?.querySelector(".editor-diff-controls"));
+    editorWorkspace?.querySelector(".editor-diff-controls"), editor);
   let current = null;
   function close(focus = true) {
     if (menu.hidden) return;
@@ -641,7 +643,7 @@ function differenceMenu(editor, onError) {
   const outside = event => { if (!menu.contains(event.target)) close(false); };
   owner.addEventListener("pointerdown", outside, true);
   owner.addEventListener("mousedown", outside, true);
-  function open(change, root, origin) {
+  function open(change, root, origin, event) {
     let range = null, problem = "";
     try { range = selectionPositions(owner, root, change); }
     catch (failure) { problem = failure.message; }
@@ -659,8 +661,7 @@ function differenceMenu(editor, onError) {
       ? "Removed content: the selected text can be restored on its own"
       : "Removed content: select part of it first to restore only that text") +
       (change.coarse ? ". Large change: displayed as one exact replacement." : ".");
-    menu.hidden = false;
-    menu.querySelector("button:not(:disabled):not([hidden])")?.focus({preventScroll: true});
+    showContextMenu(menu, event, origin);
   }
   return {open, close, destroy() {
     owner.removeEventListener("pointerdown", outside, true);
@@ -722,13 +723,13 @@ function attachMenu(root, focus, change, menu) {
     event.stopPropagation();
     if (event.shiftKey) return;
     event.preventDefault();
-    menu.open(change, root, focus);
+    menu.open(change, root, focus, event);
   });
   root.addEventListener("keydown", event => {
     event.stopPropagation();
     if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
       event.preventDefault();
-      menu.open(change, root, focus);
+      menu.open(change, root, focus, event);
     }
   });
 }

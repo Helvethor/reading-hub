@@ -236,7 +236,7 @@ if (form) {
     }
     title.addEventListener("input", metadataChanged);
     for (const field of metadataFields) field.addEventListener("input", metadataChanged);
-    structuredMetadata = mountMetadata(form, initial.document.metadata, metadataChanged);
+    structuredMetadata = mountMetadata(form, initial.document.metadata, metadataChanged, editor);
     initial.sourceRevision = () => initial.revision;
     initial.registerSource = token => {
       if (saving) throw new Error("Wait for the current save before inserting source.");

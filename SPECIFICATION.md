@@ -113,7 +113,12 @@ keyboard navigation across rows (arrow keys, Home/End and Escape). Right-click
 anchors it at the pointer; keyboard invocation uses the caret and the toolbar
 button uses its own position. Keep the menu inside the viewport, scroll long
 menus internally, and dismiss on outside interaction, page/pane scroll or resize.
-This is the explicit exception to the in-flow contextual-panel rule below.
+All editor right-click menus follow the same floating placement and compact
+visual language: page/layout settings, outline/section actions, ToC numbering
+and visibility, title fields, metadata fields and difference restoration.
+Use named symbols beside text, separated action groups, and a Close footer;
+preserve each menu's existing state, guarded operations and keyboard return focus.
+These are explicit exceptions to the in-flow contextual-panel rule below.
 
 **Versions and evidence:** default to a readable version list/timeline grouped
 by real branches, with the reader target and intended working copy identified.
@@ -150,8 +155,8 @@ navigation, workspace identity, tabs and command rows occupy normal page flow
 and scroll out of the viewport; remove expanded/compact transitions, sticky menu
 layers and reserved-height placeholders. Ordinary menus and contextual command
 panels open in flow, pushing following content down rather than covering it.
-The 2026-11-16 Selection tools refinement above supersedes this rule only for
-the editor selection context menu, which floats at its invocation point.
+The 2026-11-16 editor context-menu refinement above supersedes this rule for
+editor right-click menus, which float at their invocation point.
 The workspace title contains only type, exact edition/draft identity and the
 complete title; concise operational state belongs beside commands, with material
 warnings still visible. Joined regions use square internal edges and single

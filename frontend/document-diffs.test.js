@@ -175,6 +175,12 @@ function rightClick(element, options = {}) {
   const event = new window.MouseEvent("contextmenu",
     {bubbles: true, cancelable: true, clientX: 20, clientY: 30, ...options});
   element.dispatchEvent(event);
+  if (!options.shiftKey) {
+    const menu = document.querySelector("#editor-diff-menu");
+    assert(menu.classList.contains("editor-floating-menu"));
+    assert.equal(menu.style.left, `${options.clientX ?? 20}px`);
+    assert.equal(menu.style.top, `${options.clientY ?? 30}px`);
+  }
   return event;
 }
 

@@ -46,7 +46,7 @@ import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
 import {isTocNumberingChange, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 import {mountNoteRepairs} from "./note-repairs.js";
-import {attachContextualPanel} from "./contextual-panels.js";
+import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
   title: form.querySelector('[name="title"]')
@@ -555,14 +555,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       : selectedLink(editor) ? "Existing link: edit the whole link's destination and title, preserving its text"
       : selection.empty
       ? "At the cursor" : "Selected text: styling applies only to this selection";
-    menu.hidden = false;
-    menu.scrollTop = 0;
-    const viewport = owner.defaultView;
-    const bounds = menu.getBoundingClientRect();
-    menu.style.left = `${Math.max(8, Math.min(point.x, viewport.innerWidth - bounds.width - 8))}px`;
-    menu.style.top = `${Math.max(8, Math.min(point.y, viewport.innerHeight - bounds.height - 8))}px`;
+    showContextMenu(menu, point);
     trigger.setAttribute("aria-expanded", "true");
-    menu.querySelector("button:not(:disabled):not([hidden])")?.focus({preventScroll: true});
   }
   function openAtSelection() {
     const caret = editor.view.coordsAtPos(editor.state.selection.from);
