@@ -439,6 +439,15 @@ local deployment. Live-data changes are not authorized.
   (5.6px 9.6px), typography (13.6px/19.04px, weight 600), themed bar surface,
   wrapping and no horizontal overflow were verified with screenshots. The
   720px viewport is not native 200% zoom; V64 remains partial.
+- [x] Apply the 2026-11-16 square-control follow-up to workspace/local Edit
+  tabs and Read/editor/difference commands: shared colours and typography,
+  1px borders, 2px selected/focused bottom edge, distinct focus outline and
+  compensated padding with no state-induced layout shift. Save retains primary
+  emphasis. Development CSS-fixture assertions passed in light/dark at 1440px
+  and 375px, alongside 34 focused frontend and 45 isolated editor-view tests.
+  Public Read renders the controls; ordinary pointer actionability waits timed
+  out and a forced Style click did not activate. Native reviewer interaction,
+  zoom and complete V64 acceptance remain open; this was not deployed live.
 - [x] Consolidate routine statuses while retaining accurate comparison context,
   safety warnings, actionable failures and accessible feedback.
 - [ ] Complete V61-V66 with focused tests and isolated browser journeys; record

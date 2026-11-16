@@ -1771,7 +1771,7 @@ change authorized.
    restrictions on isolated fixtures. Use focused existing tests/builds as
    correctness evidence, not substitutes for the failing browser workflow.
 
-**Current reimplementation evidence:** The Read-action cascade conflict was
+**Earlier reimplementation evidence:** The Read-action cascade conflict was
 caused by the generic `.workspace-read-actions :is(...)` selector also matching
 nested mode buttons; its specificity defeated the selected-state rule. Direct
 action styling is now limited to direct children, and explicit mode selectors
@@ -1784,6 +1784,27 @@ overflow matched the editor toolbar; temporary desktop and narrow screenshots
 were captured. A 720px viewport is not native 200% zoom. Native 200% zoom,
 PDF loading/disabled states and integrated V62-V66 journeys remain unverified,
 so V64 remains partial.
+
+**Square-control follow-up (2026-11-16):** use the same square, neutral control
+style for workspace tabs, local Edit tabs, Read actions, formatting controls and
+other editor/difference commands. Use 1px borders with a 2px accent bottom edge
+for selected/pressed or keyboard-focused controls, plus a separate 2px accent
+focus outline. Compensate bottom padding when the border thickens so control
+and toolbar geometry stay stable. Match bar surfaces, spacing and typography;
+retain tab/button/link semantics, visible disabled states and primary Save
+emphasis. The shared workspace rules now own these states rather than the
+theme's competing local-tab rules.
+
+Development validation: 34 focused frontend tests and 45 isolated editor-view
+tests passed. A temporary synthetic CSS fixture loaded development-served sheets
+in template order and asserted matching neutral/selected control styling,
+36px height, square corners, focus geometry, disabled opacity and no horizontal
+overflow in light/dark at 1440px and 375px. Public Read also rendered the new
+controls, and a forced hover produced the expected hover colours. Ordinary
+pointer actionability waits timed out; a forced Style click did not activate
+the mode. These observations do not certify native interaction or an
+authenticated reviewer journey. Native 200% zoom, actual PDF loading states
+and integrated V62-V66 acceptance remain open. No live deployment was performed.
 
 On isolated synthetic active article and book drafts, trusted clicks reached
 local tabs, metadata, outline, formatting controls and Read; a native drag

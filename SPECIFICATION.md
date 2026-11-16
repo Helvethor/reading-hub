@@ -231,6 +231,16 @@ orders these gates and strengthens V61/V64 acceptance. Earlier deployment stays
 historical; this rework authorizes source implementation only. Further
 deployment and live-data changes are not authorized.
 
+**Square workspace controls (2026-11-16):** workspace and local Edit tabs,
+Read actions, editor commands and difference commands share square corners,
+neutral colours, compact typography and a 1px border. Selected/pressed and
+keyboard-focused controls have a 2px accent bottom edge; focus also retains
+a distinct accent outline. Compensating padding prevents state changes from
+moving controls. Bar surfaces and padding match in both site themes. Save
+retains primary-action emphasis, and tabs, buttons, links, disabled states and
+permission guards keep their existing semantics. This is a development-only
+visual follow-up, not deployment or full V64 acceptance.
+
 **No-working-copy interaction follow-up (2026-11-16):** a saved edition waiting
 for working-copy selection remains browsable in Edit: text selection, scrolling,
 outline navigation and display controls work. Do not mark the entire form

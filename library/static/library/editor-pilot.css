@@ -27,19 +27,12 @@
 .editor-book-structure summary { cursor: pointer; font-weight: 700; }
 .editor-book-structure li { overflow-wrap: anywhere; }
 .editor-structure-link { font-weight: 700; }
-.editor-pilot-toolbar { position: static; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .5rem; border-bottom: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
+.editor-pilot-toolbar { position: static; }
 .editor-pilot-toolbar select { min-width: 0; max-width: 13rem; }
 .editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding-inline-end: .45rem; border-inline-end: 1px solid var(--line); }
-.editor-format-toolbar button {
-  min-width: 2.25rem;
-  padding: .35rem .5rem;
-  background: transparent;
-  color: var(--ink);
-  border-color: var(--line);
-}
-.editor-format-toolbar button:hover,
-.editor-format-toolbar button[aria-pressed="true"] { background: var(--paper); color: var(--accent); }
-.editor-pilot-toolbar .editor-save { background: var(--accent); color: var(--paper); }
+.editor-format-toolbar button { min-width: 2.25rem; }
+.editor-pilot-toolbar .editor-save,
+.editor-pilot-toolbar .editor-save:is(:hover, :focus-visible) { background: var(--accent); color: var(--paper); }
 .editor-pilot-toolbar #editor-publication { margin: 0; background: transparent; color: var(--accent); }
 #document-editor button:disabled { cursor: not-allowed; }
 .editor-workspace { border-inline: 1px solid var(--line); }

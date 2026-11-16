@@ -23,27 +23,41 @@
 .workspace-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
-  padding-inline: .5rem;
+  gap: .2rem;
+  padding: .35rem .5rem;
   border-top: 1px solid var(--line);
-  background: var(--surface-raised, #eef1ea);
+  background: var(--editor-panel, var(--surface-raised, #eef1ea));
 }
-.workspace-tabs [role="tab"] {
+:is(.workspace-tabs [role="tab"], .workspace-command-bar button, .workspace-command-bar .button) {
+  --workspace-control-edge: 1px;
+  display: inline-flex;
   min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
   margin: 0;
-  padding: .35rem .9rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
+  /* Compensate for the stronger state border without moving adjacent controls. */
+  padding: .35rem .6rem calc(.35rem + 2px - var(--workspace-control-edge));
+  border: 1px solid var(--line);
+  border-bottom-width: var(--workspace-control-edge);
   border-radius: 0;
   background: transparent;
   color: var(--ink);
-  font: 600 .9rem/1.35 system-ui, sans-serif;
+  font: 600 .85rem/1.4 system-ui, sans-serif;
 }
-.workspace-tabs [role="tab"][aria-selected="true"] {
-  border-bottom-color: var(--accent);
+:is(.workspace-tabs [role="tab"], .workspace-command-bar button, .workspace-command-bar .button):where(:not(:disabled):not([aria-disabled="true"])):hover {
+  background: var(--editor-hover, var(--paper));
   color: var(--accent);
 }
-.workspace-tabs [role="tab"]:focus-visible { outline-offset: -3px; }
+:is(.workspace-tabs [role="tab"], .workspace-command-bar button, .workspace-command-bar .button):is([aria-selected="true"], [aria-pressed="true"], :focus-visible) {
+  --workspace-control-edge: 2px;
+  border-bottom-color: var(--accent);
+  background: var(--paper);
+  color: var(--accent);
+}
+:is(.workspace-tabs [role="tab"], .workspace-command-bar button, .workspace-command-bar .button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
 .workspace-command-bar {
   display: flex;
   flex-wrap: wrap;
@@ -51,16 +65,8 @@
   gap: .4rem;
   padding: .35rem .5rem;
   border-bottom: 1px solid var(--line);
-  background: var(--surface-raised, #eef1ea);
+  background: var(--editor-panel, var(--surface-raised, #eef1ea));
   color: var(--ink);
-}
-.workspace-command-bar :is(button, .button) {
-  display: inline-flex;
-  min-height: 2.25rem;
-  align-items: center;
-  justify-content: center;
-  padding: .35rem .6rem;
-  font: 600 .85rem/1.4 system-ui, sans-serif;
 }
 .workspace-command-bar label {
   display: inline-flex;
@@ -110,20 +116,10 @@
 }
 .workspace-panel-edit .editor-workspace { border: 0; }
 .workspace-read-actions {
-  padding: .5rem;
   border: 0;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   box-shadow: none;
-}
-.workspace-read-actions > :is(a.button.secondary, button.secondary) {
-  border-color: var(--line);
-  background: transparent;
-  color: var(--ink);
-}
-.workspace-read-actions > :is(a.button.secondary, button.secondary):hover {
-  background: var(--paper);
-  color: var(--accent);
 }
 .workspace-reader-modes {
   display: flex;
@@ -131,17 +127,6 @@
   gap: .2rem;
   padding-inline-start: .45rem;
   border-inline-start: 1px solid var(--line);
-}
-.workspace-reader-modes button.secondary {
-  border-color: var(--line);
-  background: transparent;
-  color: var(--ink);
-}
-.workspace-reader-modes button.secondary:hover,
-.workspace-reader-modes button.secondary[aria-pressed="true"] {
-  border-color: var(--line);
-  background: var(--paper);
-  color: var(--accent);
 }
 .workspace-panel-read:not([hidden]) {
   border-radius: 0;
