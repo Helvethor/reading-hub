@@ -22,6 +22,43 @@ const attrs = {
   id: {default: null},
   class: {default: null},
 };
+
+export function protectSavedEdition(editor, form, notify) {
+  const message = "Choose a working copy in Versions before editing or saving.";
+  const navigation = [
+    "#editor-part", "#editor-section-filter", "#editor-block-labels",
+    "#editor-outline-toggle", "#editor-result-filter", "#editor-diff-revision",
+    "#editor-diff-baseline", "#editor-choose-working-copy", "[data-part]", "[data-book-view]",
+    "[data-outline-fold]", "[data-content-fold]", "[data-book-group-fold]",
+    ".editor-outline-options input", ".editor-outline-options button",
+  ].join(", ");
+  function disableEditing() {
+    for (const control of form.querySelectorAll("button, input, select, textarea")) {
+      if (!control.matches(navigation)) control.disabled = true;
+    }
+  }
+  editor.setEditable(false, false);
+  editor.registerPlugin(new Plugin({
+    filterTransaction(tr) {
+      if (!tr.docChanged) return true;
+      notify(message);
+      return false;
+    },
+  }));
+  editor.on("transaction", disableEditing);
+  disableEditing();
+  form.addEventListener("contextmenu", event => {
+    if (event.shiftKey) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    notify(message);
+  }, true);
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    notify(message);
+  }, true);
+}
 const tagAttrs = {
   ...Object.fromEntries(["h2", "h3", "h4", "h5", "h6"].map(tag => [tag, ["data-toc-style", "data-toc-entry", "data-layout-before"]])),
   section: ["data-section-url", "data-section-role", "data-section-title",

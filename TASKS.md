@@ -418,6 +418,13 @@ local deployment. Live-data changes are not authorized.
   and book drafts, but the reported failing state was unavailable; no live
   working copy was tested, so V61 remains unresolved. The no-working-copy
   choose-history route showed its explanation and left Versions operable.
+  Follow-up 2026-11-16 reproduced the shared-browser blockage in the
+  no-working-copy state: form-wide `inert`, not a stacking overlay, excluded
+  descendants from hit testing. The agreed fix permits read-only selection,
+  scrolling and navigation while disabling mutations and saving, with an
+  explicit Versions action. Native synthetic-article mouse selection, wheel
+  scrolling and that action pass; this does not certify every active-copy or
+  permission transition.
 - [x] Replace whole-Edit scrolling with normal page scrolling and a
   viewport-sized Content stage with independently scrolling outline and canvas;
   adapt navigation, focus and position restoration. Native geometry and

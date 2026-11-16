@@ -216,6 +216,13 @@ orders these gates and strengthens V61/V64 acceptance. Earlier deployment stays
 historical; this rework authorizes source implementation only. Further
 deployment and live-data changes are not authorized.
 
+**No-working-copy interaction follow-up (2026-11-16):** a saved edition waiting
+for working-copy selection remains browsable in Edit: text selection, scrolling,
+outline navigation and display controls work. Do not mark the entire form
+`inert`. Disable mutation controls, metadata changes, recovery and saving, and
+refuse document-changing transactions. Show an explicit action to choose a
+working copy in Versions. This does not relax working-copy or permission guards.
+
 **Agreed bibliographic date display follow-up:**
 show date metadata at its known calendar precision, not as a full timestamp.
 For ISO date-time strings, preserve the date as written and do not convert it

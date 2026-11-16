@@ -1,6 +1,6 @@
 import "prosemirror-view/style/prosemirror.css";
 import {
-  applyPlainTextPaste, applyFormattedPaste, createBoundedEditor,
+  applyPlainTextPaste, applyFormattedPaste, createBoundedEditor, protectSavedEdition,
 } from "./editor.js";
 import {mountWorkspace} from "./controls.js";
 import {documentParts, showDocumentPart} from "./workspace.js";
@@ -415,9 +415,16 @@ if (form) {
       if (dirty) { event.preventDefault(); event.returnValue = ""; }
     });
     if (initial.choose_history) {
-      editor.setEditable(false, false);
-      form.inert = true;
-      status.textContent = "Choose a working copy in Versions before editing.";
+      protectSavedEdition(editor, form, showError);
+      status.textContent = "Read-only saved edition. You can select text, scroll and navigate. ";
+      const choose = document.createElement("button");
+      choose.type = "button";
+      choose.id = "editor-choose-working-copy";
+      choose.textContent = "Choose a working copy in Versions";
+      choose.addEventListener("click", () => workspaceShell.selectTab("versions", {
+        writeHistory: true, focus: true,
+      }));
+      status.append(choose);
     }
   } catch (failure) {
     console.error("Editor initialization failed:", failure);

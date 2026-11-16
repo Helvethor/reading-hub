@@ -6,6 +6,7 @@ import {undo, redo} from "@tiptap/pm/history";
 import {NodeSelection, Selection, TextSelection} from "@tiptap/pm/state";
 import {
   createBoundedEditor, contentSignature, isInlineStyleActive, toggleInlineStyle,
+  protectSavedEdition,
   applyPlainTextPaste, preparePlainTextPaste, MAX_PASTE_BYTES,
   canMoveTextBlock, moveTextBlock,
   canAlignTextBlock, textBlockAlignment, alignTextBlock,
@@ -75,6 +76,36 @@ function open(html, onUpdate) {
   editor = createBoundedEditor(target, html, onUpdate);
   return editor;
 }
+
+test("saved editions allow selection and navigation without edits or submission", () => {
+  const form = mountSectionWorkspace('<section id="first"><h2>First</h2><p>Selectable words</p></section>' +
+    '<section id="second"><h2>Second</h2><p>Other words</p></section>');
+  const original = editor.getHTML(), errors = [];
+  protectSavedEdition(editor, form, message => errors.push(message));
+  assert(!form.inert);
+  assert.equal(editor.isEditable, false);
+  assert(form.querySelector('[type="submit"]').disabled);
+  assert(form.querySelector("[data-mark]").disabled);
+  assert(!form.querySelector("#editor-part").disabled);
+  assert(!form.querySelector("[data-part]").disabled);
+  selectText("Selectable", "Selectable".length);
+  assert(!editor.state.selection.empty);
+  assert(form.querySelector("[data-mark]").disabled, "selection refresh must not enable mutation tools");
+  editor.commands.insertContent("Refused");
+  assert.equal(editor.getHTML(), original);
+  assert.match(errors.at(-1), /working copy/);
+  let submitted = false;
+  form.addEventListener("submit", () => { submitted = true; });
+  form.dispatchEvent(new dom.window.Event("submit", {bubbles: true, cancelable: true}));
+  assert.equal(submitted, false);
+  const menuEvent = new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true});
+  form.querySelector("#editor-surface").dispatchEvent(menuEvent);
+  assert(menuEvent.defaultPrevented);
+  const show = form.querySelector("#editor-part");
+  show.value = "sections";
+  show.dispatchEvent(new dom.window.Event("change"));
+  assert.equal(editor.getHTML(), original);
+});
 
 function selectText(text, length = 0) {
   let position;
