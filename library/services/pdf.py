@@ -20,7 +20,7 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 17
+PDF_PRESENTATION_VERSION = 18
 PDF_XMP_NAMESPACE = "urn:reading-hub:pdf:1.0"
 
 
@@ -393,7 +393,12 @@ def running_sections(markup, document_title="", *, book=False, work_type="", ent
             start["data-pdf-section"] = title.strip() or "Untitled article"
             section.insert(0, start)
             for heading in section.find_all(["h2", "h3", "h4", "h5", "h6"]):
-                if heading.find_parent("section") is section:
+                owner = heading.find_parent("section")
+                while owner is not None and owner is not section:
+                    if owner.get("data-section-role") not in (None, "article"):
+                        break
+                    owner = owner.find_parent("section")
+                if owner is section:
                     label = titles.get(heading.get("id")) or heading_label(heading).strip()
                     heading["data-pdf-section"] = heading.get("data-reading-marker", "") + label
             continue

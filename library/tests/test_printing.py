@@ -813,10 +813,10 @@ class PrintingTests(TestCase):
         self.version.html = (
             '<section id="c1" data-section-role="article">'
             "<p>" + "Introductory passage. " * 1200 + "</p>"
-            '<h2 id="first">First section</h2>'
+            '<section id="part-one"><h2 id="first">First section</h2>'
             "<p>" + "First section passage. " * 1200 + "</p>"
             '<h4 id="second">Second section</h4>'
-            "<p>" + "Second section passage. " * 1200 + "</p></section>"
+            "<p>" + "Second section passage. " * 1200 + "</p></section></section>"
         )
         self.version.save(update_fields=["title", "metadata", "structure", "html"])
         pdf = self.pdf()
@@ -834,17 +834,25 @@ class PrintingTests(TestCase):
             return body, "".join(header)
 
         pages = [page_text_and_header(page) for page in pdf.pages[1:]]
-        for body, header in (
-            ("Introductory passage", "Article identity"),
-            ("First section passage", "First section"),
-            ("Second section passage", "Second section"),
-        ):
-            self.assertTrue(
-                any(text.count(body) > 5 and header in running
-                    for text, running in pages),
-                f"Missing {header!r} in continuation-page headers: "
-                f"{[running for _, running in pages]!r}",
-            )
+        expected_header = "Article identity"
+        observed_bodies = set()
+        for text, running in pages:
+            for heading in ("First section", "Second section"):
+                if heading in text:
+                    expected_header = heading
+            for body in (
+                "Introductory passage", "First section passage", "Second section passage",
+            ):
+                if body in text:
+                    observed_bodies.add(body)
+                    self.assertIn(
+                        expected_header, running,
+                        f"Expected {expected_header!r} on page containing {body!r}; "
+                        f"header was {running!r}",
+                    )
+        self.assertEqual(observed_bodies, {
+            "Introductory passage", "First section passage", "Second section passage",
+        })
         self.assertTrue(all("c1" not in header for _, header in pages))
         self.assertEqual(pdf.metadata.title, "Article identity")
 
@@ -862,6 +870,19 @@ class PrintingTests(TestCase):
         self.assertEqual(soup.select_one("#one")["data-pdf-section"], "First heading")
         self.assertEqual(soup.select_one("#child h2")["data-pdf-section"], "Child title")
         self.assertEqual(soup.select_one("#two")["data-pdf-section"], "Next heading")
+
+    def test_explicit_nested_section_keeps_its_selected_heading_boundary(self):
+        markup = (
+            '<article class="reader-content"><section id="story" data-section-role="article">'
+            '<section id="chapter" data-section-role="chapter">'
+            '<h2 id="chapter-title">Chapter title</h2><h3 id="subheading">Subheading</h3>'
+            '</section></section></article>'
+        )
+        soup = BeautifulSoup(running_sections(
+            markup, "Article title", work_type="article",
+        ), "html.parser")
+        self.assertEqual(soup.select_one("#chapter-title")["data-pdf-section"], "Chapter title")
+        self.assertFalse(soup.select_one("#subheading").has_attr("data-pdf-section"))
 
     def test_legacy_article_headers_use_navigation_titles_without_changing_prose(self):
         markup = (

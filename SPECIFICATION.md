@@ -1191,7 +1191,9 @@ below, only on content pages. Title/metadata and generated contents pages,
 including continuations, have no running headers or footers. Header titles and
 page numbers use 9pt text; page counters still include all PDF pages.
 Article content starts with the article's own title as its running section;
-its subsequent H2-H6 headings update that title to match navigation.
+subsequent H2-H6 headings update that title to match navigation, including when
+untyped nested sections wrap those headings. Explicitly typed nested sections
+retain their own running-title boundary behavior.
 Long running titles occupy separate bounded columns, top-aligned at a fixed 6mm
 inset from the page edge. Wrapping extends downward without changing the first
 line's position or the 18mm body margin. These margin boxes
