@@ -274,6 +274,39 @@ short and specific; scope and consequences belong in context and impact previews
 Reserve warning styling for actionable warnings, not routine work context.
 Unsaved, saved, reviewed and published states stay visibly distinct.
 
+#### Square visual language and joined controls
+
+Milestone **SV - Square visual language and joined controls** (recorded
+2026-11-16; planned, not implemented) establishes the next website-wide visual
+baseline for both Marxist light and dark themes. It extends the square workspace
+follow-up above; that earlier implementation is not evidence of SV completion.
+The [SV milestone](TASKS.md#milestone-sv-square-visual-language-and-joined-controls)
+owns delivery gates and acceptance.
+
+- Use square corners for UI controls, menus, forms, dialogs and structural
+  panels, with theme-appropriate neutral grey/non-accent structural borders.
+- Join related horizontal controls with 0px horizontal gap and a single-width
+  internal seam. Tabs, reading modes, bulleted/numbered lists and Undo/Redo are
+  examples. Keep spacing between distinct functional groups rather than joining
+  an entire toolbar indiscriminately.
+- Give tabs and toggle/state buttons a heavier neutral bottom edge when
+  inactive, and an accent bottom edge with supporting background treatment when
+  selected/pressed. Do not apply a heavy bottom edge to every field or panel.
+- Keep keyboard focus distinct from selection: focusing an inactive tab must
+  not make it appear selected. Preserve disabled-state clarity, primary-action
+  emphasis and meaningful warning, error and comparison colours.
+- Prevent state-induced movement and size changes. Joined groups must wrap
+  without overflow, clipped focus indicators or lost group relationships.
+
+Apply the same visual grammar to the header/account menu, reader/editor,
+Versions/Sources/comparison, discovery/catalogue, reviewer workflows, account
+forms/settings, dialogs/context menus, administration/worker screens and general
+layout/status regions. Reuse shared rules and theme tokens instead of adding
+page-specific exceptions. Preserve semantics, action naming, permissions,
+confirmations, unsaved work and theme switching. Publication/PDF styling,
+personal reading palettes and unrelated themes are outside this milestone.
+Recording this plan authorizes no implementation, deployment or live-data changes.
+
 #### Website-wide action naming
 
 This convention applies to the whole website: public reading/discovery,

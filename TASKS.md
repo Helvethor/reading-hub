@@ -92,6 +92,62 @@ letting phone layout constrain desktop clarity, fluidity or action discoverabili
 Keyboard/focus/screen-reader accessibility still applies; public reading and
 discovery remain first-class responsive workflows.
 
+### Milestone SV: Square visual language and joined controls
+
+Recorded 2026-11-16. **Status: planned; implementation not authorized.**
+The [visual contract](SPECIFICATION.md#square-visual-language-and-joined-controls)
+defines the website-wide baseline for both Marxist light and dark themes.
+The outcome is coherent grouping and state cues across the website, not another
+workspace-only CSS exception. This plan does not close U1 or V.p acceptance,
+change unrelated milestone ordering, or authorize deployment/live-data changes.
+
+Delivery sequence:
+
+- [ ] SV1 - Inventory affected surfaces and existing theme overrides; establish
+  shared geometry, border, surface, accent and focus rules using existing
+  stylesheet mechanisms. No framework replacement is required.
+- [ ] SV2 - Establish the workspace reference: join workspace/local Edit tabs,
+  reading modes and meaningful formatting/action groups, including the
+  bulleted/numbered list pair and Undo/Redo. Keep distinct groups separated.
+  Check inactive, selected/pressed, hover, keyboard-focus and disabled states,
+  shared seams and wrapping in both themes. Obtain visual approval before
+  propagating the reference treatment.
+- [ ] SV3 - Extend the approved shared treatment to header/account navigation;
+  reading, editing, Versions/Sources and comparison; discovery/catalogue and
+  reviewer workflows; account forms/settings, dialogs and contextual menus;
+  administration/worker screens; and general layout/status regions. Track
+  coverage and explicit exceptions rather than inferring website-wide adoption
+  from workspace checks.
+- [ ] SV4 - Validate representative public, reviewer and administration journeys
+  in an isolated environment, with pointer and keyboard, narrow viewports and
+  native 200% zoom in both themes. Record actual browser observations separately
+  from automated/synthetic evidence and remaining unverified cases.
+
+Observable acceptance and stopping point:
+
+- [ ] Related horizontal controls have exactly 0px horizontal separation and no
+  doubled internal borders; unrelated functional groups retain visible spacing.
+- [ ] UI controls, menus, forms, dialogs and structural panels use the agreed
+  square treatment and neutral structural borders in both Marxist themes.
+- [ ] Tabs/state buttons expose a heavier neutral inactive bottom edge and an
+  accent selected/pressed edge. Focus is independently visible, including on
+  inactive controls; disabled controls remain distinguishable.
+- [ ] Control position and dimensions do not change between visual states.
+  Joined groups wrap without horizontal overflow, clipped focus indicators or
+  lost grouping.
+- [ ] Representative journeys preserve native interaction, action/link/tab
+  semantics, permissions, confirmations, warnings and exact-version targets.
+  Switching themes preserves unsaved edits.
+- [ ] Publication/PDF styling and personal reading palettes are unchanged;
+  unrelated themes do not acquire this visual redesign.
+- [ ] Every listed surface family has recorded coverage, with exceptions and
+  limitations explicit. Shared rules and documentation match the approved
+  result; existing V.p interaction gates remain separate.
+
+Out of scope: workflow redesign, framework replacement, content/record changes,
+deployment and certification of previously unresolved interaction defects.
+Checkpoint validated implementation stages locally when separately authorized.
+
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
 - [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;
