@@ -63,8 +63,10 @@ Follow-up V.p, requested 2026-11-15, unifies editor and workspace interaction
 and revises Edit scroll ownership. Source implementation and local deployment
 are delivered in release `2f54237`; V61-V66 acceptance remains partial pending
 native-browser, output and accessibility checks. The reported working-copy
-pointer/selection freeze remains unreproduced. Live-data changes are not
-authorized.
+pointer/selection freeze was initially unreproduced. The 2026-11-16 incident
+below identifies the shared-browser no-working-copy blockage as form-wide
+inertness and records its bounded fix; other V61 transitions remain unverified.
+Live-data changes are not authorized.
 
 ## Outcome, authority and supersession
 
@@ -1788,8 +1790,22 @@ local tabs, metadata, outline, formatting controls and Read; a native drag
 selected text and formatting changed only the browser's unsaved draft. The
 reported blocked working-copy state was not available, and no live working
 copy was tested. The no-working-copy choose-history route displayed its
-explanation and left Versions operable. V61 remains unresolved; no interaction
-fix is claimed.
+explanation and left Versions operable. At that investigation, V61 remained
+unresolved and no interaction fix was claimed.
+
+**2026-11-16 interaction incident follow-up:** the user's shared development
+browser reproduced the blockage with no selected working copy and
+`choose_history=true`. The entire editor form was `inert`; native hit testing
+therefore skipped its descendants and returned `.editor-workspace`. This was
+not a stacking overlay. The user authorized replacing that broad lock with
+read-only browsing and an explicit working-copy action. Checkpoint `77d4fb1`
+preserves mutation/save restrictions while restoring selection, scrolling and
+navigation. Native synthetic-article selection, wheel scrolling and the Versions
+action passed; an existing working copy retained editable/enabled controls.
+The [incident record](OPERATIONS.md#incident-editor-appears-covered-by-its-workspace-2026-11-16)
+details the automated and browser evidence, preservation boundaries and recurrence
+diagnosis. This resolves the observed no-working-copy failure, not every V61
+active-copy/permission transition or the integrated V62-V66 acceptance.
 
 Do not close either reopened outcome from shared selectors, synthetic
 click dispatch or a successful deployment. Stop at evidenced child interaction

@@ -110,6 +110,58 @@ dirty edits need neither deployment nor manual cache-key changes. There is no
 hot-module replacement. Initial frontend dependencies/assets belong to each
 checkout, not the live release.
 
+#### Incident: editor appears covered by its workspace (2026-11-16)
+
+**Scope and symptom.** In the shared isolated development browser on
+`http://127.0.0.1:8766/`, the synthetic article's Edit view rejected clicks,
+text selection and wheel scrolling. Hit testing returned `.editor-workspace`
+instead of the visible form descendants, resembling the previously reported
+V61 overlay/stacking failure.
+
+**Observed cause.** The page had no selected working copy and its initial
+`choose_history` flag was true. In `frontend/pilot.js`, this state set
+`form.inert = true` on `#document-editor`. Native inertness excluded all
+descendants from interaction and hit testing; the parent was not an overlay.
+Browser inspection found no open modal dialog. The lock was intentional, but
+its scope also prevented harmless browsing. Check the actual initial state
+and ancestor inertness, not just the URL or CSS stacking.
+
+**Agreed correction.** The user explicitly chose read-only browsing with a
+clear working-copy action. Source checkpoint `77d4fb1`
+(`fix: keep saved-edition browsing interactive`) replaces form-wide inertness
+with a noneditable editor, disabled mutation/metadata/recovery controls, blocked
+submission and mutation menus, and refusal of document-changing transactions.
+Selection, scrolling, outline navigation and display controls remain available.
+A visible **Choose a working copy in Versions** action opens Versions.
+Working-copy and permission restrictions are not waived.
+
+**Evidence.**
+
+- `node --test frontend/editor.test.js frontend/workspace-shell.test.js`:
+  313 passed, zero failures. The new regression covers selection, navigation,
+  disabled mutation controls after selection refresh, refused document changes,
+  submission and mutation context menus.
+- `npm run build` passed. npm emitted its existing Node-version/config warnings.
+- In the actual shared browser, the formerly blocked no-working-copy state had
+  no inert form, `contenteditable="false"` and disabled Save/formatting controls.
+  Native mouse drag selected `Synthetic source text`; a native wheel action
+  moved the editor pane from scrollTop 0 to 250. Changing Show worked, and the
+  working-copy action opened Versions.
+- Opening an existing synthetic working copy left the editor editable, Save
+  enabled, no inert form and no editor error. No content was typed or saved.
+- The CRLF-aware Git whitespace check passed.
+
+**Boundary and recurrence procedure.** This was a checkout/isolated-preview
+fix, not a live deployment. No credentials, source imports, saved document
+records, publications, reader defaults or workers were changed. For a recurrence,
+inspect initial `choose_history`/draft state, inert ancestors, disabled controls,
+open modal dialogs and `elementsFromPoint` before changing z-index or
+pointer-events. Verify native selection/scrolling in the locked state and
+editable controls in an authorized working copy; do not make a protected edition
+editable merely to remove the symptom. The full article/book, permission,
+recovery, print/PDF and accessibility journeys remain outside this incident's
+evidence; V61-V66 are not certified complete.
+
 For simultaneous worktrees choose a free port:
 
 ```sh
