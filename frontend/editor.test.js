@@ -5574,7 +5574,7 @@ test("workspace menu formats the pinned selection and supports keyboard dismissa
   const form = document.createElement("form");
   form.innerHTML = '<button id="editor-tools" type="button">Selection tools</button>' +
     '<select id="editor-part"></select><div id="editor-outline-items"></div>' +
-    '<p id="editor-view-notice"></p><p id="editor-selection-path"></p>' +
+    '<p id="editor-selection-path"></p>' +
     '<input id="editor-block-labels" type="checkbox" checked>' +
     '<div id="editor-context-menu" hidden><p id="editor-menu-target"></p>' +
     '<button type="button" data-mark="strong">Bold</button>' +
@@ -5939,7 +5939,7 @@ test("workspace right-click pins the clicked nested link and dialog validates ap
   const surface = editor.view.dom.parentElement;
   const form = document.createElement("form");
   form.innerHTML = '<button id="editor-tools" type="button"></button><select id="editor-part"></select>' +
-    '<div id="editor-outline-items"></div><p id="editor-view-notice"></p><p id="editor-selection-path"></p>' +
+    '<div id="editor-outline-items"></div><p id="editor-selection-path"></p>' +
     '<input id="editor-block-labels" type="checkbox"><div id="editor-context-menu" hidden>' +
     '<p id="editor-menu-target"></p><button type="button" data-link>Edit link</button>' +
     '<button type="button" data-link-insert>Create link</button>' +

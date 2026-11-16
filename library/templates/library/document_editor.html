@@ -123,8 +123,8 @@
           {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
         </span>
         <a id="editor-publication" class="button secondary" data-workflow-panel="Publish" hidden>Publish&hellip;</a>
-        <label class="editor-part-control">Show <select id="editor-part" aria-describedby="editor-view-notice" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
-        <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" aria-describedby="editor-view-notice" disabled><option value="">All sections</option></select></label>
+        <label class="editor-part-control">Show <select id="editor-part" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
+        <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" disabled><option value="">All sections</option></select></label>
         <label><input id="editor-block-labels" type="checkbox" checked disabled> Block labels</label>
         <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert from source&hellip;</button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
@@ -158,9 +158,8 @@
           <div id="editor-outline-items"></div>
         </nav>
         <div class="editor-canvas">
-          <p id="editor-view-notice" role="status">Whole book. Saving always includes all parts.</p>
-          <div id="editor-surface" class="reader-content" data-workspace-scroll-pane></div>
           <p id="editor-selection-path" aria-label="Current block structure"></p>
+          <div id="editor-surface" class="reader-content" data-workspace-scroll-pane></div>
         </div>
       </div>
       </div>

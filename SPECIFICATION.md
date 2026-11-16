@@ -2309,7 +2309,7 @@ Preserve draft authorization, retained-asset integrity and publication binding.
 It is new placement, not file upload, remote fetching or global asset browsing.
 G remains independently specified and is not a prerequisite.
 
-### Editor selection-path placement (planned)
+### Editor selection-path placement
 
 In the editor canvas, place `#editor-selection-path` immediately before
 `#editor-surface`, in the position currently occupied by `#editor-view-notice`.

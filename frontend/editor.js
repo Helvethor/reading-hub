@@ -1272,7 +1272,7 @@ export function createBoundedEditor(element, html, onUpdate = () => {}, metadata
       handleScrollToSelection: keepSelectionClearOfStack,
       attributes: {
         role: "textbox", "aria-label": "Editable reading document", "aria-multiline": "true",
-        "aria-describedby": "editor-help editor-view-notice",
+        "aria-describedby": "editor-help",
       },
       handleDOMEvents: {
         copy: (view, event) => {

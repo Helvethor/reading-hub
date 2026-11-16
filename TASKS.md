@@ -769,22 +769,29 @@ owns T1-T4, N1-N2 and TN3-TN6 acceptance.
   frontend-only; these end-to-end outcomes remain unobserved.
 - [ ] Validate N independently after implementation on isolated fixtures.
 
-## Editor layout follow-up: selection-path placement (planned)
+## Editor layout follow-up: selection-path placement
 
-The [editor specification](SPECIFICATION.md#editor-selection-path-placement-planned)
-owns the behavior contract. This is a bounded layout change independent of G, I,
-T and N. It is specified only; implementation, deployment and live-data changes
-are not authorized.
+The [editor specification](SPECIFICATION.md#editor-selection-path-placement)
+owns the behavior contract. This bounded layout change is independent of G, I,
+T and N. Implemented and checked on 2026-11-16. Frontend tests (350) and isolated
+document-editor view tests (45) pass. In the isolated development browser, the
+path immediately precedes the scrollable surface; its bottom and the surface's
+top both measured 263.7px, with `overflow-y: auto` and 561px client / 2,831px
+scroll height. No notice or dangling description references remain; the
+editor's `editor-help` description and Show/Section labels remain. The removed
+notice's explanations about hidden/collapsed content and whole-book saves are
+intentionally absent; the underlying behaviors remain unchanged. No deployment
+or live-data changes were made.
 
-- [ ] Move `#editor-selection-path` to the top of `.editor-canvas`, immediately
+- [x] Move `#editor-selection-path` to the top of `.editor-canvas`, immediately
   before `#editor-surface`, and remove `#editor-view-notice`.
-- [ ] Remove notice-specific DOM updates, styling and accessibility references;
+- [x] Remove notice-specific DOM updates, styling and accessibility references;
   preserve editor help and visible Show/Section labels, with no dangling IDs.
-- [ ] Preserve selection-path updates, editor content, navigation, save behavior,
+- [x] Preserve selection-path updates, editor content, navigation, save behavior,
   recovery and the surface's flexible internal scrolling.
-- [ ] Update frontend fixtures and template assertions, rebuild the tracked editor
+- [x] Update frontend fixtures and template assertions, rebuild the generated editor
   bundle, and pass focused frontend and document-editor tests.
-- [ ] Verify in a browser that the path is above the scrolling surface. Record
+- [x] Verify in a browser that the path is above the scrolling surface. Record
   that notice explanations about hidden/collapsed content and whole-book saves
   disappear; those underlying behaviors remain unchanged.
 

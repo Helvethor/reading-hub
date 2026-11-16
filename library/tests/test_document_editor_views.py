@@ -553,6 +553,24 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(presentation["languages"]["fr"], "French")
         self.assertContains(response, "Block labels")
         self.assertContains(response, 'id="editor-selection-path"')
+        selection_path = workspace.select_one("#editor-selection-path")
+        editor_surface = workspace.select_one("#editor-surface")
+        self.assertIsNotNone(selection_path)
+        self.assertIsNotNone(editor_surface)
+        self.assertEqual(selection_path.find_next_sibling(), editor_surface)
+        self.assertIsNone(workspace.select_one("#editor-view-notice"))
+        self.assertNotIn("editor-view-notice", response.content.decode())
+        self.assertIsNone(workspace.select_one("#editor-part").get("aria-describedby"))
+        self.assertIsNone(workspace.select_one("#editor-section-filter").get("aria-describedby"))
+        self.assertTrue(
+            workspace.select_one("#editor-part").parent.get_text(" ", strip=True).startswith("Show "),
+        )
+        self.assertTrue(
+            workspace.select_one("#editor-section-filter").parent.get_text(" ", strip=True).startswith(
+                "Section ",
+            ),
+        )
+        self.assertContains(response, 'id="editor-help"')
         self.assertContains(response, 'aria-label="Paragraph alignment"')
         self.assertContains(response, "click again to inherit")
         self.assertNotContains(response, 'data-align=""')

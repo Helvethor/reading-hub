@@ -48,13 +48,6 @@ import {isTocNumberingChange, tocMarker, tocNumberingEntries} from "./toc-number
 import {mountNoteRepairs} from "./note-repairs.js";
 import {attachContextualPanel} from "./contextual-panels.js";
 
-function bookNotice(pages) {
-  const parts = [pages.title_layout === "compact" ? "compact title" : "full title page",
-    pages.contents_page ? "table of contents" : "no table of contents page", "all sections",
-    pages.metadata_page ? "metadata page" : "no metadata page"];
-  return `Whole book: ${parts.join(", ")}. Saving always includes all document content.`;
-}
-
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
   title: form.querySelector('[name="title"]')
     ? form.querySelector('[name="title"]').value : initial.document?.title || "",
@@ -64,7 +57,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const surface = form.querySelector("#editor-surface");
   const partSelect = form.querySelector("#editor-part");
   const outline = form.querySelector("#editor-outline-items");
-  const viewNotice = form.querySelector("#editor-view-notice");
   const path = form.querySelector("#editor-selection-path");
   const menu = form.querySelector("#editor-context-menu");
   attachContextualPanel(form, menu);
@@ -330,14 +322,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     dynamicOutline.render(parts);
     bookViews.navigation(outline);
     bookViews.refresh(parts);
-    viewNotice.textContent = scope
-      ? `Showing only: ${scope.label}. Other parts are hidden, not deleted. Saving includes the whole book.`
-      : bookViews.view === "book" ? bookNotice(bookViews.pages)
-        : bookViews.view === "sections" ? "All sections. Saving always includes all document content."
-          : `${{title: "Title page", toc: "Table of contents", metadata: "Metadata page"}[bookViews.view]} generated from current metadata and structure. Saving always includes all document content.`;
-    const folds = foldedDocumentParts(editor);
-    if (folds.length) viewNotice.textContent +=
-      ` ${folds.length} content range${folds.length === 1 ? "" : "s"} collapsed; saving still includes their text.`;
   }
   function choosePart(value) {
     try {
