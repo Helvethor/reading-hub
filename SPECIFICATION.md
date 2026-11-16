@@ -2309,6 +2309,27 @@ Preserve draft authorization, retained-asset integrity and publication binding.
 It is new placement, not file upload, remote fetching or global asset browsing.
 G remains independently specified and is not a prerequisite.
 
+### Editor selection-path placement (planned)
+
+In the editor canvas, place `#editor-selection-path` immediately before
+`#editor-surface`, in the position currently occupied by `#editor-view-notice`.
+Remove `#editor-view-notice` and its dynamic messaging, styling and references.
+Keep the path's current block/inline/selection content and keep the editor
+surface as the remaining flexible, internally scrolling canvas area.
+
+Remove `editor-view-notice` from `aria-describedby` references. Preserve the
+editor help description and the visible labels for the Show and Section
+controls. Do not leave references to a removed ID. Selection, document content,
+navigation, save behavior, recovery and persisted data remain unchanged.
+
+Removing the notice also removes its explanations that filtered content is
+hidden rather than deleted, that saves include the whole book, and that
+collapsed ranges remain included. This loss of explanatory status text is
+intentional for this layout change; it does not change those behaviors.
+Implementation requires focused frontend and template tests plus a browser
+check that the path is above the scrolling surface. This specification does not
+authorize deployment or live-data changes.
+
 Outline section drag/drop is available; arbitrary canvas drag/drop, new media or
 note insertion/renumbering remain unavailable. Each next revision can be explicitly marked partial, verified
 for selected identified sections, or whole-document verified. Verification requires

@@ -769,6 +769,25 @@ owns T1-T4, N1-N2 and TN3-TN6 acceptance.
   frontend-only; these end-to-end outcomes remain unobserved.
 - [ ] Validate N independently after implementation on isolated fixtures.
 
+## Editor layout follow-up: selection-path placement (planned)
+
+The [editor specification](SPECIFICATION.md#editor-selection-path-placement-planned)
+owns the behavior contract. This is a bounded layout change independent of G, I,
+T and N. It is specified only; implementation, deployment and live-data changes
+are not authorized.
+
+- [ ] Move `#editor-selection-path` to the top of `.editor-canvas`, immediately
+  before `#editor-surface`, and remove `#editor-view-notice`.
+- [ ] Remove notice-specific DOM updates, styling and accessibility references;
+  preserve editor help and visible Show/Section labels, with no dangling IDs.
+- [ ] Preserve selection-path updates, editor content, navigation, save behavior,
+  recovery and the surface's flexible internal scrolling.
+- [ ] Update frontend fixtures and template assertions, rebuild the tracked editor
+  bundle, and pass focused frontend and document-editor tests.
+- [ ] Verify in a browser that the path is above the scrolling surface. Record
+  that notice explanations about hidden/collapsed content and whole-book saves
+  disappear; those underlying behaviors remain unchanged.
+
 Complex table restructuring, arbitrary asset browsing and ticket-only image
 selection are deferred. G remains the owner of independent figure/caption
 actions and is not a prerequisite for N's standalone image insertion.
