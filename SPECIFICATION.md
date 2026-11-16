@@ -106,10 +106,14 @@ the outline and selection tools beside relevant content. Versions/Sources
 inspection and other draft-specific panels preserve pending edits, focus and
 canvas context; actual working-copy navigation remains explicit and guarded.
 Appearance changes remain presentation-only with existing theme/profile scopes.
-Selection tools use a compact, bounded-width in-flow menu: named icon controls
+Selection tools use a compact, bounded-width floating menu: named icon controls
 for lists and indentation, a visually separate move/separate group, and one
 Undo/Redo/Close row. Preserve accessible action names, selected text, and
-keyboard navigation across rows (arrow keys, Home/End and Escape).
+keyboard navigation across rows (arrow keys, Home/End and Escape). Right-click
+anchors it at the pointer; keyboard invocation uses the caret and the toolbar
+button uses its own position. Keep the menu inside the viewport, scroll long
+menus internally, and dismiss on outside interaction, page/pane scroll or resize.
+This is the explicit exception to the in-flow contextual-panel rule below.
 
 **Versions and evidence:** default to a readable version list/timeline grouped
 by real branches, with the reader target and intended working copy identified.
@@ -146,6 +150,8 @@ navigation, workspace identity, tabs and command rows occupy normal page flow
 and scroll out of the viewport; remove expanded/compact transitions, sticky menu
 layers and reserved-height placeholders. Ordinary menus and contextual command
 panels open in flow, pushing following content down rather than covering it.
+The 2026-11-16 Selection tools refinement above supersedes this rule only for
+the editor selection context menu, which floats at its invocation point.
 The workspace title contains only type, exact edition/draft identity and the
 complete title; concise operational state belongs beside commands, with material
 warnings still visible. Joined regions use square internal edges and single

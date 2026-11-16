@@ -555,8 +555,8 @@ test("selection context menu separates paragraphs and exposes excerpt origins an
   assert(!form.querySelector("#editor-context-menu").hidden);
   assert.equal(form.querySelector("#editor-context-menu").parentElement.className,
     "editor-contextual-panels");
-  assert.equal(form.querySelector("#editor-context-menu").style.left, "");
-  assert.equal(form.querySelector("#editor-context-menu").style.top, "");
+  assert.equal(form.querySelector("#editor-context-menu").style.left, "20px");
+  assert.equal(form.querySelector("#editor-context-menu").style.top, "20px");
   form.querySelector("#editor-section-excerpt-open").click();
   const dialog = document.querySelector("#editor-section-excerpt");
   assert(dialog.open);
@@ -753,6 +753,48 @@ function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace, s
   onWorkspace?.(workspace);
   return form;
 }
+
+test("selection tools float at pointer, caret or trigger and dismiss without losing selection", () => {
+  const form = mountSectionWorkspace("<p>Selected words</p>");
+  selectText("Selected", 8);
+  const selection = editor.state.selection;
+  const original = editor.getHTML();
+  const menu = form.querySelector("#editor-context-menu");
+  const trigger = form.querySelector("#editor-tools");
+  menu.getBoundingClientRect = () => ({width: 352, height: 500});
+  trigger.getBoundingClientRect = () => ({left: 40, bottom: 70});
+  editor.view.coordsAtPos = () => ({left: 120, bottom: 180});
+  const rightClick = (x, y) => editor.view.dom.querySelector("p").dispatchEvent(
+    new dom.window.MouseEvent("contextmenu", {bubbles: true, clientX: x, clientY: y}),
+  );
+  rightClick(220, 100);
+  assert.equal(menu.style.left, "220px");
+  assert.equal(menu.style.top, "100px");
+  menu.dispatchEvent(new dom.window.Event("scroll"));
+  assert(!menu.hidden, "Scrolling a long menu must not dismiss it.");
+  form.querySelector("#editor-surface").dispatchEvent(new dom.window.Event("scroll"));
+  assert(menu.hidden, "Scrolling the document pane dismisses a detached menu.");
+  rightClick(window.innerWidth - 1, window.innerHeight - 1);
+  assert.equal(menu.style.left, `${window.innerWidth - 352 - 8}px`);
+  assert.equal(menu.style.top, `${window.innerHeight - 500 - 8}px`);
+  rightClick(-10, -10);
+  assert.equal(menu.style.left, "8px");
+  assert.equal(menu.style.top, "8px");
+  menu.scrollTop = 100;
+  trigger.click();
+  assert.equal(menu.scrollTop, 0);
+  assert.equal(menu.style.left, "40px");
+  assert.equal(menu.style.top, "70px");
+  editor.view.dom.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "F10", shiftKey: true, bubbles: true, cancelable: true,
+  }));
+  assert.equal(menu.style.left, "120px");
+  assert.equal(menu.style.top, "180px");
+  window.dispatchEvent(new dom.window.Event("resize"));
+  assert(menu.hidden);
+  assert(editor.state.selection.eq(selection));
+  assert.equal(editor.getHTML(), original);
+});
 
 test("compact selection tools navigate icon rows and preserve selection through history", () => {
   const form = mountSectionWorkspace('<section id="s"><p>First paragraph.</p>' +

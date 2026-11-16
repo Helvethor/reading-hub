@@ -543,7 +543,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       " Ctrl-click toggles blocks; Escape clears selection.";
     if (selectedImage(editor)) path.textContent += " / Image";
   }
-  function openMenu() {
+  function openMenu(point) {
     closeMenu();
     menuTarget = {doc: editor.state.doc, bookmark: editor.state.selection.getBookmark()};
     updateTools();
@@ -556,13 +556,22 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       : selection.empty
       ? "At the cursor" : "Selected text: styling applies only to this selection";
     menu.hidden = false;
+    menu.scrollTop = 0;
+    const viewport = owner.defaultView;
+    const bounds = menu.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(point.x, viewport.innerWidth - bounds.width - 8))}px`;
+    menu.style.top = `${Math.max(8, Math.min(point.y, viewport.innerHeight - bounds.height - 8))}px`;
     trigger.setAttribute("aria-expanded", "true");
-    menu.querySelector("button:not(:disabled):not([hidden])")?.focus();
+    menu.querySelector("button:not(:disabled):not([hidden])")?.focus({preventScroll: true});
   }
   function openAtSelection() {
-    openMenu();
+    const caret = editor.view.coordsAtPos(editor.state.selection.from);
+    openMenu({x: caret.left, y: caret.bottom});
   }
-  trigger.addEventListener("click", openAtSelection);
+  trigger.addEventListener("click", () => {
+    const bounds = trigger.getBoundingClientRect();
+    openMenu({x: bounds.left, y: bounds.bottom});
+  });
   function preserveContextSelection(event) {
     if (editor.view.dom.contains(event.target) &&
         event.button === 2 && !editor.state.selection.empty) event.preventDefault();
@@ -594,7 +603,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         TextSelection.near(editor.state.doc.resolve(position.pos)),
       ));
     }
-    openMenu();
+    openMenu({x: event.clientX, y: event.clientY});
   });
   surface.addEventListener("keydown", event => {
     if (!editor.view.dom.contains(event.target) || editor.view.dom.hidden) return;
@@ -966,6 +975,13 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     if (!menu.contains(event.target) && !trigger.contains(event.target)) closeMenu();
   }
   owner.addEventListener("pointerdown", outside);
+  function dismissOnScroll(event) {
+    if (!menu.contains(event.target)) closeMenu();
+  }
+  const viewport = owner.defaultView;
+  const dismissOnResize = () => closeMenu();
+  owner.addEventListener("scroll", dismissOnScroll, true);
+  viewport.addEventListener("resize", dismissOnResize);
   let lastScope = visiblePart(editor);
   let lastFolds = foldedDocumentParts(editor);
   editor.on("transaction", ({transaction}) => {
@@ -984,6 +1000,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   });
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);
+    owner.removeEventListener("scroll", dismissOnScroll, true);
+    viewport.removeEventListener("resize", dismissOnResize);
   });
   function updateWorkspaceContext() {
     const next = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
