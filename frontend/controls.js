@@ -606,10 +606,10 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   menu.addEventListener("keydown", event => {
     const items = [...menu.querySelectorAll("button:not(:disabled):not([hidden])")];
     const index = items.indexOf(owner.activeElement);
-    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+    if (["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
       event.preventDefault();
       const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
-        (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+        (index + (["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1) + items.length) % items.length;
       items[next].focus();
     } else if (event.key === "Escape") {
       event.preventDefault();

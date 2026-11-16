@@ -754,6 +754,46 @@ function mountSectionWorkspace(html, initial = {}, {readDocument, onWorkspace, s
   return form;
 }
 
+test("compact selection tools navigate icon rows and preserve selection through history", () => {
+  const form = mountSectionWorkspace('<section id="s"><p>First paragraph.</p>' +
+    '<p>Second paragraph.</p></section>');
+  selectText("Second", 6);
+  const original = editor.getHTML();
+  const selection = {from: editor.state.selection.from, to: editor.state.selection.to};
+  const menu = form.querySelector("#editor-context-menu");
+  const openMenu = () => form.querySelector("#editor-tools").click();
+  const key = value => document.activeElement.dispatchEvent(new dom.window.KeyboardEvent(
+    "keydown", {key: value, bubbles: true, cancelable: true},
+  ));
+  openMenu();
+  assert.equal(document.activeElement.id, "editor-menu-close", "Skip disabled history actions.");
+  key("ArrowRight");
+  assert.equal(document.activeElement.dataset.mark, "strong");
+  key("ArrowLeft");
+  assert.equal(document.activeElement.id, "editor-menu-close");
+  key("End");
+  key("ArrowRight");
+  assert.equal(document.activeElement.id, "editor-menu-close", "Wrap between rows.");
+  for (const button of menu.querySelectorAll("[data-list]")) {
+    assert(button.getAttribute("aria-label"));
+    assert(button.querySelector('svg[aria-hidden="true"]'));
+  }
+  assert.equal(menu.querySelector("[data-move]").closest("[role=group]"),
+    menu.querySelector("#editor-content-move-open").closest("[role=group]"));
+  menu.querySelector('[data-mark="strong"]').click();
+  assert(editor.getHTML().includes("<strong>Second</strong>"));
+  openMenu();
+  menu.querySelector('[data-history="undo"]').click();
+  assert.equal(editor.getHTML(), original);
+  openMenu();
+  menu.querySelector('[data-history="redo"]').click();
+  assert(editor.getHTML().includes("<strong>Second</strong>"));
+  openMenu();
+  key("Escape");
+  assert(menu.hidden);
+  assert.deepEqual({from: editor.state.selection.from, to: editor.state.selection.to}, selection);
+});
+
 test("legacy standalone Article uses document title without rewriting its headings", () => {
   const html = '<section id="article"><p>Opening paragraph.</p>' +
     '<h2 id="first">First heading</h2><p>First body.</p>' +

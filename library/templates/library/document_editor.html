@@ -254,6 +254,11 @@
       <p>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a>.</p>
     </details>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
+      <div role="group" aria-label="History and menu" class="editor-menu-group editor-menu-history">
+        <button type="button" role="menuitem" data-history="undo" disabled>↶ Undo</button>
+        <button type="button" role="menuitem" data-history="redo" disabled>↷ Redo</button>
+        <button type="button" role="menuitem" id="editor-menu-close">× Close</button>
+      </div>
       <p id="editor-menu-target"></p>
       <div role="group" aria-label="Text styling" class="editor-menu-group">
         <span class="editor-menu-heading">Text styling</span>
@@ -281,15 +286,22 @@
         <button type="button" role="menuitemcheckbox" aria-label="Justify" title="Justify; click again to inherit" aria-checked="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
       </div>
       <div role="group" aria-label="Lists" class="editor-menu-group editor-list-tools">
-        <span class="editor-menu-heading">Lists · active type removes formatting</span>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-list="ul" disabled>Bulleted list</button>
-        <button type="button" role="menuitemcheckbox" aria-checked="false" data-list="ol" disabled>Numbered list</button>
-        <button type="button" role="menuitem" data-list="indent" disabled>Indent item</button>
-        <button type="button" role="menuitem" data-list="outdent" disabled>Outdent item</button>
-        <button type="button" role="menuitem" data-list="up" disabled>Move item up</button>
-        <button type="button" role="menuitem" data-list="down" disabled>Move item down</button>
+        <span class="editor-menu-heading">Lists · click active type to remove</span>
+        <button type="button" role="menuitemcheckbox" aria-label="Bulleted list" title="Bulleted list" aria-checked="false" data-list="ul" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11"/><circle cx="2" cy="4" r=".7"/><circle cx="2" cy="10" r=".7"/><circle cx="2" cy="16" r=".7"/></svg></button>
+        <button type="button" role="menuitemcheckbox" aria-label="Numbered list" title="Numbered list" aria-checked="false" data-list="ol" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11M1 2h2v5M1 7h4M1 11h4v2l-4 4h4"/></svg></button>
+        <button type="button" role="menuitem" aria-label="Indent item" title="Indent item" data-list="indent" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M9 8h9M9 12h9M2 17h16M2 7l4 3-4 3"/></svg></button>
+        <button type="button" role="menuitem" aria-label="Outdent item" title="Outdent item" data-list="outdent" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M9 8h9M9 12h9M2 17h16M6 7l-4 3 4 3"/></svg></button>
+        <button type="button" role="menuitem" aria-label="Move item up" title="Move item up" data-list="up" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 12h7M2 16h7M14 16V4M10 8l4-4 4 4"/></svg></button>
+        <button type="button" role="menuitem" aria-label="Move item down" title="Move item down" data-list="down" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 4h7M2 8h7M14 4v12M10 12l4 4 4-4"/></svg></button>
       </div>
-      <div role="group" aria-label="Inline semantics" class="editor-menu-group">
+      <div role="group" aria-label="Move and separate content" class="editor-menu-group editor-menu-movement">
+        <span class="editor-menu-heading">Move / separate</span>
+        <button type="button" role="menuitem" aria-label="Move paragraph up" title="Move paragraph up" data-move="-1" disabled>↑ Paragraph</button>
+        <button type="button" role="menuitem" aria-label="Move paragraph down" title="Move paragraph down" data-move="1" disabled>↓ Paragraph</button>
+        <button type="button" role="menuitem" id="editor-content-move-open" disabled>↗ Move selected content…</button>
+        <button type="button" role="menuitem" id="editor-section-excerpt-open" disabled>Separate as excerpt section…</button>
+      </div>
+      <div role="group" aria-label="Inline semantics" class="editor-menu-group editor-menu-actions">
         <span class="editor-menu-heading">Inline semantics</span>
         <button type="button" role="menuitem" data-inline-mark="cite" disabled>Mark as source title</button>
         <button type="button" role="menuitem" data-inline-mark="q" disabled>Mark as inline quotation</button>
@@ -318,13 +330,6 @@
       <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
       <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
       <button type="button" role="menuitem" data-link-remove disabled>Remove link (keep text and targets)</button>
-      <button type="button" role="menuitem" data-move="-1" disabled>Move paragraph up</button>
-      <button type="button" role="menuitem" data-move="1" disabled>Move paragraph down</button>
-      <button type="button" role="menuitem" id="editor-content-move-open" disabled>Move selected content…</button>
-      <button type="button" role="menuitem" id="editor-section-excerpt-open" disabled>Separate as excerpt section…</button>
-      <button type="button" role="menuitem" data-history="undo" disabled>Undo</button>
-      <button type="button" role="menuitem" data-history="redo" disabled>Redo</button>
-      <button type="button" role="menuitem" id="editor-menu-close">Close menu</button>
     </div>
     <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
   </form>

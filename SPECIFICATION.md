@@ -106,6 +106,10 @@ the outline and selection tools beside relevant content. Versions/Sources
 inspection and other draft-specific panels preserve pending edits, focus and
 canvas context; actual working-copy navigation remains explicit and guarded.
 Appearance changes remain presentation-only with existing theme/profile scopes.
+Selection tools use a compact, bounded-width in-flow menu: named icon controls
+for lists and indentation, a visually separate move/separate group, and one
+Undo/Redo/Close row. Preserve accessible action names, selected text, and
+keyboard navigation across rows (arrow keys, Home/End and Escape).
 
 **Versions and evidence:** default to a readable version list/timeline grouped
 by real branches, with the reader target and intended working copy identified.
