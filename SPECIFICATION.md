@@ -290,10 +290,11 @@ owns delivery gates, implementation coverage and acceptance.
   internal seam. Tabs, reading modes, bulleted/numbered lists and Undo/Redo are
   examples. Keep spacing between distinct functional groups rather than joining
   an entire toolbar indiscriminately.
-- Give tabs and reader-mode controls a heavier neutral bottom edge when
-  inactive and an accent edge when selected. Other state buttons use accent
-  border/background only while active; inactive editor actions keep their normal
-  neutral border without a heavy bottom edge. Do not apply a heavy bottom edge
+- Give tabs and reader-mode controls neutral side borders, with a heavier
+  neutral bottom edge when inactive and an accent bottom edge when selected.
+  Other state buttons use accent border/background/text only while active.
+  Inactive editor actions keep their normal neutral border without a heavy
+  bottom edge. Do not apply a heavy bottom edge
   to every field or panel.
 - Keep keyboard focus distinct from selection: focusing an inactive tab must
   not make it appear selected. Preserve disabled-state clarity, primary-action

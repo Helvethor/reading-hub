@@ -156,11 +156,11 @@ Observable acceptance and stopping point:
   doubled internal borders; unrelated functional groups retain visible spacing.
 - [ ] UI controls, menus, forms, dialogs and structural panels use the agreed
   square treatment and neutral structural borders in both Marxist themes.
-- [ ] Tabs and reader-mode controls use a neutral inactive bottom edge and an
-  accent selected edge. Other state buttons use accent border/background only
-  while active; inactive editor actions keep their normal neutral border without
-  a heavy bottom edge. Focus is independently visible; disabled controls remain
-  distinguishable.
+- [ ] Tabs and reader-mode controls keep neutral side borders, with a neutral
+  inactive bottom edge and an accent selected bottom edge. Other state buttons
+  use accent border/background/text only while active. Inactive editor actions
+  keep their normal neutral border without a heavy bottom edge. Focus is
+  independently visible; disabled controls remain distinguishable.
 - [ ] Control position and dimensions do not change between visual states.
   Joined groups wrap without horizontal overflow, clipped focus indicators or
   lost grouping.

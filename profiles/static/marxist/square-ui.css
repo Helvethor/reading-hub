@@ -251,6 +251,11 @@ body :is(
   border-color: var(--square-accent);
 }
 
+#main .workspace-reader-modes button[aria-pressed="true"] {
+  border-color: var(--square-border);
+  border-bottom-color: var(--square-accent);
+}
+
 body :is(
   [role="tab"][aria-selected="true"],
   button[aria-pressed="true"],
