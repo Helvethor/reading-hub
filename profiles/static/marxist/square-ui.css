@@ -212,7 +212,6 @@ body :is(
   #content .module,
   #content .submit-row,
   #content .inline-group,
-  #content #changelist-filter,
   #content .selector,
   #content .selector-available,
   #content .selector-chosen,
@@ -221,6 +220,10 @@ body :is(
   #content .object-tools,
   #content .paginator
 ) {
+  border-color: var(--square-border);
+}
+
+#content #changelist-filter {
   border-color: var(--square-border);
 }
 
@@ -235,10 +238,9 @@ body :is(
   border-bottom: 3px solid var(--square-border);
 }
 
-body :is(
-  button[aria-pressed],
-  .workspace-reader-modes button
-) {
+#main button[aria-pressed],
+#main .workspace-reader-modes button,
+#content button[aria-pressed] {
   border-bottom-color: var(--square-accent);
 }
 
