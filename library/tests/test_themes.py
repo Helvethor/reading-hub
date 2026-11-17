@@ -20,6 +20,15 @@ class ThemeTests(TestCase):
         return self.client.post(reverse("change-theme"), {"theme": theme, **extra},
                                 HTTP_ACCEPT="application/json")
 
+    def test_square_ui_is_included_for_marxist_themes(self):
+        for theme in ("", "dark"):
+            if theme:
+                self.choose(theme)
+            response = self.client.get("/")
+            self.assertContains(response, "/static/marxist/square-ui.css")
+            self.assertContains(response, 'media="screen"')
+            self.assertContains(response, 'class="site-navigation-group"')
+
     def test_guest_default_cookie_and_reset_without_accounts(self):
         self.assertContains(self.client.get("/"), "/static/marxist/theme.css")
         self.assertContains(self.client.get("/"), 'data-theme-form')

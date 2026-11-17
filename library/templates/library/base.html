@@ -7,7 +7,8 @@
   <title>{% block title %}{{ site.name }}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'library/app.css' %}?v={{ app_version }}-workspace-v60">
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}-palette-square-controls" data-site-theme>
+  <link rel="stylesheet" href="{% static site.theme_css %}?v={{ app_version }}-square-ui-sv1" data-site-theme>
+  {% if site.key == "marxist" %}<link rel="stylesheet" href="{% static 'marxist/square-ui.css' %}?v={{ app_version }}-square-ui-sv1" media="screen">{% endif %}
   <script type="module" src="{% static 'library/themes.js' %}?v={{ app_version }}"></script>
 </head>
 <body>
@@ -15,6 +16,7 @@
   {% reviewer_navigation as review_nav %}
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">{{ site.name|first }}</span> {{ site.name }}</a>
+    {% if site.key == "marxist" %}<div class="site-navigation-group">{% endif %}
     <nav class="primary-navigation" aria-label="Primary">
       <a href="{% url 'home' %}"{% if request.resolver_match.url_name == "home" or request.resolver_match.url_name == "reader" or request.resolver_match.url_name == "document-editor" or request.resolver_match.url_name == "document-lineage" or request.resolver_match.url_name == "document-comparison" or request.resolver_match.url_name == "document-publication" %} aria-current="page"{% endif %}>Library</a>
       {% if site.catalogue_enabled %}<a href="{% url 'catalogue' %}"{% if request.resolver_match.url_name == "catalogue" %} aria-current="page"{% endif %}>Discover</a>{% endif %}
@@ -43,6 +45,7 @@
         {% endif %}
       </div>
     </details>
+    {% if site.key == "marxist" %}</div>{% endif %}
   </header>
   <aside class="site-messages" aria-label="Runtime environment"><p class="notice" data-runtime-environment="{{ runtime_environment }}">{{ runtime_environment|capfirst }} &middot; {{ runtime_revision }}</p></aside>
   {% if messages %}<div class="site-messages" role="status">{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}</div>{% endif %}

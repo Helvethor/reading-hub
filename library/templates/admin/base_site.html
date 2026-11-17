@@ -4,9 +4,12 @@
 {% block extrastyle %}
 {{ block.super }}
 {% if reading_hub_profile.admin_theme_css %}
-<link rel="stylesheet" href="{% static reading_hub_profile.admin_theme_css %}?v={{ app_version }}">
+<link rel="stylesheet" href="{% static reading_hub_profile.admin_theme_css %}?v={{ app_version }}-square-ui-sv1">
 {% endif %}
 <link rel="stylesheet" href="{% static 'library/admin.css' %}?v={{ app_version }}">
+{% if reading_hub_profile.key == "marxist" %}
+<link rel="stylesheet" href="{% static 'marxist/square-ui.css' %}?v={{ app_version }}-square-ui-sv1" media="screen">
+{% endif %}
 {% endblock %}
 {% block branding %}
 <div id="site-name"><a href="{% url 'admin:index' %}">{{ reading_hub_profile.name }}</a></div>

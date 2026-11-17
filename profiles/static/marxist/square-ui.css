@@ -1,0 +1,351 @@
+:root {
+  --square-border: var(--square-neutral-border, var(--line, var(--hairline-color, var(--border-color, #d9ddd1))));
+  --square-accent: var(--accent, var(--link-fg, #345f48));
+  --square-surface: var(--paper, var(--body-bg, #fff));
+  --square-selected-surface: color-mix(in srgb, var(--square-accent) 10%, var(--square-surface));
+}
+
+.site-navigation-group {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 0;
+  margin-inline-start: auto;
+}
+
+.site-navigation-group .primary-navigation {
+  gap: 0;
+  margin-inline-start: 0;
+  padding-inline: 1px;
+}
+
+.site-navigation-group .primary-navigation a,
+.site-navigation-group .account-menu > summary {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  border: 1px solid var(--square-border);
+  border-bottom-width: 3px;
+  border-radius: 0;
+  padding: .45rem .7rem;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-navigation-group .primary-navigation a + a,
+.site-navigation-group > .account-menu {
+  margin-inline-start: -1px;
+}
+
+.site-navigation-group > .account-menu {
+  position: relative;
+  flex: none;
+}
+
+.site-navigation-group .primary-navigation a[aria-current="page"],
+.site-navigation-group .account-menu[open] > summary {
+  background: var(--square-selected-surface);
+  border-bottom-color: var(--square-accent);
+  box-shadow: none;
+  color: var(--square-accent);
+}
+
+.site-navigation-group .primary-navigation a:hover,
+.site-navigation-group .account-menu > summary:hover {
+  background: color-mix(in srgb, var(--square-accent) 8%, var(--square-surface));
+}
+
+.site-navigation-group .account-menu[open] {
+  z-index: 20;
+}
+
+.site-navigation-group .account-menu-panel {
+  position: absolute;
+  z-index: 20;
+  inset-block-start: calc(100% - 1px);
+  inset-inline-end: 0;
+  width: min(32rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: min(80vh, calc(100dvh - 2rem));
+  overflow: auto;
+  border: 1px solid var(--square-border);
+  background: var(--surface-raised, var(--paper, #fff));
+  box-shadow: 0 .3rem 1.5rem rgb(0 0 0 / .2);
+}
+
+body :is(
+  button,
+  .button,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea,
+  summary,
+  dialog,
+  .site-header .primary-navigation a,
+  .site-header .account-menu > summary,
+  .welcome .url-form,
+  .review-navigation,
+  .work-context,
+  .notice,
+  .empty-state,
+  .metadata-suggestion,
+  .correction-command-bar,
+  .correction-preview-workspace,
+  .correction-panel,
+  .correction-media-row,
+  .correction-note-row,
+  .correction-person,
+  .correction-date,
+  .help-popover,
+  .preview-block-menu,
+  .preview-submenu,
+  .page-container fieldset,
+  .account-menu-panel,
+  .lineage-list,
+  #lineage-inspection,
+  .lineage-state-badge,
+  .lineage-controls,
+  .lineage-compare-form,
+  .lineage-reader-settings,
+  .lineage-block-before,
+  .lineage-block-after,
+  .source-operation,
+  .reading-style-controls,
+  .reading-style-group,
+  .import-panel[open],
+  .home-about[open],
+  .catalogue-advanced[open],
+  .workspace-chrome,
+  .workspace-view-panel,
+  .workspace-reader-tools,
+  .editor-workspace,
+  .editor-outline,
+  .editor-diff-controls,
+  .editor-book-structure,
+  .lineage-timeline-item,
+  #content .module,
+  #content .submit-row,
+  #content .inline-group,
+  #content #changelist-filter,
+  #content .selector,
+  #content .selector-available,
+  #content .selector-chosen,
+  #content .calendarbox,
+  #content .clockbox,
+  #content .object-tools,
+  #content .paginator,
+  .editor-page dialog,
+  #editor-context-menu,
+  #editor-outline-menu,
+  #editor-section-actions,
+  #editor-toc-menu,
+  #editor-diff-menu,
+  #editor-metadata-menu,
+  #editor-title-menu,
+  #editor-page-menu
+) {
+  border-radius: 0;
+}
+
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea,
+  button.secondary,
+  .button.secondary,
+  button.help-trigger,
+  .primary-navigation a,
+  .account-menu > summary,
+  .work-navigation a,
+  .review-navigation ul a,
+  .account-menu-panel,
+  .review-navigation,
+  .work-context,
+  .notice:not(.warning):not(.error),
+  .empty-state,
+  .metadata-suggestion,
+  .correction-command-bar,
+  .correction-preview-workspace,
+  .correction-panel,
+  .correction-media-row,
+  .correction-note-row,
+  .correction-person,
+  .correction-date,
+  .help-popover,
+  .preview-block-menu,
+  .preview-submenu,
+  .page-container fieldset,
+  .lineage-list,
+  #lineage-inspection,
+  .lineage-controls,
+  .lineage-compare-form,
+  .lineage-reader-settings,
+  .lineage-state-badge,
+  .source-operation,
+  .reading-style-controls,
+  .reading-style-group,
+  .import-panel[open],
+  .home-about[open],
+  .catalogue-advanced[open],
+  .workspace-chrome,
+  .workspace-view-panel,
+  .workspace-reader-tools,
+  .editor-workspace,
+  .editor-outline,
+  .editor-diff-controls,
+  .editor-book-structure,
+  dialog,
+  .editor-page dialog,
+  #editor-context-menu,
+  #editor-outline-menu,
+  #editor-section-actions,
+  #editor-toc-menu,
+  #editor-diff-menu,
+  #editor-metadata-menu,
+  #editor-title-menu,
+  #editor-page-menu,
+  #content .module,
+  #content .submit-row,
+  #content .inline-group,
+  #content #changelist-filter,
+  #content .selector,
+  #content .selector-available,
+  #content .selector-chosen,
+  #content .calendarbox,
+  #content .clockbox,
+  #content .object-tools,
+  #content .paginator
+) {
+  border-color: var(--square-border);
+}
+
+body :is(
+  [role="tab"],
+  button[aria-pressed],
+  .site-header .primary-navigation a,
+  .site-header .account-menu > summary,
+  .work-navigation a,
+  .review-navigation ul a
+) {
+  border-bottom: 3px solid var(--square-border);
+}
+
+body :is(
+  [role="tab"][aria-selected="true"],
+  button[aria-pressed="true"],
+  .site-header .primary-navigation a[aria-current="page"],
+  .site-header .account-menu[open] > summary,
+  .work-navigation a[aria-current="page"],
+  .review-navigation ul a[aria-current="page"]
+) {
+  background: var(--square-selected-surface);
+  border-bottom-color: var(--square-accent);
+  box-shadow: none;
+  color: var(--square-accent);
+}
+
+.work-navigation {
+  gap: 0;
+  border-block-end: 0;
+  padding-inline: 1px;
+}
+
+.work-navigation a {
+  border: 1px solid var(--square-border);
+  border-bottom-width: 3px;
+  border-radius: 0;
+  font-weight: 600;
+  margin-inline-start: -1px;
+  text-decoration: none;
+}
+
+.work-navigation a:first-child { margin-inline-start: 0; }
+.work-navigation a[aria-current="page"] { font-weight: 600; }
+
+.work-navigation span[aria-disabled="true"] {
+  border: 1px solid var(--square-border);
+  border-bottom-width: 3px;
+  margin-inline-start: -1px;
+}
+
+.review-navigation ul {
+  gap: 0;
+  padding-inline-start: 1px;
+}
+
+.review-navigation ul li + li { margin-inline-start: -1px; }
+.review-navigation ul a {
+  display: inline-block;
+  border: 1px solid var(--square-border);
+  border-bottom-width: 3px;
+  font-weight: 600;
+}
+.review-navigation ul a[aria-current="page"] { font-weight: 600; }
+
+.lineage-action-row {
+  gap: .5rem;
+}
+
+.lineage-action-row:not(:has(> .source-operation)) {
+  gap: 0;
+  padding-inline: 1px;
+}
+
+.lineage-action-row > :is(a.button, button) + :is(a.button, button) {
+  margin-inline-start: -1px;
+}
+
+.lineage-timeline-item {
+  border-inline-start: 4px solid transparent;
+}
+
+.lineage-timeline-item[aria-current="true"],
+.lineage-timeline-item.is-selected {
+  border-inline-start-color: var(--square-accent);
+}
+
+.welcome .url-form {
+  border-color: var(--square-border);
+}
+
+#header {
+  border-bottom: 1px solid var(--square-border);
+}
+
+body .notice:not(.warning):not(.error) {
+  border-color: var(--square-border);
+  background: color-mix(in srgb, var(--surface-raised, var(--body-bg, #fff)) 72%, var(--square-surface));
+  color: var(--ink, var(--body-fg, #222));
+}
+
+body #content :is(.module h2, .module caption, .inline-group h2, #changelist-filter h2) {
+  border-bottom: 1px solid var(--square-border);
+  background: var(--darkened-bg, #f7f7f7);
+  color: var(--body-fg, #222);
+}
+
+@media (max-width: 52rem) {
+  .site-navigation-group {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-inline-start: 0;
+  }
+
+  .site-navigation-group .primary-navigation {
+    order: 0;
+    flex: 1 1 auto;
+    margin-inline-start: 0;
+  }
+
+  .site-navigation-group .account-menu[open] { flex: none; }
+}
+
+@media (max-width: 35rem) {
+  .site-navigation-group .primary-navigation a { padding-inline: .5rem; }
+}

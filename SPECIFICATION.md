@@ -277,11 +277,12 @@ Unsaved, saved, reviewed and published states stay visibly distinct.
 #### Square visual language and joined controls
 
 Milestone **SV - Square visual language and joined controls** (recorded
-2026-11-16; planned, not implemented) establishes the next website-wide visual
-baseline for both Marxist light and dark themes. It extends the square workspace
-follow-up above; that earlier implementation is not evidence of SV completion.
-The [SV milestone](TASKS.md#milestone-sv-square-visual-language-and-joined-controls)
-owns delivery gates and acceptance.
+2026-11-16; implementation in progress, SV4 pending) establishes the
+website-wide visual baseline for both Marxist light and dark themes. It extends
+the square workspace follow-up above; that earlier implementation is not
+evidence of SV completion. The
+[SV milestone](TASKS.md#milestone-sv-square-visual-language-and-joined-controls)
+owns delivery gates, implementation coverage and acceptance.
 
 - Use square corners for UI controls, menus, forms, dialogs and structural
   panels, with theme-appropriate neutral grey/non-accent structural borders.
@@ -305,7 +306,7 @@ layout/status regions. Reuse shared rules and theme tokens instead of adding
 page-specific exceptions. Preserve semantics, action naming, permissions,
 confirmations, unsaved work and theme switching. Publication/PDF styling,
 personal reading palettes and unrelated themes are outside this milestone.
-Recording this plan authorizes no implementation, deployment or live-data changes.
+This specification does not authorize deployment or live-data changes.
 
 #### Website-wide action naming
 

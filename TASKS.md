@@ -94,7 +94,8 @@ discovery remain first-class responsive workflows.
 
 ### Milestone SV: Square visual language and joined controls
 
-Recorded 2026-11-16. **Status: planned; implementation not authorized.**
+Recorded 2026-11-16. **Status: implementation in progress. SV1-SV3 implemented;
+SV4 pending.**
 The [visual contract](SPECIFICATION.md#square-visual-language-and-joined-controls)
 defines the website-wide baseline for both Marxist light and dark themes.
 The outcome is coherent grouping and state cues across the website, not another
@@ -103,16 +104,16 @@ change unrelated milestone ordering, or authorize deployment/live-data changes.
 
 Delivery sequence:
 
-- [ ] SV1 - Inventory affected surfaces and existing theme overrides; establish
+- [x] SV1 - Inventory affected surfaces and existing theme overrides; establish
   shared geometry, border, surface, accent and focus rules using existing
   stylesheet mechanisms. No framework replacement is required.
-- [ ] SV2 - Establish the workspace reference: join workspace/local Edit tabs,
+- [x] SV2 - Establish the workspace reference: join workspace/local Edit tabs,
   reading modes and meaningful formatting/action groups, including the
   bulleted/numbered list pair and Undo/Redo. Keep distinct groups separated.
   Check inactive, selected/pressed, hover, keyboard-focus and disabled states,
   shared seams and wrapping in both themes. Obtain visual approval before
   propagating the reference treatment.
-- [ ] SV3 - Extend the approved shared treatment to header/account navigation;
+- [x] SV3 - Extend the approved shared treatment to header/account navigation;
   reading, editing, Versions/Sources and comparison; discovery/catalogue and
   reviewer workflows; account forms/settings, dialogs and contextual menus;
   administration/worker screens; and general layout/status regions. Track
@@ -122,6 +123,32 @@ Delivery sequence:
   in an isolated environment, with pointer and keyboard, narrow viewports and
   native 200% zoom in both themes. Record actual browser observations separately
   from automated/synthetic evidence and remaining unverified cases.
+
+SV1-SV3 implementation coverage:
+
+- Header/account navigation: `site-navigation-group` keeps Library, Discover
+  and Account together; the Account menu remains a native `details` control.
+- Reader/editor/workspace: the approved workspace reference remains in
+  `workspace.css` and `editor-pilot.css`; shared state rules cover tabs,
+  pressed controls and editing panels.
+- Versions/Sources/comparison and lineage: shared work navigation, review
+  navigation and lineage action/panel rules.
+- Discovery/catalogue and reviewer workflows: shared form/control treatment,
+  catalogue disclosures, review navigation and correction/preview panels.
+- Account/settings, dialogs and contextual menus: shared form/control styles,
+  the account panel and editor dialogs/context menus.
+- Administration/worker screens and general regions: admin stylesheet
+  inclusion, admin modules/tools, header and neutral runtime/status notices.
+- Exceptions are explicit: the new stylesheet is Marxist-profile-only and
+  screen-only. Publication/PDF styling, personal reading palettes, unrelated
+  profiles, warning/error colours and comparison colours remain out of scope.
+
+SV4 evidence so far is limited to the isolated synthetic public reader and
+Discover pages. Account-menu keyboard activation/focus, stable header geometry,
+reader-mode state dimensions, and wrapping without horizontal overflow were
+observed in both themes at narrow widths; 512px and desktop widths were also
+checked. Authenticated reviewer/admin browser journeys and native 200% zoom
+remain unverified, so the acceptance checklist below is intentionally open.
 
 Observable acceptance and stopping point:
 

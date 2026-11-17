@@ -1,4 +1,4 @@
-@import url("theme.css");
+@import url("theme.css?v=square-ui-sv1");
 
 :root {
   color-scheme: dark;
@@ -6,6 +6,7 @@
   --ink: #e6e6e6;
   --muted: #adadad;
   --line: #3c3c3c;
+  --square-neutral-border: #4c4c4c;
   --accent: #ff8585;
   --editor-paper: #1f1f1f;
   --editor-panel: #181818;
