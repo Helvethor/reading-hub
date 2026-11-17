@@ -236,6 +236,13 @@ body :is(
 }
 
 body :is(
+  button[aria-pressed],
+  .workspace-reader-modes button
+) {
+  border-bottom-color: var(--square-accent);
+}
+
+body :is(
   [role="tab"][aria-selected="true"],
   button[aria-pressed="true"],
   .site-header .primary-navigation a[aria-current="page"],
