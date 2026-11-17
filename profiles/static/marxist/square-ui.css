@@ -166,7 +166,6 @@ body :is(
   .account-menu-panel,
   .review-navigation,
   .work-context,
-  .notice:not(.warning):not(.error),
   .empty-state,
   .metadata-suggestion,
   .correction-command-bar,
@@ -181,7 +180,6 @@ body :is(
   .preview-submenu,
   .page-container fieldset,
   .lineage-list,
-  #lineage-inspection,
   .lineage-controls,
   .lineage-compare-form,
   .lineage-reader-settings,
@@ -200,25 +198,34 @@ body :is(
   .editor-diff-controls,
   .editor-book-structure,
   dialog,
-  .editor-page dialog,
-  #editor-context-menu,
-  #editor-outline-menu,
-  #editor-section-actions,
-  #editor-toc-menu,
-  #editor-diff-menu,
-  #editor-metadata-menu,
-  #editor-title-menu,
-  #editor-page-menu,
-  #content .module,
-  #content .submit-row,
-  #content .inline-group,
-  #content .selector,
-  #content .selector-available,
-  #content .selector-chosen,
-  #content .calendarbox,
-  #content .clockbox,
-  #content .object-tools,
-  #content .paginator
+  .editor-page dialog
+) {
+  border-color: var(--square-border);
+}
+
+#lineage-inspection,
+#editor-context-menu,
+#editor-outline-menu,
+#editor-section-actions,
+#editor-toc-menu,
+#editor-diff-menu,
+#editor-metadata-menu,
+#editor-title-menu,
+#editor-page-menu {
+  border-color: var(--square-border);
+}
+
+#content :is(
+  .module,
+  .submit-row,
+  .inline-group,
+  .selector,
+  .selector-available,
+  .selector-chosen,
+  .calendarbox,
+  .clockbox,
+  .object-tools,
+  .paginator
 ) {
   border-color: var(--square-border);
 }
@@ -229,7 +236,6 @@ body :is(
 
 body :is(
   [role="tab"],
-  button[aria-pressed],
   .site-header .primary-navigation a,
   .site-header .account-menu > summary,
   .work-navigation a,
@@ -238,15 +244,17 @@ body :is(
   border-bottom: 3px solid var(--square-border);
 }
 
-#main button[aria-pressed],
-#main .workspace-reader-modes button,
-#content button[aria-pressed] {
-  border-bottom-color: var(--square-accent);
+#main button[aria-pressed="true"],
+#main button[aria-checked="true"],
+#content button[aria-pressed="true"],
+#content button[aria-checked="true"] {
+  border-color: var(--square-accent);
 }
 
 body :is(
   [role="tab"][aria-selected="true"],
   button[aria-pressed="true"],
+  button[aria-checked="true"],
   .site-header .primary-navigation a[aria-current="page"],
   .site-header .account-menu[open] > summary,
   .work-navigation a[aria-current="page"],
