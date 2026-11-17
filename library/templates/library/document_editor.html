@@ -59,7 +59,7 @@
         </div>
         {% endif %}
       </header>
-      <div class="workspace-tabs" role="tablist" aria-label="Work views">
+      <div class="workspace-tabs workspace-joined-controls" role="tablist" aria-label="Work views">
         <button type="button" role="tab" id="workspace-tab-read" aria-controls="workspace-panel-read" data-workspace-tab="read" aria-selected="{% if initial_tab == 'read' %}true{% else %}false{% endif %}"{% if initial_tab != "read" %} tabindex="-1"{% endif %}>Read</button>
         <button type="button" role="tab" id="workspace-tab-edit" aria-controls="workspace-panel-edit" data-workspace-tab="edit" aria-selected="{% if initial_tab == 'edit' %}true{% else %}false{% endif %}"{% if initial_tab != "edit" %} tabindex="-1"{% endif %}>Edit</button>
         <button type="button" role="tab" id="workspace-tab-versions" aria-controls="workspace-panel-versions" data-workspace-tab="versions" aria-selected="{% if initial_tab == 'versions' %}true{% else %}false{% endif %}"{% if initial_tab != "versions" %} tabindex="-1"{% endif %}>Versions</button>
@@ -73,7 +73,7 @@
         {% if reader_target and reader_target.pk != version.pk %}
         <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default edition {{ reader_target.pk }}</a>
         {% endif %}
-        <div class="workspace-reader-modes" role="group" aria-label="Reader mode">
+        <div class="workspace-reader-modes workspace-joined-controls" role="group" aria-label="Reader mode">
           <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-stage">Table of Contents</button>
           <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-controls="workspace-read-stage">Style</button>
           <button type="button" class="secondary" id="workspace-larger-content" aria-pressed="false" aria-controls="workspace-read-stage">Larger content</button>
@@ -88,7 +88,7 @@
     </section>
     <section class="workspace-view-panel" id="workspace-panel-edit" role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1"{% if initial_tab != "edit" %} hidden{% endif %}>
   <div class="editor-workspace" data-editor-tab="editor">
-    <div class="workspace-tabs editor-tabs" role="tablist" aria-label="Edit tools">
+    <div class="workspace-tabs workspace-joined-controls editor-tabs" role="tablist" aria-label="Edit tools">
       <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
       <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
       <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
@@ -104,7 +104,7 @@
     </details>
     {% endif %}
       <div class="editor-pilot-toolbar workspace-command-bar" role="group" aria-label="Editor commands">
-        <div class="editor-format-toolbar" role="group" aria-label="Common formatting">
+        <div class="editor-format-toolbar workspace-joined-controls" role="group" aria-label="Common formatting">
           <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
           <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
           <button type="button" aria-label="Paragraph" title="Paragraph" aria-pressed="false" data-block="p" disabled>¶</button>
@@ -116,8 +116,10 @@
           <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled>Link</button>
         </div>
         <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
-        <button type="button" data-history="undo" disabled>Undo</button>
-        <button type="button" data-history="redo" disabled>Redo</button>
+        <div class="editor-history-toolbar workspace-joined-controls" role="group" aria-label="History">
+          <button type="button" data-history="undo" disabled>Undo</button>
+          <button type="button" data-history="redo" disabled>Redo</button>
+        </div>
         <button type="submit" class="editor-save" disabled>Save</button>
         <span id="workspace-save-state" role="status">
           {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}

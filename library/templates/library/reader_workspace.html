@@ -31,7 +31,7 @@
           </p>
         </div>
       </header>
-      <div class="workspace-tabs" role="tablist" aria-label="Work views">
+      <div class="workspace-tabs workspace-joined-controls" role="tablist" aria-label="Work views">
         <button type="button" role="tab" id="workspace-tab-read" aria-controls="workspace-panel-read" data-workspace-tab="read" aria-selected="true">Read</button>
         <button type="button" role="tab" id="workspace-tab-versions" aria-controls="workspace-panel-versions" data-workspace-tab="versions" aria-selected="false" tabindex="-1">Versions</button>
         <button type="button" role="tab" id="workspace-tab-sources" aria-controls="workspace-panel-sources" data-workspace-tab="sources" aria-selected="false" tabindex="-1">Sources</button>
@@ -44,7 +44,7 @@
         {% if reader_target and reader_target.pk != version.pk %}
         <a class="button secondary" href="{% url 'reader' reader_target.pk %}?tab=read">Read default edition {{ reader_target.pk }}</a>
         {% endif %}
-        <div class="workspace-reader-modes" role="group" aria-label="Reader mode">
+        <div class="workspace-reader-modes workspace-joined-controls" role="group" aria-label="Reader mode">
           <button type="button" class="secondary" id="workspace-contents-toggle" aria-pressed="true" aria-controls="workspace-read-stage">Table of Contents</button>
           <button type="button" class="secondary" id="workspace-style-toggle" aria-pressed="false" aria-controls="workspace-read-stage">Style</button>
           <button type="button" class="secondary" id="workspace-larger-content" aria-pressed="false" aria-controls="workspace-read-stage">Larger content</button>
