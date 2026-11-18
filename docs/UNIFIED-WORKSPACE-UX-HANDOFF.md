@@ -68,6 +68,11 @@ below identifies the shared-browser no-working-copy blockage as form-wide
 inertness and records its bounded fix; other V61 transitions remain unverified.
 Live-data changes are not authorized.
 
+Follow-up V.q, requested 2026-11-18, specifies viewport-stable main and local
+Edit tab switching. Status: design/specification only; V67-V71 are pending.
+The user explicitly selected documentation only. No implementation, deployment
+or live-data mutation is authorized by this request.
+
 ## Outcome, authority and supersession
 
 A reviewer opens an exact version in one persistent workspace, edits a working
@@ -1835,6 +1840,126 @@ blockage is unreproduced, report it unresolved rather than certifying a fix.
 No broad pointer-events override, removal of inert/permission guards, unrelated
 workflow redesign or automatic deployment belongs to this corrective plan.
 
+### V.q: viewport-stable tab switching
+
+Recorded 2026-11-18. **Design/specification only; not implemented or validated.**
+The reported problem is disorienting vertical page motion when switching
+`.workspace-tabs` elements. The outcome is spatial continuity, not a new
+navigation control: a reviewer switches Edit Content to Metadata and back, or a
+reader switches Read to Versions, without the tab strip jumping to another
+vertical location whenever the destination's natural page range permits.
+
+#### Evidence, alternatives and scope
+
+Source inspection at checkpoint `8cb54b0` identifies deliberate page movement:
+
+- `frontend/workspace-shell.js` records `tabPositions`, restores the destination
+  position (default `0`) in `selectTab`, and can reapply it after asynchronous
+  loading through `pendingPosition`.
+- `frontend/public-workspace.js` also restores a destination page offset or `0`.
+- `frontend/editor-tabs.js` independently does the same for local Edit tabs.
+- Existing `frontend/workspace-shell.test.js` and `frontend/editor.test.js`
+  regressions explicitly expect per-tab page restoration. Those expectations
+  must change for ordinary activation, not be treated as preservation evidence.
+
+This is source evidence consistent with the report, not a native-browser
+reproduction or proof that explicit restoration is the only cause. Focus
+reveal, browser scroll anchoring, hidden-panel transitions, style loading and
+destination-height clamping still need measured attribution.
+
+| Direction | Benefit and cost | Decision |
+|---|---|---|
+| Preserve page position on ordinary activation; preserve pane positions separately | Directly addresses the reported motion without changing layout ownership. Bounded cross-controller work; main risk is history/focus/asynchronous interaction. | Recommended design for V.q. |
+| Equalize all panel heights or place whole panels in a fixed-height scroller | Can reduce range clamping, but adds blank space or changes the accepted page/content model, footer reachability and keyboard behavior. Broader layout effort and regression risk. | Defer; not required for this outcome. |
+| Keep per-tab page restoration and soften it with animation | Retains the source of disorientation and adds motion; small effort does not satisfy the requested outcome. | Reject for ordinary tab activation. |
+
+Cover public and reviewer workspace main tabs and every local Edit tab using
+`.workspace-tabs`. Coordinate their controllers so a single transition does not
+receive competing page-position commands. Do not redesign reader modes, site
+navigation, publication, editor focus conventions or tab keyboard activation.
+No framework, persistent preference, toggle, sticky strip, body-scroll lock,
+whole-panel scroll box or tallest-panel spacer belongs to this milestone.
+
+#### Interaction contract and precedence
+
+1. **Ordinary activation preserves the page.** Capture the current browser-page
+   offset before changing visibility. Pointer activation and keyboard activation
+   use the same policy for first visits and returns; selecting the already active
+   tab does not scroll. When the destination supports that offset, preserve it
+   within 1 CSS px and leave the tab strip at the same viewport coordinate.
+   Do not restore an old per-tab page offset, reset to `0`, or scroll to the
+   content start merely because a different tab was chosen.
+2. **Native range limits are an explicit exception.** If the destination is too
+   short, the final offset is the previous offset clamped to the destination's
+   natural page range. There must be no avoidable intermediate top jump or
+   animated correction. Batch visibility changes so a transient state with no
+   active panel does not collapse the page and trigger a second movement. Do
+   not keep hidden panels in layout or add artificial height just to retain
+   the old range. The last content and footer stay naturally reachable.
+3. **Page continuity is not pane reset.** Retain each Read document, editor
+   canvas, outline and tools position independently, including local Edit tab
+   returns and Read replacement. Preserve content anchors where reflow makes a
+   raw pane offset unsuitable. No editor remount, selection mutation, save,
+   undo/redo loss or recovery loss is allowed. Earlier promises of per-view
+   scroll remain in force for independent panes, not ordinary per-tab page
+   restoration.
+4. **Focus remains usable without gratuitous reveal.** Preserve existing tab
+   semantics and manual/automatic activation differences. Focus changes use
+   no-scroll behavior when their target is already visible. Never leave focus
+   in a hidden panel or restore focus to offscreen content merely to recover an
+   old editor focus target; retain logical editor selection without forcing its
+   reveal. If keyboard movement or required focus recovery would otherwise
+   leave focus offscreen, reveal only enough in the appropriate owner to make
+   it visible. Record that exception separately from range clamping.
+5. **Explicit navigation has its own intent.** ToC/internal/deep links, outline
+   navigation, caret reveal, comparison Previous/Next and Back to top still
+   reveal their intended target in the correct scroll owner. Direct page loads
+   retain URL/fragment behavior. Back/Forward restores the applicable
+   history-entry page/pane state rather than a tab-global offset; coordinate
+   with native history restoration to avoid a second competing restore.
+   Ordinary activation may write tab URL/history state but does not itself
+   become a history-position restore.
+6. **Late work cannot reclaim the viewport.** Read/Versions/Sources loading,
+   errors, retries and stylesheet arrival must not reapply a remembered tab
+   offset, focus a panel, or undo intervening user scrolling/navigation. Keep
+   the user's current page position across active-content replacement where
+   the new range permits, otherwise clamp minimally. If a loading/short
+   destination caused a clamp, later growth does not pull the page back to the
+   pre-switch position. Hidden/inactive responses do not move the active page.
+   Preserve existing stale-response, exact-content and actionable-error guards.
+
+V.q supersedes only conflicting ordinary per-tab browser-page restoration in
+V2, V34, V38, V52, V63 and related prose/tests. History-entry restoration,
+independent pane positions and all editor/content/permission invariants remain.
+It does not reintroduce sticky/compact transitions or change V.n/V.p scroll
+ownership. Necessary focus reveal and explicit navigation are not failures of
+viewport stability, but must be minimal and measured rather than blanket
+exemptions.
+
+#### Delivery, verification and stopping point
+
+When implementation is separately authorized, first record before/after page
+offset, final page range, tab-strip bounding rectangle, active focus and each
+pane offset through the reported sequence on isolated fixtures. Capture the
+transition as well as settled layout: equal end offsets do not excuse a visible
+intermediate jump. Distinguish application scroll commands, native clamping,
+scroll anchoring and focus effects. Reuse existing helpers where appropriate
+after checking callers; do not globally disable anchor/caret navigation or
+history restoration to pass a tab-switch test.
+
+Update the focused main/public/local-tab regressions for the changed policy,
+including feasible retention, short-range clamping, delayed active/inactive
+responses, intervening user input and history/focus exceptions. Use native
+pointer and keyboard browser journeys for actual geometry and intermediate
+motion; jsdom/mocked scroll tests alone cannot establish that the screen is
+steady. No application tests or browser checks were run for this documentation
+change.
+
+V67-V71 below are the stopping contract. Report automated correctness,
+synthetic geometry, observed native-browser workflows and outstanding human
+usability/accessibility evidence separately. Earlier partial milestones remain
+open. Deployment, publication and live-data changes require separate authority.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
@@ -1978,6 +2103,12 @@ unsaved edits. Track implementation and validation independently.
 | V65 | Exercise editor loading, unsaved, saved, additional-unsaved-after-save, unavailable and failure states, plus Result/Diffs, baseline selection before and after loading, changed ranges and failed baseline loads. Routine information does not occupy redundant persistent strips; the actual loaded baseline, diff meaning and restore/undo guidance remain available. Material warnings and actionable errors remain visible, accurate and accessible, with meaningful non-duplicated live announcements. |
 | V66 | Complete a saved/unsaved article and media-rich book journey through Read, Edit, Metadata, comparison and history on isolated fixtures. Verify exact content, notes/media, permissions, guarded actions, recovery and saved/draft PDF and browser print; layout/navigation alone makes no content, review, publication, reader-default or style-preference writes. Run focused existing regressions and build; report automated, synthetic, real-browser/output and untested/human accessibility evidence separately. V.p does not certify earlier partial acceptance. |
 
+| V67 | On isolated short-article and long-book fixtures in public and reviewer workspaces, switch every available main and local Edit tab by native pointer and keyboard, on first visits and returns, with distinct previous pane/page positions. Wherever the destination's natural page range admits the current offset, page offset and tab-strip viewport position change by no more than 1 CSS px. Reselecting the active tab does not scroll. Record transition samples/screenshots as well as settled geometry; no visible transient top jump or smooth-scroll correction is allowed. |
+| V68 | Switch from a long destination near its bottom to a shorter panel and to loading, empty and error states. Final page offset equals the pre-switch offset clamped to the final natural range, within 1 CSS px, unless a separately measured focus reveal is necessary. A transient hidden-panel collapse causes no extra jump. Hidden panels add no height; there are no tallest-panel spacers, whole-panel scroll boxes or body locks. Last content and footer remain reachable. |
+| V69 | Delay Read and lineage responses and style loading; switch rapidly, scroll manually during loading, retry a failed load and let an inactive response finish. Active replacements retain the then-current offset within 1 CSS px where feasible, with minimal clamping otherwise. No late response restores an old tab offset, steals focus or overrides later navigation/input; later growth after a short/loading clamp does not pull the page back. Preserve reading anchors and actionable errors. |
+| V70 | Give page, Read, editor, outline and tools distinct positions with pending text/metadata and selection. Main/local tab returns preserve independent pane state, editor instance, undo/redo and recovery without ordinary per-tab page restoration. Exercise Back/Forward with different positions on repeated visits to the same tab, direct URL/fragments, ToC, outline/caret navigation, comparison navigation, dialogs and Back to top. History-entry positions and explicit target reveal work without competing restores; tab keyboard semantics remain unchanged and focus is never hidden or unnecessarily scrolled into view. |
+| V71 | Repeat the relevant native journeys at 1440x900, 1280x720, 375px, a short viewport and native 200% zoom in both themes, including wrapped tabs/commands, saved and unsaved content. Record unavoidable clamp/focus movement and any remaining motion explicitly. Preserve page/content scroll owners, permissions, warnings, exact version/export targets and content/media/notes; switching causes no content, review, publication, reader-default or preference writes. Run focused existing regressions/build when implementing; separate mocks/synthetic measurements, browser observations and untested output/human acceptance. |
+
 V32-V35 revise only the conflicting Read/Edit scroll-owner expectations in
 V15/V18/V19 and related rows; they do not certify earlier outstanding acceptance.
 Stop when the authorized scope is implemented and validated, not when tabs merely
@@ -2004,6 +2135,10 @@ Larger content and screen-spacing supersession; preserve PDF and style invariant
 Its implementation/local-deployment request does not authorize live-data changes.
 V61-V66 define the planned V.p acceptance; none is a completion claim or
 authorization to implement, deploy or change live data.
+V67-V71 define the documentation-only V.q plan; all remain pending. Apply V.q's
+explicit ordinary-tab page-position supersession without weakening independent
+pane preservation, history, focus or intentional target navigation. This request
+does not authorize implementation, deployment or live-data changes.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify

@@ -244,6 +244,27 @@ links, disabled states and permission guards keep their existing semantics.
 This is a development-only visual follow-up, not deployment or full V64
 acceptance.
 
+**Viewport-stable workspace tabs V.q (2026-11-18; design/specification only):**
+ordinary activation of a tab in `.workspace-tabs`, including local Edit tabs,
+preserves the current browser-page position instead of restoring a different
+per-tab page position or starting a newly visited tab at the page top. Keep the
+tab strip at the same viewport location wherever the destination's natural page
+range permits. If the destination is shorter, move only as far as required by
+its final native scroll range; do not jump to the top first, animate the change,
+or later pull the page back when asynchronous content arrives. Preserve separate
+Read, editor, outline and tools pane positions, editor instance, pending edits,
+selection, undo/redo and recovery. Explicit anchor/outline/caret navigation,
+Back to top, necessary focus reveal and Back/Forward retain their distinct
+navigation purposes; history restores history-entry state, not an ordinary
+tab's remembered page offset.
+The [V.q handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vq-viewport-stable-tab-switching)
+defines exceptions, asynchronous ownership and V67-V71 acceptance. It supersedes
+only conflicting per-tab browser-page restoration requirements in earlier V
+contracts, not pane-position preservation or the normal page/content scroll
+model. No sticky tabs, body locking, whole-panel scroll boxes, artificial
+equal-height panels or new controls are required. Implementation, deployment
+and live-data changes are not authorized by this documentation request.
+
 **No-working-copy interaction follow-up (2026-11-16):** a saved edition waiting
 for working-copy selection remains browsable in Edit: text selection, scrolling,
 outline navigation and display controls work. Do not mark the entire form

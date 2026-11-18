@@ -184,6 +184,35 @@ Out of scope: workflow redesign, framework replacement, content/record changes,
 deployment and certification of previously unresolved interaction defects.
 Checkpoint validated implementation stages locally when separately authorized.
 
+### Milestone V.q: Viewport-stable tab switching
+
+Recorded 2026-11-18. **Status: design/specification only; implementation not
+authorized or started.** The
+[V.q handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vq-viewport-stable-tab-switching)
+owns behavior and V67-V71 acceptance. Treat this as the next bounded workspace
+navigation correction when implementation is authorized; it does not close
+V.p, SV4 or earlier partial acceptance.
+
+- [ ] Reproduce and measure native switching across public/reviewer main tabs
+  and local Edit tabs, including first visits, previously visited tabs and
+  short/loading destinations. Separate explicit restoration, focus reveal,
+  scroll anchoring and native range clamping in the evidence.
+- [ ] Replace ordinary per-tab browser-page restoration with viewport-preserving
+  activation; retain independent pane positions and history-entry navigation.
+  Coordinate main/local owners and asynchronous replacement without late jumps
+  or changes to the established page/content scroll model.
+- [ ] Validate V67-V71 on isolated article/book fixtures with pending edits,
+  native pointer/keyboard, desktop, narrow/short screens, both themes and native
+  200% zoom. Update conflicting focused regressions, run the relevant checks and
+  record correctness, browser observations and limitations separately.
+
+Stopping point: ordinary tab activation leaves page position unchanged within
+1 CSS px when the final native range allows it; unavoidable range/focus movement
+is minimal and evidenced, with pane/editor state and explicit navigation intact.
+No application code was changed or browser acceptance performed for this plan.
+Implementation requires a separate request; deployment and live-data changes
+remain separate decisions.
+
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
 - [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;
