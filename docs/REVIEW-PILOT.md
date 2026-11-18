@@ -361,6 +361,11 @@ panel from its Preface handle, then cancelled without edits.
 These are bounded usability checks, not independent reviewer or screen-reader
 acceptance. Historical editions and real drafts were not changed.
 
+The visible edit handles described above are historical UI. Milestone V.s
+replaces them with always-visible structural labels and target-specific actions
+in Selection tools, right-click and Shift+F10; see the current behavior and
+remaining acceptance work in the [unified workspace handoff](./UNIFIED-WORKSPACE-UX-HANDOFF.md#vs-always-visible-block-labels-and-contextual-element-actions).
+
 ### Saved-revision comparison checkpoint (0.38.0)
 
 The pilot now exposes a read-only saved-state comparison from the editor and

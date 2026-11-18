@@ -602,7 +602,7 @@ Required behavior:
 - One row of commands is only as tall as one command plus the bar padding,
   about 2.45rem plus padding, not about 89px.
 - Every visible command, including Preview publication, Save version, Mark
-  reviewed, the view and section selects, and Block labels, shares one control
+  reviewed, the view and section selects, and structural labels, shares one control
   height, vertical alignment, font size and weight. Use the toolbar's secondary
   styling: Preview publication must not get extra margin or bold text and must
   not look like a primary action.
@@ -2019,11 +2019,18 @@ Edition/review layout settings remain open acceptance.
 
 ### V.s: Always-visible block labels and contextual element actions
 
-**Status: specification only.** A standalone QUOTE's inline edit button can
+**Status: implementation present; acceptance partial.** A standalone QUOTE's inline edit button can
 do nothing, while the FIGURE, QUOTE and CAPTION buttons in a captioned figure
 all route to the same relationship action. The buttons repeat the structural
 labels and consume vertical space. This milestone replaces the inline handles
 specified in G.b/G7; it does not change G's document semantics.
+
+The current implementation removes the label toggle and per-element handles,
+keeps eligible structural labels visible, and routes target-specific commands
+through Selection tools, right-click and Shift+F10. Frontend regression tests
+cover captioned and captionless target actions, exact caption/quote scoping,
+ambiguity, cancellation, detachment, ungrouping and undo. Native-browser focus,
+narrow/zoom behavior, and actual reader/print/PDF preservation remain open.
 
 **Canvas and entry points.** Remove the **Block labels** option, not just its
 unchecked state. Existing block labels, guides and anchors are always visible

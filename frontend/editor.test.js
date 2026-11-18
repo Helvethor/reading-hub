@@ -31,7 +31,7 @@ import {prepareQuotationInsertion, buildQuotationInsertion, applyQuotationInsert
 import {applyList, handleListKey, listState} from "./lists.js";
 import {insertHorizontalRule} from "./horizontal-rule.js";
 import {
-  documentParts, showDocumentPart, visiblePart, showBlockLabels, workspaceContext,
+  documentParts, showDocumentPart, visiblePart, workspaceContext,
 } from "./workspace.js";
 import {mountWorkspace} from "./controls.js";
 import {mountEditorTabs} from "./editor-tabs.js";
@@ -1527,7 +1527,6 @@ test("ToC markers mirror section titles and headings without entering prose, cli
   const clipboard = editor.view.serializeForClipboard(editor.state.selection.content());
   assert.equal(clipboard.text, "First");
   assert(!clipboard.dom.innerHTML.includes("editor-toc-marker"));
-  showBlockLabels(editor, false);
   assert.deepEqual(markers(), ["I. ", "II. "], "Markers do not depend on structural labels.");
   assert.deepEqual(editor.getJSON(), json);
   form.querySelector('[data-book-view="sections"]').click();
@@ -1666,7 +1665,7 @@ test("compact selection tools expose only applicable actions and toggle alignmen
   assert(form.querySelector('[data-mark="em"] i'));
   assert.equal(form.querySelectorAll("[data-align]").length, 4);
   assert(form.querySelector('[data-align="center"] svg'));
-  assert(form.querySelector("[data-image]").hidden);
+  assert(form.querySelector('[data-element-action="edit-alt"]').hidden);
   assert(form.querySelector("[data-link]").hidden);
   assert(!form.querySelector("[data-link-insert]").hidden);
   assert(form.querySelector("#editor-section-excerpt-open").hidden);
@@ -1680,7 +1679,7 @@ test("compact selection tools expose only applicable actions and toggle alignmen
   let position;
   editor.state.doc.descendants((node, at) => { if (node.type.name === "img") position = at; });
   editor.commands.setNodeSelection(position);
-  assert(!form.querySelector("[data-image]").hidden);
+  assert(!form.querySelector('[data-element-action="edit-alt"]').hidden);
   assert(form.querySelector("[data-mark]").hidden);
   assert(form.querySelector('[aria-label="Text styling"]').hidden);
   assert(form.querySelector('[aria-label="Paragraph type"]').hidden);
@@ -1688,8 +1687,7 @@ test("compact selection tools expose only applicable actions and toggle alignmen
   ctrlClickBlock("#text");
   ctrlClickBlock("#f img");
   assert(!form.querySelector("#editor-section-excerpt-open").hidden);
-  assert(form.querySelector("[data-image]").hidden);
-  assert(form.querySelector('[data-quotation="edit"]').hidden);
+  assert(form.querySelector('[data-element-action="edit-alt"]').hidden);
   assert(!form.querySelector('[data-quotation="insert"]').hidden);
   assert(form.querySelector("[data-mark]").hidden);
 });
@@ -3658,7 +3656,6 @@ test("image-only layout collapses helper lines without changing content or empty
   assert.equal(editor.view.dom.querySelectorAll(".editor-image-only").length, 2);
   assert(editor.view.dom.querySelector(".editor-image-only .ProseMirror-trailingBreak"));
   assert(editor.view.dom.querySelector("p:not(.editor-image-only) .ProseMirror-trailingBreak"));
-  showBlockLabels(editor, false);
   assert.equal(editor.view.dom.querySelectorAll(".editor-image-only").length, 2);
   assert.equal(editor.getHTML(), html);
   let imagePosition;
@@ -4462,7 +4459,9 @@ test("Insert quotation is available at an empty caret and shares exact preview a
   assert(!dialog.open);
   assert.equal(editor.getHTML(), proposed);
   assert.equal(updates, 1);
-  form.querySelector('[data-quotation="edit"]').click();
+  selectText("First");
+  form.querySelector("#editor-tools").click();
+  form.querySelector('[data-element-action="caption-relationship"]').click();
   assert(dialog.open && dialog.querySelector("#editor-quotation-body-field").hidden);
   assert.equal(dialog.querySelector("#editor-figure-caption").value, "keep");
   dialog.querySelector("#editor-quotation-cancel").click();
@@ -4496,7 +4495,7 @@ test("unified figure panel previews caption choices, cancels and applies once", 
     template.slice(imageStart, template.indexOf("</dialog>", imageStart) + "</dialog>".length);
   const form = document.querySelector("#document-editor");
   const surface = form.querySelector("#editor-surface");
-  editor = createBoundedEditor(surface, '<p id="text">Quotation text.</p><p>Following.</p>');
+  editor = createBoundedEditor(surface, '<blockquote><p id="text">Quotation text.</p></blockquote><p>Following.</p>');
   const errors = [];
   mountWorkspace(form, editor, message => { if (message) errors.push(message); });
   const dialog = document.querySelector("#editor-quotation");
@@ -4507,17 +4506,39 @@ test("unified figure panel previews caption choices, cancels and applies once", 
   };
   const imageDialog = document.querySelector("#editor-image");
   imageDialog.showModal = () => { imageDialog.open = true; };
+  const tools = form.querySelector("#editor-tools");
+  const action = name => {
+    tools.click();
+    const button = form.querySelector(`[data-element-action="${name}"]`);
+    assert(!button.hidden, `${name} is available for this target`);
+    button.click();
+  };
   selectText("Quotation");
-  surface.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, clientX: 20, clientY: 30}));
-  form.querySelector('[data-quotation="edit"]').click();
+  const quotePosition = editor.state.selection.from;
+  editor.view.posAtCoords = () => ({pos: quotePosition});
+  surface.querySelector("#text").dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+    bubbles: true, clientX: 20, clientY: 30,
+  }));
+  assert.equal(form.querySelector("#editor-menu-element-target").textContent, "Quote");
+  assert.equal(form.querySelector("#editor-context-menu").getAttribute("aria-describedby"),
+    "editor-menu-element-target");
+  assert(!form.querySelector('[data-element-action="wrap-figure"]').hidden);
+  const originalQuote = editor.getHTML();
+  form.querySelector('[data-element-action="wrap-figure"]').click();
+  assert(editor.getHTML().includes("<figure class=\"quotation\"><blockquote>"));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), originalQuote);
+  const quoteSelection = editor.state.selection;
+  form.querySelector('[data-element-action="add-caption"]').click();
   assert(dialog.open);
   assert(dialog.querySelector("#editor-quotation-target").textContent.includes("Quotation"));
   dialog.querySelector("#editor-quotation-attribution").value = "discard";
   dialog.querySelector("#editor-quotation-cancel").click();
-  assert.equal(editor.getHTML(), '<p id="text">Quotation text.</p><p>Following.</p>');
-  form.querySelector('[data-quotation="edit"]').click();
+  assert(editor.state.selection.eq(quoteSelection));
+  assert.equal(editor.getHTML(), '<blockquote><p id="text">Quotation text.</p></blockquote><p>Following.</p>');
+  action("add-caption");
   const choice = dialog.querySelector("#editor-figure-caption");
-  choice.value = "new";
+  assert.equal(choice.value, "new");
   dialog.querySelector("#editor-quotation-attribution").value = "bad\nattribution";
   choice.dispatchEvent(new dom.window.Event("change"));
   assert(dialog.open);
@@ -4530,20 +4551,47 @@ test("unified figure panel previews caption choices, cancels and applies once", 
   assert(!dialog.open);
   assert(editor.getHTML().includes("<figcaption><p>From <cite>Work</cite>, 1852.</p></figcaption>"));
   assert(editor.getHTML().includes("<cite>Work</cite>"));
+  let ambiguousFrom, ambiguousTo;
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText) return;
+    if (node.text.startsWith("Quotation")) ambiguousFrom = pos;
+    if (node.text.endsWith("1852.")) ambiguousTo = pos + node.nodeSize;
+  });
+  editor.commands.setTextSelection({from: ambiguousFrom, to: ambiguousTo});
+  tools.click();
+  assert.equal(form.querySelector("#editor-menu-target").textContent,
+    "Select one element to see its actions.");
+  assert(form.querySelector('[data-element-action="caption-relationship"]').hidden);
+  form.querySelector("#editor-menu-close").click();
   selectText("Quotation");
-  form.querySelector(".editor-figure-handle").click();
-  assert(dialog.open, "The figure's visible edit handle must open the same panel.");
+  action("caption-relationship");
+  assert(dialog.open, "Selection tools opens the caption relationship panel.");
   assert.equal(choice.value, "keep");
   assert.equal(dialog.querySelector("#editor-figure-title").value, "");
-  dialog.close();
-  form.querySelector("[data-editor-caption]").click();
-  assert(dialog.open, "The caption handle must open actions for its containing figure.");
-  assert(editor.state.selection.node.type.name.startsWith("figcaption"));
-  dialog.close();
-  form.querySelector('[data-quotation="edit"]').click();
-  dialog.querySelector("#editor-figure-remove").click();
+  dialog.querySelector("#editor-quotation-cancel").click();
+  const beforeDetach = editor.getHTML();
+  selectText("From");
+  tools.click();
+  assert.equal(form.querySelector("#editor-menu-element-target").textContent, "Figure 1 › Caption");
+  assert(!form.querySelector('[data-element-action="caption-relationship"]').hidden);
+  assert(form.querySelector('[data-element-action="remove-quotation"]').hidden,
+    "Caption actions must not leak into the sibling quotation.");
+  assert(!form.querySelector('[data-element-action="detach-caption"]').hidden);
+  form.querySelector('[data-element-action="detach-caption"]').click();
+  assert(!editor.getHTML().includes("<figcaption"));
+  assert(editor.getHTML().includes("<figure class=\"quotation\"><blockquote>"));
+  assert(editor.getHTML().includes("<p>From <cite>Work</cite>, 1852.</p>"));
+  assert(undo(editor.state, editor.view.dispatch));
+  assert.equal(editor.getHTML(), beforeDetach);
+  selectText("From");
+  tools.click();
+  form.querySelector('[data-element-action="remove-figure"]').click();
   assert(editor.getHTML().includes("<blockquote>"));
   assert(!editor.getHTML().includes("<figure"));
+  assert(editor.getHTML().includes("From <cite>Work</cite>, 1852."));
+  selectText("Quotation");
+  action("remove-quotation");
+  assert(!editor.getHTML().includes("<blockquote>"));
   assert(editor.getHTML().includes("From <cite>Work</cite>, 1852."));
   editor.commands.insertContentAt(editor.state.doc.content.size,
     '<p><img src="/media/retained.png" alt="A retained image"></p>');
@@ -4551,9 +4599,9 @@ test("unified figure panel previews caption choices, cancels and applies once", 
   editor.state.doc.descendants((node, pos) => {
     if (node.type.name === "img") imagePosition = pos;
   });
-  assert.equal(form.querySelector("[data-editor-image]").dataset.editorImage,
-    String(imagePosition));
-  form.querySelector("[data-editor-image]").click();
+  editor.commands.setNodeSelection(imagePosition);
+  tools.click();
+  form.querySelector('[data-element-action="edit-alt"]').click();
   assert(imageDialog.open);
   assert.equal(editor.state.selection.node.type.name, "img");
   assert.deepEqual(errors, []);
@@ -4645,15 +4693,14 @@ test("figure panel refuses ambiguous titles, stale or hidden targets and never g
   assert.throws(() => applyFigure(editor, target, {}), /changed/);
 });
 
-test("figure grouping decorations and edit handles never enter saved HTML", () => {
+test("figure grouping labels are always visible without inline edit handles or saved markup", () => {
   open('<figure><blockquote><p>Words</p></blockquote><figcaption>Source <cite>Work</cite></figcaption></figure>');
-  assert.equal(editor.view.dom.querySelector(".editor-figure-handle").textContent, "FIGURE 1 · edit");
   assert(editor.view.dom.querySelector('[data-editor-block="QUOTE"]'));
   assert(editor.view.dom.querySelector('[data-editor-block="CAP"][data-editor-block-type="CAPTION"]'));
+  assert.equal(editor.view.dom.querySelector(".editor-figure-handle, .editor-element-handle"), null);
   assert(!editor.getHTML().includes("editor-figure"));
   assert(!editor.getHTML().includes("FIGURE 1"));
-  showBlockLabels(editor, false);
-  assert(!editor.view.dom.querySelector(".editor-figure-handle"));
+  assert(editor.view.dom.querySelector('[data-editor-block-type="FIGURE"]'));
 });
 
 test("table insertion previews the bounded rectangular shape and preserves prose targets", () => {
@@ -4815,10 +4862,8 @@ test("nested block labels identify their own hierarchy instead of inheriting quo
   assert.equal(editor.getHTML(), original);
   assert.deepEqual(editor.getJSON(), json);
   assert(!undo(editor.state));
-  showBlockLabels(editor, false);
-  assert(!editor.view.dom.querySelector(".editor-labelled-block, .editor-leaf-label"));
+  assert(editor.view.dom.querySelector(".editor-labelled-block, .editor-leaf-label"));
   assert.equal(editor.getHTML(), original);
-  showBlockLabels(editor, true);
   assert.equal(editor.view.dom.querySelector("figcaption").dataset.editorBlock, "CAP");
 });
 
@@ -4838,8 +4883,7 @@ test("image and table block labels have view-only anchors outside replaced or sc
   assert(!editor.view.dom.querySelector("td [data-editor-block]"), "Table cells must not gain overlapping gutters.");
   assert.equal(editor.getHTML(), original);
   assert.deepEqual(editor.getJSON(), json);
-  showBlockLabels(editor, false);
-  assert(!editor.view.dom.querySelector(".editor-leaf-label"));
+  assert(editor.view.dom.querySelector(".editor-leaf-label"));
   assert.equal(editor.getHTML(), original);
 });
 
@@ -4855,8 +4899,7 @@ test("list containers have gutters but inline and block items do not, without ch
   assert.equal(editor.view.dom.querySelector("hr").previousElementSibling.dataset.editorBlock, "HR");
   assert.equal(editor.getHTML(), html);
   assert.deepEqual(editor.getJSON(), json);
-  showBlockLabels(editor, false);
-  assert(!editor.view.dom.querySelector(".editor-labelled-block"));
+  assert(editor.view.dom.querySelector(".editor-labelled-block"));
   assert.equal(editor.getHTML(), html);
 });
 
@@ -4893,12 +4936,9 @@ test("label columns size independently from their longest rendered word and refr
     assert.equal(editor.getHTML(), original);
     assert.deepEqual(editor.getJSON(), json);
     assert(!undo(editor.state));
-    showBlockLabels(editor, false);
-    assert.equal(width(0), "");
-    assert.equal(width(1), "");
-    assert.equal(width(2), "");
-    showBlockLabels(editor, true);
+    assert.equal(width(0), "60px");
     assert.equal(width(1), "88px");
+    assert.equal(width(2), "32px");
     editor.destroy();
     editor = null;
     assert(!document.querySelector(".editor-label-measure"), "Measurements are removed on destroy.");
@@ -5612,8 +5652,7 @@ test("unsupported selections boundaries and structural neighbors refuse without 
   assert.equal(editor.getHTML(), html);
   assert.deepEqual(editor.getJSON(), json);
   assert(!undo(editor.state));
-  showBlockLabels(editor, false);
-  assert.equal(editor.view.dom.querySelector("[data-editor-block]"), null);
+  assert.equal(editor.view.dom.querySelector("h2[data-editor-block]").dataset.editorBlock, "H2");
   showDocumentPart(editor, null);
   assert.equal(editor.view.dom.querySelector(".editor-outside-part"), null);
   assert.equal(editor.getHTML(), html);
@@ -5713,7 +5752,6 @@ test("workspace menu formats the pinned selection and supports keyboard dismissa
   form.innerHTML = '<button id="editor-tools" type="button">Selection tools</button>' +
     '<select id="editor-part"></select><div id="editor-outline-items"></div>' +
     '<p id="editor-selection-path"></p>' +
-    '<input id="editor-block-labels" type="checkbox" checked>' +
     '<div id="editor-context-menu" hidden><p id="editor-menu-target"></p>' +
     '<button type="button" data-mark="strong">Bold</button>' +
     '<button type="button" data-block="h3">H3</button>' +
@@ -6078,7 +6116,7 @@ test("workspace right-click pins the clicked nested link and dialog validates ap
   const form = document.createElement("form");
   form.innerHTML = '<button id="editor-tools" type="button"></button><select id="editor-part"></select>' +
     '<div id="editor-outline-items"></div><p id="editor-selection-path"></p>' +
-    '<input id="editor-block-labels" type="checkbox"><div id="editor-context-menu" hidden>' +
+    '<div id="editor-context-menu" hidden>' +
     '<p id="editor-menu-target"></p><button type="button" data-link>Edit link</button>' +
     '<button type="button" data-link-insert>Create link</button>' +
     '<button type="button" data-link-remove>Remove link</button>' +

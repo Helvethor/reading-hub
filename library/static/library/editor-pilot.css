@@ -304,10 +304,7 @@
 #editor-figure-preview p { margin: .4rem 0; }
 #editor-figure-preview img { display: block; max-width: 100%; max-height: 10rem; margin: .5rem auto; }
 #editor-surface .tiptap .editor-figure-group { position: relative; border-inline-start: 2px solid #718968; padding-inline-start: .8rem; margin-block: 1.5rem; }
-#editor-surface .tiptap .editor-figure-handle,
-#editor-surface .tiptap .editor-element-handle { display: block; width: fit-content; max-width: 100%; margin: 0 0 .5rem; padding: .2rem .35rem; border: 1px solid #718968; background: #edf3e8; color: #263d22; font: 700 .7rem/1.4 system-ui, sans-serif; cursor: pointer; white-space: normal; }
-#editor-surface .tiptap .editor-figure-handle:focus-visible,
-#editor-surface .tiptap .editor-element-handle:focus-visible { outline: 3px solid #486b38; outline-offset: 2px; }
+#editor-context-menu .editor-menu-element-target { margin: 0 0 .25rem; font: 600 .85rem/1.4 system-ui, sans-serif; }
 #editor-surface .tiptap cite { text-decoration: underline dotted #718968; text-underline-offset: .2em; }
 #editor-surface .tiptap q { background: color-mix(in srgb, #718968 10%, transparent); text-decoration: underline dotted #718968; text-underline-offset: .2em; }
 #editor-inline-q { width: min(34rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; }

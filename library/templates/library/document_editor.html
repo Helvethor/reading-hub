@@ -127,7 +127,6 @@
         <a id="editor-publication" class="button secondary" data-workflow-panel="Publish" hidden>Publish&hellip;</a>
         <label class="editor-part-control">Show <select id="editor-part" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
         <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" disabled><option value="">All sections</option></select></label>
-        <label><input id="editor-block-labels" type="checkbox" checked disabled> Block labels</label>
         <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert from source&hellip;</button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
       </div>
@@ -261,7 +260,21 @@
         <button type="button" role="menuitem" data-history="redo" disabled>↷ Redo</button>
         <button type="button" role="menuitem" id="editor-menu-close">× Close</button>
       </div>
+      <h2 id="editor-menu-element-target" class="editor-menu-element-target" hidden></h2>
       <p id="editor-menu-target"></p>
+      <div role="group" aria-label="Caption actions" class="editor-menu-group editor-menu-actions" data-caption-actions hidden>
+        <span class="editor-menu-heading">Caption</span>
+        <button type="button" role="menuitem" data-element-action="caption-relationship" hidden>Edit caption relationship…</button>
+        <button type="button" role="menuitem" data-element-action="detach-caption" hidden>Detach caption</button>
+      </div>
+      <div role="group" aria-label="Element actions" class="editor-menu-group editor-menu-actions" data-element-actions>
+        <span class="editor-menu-heading">Element</span>
+        <button type="button" role="menuitem" data-element-action="remove-quotation" hidden>Remove quotation formatting</button>
+        <button type="button" role="menuitem" data-element-action="edit-alt" hidden>Edit alt text…</button>
+        <button type="button" role="menuitem" data-element-action="wrap-figure" hidden>Wrap in figure</button>
+        <button type="button" role="menuitem" data-element-action="add-caption" hidden>Add caption…</button>
+        <button type="button" role="menuitem" data-element-action="remove-figure" hidden>Remove figure grouping</button>
+      </div>
       <div role="group" aria-label="Text styling" class="editor-menu-group">
         <span class="editor-menu-heading">Text styling</span>
         <button type="button" role="menuitemcheckbox" aria-label="Bold" title="Bold" aria-checked="false" data-mark="strong" disabled><b aria-hidden="true">B</b></button>
@@ -309,12 +322,8 @@
         <button type="button" role="menuitem" data-inline-mark="q" disabled>Mark as inline quotation</button>
         <div data-inline-targets></div>
       </div>
-      <button type="button" role="menuitem" data-image disabled>Edit image alternative text</button>
       <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
       <button type="button" role="menuitem" data-quote-action="convert" disabled>Convert to quote</button>
-      <button type="button" role="menuitem" data-quote-action="wrap" disabled>Wrap in figure</button>
-      <button type="button" role="menuitem" data-quote-action="remove-quote" disabled>Remove quotation formatting</button>
-      <button type="button" role="menuitem" data-quote-action="remove-figure" disabled>Remove figure grouping</button>
       <button type="button" role="menuitem" data-table-action="insert-table" disabled>Insert table…</button>
       <button type="button" role="menuitem" data-table-action="insert-row-above" disabled>Insert row above</button>
       <button type="button" role="menuitem" data-table-action="insert-row-below" disabled>Insert row below</button>
@@ -327,7 +336,6 @@
       <button type="button" role="menuitem" data-table-action="add-caption" disabled>Add table caption…</button>
       <button type="button" role="menuitem" data-table-action="remove-caption" disabled>Remove table caption…</button>
       <button type="button" role="menuitem" data-rule-insert disabled>Insert horizontal rule</button>
-      <button type="button" role="menuitem" data-quotation="edit" disabled>Add / edit caption…</button>
       <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
       <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
       <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
@@ -521,7 +529,6 @@
     <p>Copy the work/document title here to mark it as cite, not the author's name. Existing title markup stays unless explicitly removed.</p>
     <details><summary>Structure options</summary>
       <label><input id="editor-figure-uncite" type="checkbox"> Remove source-title markings from the caption (keep text and targets)</label>
-      <button type="button" id="editor-figure-remove">Ungroup figure (keep all content)</button>
     </details>
     <p id="editor-quotation-help">Choose an existing paragraph to move it into the caption; any existing caption is kept and the paragraph appended. Nothing is inferred. Selected paragraphs become a quotation; images keep their retained asset. Edit text directly afterward; use link tools for a source URL. Cancel changes nothing.</p>
     <section id="editor-figure-preview" aria-label="Proposed figure relationships" aria-live="polite"></section>

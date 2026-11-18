@@ -3,7 +3,7 @@ import {DOMSerializer} from "@tiptap/pm/model";
 import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state";
 import {Decoration, DecorationSet} from "@tiptap/pm/view";
 import {closeHistory} from "@tiptap/pm/history";
-import {visiblePart, foldedDocumentParts, blockLabel, leafLabel, blockLabelsShown,
+import {visiblePart, foldedDocumentParts, blockLabel, leafLabel,
   workspaceChanged} from "./workspace.js";
 import {sectionHeading} from "./section-info.js";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
@@ -425,18 +425,9 @@ function hiddenText(owner, text) {
   return span;
 }
 
-function figureNumber(doc, pos) {
-  let number = 0;
-  doc.descendants((node, at) => {
-    if (at >= pos) return false;
-    if (node.type.name === "figure") { number++; return false; }
-  });
-  return number + 1;
-}
-
 // Mirror workspace decorations so removed blocks keep their block labels, borders and alignment.
 function renderRemovedBlock(context, node, pos) {
-  const {owner, serializer, doc, labels} = context;
+  const {owner, serializer, doc} = context;
   const {dom, contentDOM} = DOMSerializer.renderSpec(owner, serializer.nodes[node.type.name](node));
   const element = dom.nodeType === 1 ? dom : owner.createElement("div");
   if (element !== dom) element.append(dom);
@@ -464,19 +455,11 @@ function renderRemovedBlock(context, node, pos) {
   if (node.isTextblock && node.childCount === 1 && node.firstChild.type.name === "img") {
     classes.push("editor-image-only");
   }
-  const resolved = doc.resolve(pos);
-  let handle = null;
-  if (labels && ["figure", "blockquote"].includes(node.type.name) &&
-      !Array.from({length: resolved.depth}, (_, i) => resolved.node(i + 1).type.name).includes("figure")) {
-    const label = node.type.name === "figure" ? `FIGURE ${figureNumber(doc, pos)}` : "QUOTE";
+  if (["figure", "blockquote"].includes(node.type.name)) {
     classes.push("editor-figure-group");
-    element.dataset.editorGroup = label;
-    handle = owner.createElement("span");
-    handle.className = "editor-figure-handle";
-    handle.dataset.diffChrome = "";
-    handle.textContent = label;
+    element.dataset.editorGroup = node.type.name === "figure" ? "FIGURE" : "QUOTE";
   }
-  const label = labels && blockLabel(doc, pos, node);
+  const label = blockLabel(doc, pos, node);
   if (label) {
     for (const [name, value] of Object.entries(label.attrs)) {
       if (name === "class") classes.push(...value.split(" "));
@@ -494,7 +477,6 @@ function renderRemovedBlock(context, node, pos) {
     else node.forEach((child, offset) => {
       contentDOM.append(...renderRemovedBlock(context, child, pos + 1 + offset));
     });
-    if (handle) contentDOM.prepend(handle);
     if (edges) { contentDOM.prepend(edges[0]); contentDOM.append(edges[1]); }
   }
   return [...before, element];
@@ -515,7 +497,7 @@ function removedContent(view, change) {
   const root = owner.createElement("div");
   root.className = "editor-diff-removed-blocks";
   root.append(hiddenText(owner, "Removed: "));
-  const context = {owner, serializer, doc, labels: blockLabelsShown(view.state)};
+  const context = {owner, serializer, doc};
   const $from = doc.resolve(change.oldFrom);
   $from.parent.forEach((child, offset) => {
     const pos = $from.start() + offset;

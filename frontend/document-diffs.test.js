@@ -5,7 +5,7 @@ import {undo, redo} from "@tiptap/pm/history";
 import {createBoundedEditor} from "./editor.js";
 import {documentDifferences, showDocumentDifferences, currentDifferences,
   restoreDifference} from "./document-diffs.js";
-import {showDocumentPart, documentParts, showBlockLabels} from "./workspace.js";
+import {showDocumentPart, documentParts} from "./workspace.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
@@ -285,9 +285,8 @@ test("removed blocks render as the same labelled, aligned block types without ID
   assert.equal(editor.view.dom.querySelector("[data-diff=removed] [id], [data-diff=removed][id]"), null);
   assert.equal(editor.view.dom.querySelector("[data-diff=removed] button"), null);
   assert.equal(editor.getHTML(), result);
-  showBlockLabels(editor, false);
-  assert.equal(editor.view.dom.querySelector("[data-diff=removed] [data-editor-block]"), null,
-    "Removed blocks follow the block-label toggle like result blocks.");
+  assert(editor.view.dom.querySelector("[data-diff=removed] [data-editor-block]"),
+    "Removed blocks keep the same always-visible structural labels.");
   assert(editor.view.dom.querySelector("[data-diff=removed] h3.text-align-center"));
   rightClick([...editor.view.dom.querySelectorAll("[data-diff=removed] p")]
     .find(node => node.textContent === "Old text."));

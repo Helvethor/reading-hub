@@ -78,7 +78,7 @@ Selection.jsonID("reading-hub-blocks", BlockSelection);
 
 function clickedBlock(view, target) {
   if (!view.dom.contains(target) || target.closest(
-    ".editor-section-edge, .editor-fold-placeholder, [data-editor-figure]",
+    ".editor-section-edge, .editor-fold-placeholder",
   )) return null;
   const pos = view.posAtDOM(target, 0);
   const $pos = view.state.doc.resolve(pos);

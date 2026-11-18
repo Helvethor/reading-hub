@@ -101,7 +101,7 @@ function foldBody(doc, part) {
   return {from, to: part.to};
 }
 
-function decorations(doc, scope, labels, folds = [], context = {}) {
+function decorations(doc, scope, folds = [], context = {}) {
   const result = [];
   const hidden = folds.map(part => foldBody(doc, part));
   const parts = documentParts(doc, context), numbering = tocNumberingEntries(doc, parts);
@@ -180,56 +180,15 @@ function decorations(doc, scope, labels, folds = [], context = {}) {
     if (imageOnly) {
       result.push(Decoration.node(pos, end, {class: "editor-image-only"}));
     }
-    if (labels && ["figure", "blockquote"].includes(node.type.name)) {
+    if (["figure", "blockquote"].includes(node.type.name)) {
       const figure = node.type.name === "figure";
       if (figure) figureNumber++;
       const label = figure ? `FIGURE ${figureNumber}` : "QUOTE";
       result.push(Decoration.node(pos, end, {
         class: "editor-figure-group", "data-editor-group": label,
       }));
-      result.push(Decoration.widget(pos + 1, view => {
-        const button = view.dom.ownerDocument.createElement("button");
-        button.type = "button";
-        button.className = "editor-figure-handle";
-        button.textContent = `${label} · edit`;
-        button.dataset.editorFigure = String(pos);
-        button.setAttribute("aria-label", `${label}: open actions for this element`);
-        button.contentEditable = "false";
-        button.addEventListener("mousedown", event => event.preventDefault());
-        return button;
-      }, {side: -1, key: `figure-${pos}-${label}`, stopEvent: () => true}));
     }
-    if (labels && (node.type.name === "imgBlock" || imageOnly)) {
-      const imagePosition = imageOnly ? pos + 1 : pos;
-      const at = imageOnly ? imagePosition : end;
-      result.push(Decoration.widget(at, view => {
-        const button = view.dom.ownerDocument.createElement("button");
-        button.type = "button";
-        button.className = "editor-element-handle";
-        button.textContent = "IMG · edit";
-        button.dataset.editorImage = String(imagePosition);
-        button.setAttribute("aria-label", "IMG: edit alternative text for this image");
-        button.contentEditable = "false";
-        button.addEventListener("mousedown", event => event.preventDefault());
-        return button;
-      }, {side: imageOnly ? -1 : 1, key: `image-${pos}`, stopEvent: () => true}));
-    }
-    if (labels && node.type.name.startsWith("figcaption") &&
-        (!node.type.name.endsWith("Text") ||
-          doc.resolve(pos).parent.type.name !== "figcaption")) {
-      result.push(Decoration.widget(pos + 1, view => {
-        const button = view.dom.ownerDocument.createElement("button");
-        button.type = "button";
-        button.className = "editor-element-handle";
-        button.textContent = "CAPTION · edit";
-        button.dataset.editorCaption = String(pos);
-        button.setAttribute("aria-label", "CAPTION: edit this figure's caption relationship");
-        button.contentEditable = "false";
-        button.addEventListener("mousedown", event => event.preventDefault());
-        return button;
-      }, {side: -1, key: `caption-${pos}`, stopEvent: () => true}));
-    }
-    const label = labels && blockLabel(doc, pos, node);
+    const label = blockLabel(doc, pos, node);
     if (label) {
       result.push(Decoration.node(pos, end, label.attrs));
       if (label.external) result.push(Decoration.widget(pos,
@@ -286,10 +245,6 @@ export function leafLabel(owner, label) {
   element.setAttribute("contenteditable", "false");
   element.setAttribute("aria-hidden", "true");
   return element;
-}
-
-export function blockLabelsShown(state) {
-  return workspaceKey.getState(state)?.labels ?? false;
 }
 
 export function workspaceChanged(tr) {
@@ -353,13 +308,12 @@ export function workspaceExtension(onError) {
         view: mountLabelColumns,
         state: {
           init: (_, state) => ({
-            scope: null, labels: true, folds: [], context: {},
-            decorations: decorations(state.doc, null, true),
+            scope: null, folds: [], context: {},
+            decorations: decorations(state.doc, null),
           }),
           apply(tr, previous) {
             const change = tr.getMeta(workspaceKey);
             let scope = change && "scope" in change ? change.scope : previous.scope;
-            const labels = change?.labels ?? previous.labels;
             let folds = change?.folds ?? previous.folds;
             const context = change?.context ?? previous.context;
             if (tr.docChanged || change?.context) {
@@ -380,8 +334,8 @@ export function workspaceExtension(onError) {
               if (current) scope = {...scope, label: current.label};
             }
             if (!change && !tr.docChanged) return previous;
-            return {scope, labels, folds, context,
-              decorations: decorations(tr.doc, scope, labels, folds, context)};
+            return {scope, folds, context,
+              decorations: decorations(tr.doc, scope, folds, context)};
           },
         },
         filterTransaction(tr, state) {
@@ -528,9 +482,4 @@ export function revealDocumentPosition(editor, position) {
   const selection = TextSelection.near(state.doc.resolve(position), 1);
   editor.view.dispatch(state.tr.setSelection(selection)
     .setMeta(workspaceKey, {scope: null, folds}).setMeta("addToHistory", false));
-}
-
-export function showBlockLabels(editor, labels) {
-  editor.view.dispatch(editor.state.tr
-    .setMeta(workspaceKey, {labels}).setMeta("addToHistory", false));
 }

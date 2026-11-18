@@ -721,12 +721,13 @@ cached bundle (observed as unresponsive quotation tools after the 0.36.0 update)
 Save existing work before reloading an already open tab; do not inject a second
 editor runtime or discard a draft to refresh assets.
 
-Since 0.37.0, images and quotations share one **Figure & caption...** panel instead
-of separate low-level quotation commands. Click the **FIGURE / QUOTE · edit**
-handle beside the content, or use right-click / Selection tools / Shift+F10.
-Enable **Block labels** to see the handle, grouping border and QUOTE/IMAGE/CAPTION
-roles. These are editor decorations, never saved markup. Cited titles have a
-dotted underline; the panel explicitly lists their relationship.
+Since 0.37.0, images and quotations share the **Figure & caption** panel instead
+of separate low-level quotation commands. Structural labels and guides are
+always visible and view-only. Place the caret or select the exact image, quote,
+figure or caption, then use **Selection tools**, right-click or Shift+F10 for
+applicable actions. Captioned figures expose one caption relationship group;
+text remains directly editable in the canvas. These cues are never saved markup.
+Cited titles have a dotted underline; the panel explicitly lists their relationship.
 
 For edition 80's Preface, save current work before reloading, focus Preface, then:
 
@@ -789,8 +790,8 @@ semantic edits, not unfinished quotation-dialog fields.
 collapsed ordinary paragraph caret outside lists, figures, tables and notes.
 It splits prose around a semantic `hr`, retaining the original target once and
 putting the caret in the following paragraph; unsafe target splits are refused.
-Each insertion is one undo step. With Block labels enabled, UL/OL containers have
-their own label/bar; LI items have no individual labels or vertical bars.
+Each insertion is one undo step. UL/OL containers always have their own
+label/bar; LI items have no individual labels or vertical bars.
 HR has a visible vertical bar too. These cues never enter saved HTML/JSON, Read
 or PDF.
 
@@ -1611,7 +1612,7 @@ superscripts such as `x2` or `2e` stay in labels.
 These same markers appear read-only before actual editor headings and navigation
 titles, including the Section selector. Sections use their bound title heading;
 headings without a section entry use themselves. Filtering does not restart
-numbering. Markers do not depend on Block labels and are not part of editable
+numbering. Markers do not depend on structural labels and are not part of editable
 text, copied prose or saved HTML; edit them through the ToC menu.
 
 Changes are one undoable semantic edit, reset review to partial, and enter
@@ -1705,18 +1706,18 @@ only echoed in memory: the observed payload retained the four-key contract and
 exact prose, with no generated markup. Browser events were dispatched rather
 than native pointer input. No live correction was saved or published, and this
 does not validate a new printed ToC or pagination.
-Optional **Block labels** sit left of each block's own vertical guide. Nested
+Structural labels sit left of each block's own vertical guide. Nested
 figures, quotes, captions and paragraphs get nested columns instead of a single
 outer column. QUOTE/CAP name the container; its paragraph children stay P.
 Column widths are independently measured per hierarchy depth from the widest
 visible label word, with a .8rem minimum text width plus .55rem spacing. Widths
 refresh after filters/folds, content edits, font loads and viewport resizing.
-They are not saved content, and hidden labels do not widen visible columns.
+They are not saved content, and hidden blocks do not widen visible columns.
 Names longer than five characters use three-letter shorthand (FIG, CAP), while
 the full type remains in the structure path. Image-only blocks use IMG; leaf
 and table labels have non-editable view-only anchors outside their content.
-Table-cell descendants do not gain extra gutters. Labels/guides disappear when
-Block labels is off.
+Table-cell descendants do not gain extra gutters. Labels/guides remain visible
+for eligible blocks in the current view; there is no visibility toggle.
 These labels show text/heading/list-item/table/media types;
 the container/target path of the current block is shown below the canvas (including
 table cells). Labels and filter classes are decorations only, absent from saved

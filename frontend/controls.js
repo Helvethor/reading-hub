@@ -30,7 +30,7 @@ import {semanticDOM} from "./semantic-structure.js";
 import {applyList, listState, mountListEditing} from "./lists.js";
 import {insertHorizontalRule} from "./horizontal-rule.js";
 import {
-  documentParts, foldedDocumentParts, showDocumentPart, showBlockLabels, visiblePart,
+  documentParts, foldedDocumentParts, showDocumentPart, visiblePart,
   workspaceContext, setWorkspaceContext,
 } from "./workspace.js";
 import {mountDynamicOutline} from "./outline.js";
@@ -387,13 +387,72 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     if (!button) return;
     navigatePart(Number(button.dataset.part));
   });
-  form.querySelector("#editor-block-labels").addEventListener("change", event => {
-    showBlockLabels(editor, event.target.checked);
-  });
+  function elementContext() {
+    const {selection, doc} = editor.state;
+    if (selection instanceof BlockSelection || !canEditFigure(editor)) return null;
+    const target = prepareFigure(editor);
+    if (!(target.figure || target.quote || target.kind === "image")) return null;
+    const within = types => {
+      if (types.includes(selection.node?.type.name)) return true;
+      for (let depth = selection.$from.depth; depth > 0; depth--) {
+        if (types.includes(selection.$from.node(depth).type.name) &&
+            selection.to < selection.$from.after(depth)) return true;
+      }
+      return false;
+    };
+    const captionTarget = within(["figcaption", "figcaptionText"]);
+    const quoteTarget = within(["blockquote"]);
+    const imageTarget = target.kind === "image";
+    const selectedImageTarget = Boolean(selectedImage(editor));
+    const selectedFigure = selection.node?.type.name === "figure";
+    if (target.figure && !selection.empty && !selectedFigure &&
+        !quoteTarget && !captionTarget && !selectedImageTarget) return null;
+    let heading;
+    if (target.figure) {
+      let figureNumber = 0;
+      doc.descendants((node, pos) => {
+        if (node.type.name === "figure" && pos <= target.from) figureNumber++;
+      });
+      heading = `Figure ${figureNumber}`;
+      if (captionTarget) heading += " › Caption";
+      else if (quoteTarget) heading += " › Quote";
+      else if (imageTarget && !selectedFigure) heading += " › Image";
+    } else heading = target.kind === "quotation" ? "Quote" : "Image";
+    const quote = Boolean(target.quote && quoteTarget && canRemoveQuotation(editor));
+    const image = imageTarget && selectedImageTarget;
+    const caption = Boolean(target.caption);
+    const standalone = !target.figure && (quote || imageTarget);
+    return {
+      heading,
+      quote,
+      image,
+      wrap: standalone && canWrapInFigure(editor),
+      addCaption: !caption && (standalone || target.figure),
+      removeFigure: target.figure && canRemoveFigure(editor),
+      captionRelationship: target.figure && caption,
+      detachCaption: target.figure && caption,
+    };
+  }
   function updateTools() {
     const prose = ["book", "sections"].includes(bookViews.view);
     trigger.disabled = !prose;
     const {selection} = editor.state;
+    const element = elementContext();
+    const actions = {
+      "remove-quotation": element?.quote,
+      "edit-alt": element?.image,
+      "wrap-figure": element?.wrap,
+      "add-caption": element?.addCaption,
+      "remove-figure": element?.removeFigure,
+      "caption-relationship": element?.captionRelationship,
+      "detach-caption": element?.detachCaption,
+    };
+    for (const button of menu.querySelectorAll("[data-element-action]")) {
+      button.hidden = !actions[button.dataset.elementAction] || !prose;
+      button.disabled = button.hidden;
+    }
+    const captionGroup = menu.querySelector("[data-caption-actions]");
+    if (captionGroup) captionGroup.hidden = !element?.captionRelationship;
     const textSelection = selection instanceof TextSelection;
     const blockSelection = selection instanceof BlockSelection ||
       selection instanceof NodeSelection && selection.node.isBlock;
@@ -415,14 +474,11 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       completeTextBlocks ? selection.$from.node(selection.$from.depth - 1) : null;
     if (excerpt) available(excerpt, (blockSelection || completeTextBlocks) &&
       excerptParent?.type.name === "section");
-    for (const button of form.querySelectorAll("[data-quotation]")) {
-      available(button, button.dataset.quotation === "insert" || canEditFigure(editor));
+    for (const button of form.querySelectorAll('[data-quotation="insert"]')) {
+      available(button, true);
     }
     const quotationActions = {
       convert: canConvertSelectionToQuote(editor),
-      wrap: canWrapInFigure(editor),
-      "remove-quote": canRemoveQuotation(editor),
-      "remove-figure": canRemoveFigure(editor),
     };
     for (const button of form.querySelectorAll("[data-quote-action]")) {
       available(button, quotationActions[button.dataset.quoteAction]);
@@ -497,9 +553,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         inlineTargetList.append(change);
       }
     }
-    for (const button of form.querySelectorAll("[data-image]")) {
-      available(button, !!selectedImage(editor));
-    }
     for (const button of form.querySelectorAll("[data-link], [data-link-remove], [data-note-repair]")) {
       available(button, !!selectedLink(editor));
     }
@@ -542,19 +595,34 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       (selection.contiguous ? " (contiguous)." : " (gaps: select intervening blocks before extracting).") +
       " Ctrl-click toggles blocks; Escape clears selection.";
     if (selectedImage(editor)) path.textContent += " / Image";
+    return element;
   }
   function openMenu(point) {
     closeMenu();
     menuTarget = {doc: editor.state.doc, bookmark: editor.state.selection.getBookmark()};
-    updateTools();
+    const element = updateTools();
     const {selection} = editor.state;
-    form.querySelector("#editor-menu-target").textContent = selection instanceof BlockSelection
-      ? `${selection.positions.length} whole block(s) selected${selection.contiguous ? "" : " with gaps"}. Separate as excerpt uses only contiguous blocks.`
+    const heading = menu.querySelector("#editor-menu-element-target");
+    if (heading) {
+      heading.textContent = element?.heading || "";
+      heading.hidden = !element;
+    }
+    const description = form.querySelector("#editor-menu-target");
+    description.hidden = Boolean(element);
+    description.textContent = element
+      ? ""
+      : selection instanceof BlockSelection
+      ? `Select one element to see its actions. ${selection.positions.length} whole block(s) selected${selection.contiguous ? "" : " with gaps"}; separate as excerpt uses only contiguous blocks.`
       : selectedImage(editor)
       ? "Selected image: edit alternative text without replacing its retained asset"
       : selectedLink(editor) ? "Existing link: edit the whole link's destination and title, preserving its text"
+      : selection instanceof TextSelection && !selection.empty &&
+        !selection.$from.sameParent(selection.$to)
+      ? "Select one element to see its actions."
       : selection.empty
       ? "At the cursor" : "Selected text: styling applies only to this selection";
+    menu.setAttribute("aria-describedby",
+      element ? "editor-menu-element-target" : "editor-menu-target");
     showContextMenu(menu, point);
     trigger.setAttribute("aria-expanded", "true");
   }
@@ -579,6 +647,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     event.preventDefault();
     const image = event.target.closest("img");
     const link = event.target.closest("a[href]");
+    const structural = event.target.closest("figure, blockquote, figcaption");
     if (editor.state.selection instanceof BlockSelection) {
       // Keep the explicit block set even when right-click lands on its image or link.
     } else if (image && surface.contains(image)) {
@@ -591,6 +660,11 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       editor.view.dispatch(editor.state.tr.setSelection(link.childNodes.length
         ? TextSelection.create(editor.state.doc, from, editor.view.posAtDOM(link, link.childNodes.length))
         : NodeSelection.create(editor.state.doc, from)));
+    } else if (structural && surface.contains(structural)) {
+      const position = editor.view.posAtCoords({left: event.clientX, top: event.clientY});
+      if (position) editor.view.dispatch(editor.state.tr.setSelection(
+        TextSelection.near(editor.state.doc.resolve(position.pos)),
+      ));
     } else if (editor.state.selection.empty) {
       const position = editor.view.posAtCoords({left: event.clientX, top: event.clientY});
       if (position) editor.view.dispatch(editor.state.tr.setSelection(
@@ -632,14 +706,32 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         editor.view.dispatch(editor.state.tr.setSelection(menuTarget.bookmark.resolve(editor.state.doc)));
       }
       closeMenu();
+      const elementAction = button.dataset.elementAction;
+      if (elementAction === "remove-quotation") {
+        removeQuotation(editor);
+        editor.commands.focus();
+        return;
+      }
+      if (elementAction === "wrap-figure") {
+        wrapInFigure(editor, prepareFigure(editor));
+        editor.commands.focus();
+        return;
+      }
+      if (elementAction === "remove-figure") {
+        removeFigure(editor, prepareFigure(editor));
+        editor.commands.focus();
+        return;
+      }
+      if (elementAction === "detach-caption") {
+        applyFigure(editor, prepareFigure(editor), {caption: "none"});
+        editor.commands.focus();
+        return;
+      }
       if (button.dataset.quoteAction) {
         const action = button.dataset.quoteAction;
         if (action === "convert") {
           applySelectionQuote(editor, prepareSelectionQuote(editor, readDocument));
-        } else if (action === "wrap") {
-          wrapInFigure(editor, prepareFigure(editor));
-        } else if (action === "remove-quote") removeQuotation(editor);
-        else if (action === "remove-figure") removeFigure(editor, prepareFigure(editor));
+        }
         editor.commands.focus();
         return;
       }
@@ -647,8 +739,10 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         openTableDialog(button.dataset.tableAction);
         return;
       }
-      if (button.dataset.quotation) {
+      if (button.dataset.quotation ||
+          ["caption-relationship", "add-caption"].includes(elementAction)) {
         const insertion = button.dataset.quotation === "insert";
+        const addingCaption = elementAction === "add-caption";
         quotationProposal = insertion ? prepareQuotationInsertion(editor, readDocument) : prepareFigure(editor);
         quotationApplied = false;
         quotationDialog.querySelector("#editor-quotation-heading").textContent =
@@ -671,21 +765,21 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         for (const candidate of quotationProposal.candidates || []) choices.add(new Option(candidate.label, candidate.value));
         choices.add(new Option("Write a new caption", "new"));
         if (quotationProposal.caption) choices.add(new Option("Detach caption (keep as ordinary text)", "none"));
-        choices.value = insertion ? "none" : "keep";
+        choices.value = insertion ? "none" : addingCaption ? "new" : "keep";
         const input = quotationDialog.querySelector("#editor-quotation-attribution");
         input.value = "";
         input.disabled = false;
         quotationDialog.querySelector("#editor-figure-title").value = "";
         quotationDialog.querySelector("#editor-figure-uncite").checked = false;
-        quotationDialog.querySelector("#editor-figure-remove").hidden = insertion || !quotationProposal.figure &&
-          !quotationProposal.quote;
         quotationDialog.querySelector("#editor-figure-uncite").closest("details").hidden = insertion;
         quotationDialog.querySelector('[role="alert"]').textContent = "";
         previewFigure();
         quotationDialog.showModal();
-        (insertion ? quotationDialog.querySelector("#editor-quotation-body") : choices).focus();
+        (insertion
+          ? quotationDialog.querySelector("#editor-quotation-body")
+          : addingCaption ? quotationDialog.querySelector("#editor-quotation-attribution") : choices).focus();
         return;
-      } else if ("image" in button.dataset) {
+      } else if (elementAction === "edit-alt") {
         imageProposal = prepareImageEdit(editor);
         const preview = imageDialog.querySelector("img");
         preview.src = imageProposal.node.attrs.src;
@@ -760,11 +854,11 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       showError(failure.message);
     }
   }
-  for (const button of form.querySelectorAll("[data-mark], [data-inline-mark], [data-block], [data-align], [data-move], [data-history], [data-image], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-quote-action], [data-table-action], [data-list], [data-rule-insert]")) {
+  for (const button of form.querySelectorAll("[data-mark], [data-inline-mark], [data-block], [data-align], [data-move], [data-history], [data-link], [data-link-insert], [data-link-remove], [data-note-repair], [data-quotation], [data-quote-action], [data-table-action], [data-list], [data-rule-insert]")) {
     button.addEventListener("click", () => perform(button));
   }
   menu.addEventListener("click", event => {
-    const button = event.target.closest("[data-inline-action]");
+    const button = event.target.closest("[data-inline-action], [data-element-action]");
     if (button) perform(button);
   });
   for (const button of form.querySelectorAll(".editor-format-toolbar button")) {
@@ -800,25 +894,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     } else if (menu.contains(target)) trigger.focus({preventScroll: true});
   }
   form.addEventListener("keydown", workspaceHistory);
-  surface.addEventListener("click", event => {
-    const handle = event.target.closest(
-      "[data-editor-figure], [data-editor-image], [data-editor-caption]",
-    );
-    if (!handle) return;
-    event.preventDefault();
-    try {
-      const position = Number(handle.dataset.editorFigure || handle.dataset.editorImage ||
-        handle.dataset.editorCaption);
-      editor.view.dispatch(editor.state.tr.setSelection(
-        NodeSelection.create(editor.state.doc, position),
-      ));
-      perform(handle.hasAttribute("data-editor-image")
-        ? form.querySelector("[data-image]")
-        : form.querySelector('[data-quotation="edit"]'));
-    } catch (failure) {
-      showError(failure.message);
-    }
-  });
   if (quotationDialog) {
     quotationDialog.querySelector("#editor-quotation-cancel").addEventListener("click",
       () => quotationDialog.close());
@@ -838,14 +913,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       control.addEventListener("input", previewFigure);
       control.addEventListener("change", previewFigure);
     }
-    quotationDialog.querySelector("#editor-figure-remove").addEventListener("click", () => {
-      try {
-        removeFigure(editor, quotationProposal);
-        quotationDialog.close();
-      } catch (failure) {
-        quotationDialog.querySelector('[role="alert"]').textContent = failure.message;
-      }
-    });
     quotationDialog.querySelector("#editor-quotation-apply").addEventListener("click", () => {
       try {
         if (!quotationProposal) return;

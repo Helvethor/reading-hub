@@ -26,7 +26,7 @@ const attrs = {
 export function protectSavedEdition(editor, form, notify) {
   const message = "Choose a working copy in Versions before editing or saving.";
   const navigation = [
-    "#editor-part", "#editor-section-filter", "#editor-block-labels",
+    "#editor-part", "#editor-section-filter",
     "#editor-outline-toggle", "#editor-result-filter", "#editor-diff-revision",
     "#editor-diff-baseline", "#editor-choose-working-copy", "[data-part]", "[data-book-view]",
     "[data-outline-fold]", "[data-content-fold]", "[data-book-group-fold]",
