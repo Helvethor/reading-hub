@@ -300,6 +300,22 @@ app acceptance pending.** See the
   and pointer folding, Metadata navigation/settings, and Edition/review layout
   settings; record evidence as defined in the handoff.
 
+### Milestone V.s: Always-visible block labels and contextual element actions
+
+**Status: specified; not implemented.** See the
+[V.s handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vs-always-visible-block-labels-and-contextual-element-actions)
+for the action matrix and acceptance criteria.
+
+- [ ] Remove the Block labels setting and always show structural labels and
+  guides on eligible visible editor blocks. Remove inline element edit buttons
+  and their layout space.
+- [ ] Consolidate image, quotation, figure and caption actions into the existing
+  Selection tools menu. Verify one caption relationship command per target,
+  working captionless quotation actions and exact targets for all entry points.
+- [ ] Check the full workflow with isolated editor fixtures, including focus and
+  selection restoration, caption preview/cancel/apply, undo, and unchanged
+  saved content and reader/print/PDF behavior.
+
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
 - [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;

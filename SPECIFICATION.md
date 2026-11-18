@@ -1194,7 +1194,7 @@ The same markers appear as read-only prefixes on the corresponding editor
 headings and navigation titles (including the section filter). Section markers
 use the bound section-title heading; standalone heading markers use that
 heading. Prefixes follow the whole-document series even when filtering a single
-section, and remain visible when block labels are off. They are view decorations,
+section and are independent of block labels. They are view decorations,
 not editable title text, copied prose or additional saved markup.
 An unset or missing section-title binding falls back to the first heading, not
 the first heading without an ID. Adding a later heading does not change that
@@ -2162,19 +2162,21 @@ disabled for cross-block selections. The menu exposes checked state, arrow-key/
 Home/End navigation, Escape dismissal and focus restoration. Shift+right-click
 leaves the native browser menu available.
 
-Optional block-type labels sit immediately left of each block's own vertical
+Block-type labels sit immediately left of each block's own vertical
 guide, rather than sharing a single outer gutter. Nested figure/quote/caption/
 paragraph blocks therefore form nested label columns. Paragraphs inside quotes
 and captions retain P labels. Each depth's column fits its widest visible label
 word using actual rendered font metrics, a .8rem minimum text width and .55rem
 total spacing, rounded up to whole pixels. Filtering, folding, edits, font loads
 and viewport resizing recalculate widths; hidden labels do not reserve space.
-Column sizing is view-only and disabling labels removes measured widths.
+Column sizing is view-only. Under [milestone V.s](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vs-always-visible-block-labels-and-contextual-element-actions),
+labels and guides are always shown for visible eligible editor blocks, with no
+Block labels setting.
 The containing block owns QUOTE or CAP. Names longer
 than five characters use three-letter shorthand (FIG, CAP); full type names remain
 in the structure path/decorations. Image-only blocks use IMG. Replaced leaf blocks
 and scrolling tables use view-only label anchors, and table-cell descendants are
-not given overlapping gutters. Disabling Block labels removes guides/anchors too.
+not given overlapping gutters.
 A current-container/target path also exposes
 document structure without inserting semantic content. Navigation shows the whole
 book or focuses one section/heading range, including nested parts and heading-only
@@ -2367,8 +2369,10 @@ as following prose. Remove quotation formatting preserves any enclosing figure
 and caption. Detach caption retains the figure and moves caption content after
 it as ordinary prose. Identity-bearing removed wrappers use the existing div
 fallback; no text, targets, citations, links or assets are silently discarded.
-Contextual handles and keyboard-accessible Selection tools target the named
-element independently, without a new permanent toolbar row.
+The current implementation uses contextual handles and Selection tools.
+[Milestone V.s](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vs-always-visible-block-labels-and-contextual-element-actions)
+replaces the handles with a single target-aware Selection tools menu, without a
+new permanent toolbar row or changes to document semantics.
 
 The handoff fixes selection boundaries/ID ownership, supported contexts, stale/
 hidden-target refusals, one-step undo, recovery, save/reopen and Read/print/PDF

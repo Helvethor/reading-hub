@@ -65,6 +65,10 @@ bibliography system, automatic notes or bulk conversion.
 
 ## G.b: contextual commands and exact targets
 
+[Milestone V.s](UNIFIED-WORKSPACE-UX-HANDOFF.md#vs-always-visible-block-labels-and-contextual-element-actions)
+supersedes the inline handle requirements here and in G7 when implemented.
+Exact targets, command semantics and preservation requirements still apply.
+
 Reuse the existing command/menu and relationship-panel infrastructure, but stop
 making Figure & caption the gateway to quotation formatting. No additional
 permanent toolbar row.

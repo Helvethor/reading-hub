@@ -2017,6 +2017,71 @@ zoom is not native browser zoom. Actual app-generated rendering at native 200%
 zoom, native keyboard/pointer interactions, Metadata navigation/settings and
 Edition/review layout settings remain open acceptance.
 
+### V.s: Always-visible block labels and contextual element actions
+
+**Status: specification only.** A standalone QUOTE's inline edit button can
+do nothing, while the FIGURE, QUOTE and CAPTION buttons in a captioned figure
+all route to the same relationship action. The buttons repeat the structural
+labels and consume vertical space. This milestone replaces the inline handles
+specified in G.b/G7; it does not change G's document semantics.
+
+**Canvas and entry points.** Remove the **Block labels** option, not just its
+unchecked state. Existing block labels, guides and anchors are always visible
+for eligible blocks shown in the editor, including after reload and across
+section filtering and folding. Preserve existing gutter sizing, nesting and
+eligibility rules. Labels are view-only, not buttons. Remove the per-element
+edit buttons and the layout space they reserve. Edit quote and caption text
+directly in the canvas. Use the existing **Selection tools** toolbar button
+after placing the caret or selecting the element; right-click and Shift+F10
+open the same menu for the corresponding target. No new toolbar row,
+inspector, or hover-only control.
+
+**Commands and scope.** Show the target once in the menu heading (for example,
+**Figure 1 › Quote**) and group commands by their scope. Show only applicable
+actions, using existing eligibility and protection rules.
+
+| Target or context | Actions |
+|---|---|
+| Quote | **Remove quotation formatting**, affecting that quote only. |
+| Image | **Edit alt text...**, affecting that image only. |
+| Standalone quote or image | **Wrap in figure** and **Add caption...** where eligible. Adding a caption previews creation of the necessary figure. |
+| Figure, including when invoked from an eligible child | **Remove figure grouping**; **Add caption...** only if it has no caption. |
+| Captioned figure, invoked from the figure, its quote/image or its caption | One **Caption** group with **Edit caption relationship...** and **Detach caption**. Put it first when the caption itself is the target. |
+
+Don't show actions for siblings: opening on a caption doesn't offer to unquote
+the quote. A captionless quote or figure never opens the existing-caption
+relationship dialog. Quote formatting never opens a caption dialog. Preserve
+other Selection tools actions, including **Convert to quote** and
+**Insert quotation** where applicable. When a selection does not identify a
+unique element, omit ambiguous element actions and show **Select one element to
+see its actions**; don't fall back to a neighboring element or a broader target.
+Preserve the selection as menus take focus. An open menu or dialog must not
+silently retarget; reject an invalidated target with a useful message.
+
+**Acceptance and stopping point.** Verify in an isolated editor fixture with
+standalone quotes and images, adjacent captionless and captioned figures, and
+nested quote and caption blocks:
+
+- The Block labels option and inline edit controls are absent, including from
+  keyboard navigation. Labels remain visible on eligible blocks after reload
+  and through filtering/folding, without extra control rows, overlapping
+  gutters, or changes to copied or saved prose. Check desktop, narrow layout,
+  and native browser zoom.
+- The toolbar, right-click and keyboard entry points resolve the intended
+  element, expose the applicable actions above, and provide keyboard access
+  to the same actions. A captioned figure exposes exactly one relationship
+  command per invocation. Multi-element selections and stale targets do not
+  change either adjacent figure. Escape/Cancel restores focus and selection
+  without mutating the draft.
+- Caption commands preserve exact previews and explicit Apply. Detach leaves
+  caption content as following prose; unquoting preserves any enclosing figure
+  and caption; removing figure grouping preserves the quote and caption text.
+  Keep existing guards and undo behavior. UI-only changes must not dirty a
+  draft or change review state, serialized content, Read, print or PDF output.
+
+Stop after the consolidated workflow and preservation checks. Schema changes,
+content cleanup, deployment and live-data changes are out of scope.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
