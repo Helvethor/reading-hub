@@ -33,8 +33,9 @@
   padding: .45rem .7rem;
   background: transparent;
   color: inherit;
-  font-weight: 600;
+  font: 600 1rem/1.6 system-ui, sans-serif;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .site-navigation-group .primary-navigation a + a,

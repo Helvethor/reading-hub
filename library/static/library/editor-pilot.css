@@ -27,9 +27,9 @@
 .editor-book-structure summary { cursor: pointer; font-weight: 700; }
 .editor-book-structure li { overflow-wrap: anywhere; }
 .editor-structure-link { font-weight: 700; }
-.editor-pilot-toolbar { position: static; }
+.editor-pilot-toolbar { position: static; column-gap: .5rem; }
 .editor-pilot-toolbar select { min-width: 0; max-width: 13rem; }
-.editor-format-toolbar { padding-inline-end: .45rem; border-inline-end: 1px solid var(--line); }
+.editor-format-toolbar { padding-inline-end: .5rem; border-inline-end: 1px solid var(--line); }
 .editor-format-toolbar button { min-width: 2.25rem; }
 .editor-history-toolbar { margin-inline-end: .2rem; }
 .editor-pilot-toolbar .editor-save,

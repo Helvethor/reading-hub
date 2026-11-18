@@ -233,13 +233,14 @@ deployment and live-data changes are not authorized.
 
 **Square workspace controls (2026-11-16):** workspace and local Edit tabs,
 Read actions, editor commands and difference commands share square corners,
-neutral colours, compact typography and a 1px border. Selected/pressed and
-keyboard-focused controls have a 2px accent bottom edge; focus also retains
-a distinct accent outline. Compensating padding prevents state changes from
-moving controls. Bar surfaces and padding match in both site themes. Save
-retains primary-action emphasis, and tabs, buttons, links, disabled states and
-permission guards keep their existing semantics. This is a development-only
-visual follow-up, not deployment or full V64 acceptance.
+neutral colours and compact typography. Tabs and reader modes have a 3px
+bottom edge; ordinary actions retain a 1px border, and workspace panels use a
+single 3px neutral frame. Selected controls use accent state styling while
+keyboard focus retains a distinct accent outline. Bar surfaces and alignment
+are consistent in both site themes. Save retains primary-action emphasis, and
+tabs, buttons, links, disabled states and permission guards keep their existing
+semantics. This is a development-only visual follow-up, not deployment or full
+V64 acceptance.
 
 **No-working-copy interaction follow-up (2026-11-16):** a saved edition waiting
 for working-copy selection remains browsable in Edit: text selection, scrolling,
