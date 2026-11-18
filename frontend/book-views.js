@@ -730,7 +730,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
         fold.dataset.bookGroupFold = "sections";
         group.append(bookRow(value, label, "Content", {fold}), children);
       } else {
-        const row = bookRow(value, value === "metadata" ? "Metadata" : label, "Page", {last: value === "metadata"});
+        const row = bookRow(value, value === "metadata" ? "Metadata" : label, "Page");
         row.querySelector("button").title += ". Right-click (Shift+F10) for page settings.";
         group.append(row);
       }

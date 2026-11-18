@@ -1314,7 +1314,7 @@ The generated contents title and actual H2 section titles share typography.
 Editor outline type labels and fold/content/action buttons occupy one header row,
 with controls right-aligned; title text is below, and hierarchy guides span both
 rows without a controls column interrupting them.
-**Editor book outline connector continuity (V.r; specified, not implemented):**
+**Editor book outline connector continuity (V.r; implemented, app acceptance partial):**
 the top-level guide runs continuously past Sections (including its visible
 descendants when expanded) through Metadata to Edition and review status.
 Those pages are siblings of Sections, not its children. Metadata is an

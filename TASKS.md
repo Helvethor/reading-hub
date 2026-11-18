@@ -285,15 +285,20 @@ evidence have not been completed. No deployment or live-data changes were made.
 
 ### Milestone V.r: Continuous editor outline connectors
 
-**Status: design specified; implementation and acceptance pending.** See the
+**Status: implementation in place; synthetic rendered geometry verified; full
+app acceptance pending.** See the
 [V.r handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vr-continuous-editor-outline-connectors).
 
-- [ ] Carry the book-level guide through expanded Sections and past Metadata;
+- [x] Carry the book-level guide through expanded Sections and past Metadata;
   terminate it at the Edition and review status elbow. Preserve nested
   guide termination and existing outline behavior.
+- [x] Measure production CSS in a narrow Chromium fixture with nested sections,
+  expanded/collapsed Sections, Metadata labelled included/not included, both
+  theme tokens and 2x CSS zoom; verify contiguous segments and terminal elbows.
 - [ ] Verify rendered connectors in an isolated book fixture with nested
-  sections, group and child folding, and Metadata included and not included.
-  Record browser geometry and interaction evidence as defined in the handoff.
+  sections using native browser zoom and app-generated markup. Verify keyboard
+  and pointer folding, Metadata navigation/settings, and Edition/review layout
+  settings; record evidence as defined in the handoff.
 
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 

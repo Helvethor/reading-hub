@@ -2003,6 +2003,20 @@ that keyboard and pointer folding, Metadata navigation/settings, and Edition
 and review status layout settings still work; no change to document content,
 generated pages, review state, reader ToC or PDF output is in scope.
 
+**Implementation and partial evidence (2026-11-18).** The Sections child
+container draws a decorative, pointer-transparent continuation on the existing
+book-level gutter; Metadata is now an intermediate branch and Edition and review
+status remains the terminal elbow. The 358-test frontend suite and asset build
+pass. A headless Chromium fixture using the production outline and theme CSS
+measured 16 combinations at a 235px outline width: expanded/collapsed Sections,
+Metadata labelled included/not included, both theme tokens, and 2x CSS zoom.
+Adjacent outer segments had 0px gaps, shared axes varied by at most 0.01px, the
+final elbow ended at its midpoint, and the nested final continuation was hidden.
+This was a synthetic DOM fixture, not an app-generated browser capture; 2x CSS
+zoom is not native browser zoom. Actual app-generated rendering at native 200%
+zoom, native keyboard/pointer interactions, Metadata navigation/settings and
+Edition/review layout settings remain open acceptance.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where

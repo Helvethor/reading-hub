@@ -1031,6 +1031,11 @@ test("book views have five choices, four navigation groups and a separate sectio
   assert.deepEqual(rows.slice(0, 3).map(row => row.dataset.bookRow), ["title", "toc", "sections"],
     "Navigation starts with the pages and content; Whole book is only a Show choice.");
   assert(!outline.querySelector('[data-book-view="book"], [data-part=""]'));
+  assert.deepEqual([...outline.querySelectorAll("[data-book-row]")].map(row => [
+    row.dataset.bookRow,
+    row.querySelector(".editor-outline-branch").classList.contains("editor-outline-last"),
+  ]), [["title", false], ["toc", false], ["sections", false], ["metadata", false], ["edition", true]],
+  "Only Edition and review status ends the top-level guide.");
   for (const row of rows) {
     assert.deepEqual([...row.children].map(child => child.className.split(" ")[0] || child.tagName),
       ["editor-outline-guides", "editor-outline-row-header", "BUTTON"],
