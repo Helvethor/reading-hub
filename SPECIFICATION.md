@@ -233,8 +233,9 @@ deployment and live-data changes are not authorized.
 
 **Square workspace controls (2026-11-16):** workspace and local Edit tabs,
 Read actions, editor commands and difference commands share square corners,
-neutral colours and compact typography. Tabs and reader modes have a 3px
-bottom edge; ordinary actions retain a 1px border, and workspace panels use a
+neutral colours and compact typography. The website-wide SV follow-up below
+uses only bottom edges on controls and menus: 3px for tabs, state controls and
+menus, and 1px for ordinary actions/form widgets. Workspace panels retain a
 single 3px neutral frame. Selected controls use accent state styling while
 keyboard focus retains a distinct accent outline. Bar surfaces and alignment
 are consistent in both site themes. Workspace tabs and command bars use 0.5rem
@@ -304,12 +305,17 @@ Unsaved, saved, reviewed and published states stay visibly distinct.
 #### Square visual language and joined controls
 
 Milestone **SV - Square visual language and joined controls** (recorded
-2026-11-16; implementation in progress, SV4 pending) establishes the
+2026-11-16; SV1-SV4 completed within isolated synthetic browser-validation bounds
+on 2026-11-18) establishes the
 website-wide visual baseline for both Marxist light and dark themes. It extends
 the square workspace follow-up above; that earlier implementation is not
 evidence of SV completion. The
 [SV milestone](TASKS.md#milestone-sv-square-visual-language-and-joined-controls)
 owns delivery gates, implementation coverage and acceptance.
+The recorded evidence covers both themes, public/reviewer/administrator
+surfaces, narrow viewports and native 200% browser zoom. It is not independent
+human acceptance, accessibility certification or deployment, and does not
+close U1, V.p or V.q gates.
 
 - Use square corners for UI controls, menus, forms, dialogs and structural
   panels, with theme-appropriate neutral grey/non-accent structural borders.

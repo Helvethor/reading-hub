@@ -94,8 +94,9 @@ discovery remain first-class responsive workflows.
 
 ### Milestone SV: Square visual language and joined controls
 
-Recorded 2026-11-16. **Status: implementation in progress. SV1-SV3 implemented;
-SV4 pending.**
+Recorded 2026-11-16; validated 2026-11-18. **Status: SV1-SV4 complete within
+the isolated synthetic browser-validation bounds below.** This is not
+independent human acceptance or deployment.
 The [visual contract](SPECIFICATION.md#square-visual-language-and-joined-controls)
 defines the website-wide baseline for both Marxist light and dark themes.
 The outcome is coherent grouping and state cues across the website, not another
@@ -119,7 +120,7 @@ Delivery sequence:
   administration/worker screens; and general layout/status regions. Track
   coverage and explicit exceptions rather than inferring website-wide adoption
   from workspace checks.
-- [ ] SV4 - Validate representative public, reviewer and administration journeys
+- [x] SV4 - Validate representative public, reviewer and administration journeys
   in an isolated environment, with pointer and keyboard, narrow viewports and
   native 200% zoom in both themes. Record actual browser observations separately
   from automated/synthetic evidence and remaining unverified cases.
@@ -143,42 +144,98 @@ SV1-SV3 implementation coverage:
   screen-only. Publication/PDF styling, personal reading palettes, unrelated
   profiles, warning/error colours and comparison colours remain out of scope.
 
-SV4 evidence so far is limited to the isolated synthetic public reader and
-Discover pages. Account-menu keyboard activation/focus, stable header geometry,
-reader-mode state dimensions, and wrapping without horizontal overflow were
-observed in both themes at narrow widths; 512px and desktop widths were also
-checked. Authenticated reviewer/admin browser journeys and native 200% zoom
-remain unverified, so the acceptance checklist below is intentionally open.
+SV4 evidence (2026-11-18; source checkpoints `08d0545` and `76bea51`):
+
+- Actual rendered-browser observations were collected by local headless
+  Chromium automation against the isolated development service on port 8766,
+  using synthetic public, reviewer and administrator journeys. These are
+  browser observations on synthetic fixtures, not independent human acceptance,
+  mocked rendering or observations of live user data.
+- The final matrix contains 156 page/layout observations in both themes:
+  desktop at 1440 CSS pixels, narrow at 390 CSS pixels, and native browser 200%
+  zoom. Zoom used Chromium's native profile zoom preference: a 1280px window
+  measured 640 CSS pixels and device-pixel ratio 2, without CSS zoom or device
+  emulation. Fifty-two matrix observations used this native zoom.
+- Public coverage: Library, Discover, sign-in/sign-up, article and book readers,
+  Versions/Sources, and keyboard-opened Account. Reviewer coverage: Content,
+  Metadata, Review and pinned-structure tabs; history, comparison, publication
+  confirmation, retained-source inspection, review queue and account settings.
+  Administration coverage: dashboard, user list, workers and crawler management.
+  Dialogs, contextual menus and runtime notices were also sampled.
+- All 156 observations had no page horizontal overflow or rounded controls in
+  the audited selectors. Across 3,606 repeated control measurements, buttons,
+  navigation, menu surfaces and non-checkbox/radio form widgets had zero
+  top/side border widths; state/menu edges measured 3px and ordinary edges 1px.
+  Temporarily disabling only the new geometry rules produced no changes to
+  sampled background, text or bottom-edge colours.
+- Joined same-row controls measured exactly 0px separation, without overlapping
+  sides. Workspace frames measured one 3px neutral border; chrome contributed
+  no adjoining bottom border. Tabs/command bars measured 8px padding on all
+  sides, header control heights matched, and editor-divider spacing measured
+  8px on each side.
+- Twelve passing interaction scenarios cover both themes at normal desktop,
+  narrow and native 200% zoom: selected/inactive reader and formatting states,
+  stable dimensions, hover, distinct keyboard focus, manual tab activation,
+  distinguishable disabled Undo, exact-edition PDF links, contextual menus and
+  Escape-cancelled link dialogs. Unsaved metadata survived local-tab and theme
+  changes; unsaved prose survived theme changes, and Undo restored the original
+  rendered editor HTML. No Save or final Publish was submitted.
+- Preservation evidence: publication-container colour/background/font remained
+  identical with the square stylesheet disabled; print emulation excluded the
+  workspace frame. Focused isolated account/profile/login-theme, retained-source
+  and PDF-theme tests passed (36 tests); Ruff and whitespace checks passed.
+  The broader account/profile/theme run had 29 passes and one failure:
+  `ThemeTests.test_follow_theme_css_uses_preference_without_changing_signed_style`.
+  The same palette fallback failure was independently reproduced on unchanged
+  baseline `1f584b1`; it remains outside SV, so general palette correctness is
+  not certified.
+
+Corrections made from these observations: restore profile/theme context on
+sign-in; stack metadata fields at narrow widths; wrap retained-source digests;
+give the Account panel its intended foreground; correct joined-control seams;
+exclude the workspace frame from print; square admin object-tool links; and
+restore the light-admin branding foreground. The subsequently approved
+bottom-edge-only design is included in the final matrix: full borders remain
+on structural panels/dialogs, while controls and menu surfaces keep only their
+role-appropriate bottom edge. Native checkboxes/radio buttons remain native.
+
+Limits: synthetic article/book fixtures and the sampled Chromium surfaces do
+not establish whole-book fidelity, exhaustive administration coverage,
+cross-browser or screen-reader accessibility, or independent visual/usability
+approval. Publishing, worker/crawler operations and other consequential
+mutations were not submitted; only synthetic authentication/theme preferences
+and temporary unsaved editor probes were exercised. No live data, workers or
+deployment changed. U1, V.p and V.q acceptance gates remain separate.
 
 Observable acceptance and stopping point:
 
-- [ ] Related horizontal controls have exactly 0px horizontal separation and no
+- [x] Related horizontal controls have exactly 0px horizontal separation and no
   doubled internal borders; unrelated functional groups retain visible spacing.
-- [ ] Workspace tab strips have the same 8px outer gutters as Read actions.
-- [ ] Workspace tabs and command bars use 8px padding on all four sides.
-- [ ] Each visible workspace panel has one 3px neutral outer frame, without
+- [x] Workspace tab strips have the same 8px outer gutters as Read actions.
+- [x] Workspace tabs and command bars use 8px padding on all four sides.
+- [x] Each visible workspace panel has one 3px neutral outer frame, without
   child borders accumulating along the same edge.
-- [ ] Workspace chrome does not add a bottom border adjacent to a panel frame.
-- [ ] Account and primary-navigation controls have matching measured heights;
+- [x] Workspace chrome does not add a bottom border adjacent to a panel frame.
+- [x] Account and primary-navigation controls have matching measured heights;
   editor-format divider spacing is equal on both sides.
-- [ ] UI controls, menus, forms and dialogs use the agreed square treatment and
+- [x] UI controls, menus, forms and dialogs use the agreed square treatment and
   role-appropriate bottom edges; structural panels retain neutral borders in
   both Marxist themes.
-- [ ] Buttons, tabs, menu surfaces and form widgets have no surrounding
+- [x] Buttons, tabs, menu surfaces and form widgets have no surrounding
   top/side outline. Their bottom edge remains: heavy for state buttons, tabs
   and menus, light for other buttons and form widgets. Existing theme/state
   color behavior remains on the bottom edge (including neutral inactive and
   accent selected tabs); backgrounds and text colors are unchanged. Focus is
   independently visible; disabled controls remain distinguishable.
-- [ ] Control position and dimensions do not change between visual states.
+- [x] Control position and dimensions do not change between visual states.
   Joined groups wrap without horizontal overflow, clipped focus indicators or
   lost grouping.
-- [ ] Representative journeys preserve native interaction, action/link/tab
+- [x] Representative journeys preserve native interaction, action/link/tab
   semantics, permissions, confirmations, warnings and exact-version targets.
   Switching themes preserves unsaved edits.
-- [ ] Publication/PDF styling and personal reading palettes are unchanged;
+- [x] Publication/PDF styling and personal reading palettes are unchanged;
   unrelated themes do not acquire this visual redesign.
-- [ ] Every listed surface family has recorded coverage, with exceptions and
+- [x] Every listed surface family has recorded coverage, with exceptions and
   limitations explicit. Shared rules and documentation match the approved
   result; existing V.p interaction gates remain separate.
 
