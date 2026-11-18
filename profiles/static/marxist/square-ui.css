@@ -19,7 +19,7 @@
 .site-navigation-group .primary-navigation {
   gap: 0;
   margin-inline-start: 0;
-  padding-inline: 1px;
+  padding-inline: 0;
 }
 
 .site-navigation-group .primary-navigation a,
@@ -40,7 +40,7 @@
 
 .site-navigation-group .primary-navigation a + a,
 .site-navigation-group > .account-menu {
-  margin-inline-start: -1px;
+  margin-inline-start: 0;
 }
 
 .site-navigation-group > .account-menu {
@@ -277,7 +277,7 @@ body :is(
 .work-navigation {
   gap: 0;
   border-block-end: 0;
-  padding-inline: 1px;
+  padding-inline: 0;
 }
 
 .work-navigation a {
@@ -285,7 +285,7 @@ body :is(
   border-bottom-width: 3px;
   border-radius: 0;
   font-weight: 600;
-  margin-inline-start: -1px;
+  margin-inline-start: 0;
   text-decoration: none;
 }
 
@@ -295,15 +295,15 @@ body :is(
 .work-navigation span[aria-disabled="true"] {
   border: 1px solid var(--square-border);
   border-bottom-width: 3px;
-  margin-inline-start: -1px;
+  margin-inline-start: 0;
 }
 
 .review-navigation ul {
   gap: 0;
-  padding-inline-start: 1px;
+  padding-inline-start: 0;
 }
 
-.review-navigation ul li + li { margin-inline-start: -1px; }
+.review-navigation ul li + li { margin-inline-start: 0; }
 .review-navigation ul a {
   display: inline-block;
   border: 1px solid var(--square-border);
@@ -318,11 +318,11 @@ body :is(
 
 .lineage-action-row:not(:has(> .source-operation)) {
   gap: 0;
-  padding-inline: 1px;
+  padding-inline: 0;
 }
 
 .lineage-action-row > :is(a.button, button) + :is(a.button, button) {
-  margin-inline-start: -1px;
+  margin-inline-start: 0;
 }
 
 .lineage-timeline-item {
@@ -352,6 +352,79 @@ body #content :is(.module h2, .module caption, .inline-group h2, #changelist-fil
   border-bottom: 1px solid var(--square-border);
   background: var(--darkened-bg, #f7f7f7);
   color: var(--body-fg, #222);
+}
+
+.workspace-joined-controls > :is(button, .button, [role="tab"]):not(:first-child) {
+  margin-inline-start: 0;
+}
+
+.workspace-command-bar button:is([aria-pressed], [aria-checked], [aria-expanded]) {
+  --workspace-control-edge: 3px;
+}
+
+/* Geometry only: retain theme/state colours and independent focus outlines. */
+body #toolbar #searchbar,
+body #toolbar form input[type="submit"],
+body #changelist .actions .button,
+body #changelist .actions select,
+body #editor-surface .tiptap :is(.editor-figure-handle, .editor-element-handle),
+body :is(
+  button,
+  .button,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea,
+  summary,
+  [role="tab"],
+  [role="menu"],
+  .site-header .primary-navigation a,
+  .work-navigation a,
+  .work-navigation span[aria-disabled="true"],
+  .review-navigation ul a,
+  .account-menu-panel,
+  .preview-block-menu,
+  .preview-submenu,
+  .object-tools a,
+  .paginator a,
+  #editor-context-menu,
+  #editor-outline-menu,
+  #editor-section-actions,
+  #editor-toc-menu,
+  #editor-diff-menu,
+  #editor-metadata-menu,
+  #editor-title-menu,
+  #editor-page-menu
+) {
+  border-top-width: 0;
+  border-inline-width: 0;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+body :is(
+  [role="tab"],
+  button[aria-pressed],
+  button[aria-checked],
+  button[aria-expanded],
+  summary,
+  [role="menu"],
+  .site-header .primary-navigation a,
+  .work-navigation a,
+  .work-navigation span[aria-disabled="true"],
+  .review-navigation ul a,
+  .account-menu-panel,
+  .preview-block-menu,
+  .preview-submenu,
+  #editor-context-menu,
+  #editor-outline-menu,
+  #editor-section-actions,
+  #editor-toc-menu,
+  #editor-diff-menu,
+  #editor-metadata-menu,
+  #editor-title-menu,
+  #editor-page-menu
+) {
+  border-bottom-width: 3px;
 }
 
 @media (max-width: 52rem) {
