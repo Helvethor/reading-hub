@@ -161,12 +161,14 @@ Observable acceptance and stopping point:
 - [ ] Workspace chrome does not add a bottom border adjacent to a panel frame.
 - [ ] Account and primary-navigation controls have matching measured heights;
   editor-format divider spacing is equal on both sides.
-- [ ] UI controls, menus, forms, dialogs and structural panels use the agreed
-  square treatment and neutral structural borders in both Marxist themes.
-- [ ] Tabs and reader-mode controls keep neutral side borders, with a neutral
-  inactive bottom edge and an accent selected bottom edge. Other state buttons
-  use accent border/background/text only while active. Inactive editor actions
-  keep their normal neutral border without a heavy bottom edge. Focus is
+- [ ] UI controls, menus, forms and dialogs use the agreed square treatment and
+  role-appropriate bottom edges; structural panels retain neutral borders in
+  both Marxist themes.
+- [ ] Buttons, tabs, menu surfaces and form widgets have no surrounding
+  top/side outline. Their bottom edge remains: heavy for state buttons, tabs
+  and menus, light for other buttons and form widgets. Existing theme/state
+  color behavior remains on the bottom edge (including neutral inactive and
+  accent selected tabs); backgrounds and text colors are unchanged. Focus is
   independently visible; disabled controls remain distinguishable.
 - [ ] Control position and dimensions do not change between visual states.
   Joined groups wrap without horizontal overflow, clipped focus indicators or
