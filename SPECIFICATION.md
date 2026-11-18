@@ -238,8 +238,10 @@ uses only bottom edges on controls and menus: 3px for tabs, state controls and
 menus, and 1px for ordinary actions/form widgets. Workspace panels retain a
 single 3px neutral frame. Selected controls use accent state styling while
 keyboard focus retains a distinct accent outline. Bar surfaces and alignment
-are consistent in both site themes. Workspace tabs and command bars use 0.5rem
-padding on all sides; the chrome above a panel does not add a second bottom
+are consistent in both site themes. Workspace tabs, command bars and the Read
+stage use 0.5rem padding on all sides. On screen, the Read stage also uses a
+0.5rem gap between its tools and content panes, including when stacked.
+The chrome above a panel does not add a second bottom
 border to its frame. Save retains primary-action emphasis, and tabs, buttons,
 links, disabled states and permission guards keep their existing semantics.
 This is a development-only visual follow-up, not deployment or full V64

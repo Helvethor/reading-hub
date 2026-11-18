@@ -161,9 +161,9 @@
   display: grid;
   grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr);
   align-items: stretch;
-  gap: clamp(.75rem, 2vw, 2rem);
+  gap: .5rem;
   min-width: 0;
-  padding: 0 1rem 1rem;
+  padding: .5rem;
 }
 .workspace-reader-stage[data-larger-content="true"] {
   grid-template-columns: minmax(0, 1fr);
@@ -278,8 +278,7 @@
   .workspace-identity { min-width: 0; }
   .workspace-scroll-panel .lineage-workspace { grid-template-columns: minmax(0, 1fr); }
   .workspace-reader-stage {
-    display: block;
-    padding: 0 .75rem 1rem;
+    grid-template-columns: minmax(0, 1fr);
   }
   .workspace-reader-tools {
     position: static;
