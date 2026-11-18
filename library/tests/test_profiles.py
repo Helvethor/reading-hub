@@ -195,9 +195,11 @@ class ProfileLibraryTests(TestCase):
             patch.dict("sys.modules", {"test_other_site_profile": module}),
             override_settings(READING_HUB_PROFILE="test_other_site_profile"),
         ):
-            response = self.client.get("/")
-        self.assertNotContains(response, "marxist/square-ui.css")
-        self.assertNotContains(response, 'class="site-navigation-group"')
+            for url in ("/", "/accounts/login/"):
+                with self.subTest(url=url):
+                    response = self.client.get(url)
+                    self.assertNotContains(response, "marxist/square-ui.css")
+                    self.assertNotContains(response, 'class="site-navigation-group"')
 
     def test_sort_filter_and_pagination(self):
         self.content = article_html(title="Zulu")

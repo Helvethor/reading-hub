@@ -4,11 +4,11 @@
 {% block extrastyle %}
 {{ block.super }}
 {% if reading_hub_profile.admin_theme_css %}
-<link rel="stylesheet" href="{% static reading_hub_profile.admin_theme_css %}?v={{ app_version }}-square-ui-sv1">
+<link rel="stylesheet" href="{% static reading_hub_profile.admin_theme_css %}?v={{ app_version }}-square-ui-sv2">
 {% endif %}
 <link rel="stylesheet" href="{% static 'library/admin.css' %}?v={{ app_version }}">
 {% if reading_hub_profile.key == "marxist" %}
-<link rel="stylesheet" href="{% static 'marxist/square-ui.css' %}?v={{ app_version }}-square-ui-sv6" media="screen">
+<link rel="stylesheet" href="{% static 'marxist/square-ui.css' %}?v={{ app_version }}-square-ui-sv7" media="screen">
 {% endif %}
 {% endblock %}
 {% block branding %}

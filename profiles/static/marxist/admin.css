@@ -23,7 +23,10 @@
 
 #branding h1,
 #branding h1 a:link,
-#branding h1 a:visited {
+#branding h1 a:visited,
+#branding #site-name,
+#branding #site-name a:link,
+#branding #site-name a:visited {
   color: var(--header-branding-color);
 }
 

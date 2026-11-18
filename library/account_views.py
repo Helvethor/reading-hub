@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.views import redirect_to_login
+from django.contrib.auth.views import LoginView, redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
@@ -15,7 +15,14 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST
 
 from library.models import UserSettings
-from library.themes import ThemeForm, selected_theme, theme_payload
+from library.themes import ThemeForm, selected_theme, theme_payload, themed_profile
+
+
+class ProfileLoginView(LoginView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["site"] = themed_profile(self.request)
+        return context
 
 
 def save_theme(request, choice):

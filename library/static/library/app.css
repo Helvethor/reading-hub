@@ -92,6 +92,7 @@ h3 { font-size: 1rem; }
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); padding: 1.8rem max(5vw, 1.25rem); font-size: .78rem; margin-top: 3rem; }
 .page-container { max-width: 920px; margin: 3rem auto; padding: 0 1.5rem; min-height: 55vh; }
 .page-container > .eyebrow { margin-top: 3rem; }
+.retained-source { overflow-wrap: anywhere; }
 .reviewer-evaluation { overflow-wrap: anywhere; }
 .reviewer-evaluation label { display: block; font-weight: 600; }
 .reviewer-evaluation input, .reviewer-evaluation select, .reviewer-evaluation textarea { max-width: 100%; font: inherit; padding: .4rem; }

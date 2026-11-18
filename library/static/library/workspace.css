@@ -37,7 +37,7 @@
   padding-inline: 1px;
 }
 .workspace-tabs.workspace-joined-controls { padding-inline: .5rem; }
-.workspace-joined-controls > :not(:first-child) { margin-inline-start: -1px; }
+.workspace-joined-controls > :is(button, .button, [role="tab"]):not(:first-child) { margin-inline-start: -1px; }
 :is(.workspace-tabs [role="tab"], .workspace-command-bar button, .workspace-command-bar .button) {
   --workspace-control-edge: 1px;
   display: inline-flex;
@@ -311,6 +311,7 @@
   .workspace-read-actions { position: static; }
 }
 @media print {
+  .workspace-view-panel { border: 0; }
   .workspace-page :is(.work-page, .editor-page) > :not(#unified-workspace),
   #workspace-panel-edit, #workspace-panel-versions, #workspace-panel-sources,
   .workspace-page .site-header, .workspace-page .review-navigation,

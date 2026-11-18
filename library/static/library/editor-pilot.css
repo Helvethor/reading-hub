@@ -276,6 +276,11 @@
 #editor-link-targets { max-height: 12rem; overflow: auto; }
 #editor-link-targets button { display: block; width: 100%; text-align: start; white-space: normal; overflow-wrap: anywhere; margin-block: .3rem; }
 @media (max-width: 760px) {
+  .editor-metadata-sheet :is(tbody, tr, th, td) { display: block; }
+  .editor-metadata-sheet th { width: auto; text-align: start; white-space: normal; }
+  .editor-metadata-sheet th select { text-align: start; }
+  .editor-metadata-sheet #editor-contributors td:last-child { width: auto; white-space: normal; }
+  .editor-metadata-sheet :is(input:not([type="checkbox"]), select, textarea) { min-width: 0; max-width: 100%; }
   .editor-workspace-body { display: block; height: auto; min-height: 0; }
   .editor-outline { display: none; height: auto; overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--line); }
   #editor-outline-toggle { display: inline-block; }

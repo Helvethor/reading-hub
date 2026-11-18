@@ -1,7 +1,7 @@
 {% extends panel_base %}
 {% block title %}Retained source | {{ site.name }}{% endblock %}
 {% block content %}
-<div class="page-container">
+<div class="page-container retained-source">
   <h1>Retained source for edition {{ version.pk }}</h1>
   <p>Read-only source evidence. Text previews are limited to 500 characters per block; inspecting does not change the source or the current draft.</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}

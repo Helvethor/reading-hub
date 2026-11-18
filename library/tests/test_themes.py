@@ -24,10 +24,14 @@ class ThemeTests(TestCase):
         for theme in ("", "dark"):
             if theme:
                 self.choose(theme)
-            response = self.client.get("/")
-            self.assertContains(response, "/static/marxist/square-ui.css")
-            self.assertContains(response, 'media="screen"')
-            self.assertContains(response, 'class="site-navigation-group"')
+            for url in ("/", reverse("login")):
+                with self.subTest(theme=theme, url=url):
+                    response = self.client.get(url)
+                    self.assertContains(response, "/static/marxist/square-ui.css")
+                    self.assertContains(response, 'media="screen"')
+                    self.assertContains(response, 'class="site-navigation-group"')
+                    stylesheet = "dark.css" if theme else "theme.css"
+                    self.assertContains(response, f"/static/marxist/{stylesheet}")
 
     def test_guest_default_cookie_and_reset_without_accounts(self):
         self.assertContains(self.client.get("/"), "/static/marxist/theme.css")

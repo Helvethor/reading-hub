@@ -35,7 +35,7 @@ urlpatterns = [
     path("accounts/signup/", account_views.signup, name="signup"),
     path("accounts/settings/", account_views.user_settings, name="user-settings"),
     path("theme/", account_views.change_theme, name="change-theme"),
-    path("accounts/login/", auth_views.LoginView.as_view(), name="login"),
+    path("accounts/login/", account_views.ProfileLoginView.as_view(), name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("accounts/password/", auth_views.PasswordChangeView.as_view(), name="password_change"),
     path(
