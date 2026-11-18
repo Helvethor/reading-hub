@@ -1971,6 +1971,38 @@ native-browser workflows and outstanding human usability/accessibility evidence
 separately. Earlier partial milestones remain open. Deployment, publication and
 live-data changes require separate authority.
 
+### V.r: Continuous editor outline connectors
+
+In the editor's book outline, expanding Sections breaks the top-level vertical
+guide before Metadata. Another gap separates Metadata from Edition and review
+status. Source inspection identifies two causes: the expanded Sections
+container adds indentation but does not draw the outer guide alongside its
+children, and both end-matter rows are marked as final branches.
+
+**Design.** Keep one top-level vertical guide in the existing gutter. Extend it
+through the visible Sections child container using its layout height, aligned
+with the book-row guide and using the same stroke and color. The collapsed
+Sections row joins directly to Metadata without leaving a blank segment. Give
+Metadata a through-branch, including when its row is marked not included, and
+end the guide at the Edition and review status elbow. Leave section-level
+guides inside their existing indentation, with their own sibling termination.
+Prefer a decorative CSS continuation on the child container and correct
+book-row branch state over adding a redundant guide to each section row or
+measuring row heights in JavaScript. Keep the guide out of the accessibility
+tree and pointer hit testing.
+
+**Acceptance.** In an isolated book with multiple sections and nested
+subsections, capture the rendered outline with Sections expanded and collapsed,
+a nested branch folded, and Metadata both included and not included. Verify
+that adjacent outer guide segments touch or overlap on the same inline axis
+from Sections through the final elbow, with no tail below that elbow or false
+continuation of an inner branch. Repeat at a narrow outline width with wrapped
+labels and at 200% browser zoom; check both supported themes. Use browser
+screenshots or measured segment geometry, not class assertions alone. Confirm
+that keyboard and pointer folding, Metadata navigation/settings, and Edition
+and review status layout settings still work; no change to document content,
+generated pages, review state, reader ToC or PDF output is in scope.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where

@@ -283,6 +283,18 @@ pass. Full V67-V71 acceptance remains open: native interaction, reviewer/local
 Edit browser journeys, responsive/zoom/theme coverage and human accessibility
 evidence have not been completed. No deployment or live-data changes were made.
 
+### Milestone V.r: Continuous editor outline connectors
+
+**Status: design specified; implementation and acceptance pending.** See the
+[V.r handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vr-continuous-editor-outline-connectors).
+
+- [ ] Carry the book-level guide through expanded Sections and past Metadata;
+  terminate it at the Edition and review status elbow. Preserve nested
+  guide termination and existing outline behavior.
+- [ ] Verify rendered connectors in an isolated book fixture with nested
+  sections, group and child folding, and Metadata included and not included.
+  Record browser geometry and interaction evidence as defined in the handoff.
+
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
 - [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;

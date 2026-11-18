@@ -1314,6 +1314,14 @@ The generated contents title and actual H2 section titles share typography.
 Editor outline type labels and fold/content/action buttons occupy one header row,
 with controls right-aligned; title text is below, and hierarchy guides span both
 rows without a controls column interrupting them.
+**Editor book outline connector continuity (V.r; specified, not implemented):**
+the top-level guide runs continuously past Sections (including its visible
+descendants when expanded) through Metadata to Edition and review status.
+Those pages are siblings of Sections, not its children. Metadata is an
+intermediate branch even when marked not included; only the final Edition and
+review status branch ends the top-level guide, at its elbow. Nested guides end
+independently at their own final siblings. See the
+[V.r handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vr-continuous-editor-outline-connectors).
 
 Since 0.49.2, Ctrl/Cmd-click activates editor links. Internal fragments resolve
 decoded exact document target IDs, reveal the target across filters/folds and
