@@ -234,8 +234,8 @@ deployment and live-data changes are not authorized.
 **Square workspace controls (2026-11-16):** workspace and local Edit tabs,
 Read actions, editor commands and difference commands share square corners,
 neutral colours and compact typography. The website-wide SV follow-up below
-uses only bottom edges on controls and menus: 3px for tabs, state controls and
-menus, and 1px for ordinary actions/form widgets. Workspace panels retain a
+uses only bottom edges on controls and menus. The current state-edge experiment
+uses 1px at rest and 3px for interaction or selection. Workspace panels retain a
 single 3px neutral frame. Selected controls use accent state styling while
 keyboard focus retains a distinct accent outline. Bar surfaces and alignment
 are consistent in both site themes. Workspace tabs, command bars and the Read
@@ -325,14 +325,14 @@ close U1, V.p or V.q gates.
   not form a continuous line. Apply the same spacing to tabs, reading modes,
   formatting/history buttons and contextual/right-click menu items, horizontally
   and vertically. Preserve larger spacing between distinct functional groups.
-- Remove the surrounding top and side outline from buttons, tabs, menu
-  surfaces and form widgets. Keep a bottom edge: use a heavier edge for state
-  buttons, tabs and menus, and a light edge for other buttons and form widgets.
-  Preserve the existing theme- and state-dependent color behavior on that edge:
-  inactive tabs and reader modes stay neutral, selected ones use the accent, and
-  active state buttons retain their accent treatment. Keep backgrounds and text
-  colors unchanged by this border simplification. Do not apply a heavy bottom
-  edge to ordinary buttons, form widgets or structural panels.
+- Use only a bottom border on buttons, tabs, menu surfaces and form widgets.
+  In the state-edge experiment, tabs, navigation/menu triggers and state
+  buttons have a 1px neutral edge at rest or when disabled, 3px neutral on
+  hover or focus, and 3px accent when selected, pressed, checked, current or
+  open. Active styling takes precedence over hover and focus. The extra 2px
+  is drawn inside the control to keep its dimensions fixed.
+  Keep ordinary buttons and form widgets light, and leave the menu surfaces,
+  panel frames, backgrounds and text colours unchanged.
 - Outline-tree controls (`#editor-outline-items` / `.editor-outline-items`)
   remain borderless, including selected states; keep their selection and focus
   cues. Ordinary `details`/`summary` disclosures are not bottom-bordered buttons.

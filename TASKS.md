@@ -234,10 +234,10 @@ Observable acceptance and stopping point:
   role-appropriate bottom edges; structural panels retain neutral borders in
   both Marxist themes.
 - [x] Buttons, tabs, menu surfaces and form widgets have no surrounding
-  top/side outline. Their bottom edge remains: heavy for state buttons, tabs
-  and menus, light for other buttons and form widgets. Existing theme/state
-  color behavior remains on the bottom edge (including neutral inactive and
-  accent selected tabs); backgrounds and text colors are unchanged. Focus is
+  top/side border. The current experiment varies the edge on tabs, menu
+  triggers and state buttons: 1px neutral at rest or when disabled, 3px neutral
+  on hover/focus, and 3px accent when active. Menu surfaces and ordinary
+  controls retain their existing edges. Focus is
   independently visible; disabled controls remain distinguishable. Outline-tree
   controls are borderless, and ordinary disclosure summaries are excluded.
 - [x] Control position and dimensions do not change between visual states.

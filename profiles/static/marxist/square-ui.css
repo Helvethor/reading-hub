@@ -52,8 +52,6 @@
 .site-navigation-group .primary-navigation a[aria-current="page"],
 .site-navigation-group .account-menu[open] > summary {
   background: var(--square-selected-surface);
-  border-bottom-color: var(--square-accent);
-  box-shadow: none;
   color: var(--square-accent);
 }
 
@@ -248,18 +246,6 @@ body :is(
   border-bottom: 3px solid var(--square-border);
 }
 
-#main button[aria-pressed="true"],
-#main button[aria-checked="true"],
-#content button[aria-pressed="true"],
-#content button[aria-checked="true"] {
-  border-color: var(--square-accent);
-}
-
-#main .workspace-reader-modes button[aria-pressed="true"] {
-  border-color: var(--square-border);
-  border-bottom-color: var(--square-accent);
-}
-
 body :is(
   [role="tab"][aria-selected="true"],
   button[aria-pressed="true"],
@@ -270,8 +256,6 @@ body :is(
   .review-navigation ul a[aria-current="page"]
 ) {
   background: var(--square-selected-surface);
-  border-bottom-color: var(--square-accent);
-  box-shadow: none;
   color: var(--square-accent);
 }
 
@@ -363,8 +347,9 @@ body :is(.workspace-joined-controls, .editor-menu-group, .form-actions, .lineage
   margin-inline-start: 0;
 }
 
-.workspace-command-bar button:is([aria-pressed], [aria-checked], [aria-expanded]) {
-  --workspace-control-edge: 3px;
+.workspace-tabs [role="tab"],
+.workspace-reader-modes button {
+  --workspace-control-edge: 1px;
 }
 
 /* Geometry only: retain theme/state colours and independent focus outlines. */
@@ -407,16 +392,7 @@ body :is(
 }
 
 body :is(
-  [role="tab"],
-  button[aria-pressed],
-  button[aria-checked],
-  button[aria-expanded],
   [role="menu"],
-  .site-header .primary-navigation a,
-  .site-header .account-menu > summary,
-  .work-navigation a,
-  .work-navigation span[aria-disabled="true"],
-  .review-navigation ul a,
   .account-menu-panel,
   .preview-block-menu,
   .preview-submenu,
@@ -430,6 +406,43 @@ body :is(
   #editor-page-menu
 ) {
   border-bottom-width: 3px;
+}
+
+body :is(
+  [role="tab"],
+  button[aria-pressed],
+  button[aria-checked],
+  button[aria-expanded],
+  .site-header .primary-navigation a,
+  .site-header .account-menu > summary,
+  .work-navigation a,
+  .review-navigation ul a
+):not(#editor-outline-items *, .editor-outline-items *) {
+  --square-state-edge: var(--square-border);
+  --square-state-depth: 0px;
+  border-bottom-color: var(--square-state-edge);
+  /* Extend the 1px border inward so state changes do not reflow controls. */
+  box-shadow: inset 0 calc(-1 * var(--square-state-depth)) var(--square-state-edge);
+
+  &:where(.workspace-tabs *, .workspace-command-bar *):focus-visible {
+    outline-offset: 0;
+  }
+
+  &:where(:not(:disabled, [aria-disabled="true"])) {
+    &:where(:hover, :focus) { --square-state-depth: 2px; }
+
+    &:where(
+      [aria-selected="true"],
+      [aria-pressed="true"],
+      [aria-checked="true"],
+      [aria-expanded="true"],
+      [aria-current="page"],
+      .account-menu[open] > summary
+    ) {
+      --square-state-edge: var(--square-accent);
+      --square-state-depth: 2px;
+    }
+  }
 }
 
 body :is(
