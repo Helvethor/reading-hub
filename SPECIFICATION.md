@@ -237,10 +237,12 @@ neutral colours and compact typography. Tabs and reader modes have a 3px
 bottom edge; ordinary actions retain a 1px border, and workspace panels use a
 single 3px neutral frame. Selected controls use accent state styling while
 keyboard focus retains a distinct accent outline. Bar surfaces and alignment
-are consistent in both site themes. Save retains primary-action emphasis, and
-tabs, buttons, links, disabled states and permission guards keep their existing
-semantics. This is a development-only visual follow-up, not deployment or full
-V64 acceptance.
+are consistent in both site themes. Workspace tabs and command bars use 0.5rem
+padding on all sides; the chrome above a panel does not add a second bottom
+border to its frame. Save retains primary-action emphasis, and tabs, buttons,
+links, disabled states and permission guards keep their existing semantics.
+This is a development-only visual follow-up, not deployment or full V64
+acceptance.
 
 **No-working-copy interaction follow-up (2026-11-16):** a saved edition waiting
 for working-copy selection remains browsable in Edit: text selection, scrolling,

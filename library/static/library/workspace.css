@@ -1,7 +1,7 @@
 .work-page { max-width: 1440px; margin-block: 1rem; }
 .workspace-page-container { margin-block-start: 0; }
 .workspace-chrome {
-  border-block: 1px solid var(--line);
+  border-block-start: 1px solid var(--line);
   background: var(--paper);
 }
 .workspace-context {
@@ -24,7 +24,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0;
-  padding: .35rem .5rem;
+  padding: .5rem;
   border-top: 1px solid var(--line);
   background: var(--editor-panel, var(--surface-raised, #eef1ea));
 }
@@ -82,7 +82,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: .4rem;
-  padding: .35rem .5rem;
+  padding: .5rem;
   border-bottom: 1px solid var(--line);
   background: var(--editor-panel, var(--surface-raised, #eef1ea));
   color: var(--ink);

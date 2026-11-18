@@ -155,8 +155,10 @@ Observable acceptance and stopping point:
 - [ ] Related horizontal controls have exactly 0px horizontal separation and no
   doubled internal borders; unrelated functional groups retain visible spacing.
 - [ ] Workspace tab strips have the same 8px outer gutters as Read actions.
+- [ ] Workspace tabs and command bars use 8px padding on all four sides.
 - [ ] Each visible workspace panel has one 3px neutral outer frame, without
   child borders accumulating along the same edge.
+- [ ] Workspace chrome does not add a bottom border adjacent to a panel frame.
 - [ ] Account and primary-navigation controls have matching measured heights;
   editor-format divider spacing is equal on both sides.
 - [ ] UI controls, menus, forms, dialogs and structural panels use the agreed
