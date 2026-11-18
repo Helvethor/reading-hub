@@ -319,10 +319,10 @@ close U1, V.p or V.q gates.
 
 - Use square corners for UI controls, menus, forms, dialogs and structural
   panels, with theme-appropriate neutral grey/non-accent structural borders.
-- Join related horizontal controls with 0px horizontal gap and a single-width
-  internal seam. Tabs, reading modes, bulleted/numbered lists and Undo/Redo are
-  examples. Keep spacing between distinct functional groups rather than joining
-  an entire toolbar indiscriminately.
+- Separate sequential controls within a group by 3px so their bottom edges do
+  not form a continuous line. Apply the same spacing to tabs, reading modes,
+  formatting/history buttons and contextual/right-click menu items, horizontally
+  and vertically. Preserve larger spacing between distinct functional groups.
 - Remove the surrounding top and side outline from buttons, tabs, menu
   surfaces and form widgets. Keep a bottom edge: use a heavier edge for state
   buttons, tabs and menus, and a light edge for other buttons and form widgets.
@@ -331,6 +331,11 @@ close U1, V.p or V.q gates.
   active state buttons retain their accent treatment. Keep backgrounds and text
   colors unchanged by this border simplification. Do not apply a heavy bottom
   edge to ordinary buttons, form widgets or structural panels.
+- Outline-tree controls (`#editor-outline-items` / `.editor-outline-items`)
+  remain borderless, including selected states; keep their selection and focus
+  cues. Ordinary `details`/`summary` disclosures are not bottom-bordered buttons.
+  The header Account disclosure is explicitly a navigation menu and retains
+  the header's menu treatment.
 - Keep keyboard focus distinct from selection: focusing an inactive tab must
   not make it appear selected. Preserve disabled-state clarity, primary-action
   emphasis and meaningful warning, error and comparison colours.

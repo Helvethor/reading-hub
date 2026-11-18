@@ -168,9 +168,9 @@ SV4 evidence (2026-11-18; source checkpoints `08d0545` and `76bea51`):
   top/side border widths; state/menu edges measured 3px and ordinary edges 1px.
   Temporarily disabling only the new geometry rules produced no changes to
   sampled background, text or bottom-edge colours.
-- Joined same-row controls measured exactly 0px separation, without overlapping
-  sides. Workspace frames measured one 3px neutral border; chrome contributed
-  no adjoining bottom border. Tabs/command bars measured 8px padding on all
+- Initially, joined same-row controls measured exactly 0px separation, without
+  overlapping sides. Workspace frames measured one 3px neutral border; chrome
+  contributed no adjoining bottom border. Tabs/command bars measured 8px padding on all
   sides, header control heights matched, and editor-divider spacing measured
   8px on each side.
 - Twelve passing interaction scenarios cover both themes at normal desktop,
@@ -207,10 +207,22 @@ mutations were not submitted; only synthetic authentication/theme preferences
 and temporary unsaved editor probes were exercised. No live data, workers or
 deployment changed. U1, V.p and V.q acceptance gates remain separate.
 
+Spacing/disclosure follow-up (2026-11-18): the requested 3px separation now
+supersedes the original zero-gap treatment above. Shared control groups and
+context-menu grids use 3px gaps; sequential block menu items use 3px margins.
+Larger functional-group spacing is preserved. Outline-tree controls are
+borderless, and ordinary disclosure summaries no longer receive the button
+border rules; the Account navigation menu retains its explicit menu treatment.
+The updated isolated browser matrix passed all 156 observations, with measured
+3px same-row gaps and no overflow or border-regression failures. Twelve
+interaction scenarios passed, including actual right-click activation and
+132 horizontal/vertical menu-spacing measurements across both themes and all
+three layouts. Fourteen focused profile/theme-inclusion tests passed.
+
 Observable acceptance and stopping point:
 
-- [x] Related horizontal controls have exactly 0px horizontal separation and no
-  doubled internal borders; unrelated functional groups retain visible spacing.
+- [x] Sequential controls within a group have exactly 3px separation, including
+  contextual/right-click menu items; distinct groups retain larger spacing.
 - [x] Workspace tab strips have the same 8px outer gutters as Read actions.
 - [x] Workspace tabs and command bars use 8px padding on all four sides.
 - [x] Each visible workspace panel has one 3px neutral outer frame, without
@@ -226,7 +238,8 @@ Observable acceptance and stopping point:
   and menus, light for other buttons and form widgets. Existing theme/state
   color behavior remains on the bottom edge (including neutral inactive and
   accent selected tabs); backgrounds and text colors are unchanged. Focus is
-  independently visible; disabled controls remain distinguishable.
+  independently visible; disabled controls remain distinguishable. Outline-tree
+  controls are borderless, and ordinary disclosure summaries are excluded.
 - [x] Control position and dimensions do not change between visual states.
   Joined groups wrap without horizontal overflow, clipped focus indicators or
   lost grouping.

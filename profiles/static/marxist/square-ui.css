@@ -3,6 +3,7 @@
   --square-accent: var(--accent, var(--link-fg, #345f48));
   --square-surface: var(--paper, var(--body-bg, #fff));
   --square-selected-surface: color-mix(in srgb, var(--square-accent) 10%, var(--square-surface));
+  --square-control-gap: 3px;
 }
 
 .site-navigation-group {
@@ -12,12 +13,12 @@
   align-items: center;
   justify-content: flex-end;
   min-width: 0;
-  gap: 0;
+  gap: var(--square-control-gap);
   margin-inline-start: auto;
 }
 
 .site-navigation-group .primary-navigation {
-  gap: 0;
+  gap: var(--square-control-gap);
   margin-inline-start: 0;
   padding-inline: 0;
 }
@@ -275,7 +276,7 @@ body :is(
 }
 
 .work-navigation {
-  gap: 0;
+  gap: var(--square-control-gap);
   border-block-end: 0;
   padding-inline: 0;
 }
@@ -299,7 +300,7 @@ body :is(
 }
 
 .review-navigation ul {
-  gap: 0;
+  gap: var(--square-control-gap);
   padding-inline-start: 0;
 }
 
@@ -317,7 +318,7 @@ body :is(
 }
 
 .lineage-action-row:not(:has(> .source-operation)) {
-  gap: 0;
+  gap: var(--square-control-gap);
   padding-inline: 0;
 }
 
@@ -354,6 +355,10 @@ body #content :is(.module h2, .module caption, .inline-group h2, #changelist-fil
   color: var(--body-fg, #222);
 }
 
+body :is(.workspace-joined-controls, .editor-menu-group, .form-actions, .lineage-secondary-actions) {
+  gap: var(--square-control-gap);
+}
+
 .workspace-joined-controls > :is(button, .button, [role="tab"]):not(:first-child) {
   margin-inline-start: 0;
 }
@@ -374,10 +379,10 @@ body :is(
   input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
   select,
   textarea,
-  summary,
   [role="tab"],
   [role="menu"],
   .site-header .primary-navigation a,
+  .site-header .account-menu > summary,
   .work-navigation a,
   .work-navigation span[aria-disabled="true"],
   .review-navigation ul a,
@@ -406,9 +411,9 @@ body :is(
   button[aria-pressed],
   button[aria-checked],
   button[aria-expanded],
-  summary,
   [role="menu"],
   .site-header .primary-navigation a,
+  .site-header .account-menu > summary,
   .work-navigation a,
   .work-navigation span[aria-disabled="true"],
   .review-navigation ul a,
@@ -425,6 +430,45 @@ body :is(
   #editor-page-menu
 ) {
   border-bottom-width: 3px;
+}
+
+body :is(
+  [role="menu"],
+  [data-inline-targets],
+  .preview-block-menu,
+  .preview-submenu,
+  #editor-context-menu,
+  #editor-outline-menu,
+  #editor-section-actions,
+  #editor-toc-menu,
+  #editor-diff-menu,
+  #editor-metadata-menu,
+  #editor-title-menu,
+  #editor-page-menu
+) > button {
+  margin-block: 0;
+}
+
+body :is(
+  [role="menu"],
+  [data-inline-targets],
+  .preview-block-menu,
+  .preview-submenu,
+  #editor-context-menu,
+  #editor-outline-menu,
+  #editor-section-actions,
+  #editor-toc-menu,
+  #editor-diff-menu,
+  #editor-metadata-menu,
+  #editor-title-menu,
+  #editor-page-menu
+) > button + button {
+  margin-block-start: var(--square-control-gap);
+}
+
+body :is(#editor-outline-items, .editor-outline-items),
+body :is(#editor-outline-items, .editor-outline-items) :is(button, .button) {
+  border-width: 0;
 }
 
 @media (max-width: 52rem) {
