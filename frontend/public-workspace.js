@@ -1,4 +1,6 @@
-import {scrollElementIntoView} from "./page-scroll.js";
+import {
+  focusWithViewportReveal, preservePagePosition, scrollElementIntoView,
+} from "./page-scroll.js";
 import {mountContentsPanel} from "./contents-panel.js";
 import {mountLineageControls, replaceLineageContent} from "./lineage-controls.js";
 
@@ -25,7 +27,6 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     sources: workspace.querySelector("#workspace-sources-content"),
   };
   const requests = {versions: 0, sources: 0};
-  const positions = new Map();
   const updateContents = mountContentsPanel(workspace, contents, contentsButton);
 
   function currentTab() {
@@ -41,12 +42,14 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
   }
 
   function setStatus(message, role = "status") {
-    status.replaceChildren();
-    if (!message) return;
-    const text = document.createElement("p");
-    text.setAttribute("role", role);
-    text.textContent = message;
-    status.append(text);
+    preservePagePosition(window, () => {
+      status.replaceChildren();
+      if (!message) return;
+      const text = document.createElement("p");
+      text.setAttribute("role", role);
+      text.textContent = message;
+      status.append(text);
+    });
   }
 
   function updateBackToTop() {
@@ -131,7 +134,9 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
       }
     }
     const target = lineagePanels[tab];
-    replaceLineageContent(target, content);
+    if (currentTab() === tab) {
+      preservePagePosition(window, () => replaceLineageContent(target, content));
+    } else replaceLineageContent(target, content);
     target.dataset.loadedUrl = destination.href;
     target.dataset.currentUrl = destination.href;
     updateBackToTop();
@@ -181,20 +186,17 @@ export function mountPublicWorkspace(workspace = document.querySelector("#unifie
     const previous = workspace.dataset.activeTab;
     const restoreReadFocus = previous === "read" && tab !== "read"
       && panels.get("read")?.contains(document.activeElement);
-    if (previous && previous !== tab) positions.set(previous, window.scrollY);
     workspace.dataset.activeTab = tab;
+    panels.get(tab).hidden = false;
     for (const button of buttons) {
       const active = button.dataset.workspaceTab === tab;
       button.setAttribute("aria-selected", String(active));
       button.tabIndex = active ? 0 : -1;
-      panels.get(button.dataset.workspaceTab).hidden = !active;
+      if (!active) panels.get(button.dataset.workspaceTab).hidden = true;
     }
     if (writeHistory) writeTabState(tab);
     if (restoreReadFocus) {
-      buttons.find(button => button.dataset.workspaceTab === tab).focus({preventScroll: true});
-    }
-    if (previous && previous !== tab) {
-      window.scrollTo({top: positions.get(tab) ?? 0, behavior: "auto"});
+      focusWithViewportReveal(buttons.find(button => button.dataset.workspaceTab === tab));
     }
     updateBackToTop();
     if (tab === "versions" || tab === "sources") loadLineage(tab);

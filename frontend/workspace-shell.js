@@ -1,4 +1,7 @@
-import {scrollElementIntoView} from "./page-scroll.js";
+import {
+  focusWithViewportReveal, isInViewport, preservePagePosition,
+  scrollElementIntoView,
+} from "./page-scroll.js";
 import {
   captureReadingPosition, mountContentsPanel, restoreReadingPosition,
 } from "./contents-panel.js";
@@ -16,6 +19,10 @@ function statusMessage(target, text, role = "status") {
   message.setAttribute("role", role);
   message.textContent = text;
   target.append(message);
+}
+
+function workspaceStatus(target, text) {
+  preservePagePosition(window, () => { target.textContent = text; });
 }
 
 const PDF_LABELS = {
@@ -98,8 +105,6 @@ export function mountWorkspaceShell({
   const lineageRequests = {versions: 0, sources: 0};
   let lastEditorFocus = null;
   let editorScrollOwner = null;
-  const tabPositions = new Map();
-  let pendingPosition = null;
 
   async function applyReadAppearance(appearance) {
     if (!appearance?.stylesheet || !appearance.presentation) {
@@ -123,14 +128,18 @@ export function mountWorkspaceShell({
         };
         link.onerror = fail;
         link.onload = () => {
-          current?.remove();
-          link.media = "all";
+          preservePagePosition(window, () => {
+            current?.remove();
+            link.media = "all";
+          });
           resolve();
         };
         document.head.append(link);
       });
     }
-    workspace.dispatchEvent(new CustomEvent("reading-style-snapshot", {detail: appearance}));
+    preservePagePosition(window, () => {
+      workspace.dispatchEvent(new CustomEvent("reading-style-snapshot", {detail: appearance}));
+    });
   }
 
   async function resolveStyleForType(workType, requestId) {
@@ -203,15 +212,7 @@ export function mountWorkspaceShell({
   }
 
   function scrollToTop() {
-    pendingPosition = null;
     window.scrollTo({top: 0, behavior: "auto"});
-  }
-
-  // Asynchronous content can arrive after a tab switch; reapply its remembered
-  // position only while that tab is still active and the user has not scrolled.
-  function applyPendingPosition() {
-    if (!pendingPosition || pendingPosition.tab !== currentTab()) return;
-    window.scrollTo({top: pendingPosition.top, behavior: "auto"});
   }
 
   function keepActivePosition(tab, replace) {
@@ -221,11 +222,10 @@ export function mountWorkspaceShell({
       restoreReadingPosition(readContent, contentPosition);
       return;
     }
-    const top = window.scrollY;
-    replace();
-    restoreReadingPosition(readContent, contentPosition);
-    if (pendingPosition?.tab === tab) applyPendingPosition();
-    else if (window.scrollY !== top) window.scrollTo({top, behavior: "auto"});
+    preservePagePosition(window, () => {
+      replace();
+      restoreReadingPosition(readContent, contentPosition);
+    });
   }
 
   function modalOwnsFocus() {
@@ -257,47 +257,51 @@ export function mountWorkspaceShell({
     const restoreReadFocus = previous === "read" && tab !== "read"
       && panels.get("read")?.contains(document.activeElement);
     const switching = Boolean(previous) && previous !== tab;
-    if (switching) {
-      tabPositions.set(previous, window.scrollY);
-      editorScrollOwner = null;
-    }
+    if (switching) editorScrollOwner = null;
     workspace.dataset.activeTab = tab;
+    panels.get(tab).hidden = false;
     for (const button of buttons) {
       const active = button.dataset.workspaceTab === tab;
       button.setAttribute("aria-selected", String(active));
       button.tabIndex = active ? 0 : -1;
-      panels.get(button.dataset.workspaceTab).hidden = !active;
+      if (!active) panels.get(button.dataset.workspaceTab).hidden = true;
     }
     if (writeHistory) writeTabState(tab);
-    if (focus) buttons.find(button => button.dataset.workspaceTab === tab).focus();
+    if (focus) focusWithViewportReveal(buttons.find(button => button.dataset.workspaceTab === tab));
     if (restoreReadFocus) {
-      buttons.find(button => button.dataset.workspaceTab === tab).focus({preventScroll: true});
+      focusWithViewportReveal(buttons.find(button => button.dataset.workspaceTab === tab));
     }
     for (const link of document.querySelectorAll("link[data-workspace-reading-style]")) {
-      if (tab !== "read") link.remove();
+      if (tab !== "read") preservePagePosition(window, () => link.remove());
     }
     if (tab === "read" && workspace.dataset.readingStyleUrl
         && !document.querySelector("link[data-workspace-reading-style]")) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
+      link.media = "not all";
       link.href = workspace.dataset.readingStyleUrl;
       link.dataset.readingStyle = "";
       link.dataset.workspaceReadingStyle = "";
+      link.onload = () => preservePagePosition(window, () => { link.media = "all"; });
+      link.onerror = () => {
+        link.remove();
+        keepActivePosition("read", () => statusMessage(readContent,
+          "The resolved reading style could not load; PDF is unavailable.", "alert"));
+      };
       document.head.append(link);
-    }
-    if (switching) {
-      pendingPosition = {tab, top: tabPositions.get(tab) ?? 0};
-      applyPendingPosition();
     }
     updateBackToTop();
     if (tab === "read") loadRead();
     if (tab === "versions" || tab === "sources") loadLineage(tab);
     if (tab === "edit" && restoreEditorFocus && lastEditorFocus?.isConnected) {
       const hidden = lastEditorFocus.closest("[hidden]");
-      if (!hidden) lastEditorFocus.focus({preventScroll: true});
+      if (!hidden && isInViewport(lastEditorFocus)) {
+        focusWithViewportReveal(lastEditorFocus);
+      }
       else {
         const localTab = document.querySelector(".editor-workspace")?.dataset.editorTab;
-        document.querySelector(`#editor-tab-${localTab}`)?.focus({preventScroll: true});
+        const target = document.querySelector(`#editor-tab-${localTab}`);
+        if (target) focusWithViewportReveal(target);
       }
     }
   }
@@ -321,13 +325,13 @@ export function mountWorkspaceShell({
     } catch (error) {
       readSignature = "";
       showPdfState(null);
-      statusMessage(readContent, error.message, "alert");
+      keepActivePosition("read", () => statusMessage(readContent, error.message, "alert"));
       return;
     }
     if (!force && body === readSignature) return;
     readSignature = body;
     showPdfState(null);
-    status.textContent = "Rendering the current draft for reading; no content is being saved.";
+    workspaceStatus(status, "Rendering the current draft for reading; no content is being saved.");
     readContent.setAttribute("aria-busy", "true");
     try {
       const readUrl = new URL(workspace.dataset.readUrl, location.href);
@@ -356,13 +360,16 @@ export function mountWorkspaceShell({
         updateReadContents();
       });
       showPdfState(result.state);
-      status.textContent = "";
+      workspaceStatus(status, "");
     } catch (error) {
       if (requestId !== readRequest) return;
       readSignature = "";
       showPdfState(null);
-      statusMessage(readContent, error.message, "alert");
-      status.textContent = "The current draft could not be rendered. No older content was substituted.";
+      keepActivePosition("read", () => {
+        statusMessage(readContent, error.message, "alert");
+      });
+      workspaceStatus(status,
+        "The current draft could not be rendered. No older content was substituted.");
     } finally {
       if (requestId === readRequest) {
         readContent.removeAttribute("aria-busy");
@@ -450,7 +457,7 @@ export function mountWorkspaceShell({
     if (target.dataset.loadedUrl === destination.href && !target.hasAttribute("aria-busy")) return true;
     const requestId = ++lineageRequests[tab];
     target.setAttribute("aria-busy", "true");
-    status.textContent = `Loading ${tab} evidence without changing the active draft.`;
+    workspaceStatus(status, `Loading ${tab} evidence without changing the active draft.`);
     try {
       const response = await fetch(destination.href, {
         credentials: "same-origin",
@@ -461,13 +468,13 @@ export function mountWorkspaceShell({
       if (!response.ok) throw new Error(`Could not load ${tab} evidence (${response.status}).`);
       if (requestId !== lineageRequests[tab]) return;
       displayLineage(tab, html, destination);
-      status.textContent = "";
+      workspaceStatus(status, "");
       return true;
     } catch (error) {
       if (requestId !== lineageRequests[tab]) return;
       target.dataset.loadedUrl = "";
-      statusMessage(target, error.message, "alert");
-      status.textContent = "Evidence inspection failed; the editor content remains unchanged.";
+      keepActivePosition(tab, () => statusMessage(target, error.message, "alert"));
+      workspaceStatus(status, "Evidence inspection failed; the editor content remains unchanged.");
       return false;
     } finally {
       if (requestId === lineageRequests[tab]) {
@@ -494,7 +501,6 @@ export function mountWorkspaceShell({
         && lineagePanels[tab].dataset.loadedUrl === destination.href) {
       const anchor = lineagePanels[tab].querySelector(destination.hash);
       if (anchor) {
-        pendingPosition = null;
         scrollElementIntoView(anchor);
       }
     }
@@ -519,7 +525,7 @@ export function mountWorkspaceShell({
       await loadLineage(tab, destination);
       return;
     }
-    status.textContent = "Applying the explicitly confirmed evidence action.";
+    workspaceStatus(status, "Applying the explicitly confirmed evidence action.");
     try {
       const response = await fetch(destination.href, {
         method,
@@ -535,9 +541,9 @@ export function mountWorkspaceShell({
       recordLineageState(tab, resultUrl);
       lineagePanels[tab].dataset.loadedUrl = "";
       displayLineage(tab, html, resultUrl);
-      status.textContent = "The explicitly requested evidence action completed.";
+      workspaceStatus(status, "The explicitly requested evidence action completed.");
     } catch (error) {
-      status.textContent = error.message;
+      workspaceStatus(status, error.message);
     }
   }
 
@@ -586,17 +592,18 @@ export function mountWorkspaceShell({
       snapshot = getSnapshot();
       body = JSON.stringify(snapshot);
     } catch (error) {
-      status.textContent = error.message;
+      workspaceStatus(status, error.message);
       return;
     }
     const expected = readState;
     if (!expected || body !== readSignature) {
-      status.textContent = "The content changed since Read was rendered. Read is refreshing; download again once it has updated.";
+      workspaceStatus(status,
+        "The content changed since Read was rendered. Read is refreshing; download again once it has updated.");
       loadRead(true);
       return;
     }
     downloadButton.disabled = true;
-    status.textContent = PDF_PREPARING[expected];
+    workspaceStatus(status, PDF_PREPARING[expected]);
     try {
       const pdfUrl = new URL(workspace.dataset.pdfUrl, location.href);
       const currentUrl = new URL(location.href);
@@ -635,18 +642,14 @@ export function mountWorkspaceShell({
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      status.textContent = `Downloaded ${filename}. ${PDF_DONE[expected]}`;
+      workspaceStatus(status, `Downloaded ${filename}. ${PDF_DONE[expected]}`);
     } catch (error) {
-      status.textContent = error.message;
+      workspaceStatus(status, error.message);
     } finally {
       downloadButton.disabled = !readState;
     }
   });
 
-  // Explicit user scrolling supersedes a remembered position awaiting content.
-  for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) {
-    window.addEventListener(type, () => { pendingPosition = null; }, {passive: true, capture: true});
-  }
   window.addEventListener("scroll", () => {
     if (currentTab() === "edit") editorScrollOwner = null;
     updateBackToTop();

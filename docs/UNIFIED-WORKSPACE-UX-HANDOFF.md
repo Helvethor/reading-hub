@@ -69,9 +69,10 @@ inertness and records its bounded fix; other V61 transitions remain unverified.
 Live-data changes are not authorized.
 
 Follow-up V.q, requested 2026-11-18, specifies viewport-stable main and local
-Edit tab switching. Status: design/specification only; V67-V71 are pending.
-The user explicitly selected documentation only. No implementation, deployment
-or live-data mutation is authorized by this request.
+Edit tab switching. Source implementation is in the current checkout; automated
+frontend checks pass, while V67-V71 acceptance remains partial. The user
+subsequently clarified that implementation was intended. No deployment or
+live-data mutation was authorized or performed.
 
 ## Outcome, authority and supersession
 
@@ -1842,7 +1843,8 @@ workflow redesign or automatic deployment belongs to this corrective plan.
 
 ### V.q: viewport-stable tab switching
 
-Recorded 2026-11-18. **Design/specification only; not implemented or validated.**
+Recorded 2026-11-18. **Source implementation is in the current checkout; full
+acceptance remains open and the change is not deployed.**
 The reported problem is disorienting vertical page motion when switching
 `.workspace-tabs` elements. The outcome is spatial continuity, not a new
 navigation control: a reviewer switches Edit Content to Metadata and back, or a
@@ -1851,7 +1853,8 @@ vertical location whenever the destination's natural page range permits.
 
 #### Evidence, alternatives and scope
 
-Source inspection at checkpoint `8cb54b0` identifies deliberate page movement:
+Before implementation, source inspection at checkpoint `8cb54b0` identified
+deliberate page movement:
 
 - `frontend/workspace-shell.js` records `tabPositions`, restores the destination
   position (default `0`) in `selectTab`, and can reapply it after asynchronous
@@ -1862,10 +1865,10 @@ Source inspection at checkpoint `8cb54b0` identifies deliberate page movement:
   regressions explicitly expect per-tab page restoration. Those expectations
   must change for ordinary activation, not be treated as preservation evidence.
 
-This is source evidence consistent with the report, not a native-browser
-reproduction or proof that explicit restoration is the only cause. Focus
-reveal, browser scroll anchoring, hidden-panel transitions, style loading and
-destination-height clamping still need measured attribution.
+That inspection was consistent with the report, but did not prove that explicit
+restoration was the only cause. The current source removes those tab-global
+offset maps; focus reveal, hidden-panel transitions and natural range clamping
+remain separate behaviors.
 
 | Direction | Benefit and cost | Decision |
 |---|---|---|
@@ -1938,27 +1941,35 @@ exemptions.
 
 #### Delivery, verification and stopping point
 
-When implementation is separately authorized, first record before/after page
-offset, final page range, tab-strip bounding rectangle, active focus and each
-pane offset through the reported sequence on isolated fixtures. Capture the
-transition as well as settled layout: equal end offsets do not excuse a visible
-intermediate jump. Distinguish application scroll commands, native clamping,
-scroll anchoring and focus effects. Reuse existing helpers where appropriate
-after checking callers; do not globally disable anchor/caret navigation or
-history restoration to pass a tab-switch test.
+The source implementation now coordinates main, public and local Edit tab
+activation without per-tab browser-page restoration. Destination panels are
+shown before peers are hidden. Active content, status and style updates preserve
+the then-current page offset when possible; a short/loading state may clamp
+natively, and later growth does not restore the pre-clamp offset. Marked Read
+panes keep their independent position, and focus avoids scrolling a target that
+is visible in both the viewport and its scroll pane.
 
-Update the focused main/public/local-tab regressions for the changed policy,
-including feasible retention, short-range clamping, delayed active/inactive
-responses, intervening user input and history/focus exceptions. Use native
-pointer and keyboard browser journeys for actual geometry and intermediate
-motion; jsdom/mocked scroll tests alone cannot establish that the screen is
-steady. No application tests or browser checks were run for this documentation
-change.
+Focused regressions now cover main/public/local tab continuity, history changes,
+feasible offsets, native-range clamping with later growth, delayed active and
+inactive responses, intervening user scrolling, pane positions and focus
+visibility. The frontend test suite and build pass.
 
-V67-V71 below are the stopping contract. Report automated correctness,
-synthetic geometry, observed native-browser workflows and outstanding human
-usability/accessibility evidence separately. Earlier partial milestones remain
-open. Deployment, publication and live-data changes require separate authority.
+On the isolated synthetic public article at 1280x800, scripted browser
+activation measured Read at page offset 40 with a 446px natural range. Versions
+loading had a 0px range and natively clamped the page to 0; after the response
+grew the range to 728px, the page remained at 0. Starting Versions at offset 40
+and switching to Read retained 40 with the destination range at 446px. This
+browser journey used programmatic clicks, not native pointer activation. Native
+click attempts timed out in the browser tooling; keyboard, reviewer/local Edit
+browser journeys, short/narrow viewports, 200% zoom, both themes, and human
+usability/accessibility checks remain unverified. These observations are
+synthetic development evidence, not live-data or deployment evidence.
+
+V67-V71 below remain the stopping contract and are not closed by the current
+partial evidence. Report automated correctness, synthetic geometry, observed
+native-browser workflows and outstanding human usability/accessibility evidence
+separately. Earlier partial milestones remain open. Deployment, publication and
+live-data changes require separate authority.
 
 ### Delivery boundaries and implementation-agent handoff
 
@@ -2135,10 +2146,13 @@ Larger content and screen-spacing supersession; preserve PDF and style invariant
 Its implementation/local-deployment request does not authorize live-data changes.
 V61-V66 define the planned V.p acceptance; none is a completion claim or
 authorization to implement, deploy or change live data.
-V67-V71 define the documentation-only V.q plan; all remain pending. Apply V.q's
-explicit ordinary-tab page-position supersession without weakening independent
-pane preservation, history, focus or intentional target navigation. This request
-does not authorize implementation, deployment or live-data changes.
+V67-V71 define V.q acceptance and remain open. Source implementation is in the
+current checkout with passing automated frontend checks and partial synthetic
+public-browser evidence; native interaction and responsive/accessibility
+acceptance remain unverified. Apply V.q's explicit ordinary-tab page-position
+supersession without weakening independent pane preservation, history, focus or
+intentional target navigation. Implementation did not authorize deployment or
+live-data changes.
 
 Report automated correctness/preservation, actual browser/PDF observations,
 synthetic/mocked checks and untested/human limitations separately. Do not certify

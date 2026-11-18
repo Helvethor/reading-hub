@@ -72,3 +72,31 @@ export function visibleBand(element) {
     bottom: Math.min(rect.bottom, doc.defaultView.innerHeight || rect.bottom),
   };
 }
+
+export function isInViewport(element) {
+  const view = element.ownerDocument.defaultView;
+  const rect = element.getBoundingClientRect();
+  const pane = paneFor(element);
+  const paneRect = pane?.getBoundingClientRect();
+  const vertical = pane ? paneBand(pane) : {top: 0, bottom: view.innerHeight};
+  const paneLeft = paneRect ? paneRect.left + (pane.clientLeft || 0) : 0;
+  const horizontal = {
+    left: Math.max(paneLeft, 0),
+    right: Math.min(
+      paneLeft + (pane?.clientWidth || paneRect?.width || view.innerWidth),
+      view.innerWidth,
+    ),
+  };
+  return rect.top >= vertical.top && rect.bottom <= vertical.bottom
+    && rect.left >= horizontal.left && rect.right <= horizontal.right;
+}
+
+export function focusWithViewportReveal(element) {
+  element.focus({preventScroll: isInViewport(element)});
+}
+
+export function preservePagePosition(win, replace) {
+  const top = win.scrollY;
+  replace();
+  if (win.scrollY !== top) win.scrollTo({top, behavior: "auto"});
+}

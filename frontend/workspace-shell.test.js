@@ -965,7 +965,7 @@ function pageScroll() {
   return page;
 }
 
-test("each main tab keeps its own document position and new tabs start at the top", async () => {
+test("main tab activation preserves the current page position instead of per-tab offsets", async () => {
   const form = setup();
   const page = pageScroll();
   globalThis.fetch = url => Promise.resolve(String(url).includes("read-preview") ? {
@@ -980,23 +980,26 @@ test("each main tab keeps its own document position and new tabs start at the to
     document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
   });
   const tab = name => document.querySelector(`[data-workspace-tab="${name}"]`);
+  const calls = page.calls.length;
   page.top = 700;
   tab("read").click();
   await settle();
-  assert.equal(page.top, 0, "A first visit starts at the top rather than inheriting Edit's position.");
+  assert.equal(page.top, 700);
   page.top = 300;
   tab("edit").click();
-  assert.equal(page.top, 700, "Edit returns to its previous document position.");
+  assert.equal(page.top, 300);
   tab("read").click();
   await settle();
-  assert.equal(page.top, 300, "Read returns to its previous document position.");
-  history.back = () => {};
-  tab("versions").click();
+  assert.equal(page.top, 300);
+  history.replaceState({}, "", "?tab=versions");
+  page.top = 180;
+  window.dispatchEvent(new window.PopStateEvent("popstate"));
   await settle();
-  assert.equal(page.top, 0);
+  assert.equal(page.top, 180, "History tab changes do not override the entry's page position.");
+  assert.equal(page.calls.length, calls);
 });
 
-test("user scrolling wins over a remembered position while Read is still loading", async () => {
+test("Read loading keeps the current page position and does not undo later user scrolling", async () => {
   const form = setup();
   const page = pageScroll();
   let finishRead;
@@ -1007,7 +1010,7 @@ test("user scrolling wins over a remembered position while Read is still loading
   });
   page.top = 400;
   document.querySelector('[data-workspace-tab="read"]').click();
-  assert.equal(page.top, 0);
+  assert.equal(page.top, 400);
   window.dispatchEvent(new window.Event("wheel"));
   page.top = 250;
   finishRead({
@@ -1020,6 +1023,32 @@ test("user scrolling wins over a remembered position while Read is still loading
   });
   await settle();
   assert.equal(page.top, 250, "Replacing Read content keeps the user's current position.");
+});
+
+test("a clamped position is not restored after active lineage content grows", async () => {
+  const form = setup();
+  const page = pageScroll();
+  let finishLineage;
+  globalThis.fetch = () => new Promise(resolve => { finishLineage = resolve; });
+  mount(form, {
+    draft: null, revision: 0,
+    document: {title: "T", html: "<p>T</p>", metadata: {}}, source_tickets: [],
+  });
+  page.top = 900;
+  document.querySelector('[data-workspace-tab="versions"]').click();
+  assert.equal(page.top, 900);
+  page.max = 240;
+  page.top = 240;
+  finishLineage({
+    ok: true, text: async () => '<div class="document-lineage"><p>Loaded evidence</p></div>',
+  });
+  await settle();
+  assert.equal(page.top, 240);
+  const calls = page.calls.length;
+  page.max = 1200;
+  await settle();
+  assert.equal(page.top, 240, "Later content growth does not reclaim the pre-clamp offset.");
+  assert.equal(page.calls.length, calls);
 });
 
 test("a late Read response does not move the page of another active tab", async () => {

@@ -142,6 +142,98 @@ test("public workspace switches Read, Versions and Sources without editor reques
   assert.ok(requested.every(url => new URL(url).pathname === "/documents/5/lineage/"));
 });
 
+test("public tab activation and history changes preserve the current page position", async () => {
+  dom = new JSDOM(`<body><section id="unified-workspace" data-initial-tab="read"
+    data-lineage-path="/documents/5/lineage/"
+    data-versions-url="/documents/5/lineage/?filter=all&amp;selected=edition%3A12"
+    data-sources-url="/documents/5/lineage/?filter=sources&amp;selected=snapshot%3A4">
+    <div class="workspace-chrome"><div role="tablist">
+      <button role="tab" data-workspace-tab="read" aria-controls="workspace-panel-read">Read</button>
+      <button role="tab" data-workspace-tab="versions" aria-controls="workspace-panel-versions">Versions</button>
+      <button role="tab" data-workspace-tab="sources" aria-controls="workspace-panel-sources">Sources</button>
+    </div><p id="workspace-action-status"></p></div>
+    <section id="workspace-panel-read"><div id="workspace-read-content"></div></section>
+    <section id="workspace-panel-versions" hidden><div id="workspace-versions-content"></div></section>
+    <section id="workspace-panel-sources" hidden><div id="workspace-sources-content"></div></section>
+    <button id="workspace-back-to-top" hidden></button></section></body>`,
+  {url: "http://localhost/versions/12/"});
+  for (const name of [
+    "window", "document", "location", "history", "DOMParser", "Element",
+    "HTMLFormElement", "FormData", "CustomEvent",
+  ]) {
+    Object.defineProperty(globalThis, name, {value: dom.window[name], configurable: true});
+  }
+  const page = {top: 0, calls: []};
+  Object.defineProperty(window, "scrollY", {get: () => page.top});
+  const pageElement = {scrollTop: 0};
+  Object.defineProperty(document, "scrollingElement", {value: pageElement});
+  window.scrollTo = ({top}) => { page.calls.push(top); page.top = top; };
+  globalThis.fetch = async () => ({
+    ok: true, text: async () => '<div class="document-lineage"><p>Loaded evidence</p></div>',
+  });
+  mountPublicWorkspace();
+  const tab = name => document.querySelector(`[data-workspace-tab="${name}"]`);
+  page.top = 620;
+  tab("versions").click();
+  assert.equal(page.top, 620);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(page.top, 620);
+
+  page.top = 270;
+  tab("sources").click();
+  assert.equal(page.top, 270);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(page.top, 270);
+
+  history.replaceState({}, "", "?tab=read");
+  page.top = 410;
+  window.dispatchEvent(new window.PopStateEvent("popstate"));
+  assert.equal(page.top, 410);
+  assert.deepEqual(page.calls, []);
+});
+
+test("a late public lineage response does not move another active tab", async () => {
+  dom = new JSDOM(`<body><section id="unified-workspace" data-initial-tab="read"
+    data-lineage-path="/documents/5/lineage/"
+    data-versions-url="/documents/5/lineage/?filter=all&amp;selected=edition%3A12"
+    data-sources-url="/documents/5/lineage/?filter=sources&amp;selected=snapshot%3A4">
+    <div class="workspace-chrome"><div role="tablist">
+      <button role="tab" data-workspace-tab="read" aria-controls="workspace-panel-read">Read</button>
+      <button role="tab" data-workspace-tab="versions" aria-controls="workspace-panel-versions">Versions</button>
+      <button role="tab" data-workspace-tab="sources" aria-controls="workspace-panel-sources">Sources</button>
+    </div><p id="workspace-action-status"></p></div>
+    <section id="workspace-panel-read"><div id="workspace-read-content"></div></section>
+    <section id="workspace-panel-versions" hidden><div id="workspace-versions-content"></div></section>
+    <section id="workspace-panel-sources" hidden><div id="workspace-sources-content"></div></section>
+    <button id="workspace-back-to-top" hidden></button></section></body>`,
+  {url: "http://localhost/versions/12/"});
+  for (const name of [
+    "window", "document", "location", "history", "DOMParser", "Element",
+    "HTMLFormElement", "FormData", "CustomEvent",
+  ]) {
+    Object.defineProperty(globalThis, name, {value: dom.window[name], configurable: true});
+  }
+  const page = {top: 0, calls: []};
+  Object.defineProperty(window, "scrollY", {get: () => page.top});
+  Object.defineProperty(document, "scrollingElement", {value: {scrollTop: 0}});
+  window.scrollTo = ({top}) => { page.calls.push(top); page.top = top; };
+  let finishVersions;
+  globalThis.fetch = () => new Promise(resolve => { finishVersions = resolve; });
+  mountPublicWorkspace();
+  const tab = name => document.querySelector(`[data-workspace-tab="${name}"]`);
+  page.top = 600;
+  tab("versions").click();
+  tab("read").click();
+  page.top = 430;
+  finishVersions({
+    ok: true, text: async () => '<div class="document-lineage"><p>Loaded evidence</p></div>',
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(page.top, 430);
+  assert.deepEqual(page.calls, []);
+  assert.match(document.querySelector("#workspace-versions-content").textContent, /Loaded evidence/);
+});
+
 test("standalone lineage and comparison selectors submit their GET forms", () => {
   dom = new JSDOM(`<form method="get" class="lineage-controls">
     <select name="scope"><option>branch</option><option>work</option></select>

@@ -6642,32 +6642,34 @@ test("editor widget tabs switch panels by click, arrow keys and events while sha
   assert.throws(() => tabs.select("missing"), /supported editor tab/);
 });
 
-test("local tabs restore page positions while the content pane keeps its own position", () => {
+test("local tab activation preserves the current page position and content-pane position", () => {
   const form = mountSectionWorkspace("<p>Body</p>");
   const workspace = form.closest(".editor-workspace");
   const surface = form.querySelector("#editor-surface");
   surface.scrollTop = 450;
   const tabs = mountEditorTabs(form);
   let pageY = 0;
+  const pageScrolls = [];
   const previousScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
   const previousScrollTo = window.scrollTo;
   Object.defineProperty(window, "scrollY", {
     configurable: true, get: () => pageY,
   });
-  window.scrollTo = ({top}) => { pageY = top; };
+  window.scrollTo = ({top}) => { pageScrolls.push(top); pageY = top; };
 
   try {
     pageY = 320;
     tabs.select("metadata");
-    assert.equal(pageY, 0);
+    assert.equal(pageY, 320);
     pageY = 80;
     tabs.select("review");
-    assert.equal(pageY, 0);
+    assert.equal(pageY, 80);
     tabs.select("metadata");
     assert.equal(pageY, 80);
     tabs.select("editor");
-    assert.equal(pageY, 320);
+    assert.equal(pageY, 80);
     assert.equal(surface.scrollTop, 450);
+    assert.deepEqual(pageScrolls, []);
   } finally {
     if (previousScrollY) Object.defineProperty(window, "scrollY", previousScrollY);
     else delete window.scrollY;

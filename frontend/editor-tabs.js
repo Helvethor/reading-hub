@@ -1,26 +1,23 @@
+import {focusWithViewportReveal} from "./page-scroll.js";
+
 export function mountEditorTabs(form) {
   const workspace = form.closest(".editor-workspace");
   const tabs = [...(workspace?.querySelectorAll('[role="tab"][data-editor-tab]') || [])];
   if (!tabs.length) return null;
   const panel = tab => form.ownerDocument.getElementById(tab.getAttribute("aria-controls"));
-  const pagePositions = new Map();
   function select(name, focus = false) {
     const chosen = tabs.find(tab => tab.dataset.editorTab === name);
     if (!chosen) throw new Error("Choose a supported editor tab.");
-    const previous = workspace.dataset.editorTab;
-    if (previous && previous !== name) pagePositions.set(previous, window.scrollY);
+    panel(chosen).hidden = false;
     for (const tab of tabs) {
       const active = tab === chosen;
       tab.setAttribute("aria-selected", String(active));
       tab.tabIndex = active ? 0 : -1;
-      panel(tab).hidden = !active;
+      if (!active) panel(tab).hidden = true;
     }
     workspace.dataset.editorTab = name;
     form.hidden = name === "structure";
-    if (focus) chosen.focus({preventScroll: true});
-    if (previous && previous !== name) {
-      window.scrollTo({top: pagePositions.get(name) ?? 0, behavior: "auto"});
-    }
+    if (focus) focusWithViewportReveal(chosen);
     workspace.dispatchEvent(new workspace.ownerDocument.defaultView.CustomEvent("editor-local-tab-change", {
       detail: {tab: name},
     }));

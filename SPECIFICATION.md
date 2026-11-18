@@ -244,7 +244,8 @@ links, disabled states and permission guards keep their existing semantics.
 This is a development-only visual follow-up, not deployment or full V64
 acceptance.
 
-**Viewport-stable workspace tabs V.q (2026-11-18; design/specification only):**
+**Viewport-stable workspace tabs V.q (2026-11-18; source implementation in the
+current checkout; acceptance partial):**
 ordinary activation of a tab in `.workspace-tabs`, including local Edit tabs,
 preserves the current browser-page position instead of restoring a different
 per-tab page position or starting a newly visited tab at the page top. Keep the
@@ -262,8 +263,10 @@ defines exceptions, asynchronous ownership and V67-V71 acceptance. It supersedes
 only conflicting per-tab browser-page restoration requirements in earlier V
 contracts, not pane-position preservation or the normal page/content scroll
 model. No sticky tabs, body locking, whole-panel scroll boxes, artificial
-equal-height panels or new controls are required. Implementation, deployment
-and live-data changes are not authorized by this documentation request.
+equal-height panels or new controls are required. Automated frontend checks
+pass; native browser, responsive/zoom/theme and human accessibility acceptance
+remain open. The source request did not authorize deployment or live-data
+changes.
 
 **No-working-copy interaction follow-up (2026-11-16):** a saved edition waiting
 for working-copy selection remains browsable in Edit: text selection, scrolling,
