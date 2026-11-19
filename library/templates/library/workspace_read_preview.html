@@ -30,6 +30,13 @@
           <ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
         </section>
         {% endif %}
+        {% if version.content_issues %}
+        <section class="notice warning" aria-label="Content warnings">
+          <h2>Content warnings</h2>
+          <p>This preview preserves the reported defects; they are not repaired or verified.</p>
+          <ul>{% for issue in version.content_issues %}<li>{{ issue.message }}</li>{% endfor %}</ul>
+        </section>
+        {% endif %}
         {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
         <article class="reader-content" tabindex="0" aria-label="Draft text" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
         {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}

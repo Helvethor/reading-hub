@@ -88,6 +88,8 @@ export function mountWorkspaceShell({
   const saveState = workspace.querySelector("#workspace-save-state");
   const readContent = workspace.querySelector("#workspace-read-content");
   const downloadButton = workspace.querySelector("#workspace-download-pdf");
+  const contentIssues = workspace.querySelector("#workspace-content-issues");
+  const contentIssueList = workspace.querySelector("#workspace-content-issues-list");
   const contentsButton = workspace.querySelector("#workspace-contents-toggle");
   const backToTop = workspace.querySelector("#workspace-back-to-top");
   const lineagePath = workspace.dataset.lineagePath;
@@ -190,6 +192,19 @@ export function mountWorkspaceShell({
     downloadButton.disabled = !readState;
     downloadButton.textContent = PDF_LABELS[readState] || "PDF";
     downloadButton.dataset.pdfState = readState || "";
+  }
+
+  function showContentIssues(issues = []) {
+    contentIssueList?.replaceChildren();
+    if (!contentIssues || !contentIssueList) return;
+    for (const issue of issues) {
+      const item = document.createElement("li");
+      item.textContent = issue.message;
+      contentIssueList.append(item);
+    }
+    contentIssues.hidden = issues.length === 0;
+    if (issues.length) downloadButton.setAttribute("aria-describedby", contentIssues.id);
+    else downloadButton.removeAttribute("aria-describedby");
   }
 
   function currentTab() {
@@ -331,6 +346,7 @@ export function mountWorkspaceShell({
     if (!force && body === readSignature) return;
     readSignature = body;
     showPdfState(null);
+    keepActivePosition("read", showContentIssues);
     workspaceStatus(status, "Rendering the current draft for reading; no content is being saved.");
     readContent.setAttribute("aria-busy", "true");
     try {
@@ -357,6 +373,7 @@ export function mountWorkspaceShell({
       await applyReadAppearance(result.appearance);
       keepActivePosition("read", () => {
         readContent.innerHTML = result.html;
+        showContentIssues(result.issues);
         updateReadContents();
       });
       showPdfState(result.state);
@@ -366,6 +383,7 @@ export function mountWorkspaceShell({
       readSignature = "";
       showPdfState(null);
       keepActivePosition("read", () => {
+        showContentIssues();
         statusMessage(readContent, error.message, "alert");
       });
       workspaceStatus(status,

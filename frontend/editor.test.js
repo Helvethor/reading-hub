@@ -64,8 +64,12 @@ import {
   prepareTableInsertion, buildTableInsertion, applyTableInsertion, canEditTable,
   prepareTableEdit, buildTableEdit, applyTableEdit,
 } from "./tables.js";
+import {
+  contentIssueDetails, navigateToContentIssue, renderContentIssues,
+} from "./content-issues.js";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {url: "http://localhost/"});
+dom.window.scrollTo = () => {};
 for (const name of ["window", "document", "navigator", "Node", "HTMLElement",
   "MutationObserver", "DOMParser", "getComputedStyle", "KeyboardEvent", "Option"]) {
   Object.defineProperty(globalThis, name, {value: dom.window[name], configurable: true});
@@ -109,6 +113,48 @@ test("saved editions allow selection and navigation without edits or submission"
   form.querySelector('[data-part="1"]').click();
   assert.equal(visiblePart(editor), null);
   assert.equal(editor.getHTML(), original);
+});
+
+test("issue navigation reveals a folded occurrence without changing editor content", () => {
+  open(
+    '<section id="chapter"><h2>Chapter</h2><p>Context '
+      + '<a href="#missing-note">first note</a> and '
+      + '<a href="#missing-note">second note</a>.</p></section>',
+  );
+  const issues = contentIssueDetails(editor.getHTML());
+  assert.equal(issues.length, 2);
+  assert.equal(issues[0].occurrence, 1);
+  assert.equal(issues[1].occurrence, 2);
+  assert.equal(issues[1].section, "Chapter");
+  assert.match(issues[1].context, /second note/);
+  const repaired = contentIssueDetails(
+    editor.getHTML().replace('href="#missing-note">first note', 'href="#chapter">first note'),
+  );
+  assert.equal(repaired.length, 1);
+  assert.equal(repaired[0].occurrence, 1);
+
+  const original = editor.state.doc;
+  const originalHTML = editor.getHTML();
+  const chapter = documentParts(editor.state.doc).find(part => part.id === "chapter");
+  toggleDocumentFold(editor, chapter);
+  assert.equal(foldedDocumentParts(editor).length, 1);
+
+  navigateToContentIssue(editor, issues[1]);
+  assert.equal(foldedDocumentParts(editor).length, 0);
+  assert.equal(editor.state.doc, original);
+  assert.equal(editor.getHTML(), originalHTML);
+  assert.equal(
+    editor.view.dom.querySelectorAll('a[href="#missing-note"]')[1]
+      .dataset.issueHighlight,
+    "true",
+  );
+
+  const list = document.createElement("ol");
+  const status = document.createElement("p");
+  renderContentIssues(list, status, issues, () => {});
+  const button = list.querySelector("button");
+  assert.equal(button.textContent, "Go to location");
+  assert.match(button.getAttribute("aria-label"), /^Go to location:/);
 });
 
 function selectText(text, length = 0) {

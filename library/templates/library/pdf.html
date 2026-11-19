@@ -7,6 +7,7 @@
   {% include 'library/document_metadata.html' %}
 </header>
 {% if version.warnings %}<section><p>Import warnings:</p><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
+{% if version.content_issues %}<section><h2>Content warnings</h2><p>These defects remain in this document; publication did not verify or repair them.</p><ul>{% for issue in version.content_issues %}<li>{{ issue.message }}</li>{% endfor %}</ul></section>{% endif %}
 {% if generated_book and contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
 <article class="reader-content" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
 {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}

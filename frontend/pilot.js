@@ -11,6 +11,9 @@ import {mountDifferenceControls} from "./diff-controls.js";
 import {mountWorkflowPanels} from "./workflow-panels.js";
 import {mountEditorTabs} from "./editor-tabs.js";
 import {mountWorkspaceShell} from "./workspace-shell.js";
+import {
+  contentIssueDetails, navigateToContentIssue, renderContentIssues,
+} from "./content-issues.js";
 
 const form = document.querySelector("#document-editor");
 if (form) {
@@ -28,6 +31,10 @@ if (form) {
   const metadataFields = ["author", "subtitle", "work_type", ...textFields.map(([name]) => name), "language",
     "original_language"].map(name => form.elements[name]).filter(Boolean);
   const sectionList = document.querySelector("#editor-sections");
+  const issueList = document.querySelector("#editor-issues-list");
+  const issueStatus = document.querySelector("#editor-issues-status");
+  const issuePanel = document.querySelector("#editor-issues");
+  const issueRecheck = document.querySelector("#editor-issues-recheck");
   const pasteDialog = document.querySelector("#editor-paste");
   const pasteText = document.querySelector("#editor-paste-text");
   const pasteReplaced = document.querySelector("#editor-paste-replaced");
@@ -43,6 +50,7 @@ if (form) {
   let sourceTickets = [];
   let workspace = null;
   let differences = null;
+  let contentIssues = [];
   const metadata = () => {
     const result = {...initial.document.metadata};
     for (const field of metadataFields) {
@@ -81,6 +89,30 @@ if (form) {
     source_tickets: sourceTickets,
   });
   function showError(message) { error.textContent = message; }
+  function showIssueStatus(message) { issueStatus.textContent = message; }
+  function locateIssue(issue, index) {
+    const refreshed = contentIssueDetails(editor.getHTML());
+    const current = refreshed[index];
+    if (!current || current.code !== issue.code || current.target !== issue.target
+        || current.occurrence !== issue.occurrence) {
+      contentIssues = refreshed;
+      renderContentIssues(issueList, issueStatus, contentIssues, locateIssue);
+      showIssueStatus("This issue location became stale. The list was refreshed; choose it again.");
+      return;
+    }
+    try {
+      navigateToContentIssue(editor, current);
+      showIssueStatus(`Focused: ${current.message}`);
+    } catch (failure) {
+      contentIssues = refreshed;
+      renderContentIssues(issueList, issueStatus, contentIssues, locateIssue);
+      showIssueStatus(failure.message);
+    }
+  }
+  function refreshContentIssues() {
+    contentIssues = contentIssueDetails(editor.getHTML());
+    renderContentIssues(issueList, issueStatus, contentIssues, locateIssue);
+  }
   function selectReview(value) {
     const choice = [...form.querySelectorAll('[name="review"]')]
       .find(input => input.value === value);
@@ -186,6 +218,7 @@ if (form) {
       if (update.editor) {
         selectReview("partial");
         refreshSections([]);
+        refreshContentIssues();
       }
       remember();
     }, initial.document.metadata);
@@ -195,6 +228,9 @@ if (form) {
       form, showError, isDirty: () => dirty,
       chooseHistory: false, historyUrl: historyLink.href,
     });
+    issueRecheck.addEventListener("click", refreshContentIssues);
+    editor.on("update", refreshContentIssues);
+    refreshContentIssues();
     mountSourcePanel(form, editor, showError, () => initial.draft);
     workspaceShell = mountWorkspaceShell({
       form,
@@ -228,6 +264,25 @@ if (form) {
     form.elements.editorial.checked = initial.editorial;
     form.elements.editorial.addEventListener("change", remember);
     updatePublication();
+    const issueQuery = new URLSearchParams(location.search);
+    if (issueQuery.has("issue")) {
+      const index = Number(issueQuery.get("issue"));
+      const requestedRevision = Number(issueQuery.get("issue_revision"));
+      const issue = contentIssues[index];
+      if (requestedRevision !== initial.revision) {
+        showIssueStatus("This issue belongs to a different saved revision. Recheck issues before navigating.");
+      } else if (
+        !issue
+        || issue.code !== issueQuery.get("issue_code")
+        || issue.target !== issueQuery.get("issue_target")
+        || issue.occurrence !== Number(issueQuery.get("issue_occurrence"))
+      ) {
+        showIssueStatus("This issue location is stale. Recheck issues before navigating.");
+      } else {
+        issuePanel.scrollIntoView?.({block: "start"});
+        locateIssue(issue, index);
+      }
+    }
     function metadataChanged() {
       selectReview("partial");
       refreshSections([]);

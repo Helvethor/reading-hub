@@ -4,7 +4,7 @@ from library.models import Blob
 from library.services.book_views import publication_toc, publication_view
 from library.services.document_edits import validate_editor_metadata
 from library.services.editor_structure import section_structure
-from library.services.semantic_documents import canonical_document, document_issues
+from library.services.semantic_documents import canonical_document, document_issue_details
 from library.services.storage import read_blob
 
 
@@ -14,9 +14,11 @@ def prepare_workspace_document(value, original_metadata, original_structure, ass
         original_metadata, document["metadata"],
     )
     document = canonical_document(document)
-    issues = document_issues(document, assets)
-    if issues:
-        raise ValueError("Resolve document issues before previewing: " + "; ".join(issues))
+    issues = document_issue_details(document, assets)
+    blocking = [issue["message"] for issue in issues if issue["blocking"]]
+    if blocking:
+        raise ValueError("Resolve document issues before previewing: " + "; ".join(blocking))
+    content_issues = [issue for issue in issues if not issue["blocking"]]
 
     soup = BeautifulSoup(document["html"], "html.parser")
     structure = section_structure(
@@ -55,4 +57,5 @@ def prepare_workspace_document(value, original_metadata, original_structure, ass
         "structure": structure,
         "projection": projection,
         "assets": bindings,
+        "issues": content_issues,
     }

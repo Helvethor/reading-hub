@@ -275,22 +275,62 @@ def inline_quote_stylesheet(stylesheet, format_version):
 """
 
 
-def document_issues(document, asset_digests):
-    """Incomplete relationships may be saved, but never certified as verified."""
+def document_issue_details(document, asset_digests):
+    """Return ordered, locatable content findings without weakening schema checks."""
     soup = BeautifulSoup(document["html"], "html.parser")
     ids = {node["id"] for node in soup.select("[id]")}
     issues = []
+    occurrences = {}
+
+    def add(code, message, *, node=None, target="", locator=None, blocking=False):
+        key = (code, target)
+        occurrences[key] = occurrences.get(key, 0) + 1
+        locator = dict(locator or {"kind": "document"})
+        if "occurrence" in locator:
+            locator["occurrence"] = occurrences[key]
+        section = node if node and node.name == "section" else (
+            node.find_parent("section") if node else None
+        )
+        heading = section.find(["h2", "h3", "h4", "h5", "h6"]) if section else None
+        context = " ".join(node.get_text(" ", strip=True).split()) if node else ""
+        if len(context) > 240:
+            context = context[:237].rstrip() + "..."
+        section_label = (
+            section.get("data-section-label", "")
+            or (heading.get_text(" ", strip=True) if heading else "")
+            or section.get("id", "")
+        ) if section else ""
+        issues.append({
+            "code": code,
+            "message": message,
+            "target": target,
+            "context": context,
+            "section": section_label,
+            "occurrence": occurrences[key],
+            "locator": locator,
+            "blocking": blocking,
+        })
+
     for section in soup.select("section[data-excerpt-parent], section[data-excerpt-url]"):
         parent_id = section.get("data-excerpt-parent")
         parent = soup.find("section", id=parent_id) if parent_id else None
         if parent is None or parent is section:
-            issues.append(
-                "Excerpt origin must identify another section: " + (parent_id or "(none)")
+            target = parent_id or "(none)"
+            add(
+                "missing-excerpt-origin",
+                "Excerpt origin must identify another section: " + target,
+                node=section, target=target,
+                locator={"kind": "section", "occurrence": 1},
             )
         visited = {id(section)}
         while parent is not None:
             if id(parent) in visited:
-                issues.append("Excerpt origin linkage must not contain a cycle.")
+                add(
+                    "cyclic-excerpt-origin",
+                    "Excerpt origin linkage must not contain a cycle.",
+                    node=section, target=parent_id or "",
+                    locator={"kind": "section", "occurrence": 1},
+                )
                 break
             visited.add(id(parent))
             target = parent.get("data-excerpt-parent")
@@ -301,17 +341,51 @@ def document_issues(document, asset_digests):
             heading is None or heading.name not in {"h2", "h3", "h4", "h5", "h6"}
             or heading.find_parent("section") is not section
         ):
-            issues.append("Section title must identify a heading owned by that section: "
-                          + section["data-section-title"])
+            target = section["data-section-title"]
+            add(
+                "missing-section-title",
+                "Section title must identify a heading owned by that section: " + target,
+                node=section, target=target,
+                locator={"kind": "section", "occurrence": 1},
+            )
     for anchor in soup.select("a[href^='#']"):
         if unquote(anchor["href"][1:]) not in ids:
-            issues.append(f"Unresolved internal target: {anchor['href']}")
+            add(
+                "unresolved-internal-link",
+                f"Unresolved internal target: {anchor['href']}",
+                node=anchor, target=anchor["href"],
+                locator={
+                    "kind": "anchor", "href": anchor["href"],
+                    "occurrence": 1,
+                },
+            )
     for image in soup.select("img"):
         digest = ASSET.fullmatch(image["src"])[1]
         if digest not in asset_digests:
-            issues.append(f"Asset is not bound to the generated draft: {digest}")
-    if soup.select_one(".missing-image"):
-        issues.append("The document contains an unavailable-image placeholder.")
+            add(
+                "unbound-asset",
+                f"Asset is not bound to the generated draft: {digest}",
+                node=image, target=digest,
+                locator={"kind": "image", "src": image["src"], "occurrence": 1},
+                blocking=True,
+            )
+    for placeholder in soup.select(".missing-image"):
+        add(
+            "unavailable-image",
+            "The document contains an unavailable-image placeholder.",
+            node=placeholder, target=placeholder.get("data-source", ""),
+            locator={
+                "kind": "missing-image",
+                "occurrence": 1,
+            },
+        )
     if not soup.get_text(strip=True) and not soup.find(["img", "hr"]):
-        issues.append("The document has no readable content.")
+        add("no-readable-content", "The document has no readable content.")
     return issues
+
+
+def document_issues(document, asset_digests):
+    """Incomplete relationships may be saved, but never certified as verified."""
+    return [
+        issue["message"] for issue in document_issue_details(document, asset_digests)
+    ]

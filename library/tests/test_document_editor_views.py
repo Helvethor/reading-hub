@@ -315,6 +315,55 @@ class DocumentEditorViewTests(TestCase):
             self.rendition.html, self.rendition.document.reader_rendition_id,
         ))
 
+    def test_defective_read_and_draft_pdf_warn_without_rewriting_links_or_saving(self):
+        initial = self.client.get(self.url).context["initial"]
+        document = canonical_document({
+            **initial["document"],
+            "html": '<section id="c1"><h2>Chapter</h2><p>'
+            '<a href="#missing-note">First note</a> and '
+            '<a href="#missing-note">Second note</a>.</p></section>',
+        })
+        self.rendition.stylesheet = (STYLES / "reader.css").read_text()
+        self.rendition.save(update_fields=["stylesheet"])
+        before = (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        )
+        payload = json.dumps(self.workspace_payload(document))
+        read = self.client.post(
+            reverse("document-editor-read-preview", args=[self.rendition.pk]),
+            payload, content_type="application/json",
+        )
+        self.assertEqual(read.status_code, 200)
+        self.assertEqual(len(read.json()["issues"]), 2)
+        self.assertEqual(
+            [issue["occurrence"] for issue in read.json()["issues"]], [1, 2],
+        )
+        preview = BeautifulSoup(read.json()["html"], "html.parser")
+        self.assertEqual(
+            [anchor["href"] for anchor in preview.select('.reader-content a[href^="#"]')],
+            ["#missing-note", "#missing-note"],
+        )
+        self.assertEqual(len(preview.select('[aria-label="Content warnings"] li')), 2)
+
+        pdf = self.client.post(
+            reverse("document-editor-draft-pdf", args=[self.rendition.pk]),
+            payload, content_type="application/json",
+        )
+        self.assertEqual(pdf.status_code, 200)
+        text = "\n".join(
+            page.extract_text()
+            for page in PdfReader(io.BytesIO(b"".join(pdf.streaming_content))).pages
+        )
+        self.assertIn("Content warnings", text)
+        self.assertIn("Unresolved internal target: #missing-note", text)
+        self.assertIn("First note", text)
+        self.rendition.refresh_from_db()
+        self.assertEqual(before, (
+            DocumentDraftBase.objects.count(), DocumentEditRevision.objects.count(),
+            self.rendition.html, self.rendition.document.reader_rendition_id,
+        ))
+
     def test_workspace_pdf_render_failure_is_explicit_and_does_not_fall_back(self):
         changed = canonical_document({
             **self.draft.document,

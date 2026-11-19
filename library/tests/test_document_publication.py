@@ -384,15 +384,20 @@ class DocumentPublicationTests(TestCase):
         self.assertEqual(published.structure["toc"], toc)
         self.assertEqual(DocumentPublication.objects.count(), 1)
 
-    def test_invalid_section_title_binding_is_partial_issue_and_blocks_publication(self):
+    def test_invalid_section_title_binding_is_a_partial_publication_warning(self):
         markup = '<section id="s" data-section-title="nested"><h2>Title</h2>' \
             '<section id="child"><h3 id="nested">Child</h3></section></section>'
         revision = save_revision(self.draft, self.reviewer, {
             **self.revision.document, "html": markup,
         }, 1)
         self.assertTrue(any("Section title" in issue for issue in revision.issues))
-        with self.assertRaisesMessage(ValueError, "Section title"):
-            self.publish(2)
+        candidate = prepare_publication(self.draft, 2)
+        self.assertTrue(any(
+            "Section title" in issue["message"]
+            for issue in candidate["output"]["content_issues"]
+        ))
+        with self.assertRaisesMessage(ValueError, "acknowledge"):
+            publish_revision(self.draft, self.reviewer, 2, candidate["digest"])
         for attribute in (
             'data-section-url="javascript:alert(1)"',
             'data-section-url="#local"', 'data-section-role="unknown"',
@@ -806,7 +811,7 @@ class DocumentPublicationTests(TestCase):
         text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
         self.assertLess(text.rindex("Before"), text.rindex("Relocated note"))
 
-    def test_invalid_relationships_metadata_and_empty_content_block_publication(self):
+    def test_renderable_content_defects_warn_and_require_acknowledgement(self):
         cases = [
             {**self.revision.document, "html": '<p><a href="#absent">Missing</a></p>'},
             {**self.revision.document, "html": '<p class="missing-image">Missing</p>'},
@@ -814,8 +819,13 @@ class DocumentPublicationTests(TestCase):
         ]
         for number, document in enumerate(cases, 2):
             save_revision(self.draft, self.reviewer, document, number - 1)
-            with self.subTest(document=document), self.assertRaises(ValueError):
-                prepare_publication(self.draft, number)
+            with self.subTest(document=document):
+                candidate = prepare_publication(self.draft, number)
+                self.assertTrue(candidate["output"]["content_issues"])
+                with self.assertRaisesMessage(ValueError, "acknowledge"):
+                    publish_revision(
+                        self.draft, self.reviewer, number, candidate["digest"],
+                    )
         self.assertEqual(Rendition.objects.count(), 1)
         invalid_metadata = {
             **self.revision.document,
@@ -826,6 +836,79 @@ class DocumentPublicationTests(TestCase):
                 self.draft, self.reviewer, invalid_metadata,
                 self.draft.revisions.first().revision,
             )
+
+    def test_defective_revision_publication_requires_bound_acknowledgement(self):
+        broken = save_revision(self.draft, self.reviewer, {
+            **self.revision.document,
+            "html": '<section id="c1"><h2>Chapter</h2><p>'
+            '<a href="#missing-note">First note</a> and '
+            '<a href="#missing-note">Second note</a>.</p></section>',
+        }, 1)
+        candidate = prepare_publication(self.draft, broken.revision)
+        issues = candidate["output"]["content_issues"]
+        self.assertEqual(len(issues), 2)
+        self.assertEqual([issue["occurrence"] for issue in issues], [1, 2])
+        preview = self.client.get(self.url, {
+            "draft": self.draft.pk, "revision": broken.revision,
+        })
+        self.assertContains(preview, "Content warnings for this saved revision")
+        self.assertContains(preview, 'href="#missing-note"')
+        self.assertContains(preview, "Edit this location")
+        self.assertContains(preview, 'name="issue_acknowledgement"')
+
+        payload = {
+            "draft": str(self.draft.pk), "revision": broken.revision,
+            "preview_digest": candidate["digest"], "confirm": "yes",
+        }
+        missing_ack = self.client.post(self.url + self.query.replace("revision=1", "revision=2"),
+                                       payload)
+        self.assertEqual(missing_ack.status_code, 422)
+        self.assertContains(missing_ack, "explicitly acknowledge", status_code=422)
+        self.assertFalse(DocumentPublication.objects.exists())
+        wrong_ack = self.client.post(
+            self.url + self.query.replace("revision=1", "revision=2"),
+            {**payload, "issue_acknowledgement": "stale"},
+        )
+        self.assertEqual(wrong_ack.status_code, 422)
+        self.assertFalse(DocumentPublication.objects.exists())
+
+        response = self.client.post(
+            self.url + self.query.replace("revision=1", "revision=2"),
+            {**payload, "issue_acknowledgement": candidate["issue_digest"]},
+        )
+        self.assertEqual(response.status_code, 200)
+        publication = DocumentPublication.objects.get()
+        self.assertEqual(publication.rendition.content_issues, issues)
+        self.assertIn('href="#missing-note"', publication.rendition.html)
+        self.assertEqual(broken.review, "partial")
+
+        reader = self.read(publication.rendition_id)
+        self.assertContains(reader, "Content warnings")
+        self.assertContains(reader, 'href="#missing-note"')
+        output = io.BytesIO()
+        render_pdf(publication.rendition, output)
+        text = "\n".join(page.extract_text() for page in PdfReader(output).pages)
+        self.assertIn("Content warnings", text)
+        self.assertIn("Unresolved internal target: #missing-note", text)
+        self.assertIn("First note", text)
+        self.rendition.refresh_from_db()
+        self.assertNotIn("#missing-note", self.rendition.html)
+        self.assertEqual(Rendition.objects.count(), 2)
+
+    def test_changed_issue_set_rejects_the_old_acknowledgement_and_preview(self):
+        first = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": '<p><a href="#missing">Missing</a></p>',
+        }, 1)
+        first_candidate = prepare_publication(self.draft, first.revision)
+        second = save_revision(self.draft, self.reviewer, {
+            **self.revision.document, "html": '<p>Repaired.</p>',
+        }, first.revision)
+        with self.assertRaises(DocumentEditConflict):
+            publish_revision(
+                self.draft, self.reviewer, second.revision, first_candidate["digest"],
+                first_candidate["issue_digest"],
+            )
+        self.assertFalse(DocumentPublication.objects.exists())
 
     def test_tampered_revision_base_or_source_evidence_is_refused(self):
         self.draft.document_digest = "bad"
@@ -1196,7 +1279,7 @@ class DocumentPublicationTests(TestCase):
             page.extract_text() for page in PdfReader(output).pages
         ))
 
-    def test_excerpt_missing_or_cyclic_origins_block_publication_not_partial_save(self):
+    def test_excerpt_missing_or_cyclic_origins_warn_without_changing_partial_save(self):
         for markup in (
             '<section id="e" data-excerpt-parent="missing"><p>Text.</p></section>',
             '<section id="a" data-excerpt-parent="b"><p>A.</p></section>'
@@ -1209,8 +1292,15 @@ class DocumentPublicationTests(TestCase):
                     **self.revision.document, "html": markup,
                 }, current)
                 self.assertTrue(any("Excerpt origin" in issue for issue in revision.issues))
-                with self.assertRaisesMessage(ValueError, "Excerpt origin"):
-                    self.publish(revision.revision)
+                candidate = prepare_publication(self.draft, revision.revision)
+                self.assertTrue(any(
+                    "Excerpt origin" in issue["message"]
+                    for issue in candidate["output"]["content_issues"]
+                ))
+                with self.assertRaisesMessage(ValueError, "acknowledge"):
+                    publish_revision(
+                        self.draft, self.reviewer, revision.revision, candidate["digest"],
+                    )
 
     def test_mixed_whole_block_excerpt_save_reopen_and_publication_keep_every_container(self):
         blocks = (

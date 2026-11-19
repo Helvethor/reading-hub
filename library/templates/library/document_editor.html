@@ -79,6 +79,10 @@
           <button type="button" class="secondary" id="workspace-larger-content" aria-pressed="false" aria-controls="workspace-read-stage">Larger content</button>
         </div>
       </div>
+      <section id="workspace-content-issues" class="notice warning" aria-label="Content warnings affecting this preview" hidden>
+        <h2>Content warnings for Read and PDF</h2>
+        <ul id="workspace-content-issues-list"></ul>
+      </section>
       <div class="workspace-reader-stage" id="workspace-read-stage">
         {% include "library/workspace_reader_tools.html" %}
         <div id="workspace-read-content" class="workspace-read-content" aria-live="polite">
@@ -183,6 +187,14 @@
           <div id="editor-outline-items"></div>
         </nav>
         <div class="editor-canvas">
+          <section id="editor-issues" class="editor-content-issues" aria-labelledby="editor-issues-heading">
+            <div class="editor-content-issues-header">
+              <h2 id="editor-issues-heading">Content issues</h2>
+              <button type="button" id="editor-issues-recheck">Recheck issues</button>
+            </div>
+            <p id="editor-issues-status" role="status" aria-live="polite">Checking the current document…</p>
+            <ol id="editor-issues-list"></ol>
+          </section>
           <p id="editor-selection-path" aria-label="Current block structure"></p>
           <div class="editor-surface-frame">
             <div id="editor-surface" class="reader-content" data-workspace-scroll-pane></div>

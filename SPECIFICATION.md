@@ -574,7 +574,13 @@ Direct lineage URLs remain available. Full V1-V16 acceptance remains partial;
 local implementation/deployment is authorized, but remote deployment and live
 publication/default changes are not.
 
-### Locatable content defects and publication warnings (specified, not implemented)
+### Locatable content defects and publication warnings (implemented; synthetic checks passing; human acceptance pending)
+
+The implementation is covered by focused isolated backend and frontend tests for
+classification, warnings, PDF projection, folded-occurrence navigation,
+publication acknowledgement, stale-state refusal and preservation gates. Full
+long-document browser and human acceptance remains pending; no live-data change
+or deployment was performed.
 
 In the semantic-document workspace, a content defect that can be represented
 safely must not prevent Read preview, draft PDF or publication. For example, an

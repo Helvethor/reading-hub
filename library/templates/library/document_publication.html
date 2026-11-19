@@ -32,6 +32,26 @@
     <input type="hidden" name="preview_digest" value="{{ candidate.digest }}">
     <input type="hidden" name="expected_reader" value="{{ reader_target.pk|default:'' }}">
     <input type="hidden" name="expected_selection_explicit" value="{% if reader_selection_explicit %}yes{% else %}no{% endif %}">
+    {% if candidate.output.content_issues %}
+    <section class="notice warning" aria-labelledby="publication-content-warnings">
+      <h2 id="publication-content-warnings">Content warnings for this saved revision</h2>
+      <p>These defects will remain in the published edition. Publication does not verify or repair them.</p>
+      <ul>
+        {% for issue in publication_issues %}
+        <li>
+          {{ issue.message }}
+          {% if issue.section %}<span>Section: {{ issue.section }}.</span>{% endif %}
+          {% if issue.context %}<q>{{ issue.context }}</q>{% endif %}
+          <a href="{{ issue.editor_url }}">Edit this location</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <label>
+      <input type="checkbox" name="issue_acknowledgement" value="{{ candidate.issue_digest }}" required>
+      I acknowledge these content warnings for saved revision {{ candidate.revision.revision }}.
+    </label>
+    {% endif %}
     <label><input type="checkbox" name="confirm" value="yes" required> I have reviewed this saved result and its review status. Publish it as a separate edition.</label>
     <label><input type="checkbox" name="make_default" value="yes"{% if selection_requested %} checked{% endif %}> Make this the default for readers and new editing starts.</label>
     <label for="publication-selection-reason">Reason for changing the reader default (required only when selected)</label>
@@ -66,6 +86,13 @@
     <div class="reading-column publication-content{% if layout_policy %} has-layout-policy layout-policy{% endif %}">
       <header class="document-header document-header-{{ book_pages.title_layout }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.title.value }}"{% endif %}><h1>{{ version.title }}</h1>{% include 'library/document_metadata.html' %}</header>
       {% if version.warnings %}<section class="notice"><h2>Retained source warnings</h2><ul>{% for warning in version.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
+      {% if version.content_issues %}
+      <section class="notice warning" aria-label="Content warnings">
+        <h2>Content warnings</h2>
+        <p>These defects remain in this edition; publication did not verify or repair them.</p>
+        <ul>{% for issue in version.content_issues %}<li>{{ issue.message }}</li>{% endfor %}</ul>
+      </section>
+      {% endif %}
       {% if contents_toc and book_pages.contents_page %}{% include 'library/book_contents.html' %}{% endif %}
       <article class="reader-content" lang="{{ version.metadata.language|default:'en' }}"{% if layout_policy %} data-layout-before="{{ layout_boundaries.body.value }}"{% endif %}>{{ content_html|safe }}</article>
       {% if book_pages.metadata_page %}{% include 'library/document_metadata_page.html' %}{% endif %}

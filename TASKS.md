@@ -104,22 +104,24 @@ not reorder current UI/UX work or claim public-hosting readiness.
 
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 
-### Locatable content defects and publication warnings (specified only)
+### Locatable content defects and publication warnings (implemented; synthetic checks passing; human acceptance pending)
 
-- [ ] Allow semantic-workspace Read preview and draft PDF for safely representable
+- [x] Allow semantic-workspace Read preview and draft PDF for safely representable
   content defects, including unresolved internal links, with visible warnings.
-- [ ] Provide occurrence-specific, keyboard-accessible issue navigation into the
+- [x] Provide occurrence-specific, keyboard-accessible issue navigation into the
   editor, including folded sections, repeated targets, stale locations and rechecks,
   without altering content or losing unsaved work.
-- [ ] Allow publication of an exact saved revision with such defects after explicit
+- [x] Allow publication of an exact saved revision with such defects after explicit
   acknowledgement bound to the preview and issue set; preserve verification,
   safety, integrity and stale-state gates.
 - [ ] Exercise the complete long-document repair, defective preview/PDF and
   warned publication workflow, clean and stale cases, and preservation invariants
-  in the [specification](SPECIFICATION.md#locatable-content-defects-and-publication-warnings-specified-not-implemented).
+  in the [specification](SPECIFICATION.md#locatable-content-defects-and-publication-warnings-implemented-synthetic-checks-passing-human-acceptance-pending).
 
-No implementation, live-data change or deployment is authorized by this
-specification alone.
+Focused isolated tests cover the defect classification, preview and PDF warnings,
+folded-occurrence navigation, exact-revision acknowledgement, stale-state refusal,
+and unchanged hard gates. Full long-document browser and human acceptance remains
+pending. No live-data change or deployment was performed.
 
 ### Import recovery: linked-section books (2026-11-19)
 

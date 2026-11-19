@@ -12,7 +12,9 @@ import tempfile
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import unquote
 
+from bs4 import BeautifulSoup
 from django.conf import settings
 from django.db import connections
 
@@ -20,8 +22,18 @@ from library.versions import APP_VERSION
 
 logger = logging.getLogger("library")
 STYLES = Path(__file__).resolve().parent.parent / "static" / "library"
-PDF_PRESENTATION_VERSION = 18
+PDF_PRESENTATION_VERSION = 19
 PDF_XMP_NAMESPACE = "urn:reading-hub:pdf:1.0"
+
+
+def _disable_unresolved_pdf_links(html):
+    soup = BeautifulSoup(html, "html.parser")
+    targets = {node["id"] for node in soup.select("[id]")}
+    for anchor in soup.select("a[href^='#']"):
+        if unquote(anchor["href"][1:]) not in targets:
+            anchor.attrs.pop("href")
+            anchor["style"] = "color: #255c37; text-decoration: underline;"
+    return str(soup)
 
 
 def pdf_metadata_mapping(version, edition_status=None):
@@ -496,6 +508,9 @@ def render_pdf(
     )
     projection["content_html"] = inline_quote_presentation(
         projection["content_html"], getattr(version, "format_version", None),
+    )
+    projection["content_html"] = _disable_unresolved_pdf_links(
+        projection["content_html"],
     )
     identifiers = endmatter_ids(projection["content_html"])
     metadata_values = metadata_context(

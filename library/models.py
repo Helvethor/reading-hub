@@ -105,6 +105,7 @@ class Rendition(models.Model):
     html = models.TextField()
     stylesheet = models.TextField()
     warnings = models.JSONField(default=list)
+    content_issues = models.JSONField(default=list)
     app_version = models.CharField(max_length=100)
     adapter_version = models.CharField(max_length=100)
     format_version = models.CharField(max_length=100)

@@ -150,6 +150,14 @@
 #editor-outline-items [data-outline-fold] { text-align: center; padding-inline: .15rem; }
 #editor-surface .editor-folded-content { display: none !important; }
 #editor-surface .tiptap .editor-fold-placeholder { display: block; margin-block: .5rem; padding: .5rem .75rem; border: 1px dashed #486b38; background: #edf1e8; color: #344a2e; font: .85rem system-ui, sans-serif; cursor: pointer; white-space: normal; }
+#editor-surface [data-issue-highlight="true"] { outline: 3px solid #a34a24; outline-offset: 3px; background: #fff0c2; }
+.editor-content-issues { margin-block: .75rem; padding: .75rem; border: 1px solid #a34a24; background: #fff8e8; }
+.editor-content-issues-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.editor-content-issues h2 { margin: 0; font-size: 1rem; }
+.editor-content-issues ol { margin-block: .5rem 0; padding-inline-start: 1.5rem; }
+.editor-content-issues li + li { margin-block-start: .8rem; }
+.editor-content-issues li p { margin-block: .2rem; overflow-wrap: anywhere; }
+.editor-content-issues button:focus-visible { outline: 3px solid #486b38; outline-offset: 2px; }
 #editor-outline-menu { position: static; padding: .4rem; border: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
 #editor-outline-menu[hidden] { display: none; }
 #editor-outline-menu button { padding: .4rem .6rem; border: 0; background: transparent; color: #302221; font: .85rem system-ui, sans-serif; }

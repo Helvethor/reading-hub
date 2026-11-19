@@ -26,11 +26,15 @@ from library.services.document_versions import ReaderSelectionConflict, select_r
 from library.services.editor_sources import ticket_evidence
 from library.services.editor_structure import apply_legacy_article_role, section_structure
 from library.services.pipeline import fingerprint as generation_fingerprint
-from library.services.semantic_documents import canonical_document, document_issues, fingerprint
+from library.services.semantic_documents import (
+    canonical_document,
+    document_issue_details,
+    fingerprint,
+)
 from library.services.storage import read_blob
 from library.sources.adapters import adapter_for
 
-PUBLICATION_VERSION = 4
+PUBLICATION_VERSION = 5
 
 
 def prepare_publication(draft, expected_revision):
@@ -112,9 +116,11 @@ def prepare_publication(draft, expected_revision):
     document = canonical_document(document)
     source_tickets = saved_source_tickets(draft, revision)
     extra_assets = ticket_evidence(source_tickets, rendition=source)
-    issues = document_issues(document, set(evidence["assets"]) | set(extra_assets))
-    if issues:
-        raise ValueError("Resolve document issues before publishing: " + "; ".join(issues))
+    issues = document_issue_details(document, set(evidence["assets"]) | set(extra_assets))
+    blocking = [issue["message"] for issue in issues if issue["blocking"]]
+    if blocking:
+        raise ValueError("Resolve document issues before publishing: " + "; ".join(blocking))
+    content_issues = [issue for issue in issues if not issue["blocking"]]
     soup = BeautifulSoup(document["html"], "html.parser")
     apply_legacy_article_role(soup, evidence["structure"], document["metadata"])
     assets = sorted({image["src"].split("/")[2] for image in soup.select("img")})
@@ -150,7 +156,7 @@ def prepare_publication(draft, expected_revision):
     output = {
         "title": document["title"], "metadata": document["metadata"], "html": html,
         "structure": structure, "stylesheet": evidence["stylesheet"],
-        "warnings": deepcopy(evidence["warnings"]),
+        "warnings": deepcopy(evidence["warnings"]), "content_issues": content_issues,
         "app_version": versions.APP_VERSION,
         "adapter_version": evidence["versions"]["adapter"],
         "format_version": evidence["versions"]["format"],
@@ -163,17 +169,35 @@ def prepare_publication(draft, expected_revision):
         "editorial": revision.editorial,
         **({"source_tickets": source_tickets} if source_tickets else {}),
     })
-    return {"revision": revision, "output": output, "assets": assets, "digest": digest}
+    return {
+        "revision": revision, "output": output, "assets": assets, "digest": digest,
+        "issue_digest": fingerprint(content_issues),
+    }
+
+
+def _check_issue_acknowledgement(candidate, acknowledgement):
+    if candidate["output"]["content_issues"]:
+        if acknowledgement != candidate["issue_digest"]:
+            raise ValueError(
+                "Review and explicitly acknowledge the current content warnings before publishing."
+            )
+    elif acknowledgement:
+        raise DocumentEditConflict(
+            "The content warnings changed. Review the current publication preview."
+        )
 
 
 @transaction.atomic
-def publish_revision(draft, reviewer, expected_revision, preview_digest):
+def publish_revision(
+    draft, reviewer, expected_revision, preview_digest, issue_acknowledgement=None,
+):
     # Share the draft-save lock, including on SQLite.
     Rendition.objects.filter(pk=draft.rendition_id).update(id=F("id"))
     draft.refresh_from_db()
     candidate = prepare_publication(draft, expected_revision)
     if preview_digest != candidate["digest"]:
         raise DocumentEditConflict("The publication preview changed. Review it again.")
+    _check_issue_acknowledgement(candidate, issue_acknowledgement)
     revision = candidate["revision"]
     previous = DocumentPublication.objects.filter(revision=revision).first()
     if previous:
@@ -193,7 +217,7 @@ def publish_revision(draft, reviewer, expected_revision, preview_digest):
         identity=fingerprint(["document-publication", candidate["digest"]]),
         output_digest=fingerprint([
             output["html"], output["structure"], output["metadata"],
-            output["title"], output["stylesheet"],
+            output["title"], output["stylesheet"], output["content_issues"],
         ]),
         **output,
     )
@@ -210,12 +234,14 @@ def publish_revision(draft, reviewer, expected_revision, preview_digest):
 def publish_revision_and_select(
     draft, reviewer, expected_revision, preview_digest,
     expected_reader_id, expected_selection_explicit, reason,
+    issue_acknowledgement=None,
 ):
     Document.objects.filter(pk=draft.rendition.document_id).update(id=F("id"))
     document = Document.objects.select_for_update().get(pk=draft.rendition.document_id)
     candidate = prepare_publication(draft, expected_revision)
     if preview_digest != candidate["digest"]:
         raise DocumentEditConflict("The publication preview changed. Review it again.")
+    _check_issue_acknowledgement(candidate, issue_acknowledgement)
     revision = candidate["revision"]
     existing = DocumentPublication.objects.filter(revision=revision).select_related(
         "rendition",
@@ -246,7 +272,9 @@ def publish_revision_and_select(
             "The reader selection changed. Review the current target before publishing "
             "and changing the default."
         )
-    publication = publish_revision(draft, reviewer, expected_revision, preview_digest)
+    publication = publish_revision(
+        draft, reviewer, expected_revision, preview_digest, issue_acknowledgement,
+    )
     select_reader_target(
         document, publication.rendition_id, reviewer, expected_reader_id, reason,
     )

@@ -25,6 +25,7 @@ from library.services.document_edits import (
 )
 from library.services.semantic_documents import (
     canonical_document,
+    document_issue_details,
     document_issues,
     fingerprint,
 )
@@ -124,6 +125,26 @@ class SemanticDocumentTests(SimpleTestCase):
     def test_missing_image_placeholders_are_not_a_complete_target(self):
         result = canonical_document(document('<p><span class="missing-image">Missing</span></p>'))
         self.assertIn("unavailable-image", document_issues(result, set())[0])
+
+    def test_quality_findings_are_occurrence_specific_and_assets_remain_blocking(self):
+        digest = "a" * 64
+        result = canonical_document(document(
+            '<section id="chapter"><h2>Chapter</h2><p>'
+            '<a href="#missing">First</a> <a href="#missing">Second</a>'
+            f'<img src="/assets/{digest}/" alt="Unbound"></p>'
+            '<p class="missing-image">Unavailable.</p></section>'
+        ))
+        issues = document_issue_details(result, set())
+        links = [issue for issue in issues if issue["code"] == "unresolved-internal-link"]
+        self.assertEqual([issue["occurrence"] for issue in links], [1, 2])
+        self.assertEqual([issue["context"] for issue in links], ["First", "Second"])
+        self.assertTrue(all(not issue["blocking"] for issue in links))
+        self.assertTrue(next(
+            issue for issue in issues if issue["code"] == "unbound-asset"
+        )["blocking"])
+        self.assertFalse(next(
+            issue for issue in issues if issue["code"] == "unavailable-image"
+        )["blocking"])
 
     def test_direct_split_merge_and_move_need_no_operation_vocabulary(self):
         initial = canonical_document(document(

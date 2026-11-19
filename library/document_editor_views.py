@@ -1,8 +1,10 @@
 import json
 import logging
 import uuid
+from copy import deepcopy
 from io import BytesIO
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
@@ -10,8 +12,12 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import URLValidator
 from django.db import OperationalError, transaction
 from django.http import (
-    FileResponse, Http404, HttpResponse, HttpResponseNotAllowed,
-    HttpResponsePermanentRedirect, JsonResponse,
+    FileResponse,
+    Http404,
+    HttpResponse,
+    HttpResponseNotAllowed,
+    HttpResponsePermanentRedirect,
+    JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -459,7 +465,8 @@ def _workspace_preview_context(request, source, snapshot):
         )
     version = SimpleNamespace(
         document=source.document, title=document["title"], metadata=metadata,
-        structure=structure, warnings=snapshot["warnings"], document_publication=None,
+        structure=structure, warnings=snapshot["warnings"],
+        content_issues=snapshot["issues"], document_publication=None,
         created_at=source.created_at, app_version=source.app_version,
         adapter_version=source.adapter_version, format_version=source.format_version,
     )
@@ -499,8 +506,9 @@ def workspace_preview(request, pk):
     source = get_version(pk)
     try:
         snapshot = _workspace_snapshot(request, source)
-        from library.services.reading_styles import style_context
         from django.template.loader import render_to_string
+
+        from library.services.reading_styles import style_context
 
         markup = render_to_string(
             "library/workspace_read_preview.html",
@@ -520,6 +528,7 @@ def workspace_preview(request, pk):
         "html": markup,
         "state": _workspace_content_state(snapshot),
         "revision": snapshot["saved_revision"],
+        "issues": snapshot["issues"],
         "appearance": {
             "settings": style["reading_style"],
             "origins": style["reading_style_origins"],
@@ -579,30 +588,43 @@ def workspace_pdf(request, pk):
         from library.services.reading_styles import selected_style, selected_theme
 
         state = _workspace_content_state(snapshot)
-        if state == "exact":
+        if state == "exact" and not snapshot["issues"]:
             return _exact_workspace_pdf(request, source, selected_style, selected_theme)
-        document = snapshot["output_document"]
-        version = SimpleNamespace(
-            document=source.document, title=document["title"], metadata=document["metadata"],
-            structure=snapshot["structure"], html=document["html"],
-            stylesheet=snapshot["stylesheet"], warnings=snapshot["warnings"],
-            document_publication=None, created_at=source.created_at,
-            app_version=source.app_version, adapter_version=source.adapter_version,
-            format_version=versions.FORMAT_VERSION,
-        )
+        if state == "exact":
+            version = SimpleNamespace(
+                document=source.document, title=source.title, metadata=source.metadata,
+                structure=source.structure, html=source.html, stylesheet=source.stylesheet,
+                warnings=source.warnings, content_issues=snapshot["issues"],
+                document_publication=getattr(source, "document_publication", None),
+                created_at=source.created_at, app_version=source.app_version,
+                adapter_version=source.adapter_version, format_version=source.format_version,
+            )
+        else:
+            document = snapshot["output_document"]
+            version = SimpleNamespace(
+                document=source.document, title=document["title"], metadata=document["metadata"],
+                structure=snapshot["structure"], html=document["html"],
+                stylesheet=snapshot["stylesheet"], warnings=snapshot["warnings"],
+                content_issues=snapshot["issues"],
+                document_publication=None, created_at=source.created_at,
+                app_version=source.app_version, adapter_version=source.adapter_version,
+                format_version=versions.FORMAT_VERSION,
+            )
         destination = BytesIO()
         render_pdf(
             version, destination, selected_style(request, source),
             theme=selected_theme(request),
             approved_assets=snapshot["assets"],
-            edition_status=_workspace_edition_status(source, snapshot),
+            edition_status=(
+                None if state == "exact" else _workspace_edition_status(source, snapshot)
+            ),
         )
         destination.seek(0)
         response = FileResponse(
             destination,
             content_type="application/pdf",
             as_attachment=True,
-            filename=pdf_filename(document["title"]),
+            filename=pdf_filename(version.title),
         )
         response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"
@@ -846,10 +868,12 @@ def publication(request, pk):
                     draft, request.user, revision, values.get("preview_digest"),
                     int(expected_reader) if expected_reader else None,
                     expected_explicit == "yes", selection_reason,
+                    values.get("issue_acknowledgement"),
                 )
             else:
                 published = publish_revision(
                     draft, request.user, revision, values.get("preview_digest"),
+                    values.get("issue_acknowledgement"),
                 )
             candidate = None
         if candidate and request.GET.get("stylesheet") == "1":
@@ -882,6 +906,7 @@ def publication(request, pk):
     reader_target = reader_document.reader_target()
     context = {
         "source": source, "publication_error": error, "published": published,
+        "publication_issues": [],
         "reader_target": reader_target,
         "reader_selection_explicit": reader_document.reader_selection_explicit,
         "is_reader_default": bool(
@@ -898,6 +923,22 @@ def publication(request, pk):
     if candidate or published:
         version = published.rendition if published else Rendition(
             document=source.document, snapshot=source.snapshot, **candidate["output"])
+        if candidate:
+            editor_path = reverse("document-editor", args=[source.pk])
+            context["publication_issues"] = deepcopy(
+                candidate["output"]["content_issues"],
+            )
+            for index, issue in enumerate(context["publication_issues"]):
+                parameters = urlencode({
+                    "draft": draft.pk,
+                    "tab": "edit",
+                    "issue": index,
+                    "issue_revision": candidate["revision"].revision,
+                    "issue_code": issue["code"],
+                    "issue_target": issue["target"],
+                    "issue_occurrence": issue["occurrence"],
+                })
+                issue["editor_url"] = f"{editor_path}?{parameters}#editor-issues"
         projection = publication_view(
             version.html, version.structure["toc"], version.title,
             book=bool(version.structure.get("book")),
