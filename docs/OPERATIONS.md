@@ -57,6 +57,10 @@ requires Pango/Harfbuzz/fontconfig and suitable fonts; on Arch Linux install
 `pango` and suitable fonts such as `noto-fonts` when missing. Public hosting,
 containers, CI infrastructure and automatic migrations are outside this routine.
 All listeners remain localhost-only; never tunnel or bind to all interfaces.
+The separate planned Docker/Compose route for `read.shabang.ch` is described in
+the [public deployment roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md). Do not treat this
+local lifecycle as public-hosting support or use it to bypass the roadmap's
+authorization and data boundaries.
 
 The [launcher](../workflow.py) is the contributor entry point. It puts private
 runtime state under `$XDG_STATE_HOME/reading-hub` (normally

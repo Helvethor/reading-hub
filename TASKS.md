@@ -80,6 +80,21 @@ forms were submitted with `requestSubmit`, not a direct API or database edit.
 Promotion applied no migrations or content changes. Full publication and human
 interaction acceptance remain incomplete.
 
+### Future public deployment route (planned; not current delivery ordering)
+
+The agreed direction is a single private server at `read.shabang.ch`, packaged
+with Docker Compose, a production WSGI server and reverse-proxy HTTPS. SQLite
+remains appropriate for the initial single-instance deployment. The detailed
+sequenced handoff and acceptance gates are in
+[the public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md).
+
+Local production simulation with synthetic isolated data, a separate port and
+an unsigned local certificate is authorized. Public DNS/firewall exposure,
+remote deployment, real-data transfer/migration and changes to the existing
+localhost live service are not authorized by this plan. Keep the existing
+contributor workflow and data/worker protections intact. This future route does
+not reorder current UI/UX work or claim public-hosting readiness.
+
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 
 ### Import recovery: linked-section books (2026-11-19)

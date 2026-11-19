@@ -22,6 +22,9 @@ require separate authorization and recovery evidence. See
 [Operations](docs/OPERATIONS.md#environment-contract) for the executable routine,
 ownership/path guards, acceptance and source-only rollback. This workflow is
 not public-hosting hardening, a sandbox or product acceptance certification.
+The separately planned single-server public route is recorded in the
+[public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md); it does not
+authorize remote deployment, public exposure or real-data transfer.
 
 ### Coherent UI/UX contract (agreed 2026-11-08; deployed locally, acceptance incomplete)
 
