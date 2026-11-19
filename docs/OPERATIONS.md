@@ -56,12 +56,12 @@ are not implicitly trusted. Existing source extraction is unchanged, so adapter
 Use Python >= 3.14, Node/npm, Git and a Linux/WSL shell. WeasyPrint also
 requires Pango/Harfbuzz/fontconfig and suitable fonts; on Arch Linux install
 `pango` and suitable fonts such as `noto-fonts` when missing. Public hosting,
-containers, CI infrastructure and automatic migrations are outside this routine.
-All listeners remain localhost-only; never tunnel or bind to all interfaces.
-The separate planned Docker/Compose route for `read.shabang.ch` is described in
-the [public deployment roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md). Do not treat this
-local lifecycle as public-hosting support or use it to bypass the roadmap's
-authorization and data boundaries.
+CI infrastructure and automatic migrations are outside this routine. All
+listeners remain localhost-only; never tunnel or bind to all interfaces. The
+separate Docker/Compose production simulation for `read.shabang.ch` is a D3
+rehearsal, not part of this lifecycle or public-hosting support; follow the
+instructions below and the [public deployment roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md)
+without bypassing their authorization and data boundaries.
 
 The [launcher](../workflow.py) is the contributor entry point. It puts private
 runtime state under `$XDG_STATE_HOME/reading-hub` (normally
@@ -85,6 +85,73 @@ code running as the same user. Use separate OS accounts/containers when stronger
 isolation is needed. Legacy direct Django startup remains compatible, with
 environment unset meaning live; **do not use bare `manage.py migrate` or
 `manage.py runserver` as the contributor quickstart**.
+
+### Local production simulation
+
+The D3 Compose project rehearses the committed production image with disposable
+synthetic fixtures. It uses a separate state directory under
+`$XDG_STATE_HOME/reading-hub/production-simulation` (normally
+`~/.local/state/reading-hub/production-simulation`), a self-signed certificate,
+and a loopback-only HTTPS port (8444 by default). Keep the same
+`XDG_STATE_HOME` value for setup, Compose and the smoke script. The application
+has no published host port and stays on an internal network; only the proxy is
+published to loopback. Its separate ingress bridge disables IP masquerading
+because Docker does not publish ports from this internal bridge. Workers remain
+disabled. The browser's certificate-authority warning is expected; do not make
+this certificate trusted system-wide. If the configured port is occupied, do
+not stop its owner: choose a free port in the private `compose.env` file and
+pass that same value with `--port` to the smoke script.
+
+Build only from a clean, committed checkout so the image revision label matches
+its source. Check that the configured HTTPS port is free before starting the
+proxy; never stop another listener to make room.
+
+```sh
+scripts/init-production-simulation.sh
+simulation_dir="${XDG_STATE_HOME:-$HOME/.local/state}/reading-hub/production-simulation"
+if [ -n "$(git status --porcelain)" ]; then
+    printf '%s\n' "Commit or set aside changes before building the simulation image." >&2
+    exit 1
+fi
+revision=$(git rev-parse HEAD)
+export READING_HUB_IMAGE="reading-hub:$revision"
+docker build --build-arg SOURCE_REVISION="$revision" -t "$READING_HUB_IMAGE" .
+
+simulation_compose() {
+    docker compose -p reading-hub-production-simulation \
+        --env-file "$simulation_dir/compose.env" \
+        -f compose.production-simulation.yaml "$@"
+}
+simulation_compose config --quiet
+simulation_compose run --rm web python manage.py check
+simulation_compose run --rm web python manage.py makemigrations --check --dry-run
+simulation_compose run --rm web python manage.py migrate --plan
+simulation_compose run --rm web python manage.py migrate --noinput
+simulation_compose run --rm web python manage.py seed_production_simulation \
+    --confirm-synthetic-data
+simulation_compose up -d --wait web
+simulation_compose up -d --wait proxy
+python -B scripts/smoke-production-simulation.py
+```
+
+The seed command refuses non-fixture accounts, unrelated documents, queued jobs,
+pending migrations or non-isolated storage. It writes synthetic credentials
+privately; never print or reuse them. After replacing the web container, recreate
+the proxy as well so it resolves the new container address, then verify the saved
+edits without making another:
+
+```sh
+simulation_compose up -d --force-recreate --wait web
+simulation_compose up -d --force-recreate --wait proxy
+python -B scripts/smoke-production-simulation.py --verify-only
+simulation_compose stop
+```
+
+`stop` leaves the private synthetic data, certificate and environment file in
+place for later inspection or restart. Do not point this Compose project at
+development, staging, live or real-library storage. The exact D3 implementation
+and observed acceptance evidence are in the
+[roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md).
 
 ### Development loop
 

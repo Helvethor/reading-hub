@@ -1,6 +1,6 @@
 # Public deployment roadmap
 
-Status: **planned; no public deployment or production-readiness claim**.
+Status: **D3 locally validated; no public deployment or production-readiness claim**.
 This handoff records the agreed route for a future public Reading Hub at
 `read.shabang.ch`, hosted on one private server and managed by one project
 operator. It is an implementation guide, not authorization to expose a server,
@@ -158,6 +158,40 @@ remote deployment remain separate.
 **Acceptance:** the synthetic site works over local HTTPS with the expected
 browser trust warning; state survives container replacement; no live data,
 credentials or service were touched.
+
+**Status (2026-11-19):** implemented in `f13e1a7` and completed with the
+loopback-ingress correction in `72803be`. The final local image
+`reading-hub:72803be2cd0e9f0569d821b43d96a8dcc33d8bae` has OCI revision label
+`72803be2cd0e9f0569d821b43d96a8dcc33d8bae` and build manifest digest
+`sha256:ef764787aebb1a66c96d606161fa46fabe785592fda77efab9bf6b6e6b0bd09f`.
+It was not published. Only the proxy was published, at
+`127.0.0.1:8444`; Gunicorn had no host port. Application state and the
+self-signed certificate live outside the checkout under
+`~/.local/state/reading-hub/production-simulation` with private directory/key
+permissions. The application stayed on an internal network with workers
+disabled. Docker did not forward a port from an internal-only network, so the
+proxy also uses a dedicated bridge with IP masquerading disabled; the app was
+not attached to that bridge.
+
+The isolated test command
+`python workflow.py test library.tests.test_production_simulation
+library.tests.test_development library.tests.test_accounts` passed all 15 tests.
+Focused Ruff check/format, shell syntax and `docker compose config --quiet` passed.
+Production `manage.py check` and `migrate --check` passed; migration planning
+was followed by explicit migration and the guarded synthetic seed command.
+Over HTTPS, the smoke script verified anonymous article/book readers, static
+CSS, article/book PDFs, reviewer login, and edit/save/reopen for both works.
+After forced web and proxy replacement, SHA-256 hashes for SQLite, the signing
+key and every retained blob were unchanged; `--verify-only` passed. A
+request-local mapping of `read.shabang.ch` to `127.0.0.1` returned HTTP 200
+without changing DNS or hosts files. The browser displayed
+`ERR_CERT_AUTHORITY_INVALID` for the expected self-signed certificate. The
+Compose project was stopped afterward and its synthetic state retained.
+
+This is synthetic, automated local HTTP-client and container evidence; browser
+workflow interaction, human acceptance, backup/restore, remote hosting and
+public readiness are not established. The existing live listener on 8765,
+unrelated listener on 8443, public DNS and real library data were not touched.
 
 ### D4 — Persistence, backup and recovery
 
