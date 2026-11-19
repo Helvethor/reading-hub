@@ -527,14 +527,30 @@ class DocumentEditorViewTests(TestCase):
         self.assertContains(response, 'id="editor-context-menu" role="menu"')
         self.assertContains(response, "Shift+F10")
         self.assertContains(response, 'aria-label="Book parts"')
-        self.assertContains(response, "Whole book")
+        self.assertContains(response, "Book outline")
         self.assertNotContains(response, "lower-right handle")
-        self.assertContains(response, "The outline and toolbar stay in normal page flow")
-        for value, label in (("book", "Whole book"), ("title", "Title"),
-                             ("toc", "ToC"), ("sections", "Sections")):
-            self.assertContains(response, f'<option value="{value}">{label}</option>')
-        self.assertContains(response, 'id="editor-section-filter"')
-        self.assertContains(response, '<option value="">All sections</option>')
+        self.assertContains(response, 'id="editor-diff-toggle"')
+        self.assertNotContains(response, 'id="editor-part"')
+        self.assertNotContains(response, 'id="editor-section-filter"')
+        self.assertNotContains(response, 'id="editor-result-filter"')
+        self.assertNotContains(response, 'data-content-fold')
+        self.assertNotContains(response, 'id="editor-help"')
+        self.assertContains(response, 'id="editor-outline-expand"')
+        restore = workspace.select_one("#editor-restore")
+        self.assertIsNotNone(restore)
+        self.assertTrue(restore.has_attr("hidden"))
+        self.assertEqual(restore.get_text(strip=True), "Restore")
+        self.assertEqual(restore.get("aria-label"), "Restore this tab's unsaved draft")
+        self.assertEqual(restore.get("title"), "Restore this tab's unsaved draft")
+        self.assertIsNotNone(restore.find_parent(class_="editor-pilot-toolbar"))
+        self.assertEqual(workspace.select_one("#editor-diff-toggle").get_text(strip=True), "Diff")
+        format_toolbar = workspace.select_one(".editor-format-toolbar")
+        selection_tools = workspace.select_one("#editor-context-menu")
+        for action in ("ul", "ol"):
+            self.assertEqual(
+                str(format_toolbar.select_one(f'[data-list="{action}"] svg')),
+                str(selection_tools.select_one(f'[data-list="{action}"] svg')),
+            )
         self.assertContains(response, "Book structure")
         self.assertContains(response, "Add / restore section")
         self.assertContains(response, "Section title, URL and role")
@@ -561,17 +577,6 @@ class DocumentEditorViewTests(TestCase):
         self.assertEqual(selection_path.find_next_sibling(), editor_surface)
         self.assertIsNone(workspace.select_one("#editor-view-notice"))
         self.assertNotIn("editor-view-notice", response.content.decode())
-        self.assertIsNone(workspace.select_one("#editor-part").get("aria-describedby"))
-        self.assertIsNone(workspace.select_one("#editor-section-filter").get("aria-describedby"))
-        self.assertTrue(
-            workspace.select_one("#editor-part").parent.get_text(" ", strip=True).startswith("Show "),
-        )
-        self.assertTrue(
-            workspace.select_one("#editor-section-filter").parent.get_text(" ", strip=True).startswith(
-                "Section ",
-            ),
-        )
-        self.assertContains(response, 'id="editor-help"')
         self.assertContains(response, 'aria-label="Paragraph alignment"')
         self.assertContains(response, "click again to inherit")
         self.assertNotContains(response, 'data-align=""')
@@ -646,9 +651,9 @@ class DocumentEditorViewTests(TestCase):
         self.assertNotContains(response, 'class="workspace-notices"')
         self.assertNotContains(response, 'editor-scope-help')
         self.assertContains(response, 'id="workspace-baseline-state"')
-        self.assertContains(response, 'class="workspace-tabs editor-tabs"')
+        self.assertContains(response, 'class="workspace-tabs workspace-joined-controls editor-tabs"')
         editor_bundle = page.select_one('script[src*="library/generated/editor-pilot.js"]')
-        self.assertIn("workspace-vp-v66", editor_bundle["src"])
+        self.assertIn("workspace-vq-v71", editor_bundle["src"])
 
     def test_reading_style_controls_are_in_read_not_edit_and_never_style_editor(self):
         from bs4 import BeautifulSoup

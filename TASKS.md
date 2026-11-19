@@ -319,20 +319,27 @@ for the action matrix and acceptance criteria.
 
 ### Milestone V.t: Compact editor commands, contextual tools and whole-document view
 
-**Status: specification only.** See the
+**Status: source implementation present; frontend/backend checks pass; native
+browser acceptance remains open.** See the
 [V.t handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vt-compact-editor-commands-contextual-tools-and-whole-document-view)
 for command visibility, navigation, layout and end-to-end acceptance.
 
-- [ ] Unify toolbar and Selection tools actions/icons; expose all applicable
+- [x] Unify toolbar and Selection tools actions/icons; expose all applicable
   supported formatting actions and hide inapplicable actions in both surfaces.
-- [ ] Replace result/diff selection with a Diff state-button and automatically
+- [x] Replace result/diff selection with a Diff state-button and automatically
   refresh comparison when its baseline changes.
-- [ ] Consolidate outline commands; remove follow-scroll settings and content
+- [x] Consolidate outline commands; remove follow-scroll settings and content
   scope controls so the complete document remains visible.
-- [ ] Remove editor and outline help walls; move unsaved-draft recovery into the
+- [x] Remove editor and outline help walls; move unsaved-draft recovery into the
   editor command bar and correct the focused-surface border stacking.
 - [ ] Verify keyboard/focus, native-browser desktop and narrow/zoom layout, draft
   recovery, comparison updates, and unchanged saved/reader/print/PDF behavior.
+
+Focused automated verification: `npm test` (360 tests), `npm run build`, and
+`python workflow.py test library.tests.test_document_editor_views` (45 tests)
+pass. Native-browser interaction, responsive/zoom/theme behavior and
+save/reopen/Read/print/PDF acceptance remain unverified; no deployment or
+live-data changes were made.
 
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 

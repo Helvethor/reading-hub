@@ -26,15 +26,16 @@ const attrs = {
 export function protectSavedEdition(editor, form, notify) {
   const message = "Choose a working copy in Versions before editing or saving.";
   const navigation = [
-    "#editor-part", "#editor-section-filter",
-    "#editor-outline-toggle", "#editor-result-filter", "#editor-diff-revision",
-    "#editor-diff-baseline", "#editor-choose-working-copy", "[data-part]", "[data-book-view]",
-    "[data-outline-fold]", "[data-content-fold]", "[data-book-group-fold]",
-    ".editor-outline-options input", ".editor-outline-options button",
+    "#editor-outline-toggle", "#editor-diff-toggle", "#editor-diff-revision",
+    "#editor-choose-working-copy", "[data-part]", "[data-book-view]",
+    "[data-outline-fold]", "[data-book-group-fold]",
   ].join(", ");
   function disableEditing() {
     for (const control of form.querySelectorAll("button, input, select, textarea")) {
       if (!control.matches(navigation)) control.disabled = true;
+    }
+    for (const control of form.querySelectorAll(".editor-format-toolbar button, #editor-tools")) {
+      control.hidden = true;
     }
   }
   editor.setEditable(false, false);
@@ -1272,7 +1273,6 @@ export function createBoundedEditor(element, html, onUpdate = () => {}, metadata
       handleScrollToSelection: keepSelectionClearOfStack,
       attributes: {
         role: "textbox", "aria-label": "Editable reading document", "aria-multiline": "true",
-        "aria-describedby": "editor-help",
       },
       handleDOMEvents: {
         copy: (view, event) => {

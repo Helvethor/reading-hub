@@ -1,5 +1,5 @@
 import {visibleBand} from "./page-scroll.js";
-import {expandDocumentFolds, foldedDocumentParts, toggleDocumentFold, visiblePart} from "./workspace.js";
+import {visiblePart} from "./workspace.js";
 
 export function outlineHierarchy(parts) {
   return parts.map((part, index) => {
@@ -26,21 +26,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
   const owner = outline.ownerDocument;
   const collapsed = new Set();
   let parts = [], hierarchy = [], frame = null, lastActive = null;
-  const options = owner.createElement("div");
-  options.className = "editor-outline-options";
-  const followLabel = owner.createElement("label");
-  const follow = owner.createElement("input");
-  follow.type = "checkbox";
-  follow.checked = true;
-  followLabel.append(follow, " Follow scroll");
-  const expand = owner.createElement("button");
-  expand.type = "button";
-  expand.textContent = "Expand outline";
-  const expandContent = owner.createElement("button");
-  expandContent.type = "button";
-  expandContent.textContent = "Expand editor";
-  options.append(followLabel, expand, expandContent);
-  outline.before(options);
+  const expand = owner.querySelector("#editor-outline-expand");
   const key = part => `${part.kind}:${part.id || `${part.from}:${part.to}:${part.label}`}`;
   function visibility() {
     outline.querySelectorAll("[data-outline-index]").forEach(row => {
@@ -66,9 +52,6 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     if (!(node instanceof owner.defaultView.HTMLElement) || !node.getClientRects().length) return null;
     const first = node.getBoundingClientRect();
     if (part.kind === "Section") return first;
-    if (foldedDocumentParts(editor).some(fold => fold.from === part.from && fold.to === part.to)) {
-      return first;
-    }
     const end = editor.view.coordsAtPos(Math.max(part.from, part.to - 1));
     return {top: first.top, bottom: Math.max(first.bottom, end.bottom)};
   }
@@ -110,7 +93,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
       if (row === active?.row) button.setAttribute("aria-current", "location");
       else button.removeAttribute("aria-current");
     });
-    if (follow.checked && activeChanged && active) {
+    if (activeChanged && active) {
       let row = active.row, index = active.index;
       while (row?.hidden && index !== undefined && hierarchy[index].parent >= 0) {
         index = hierarchy[index].parent;
@@ -137,7 +120,6 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     hierarchy = outlineHierarchy(parts);
     const currentKeys = new Set(parts.map(key));
     for (const id of collapsed) if (!currentKeys.has(id)) collapsed.delete(id);
-    const folds = foldedDocumentParts(editor);
     for (const button of [...outline.querySelectorAll("[data-part]")]) {
       if (button.dataset.part === "") {
         const root = owner.createElement("div");
@@ -192,14 +174,6 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
         spacer.className = "editor-outline-spacer";
         controls.append(spacer);
       }
-      const content = owner.createElement("button");
-      content.type = "button";
-      content.dataset.contentFold = String(index);
-      const folded = folds.some(fold => key(fold) === key(part));
-      content.textContent = folded ? "\u25b8" : "\u25be";
-      content.setAttribute("aria-expanded", String(!folded));
-      content.setAttribute("aria-label", `${folded ? "Expand" : "Collapse"} editor content: ${part.label}`);
-      controls.append(content);
       const actions = owner.createElement("button");
       actions.type = "button";
       actions.dataset.sectionActions = String(index);
@@ -212,24 +186,20 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
   }
   function click(event) {
     const nav = event.target.closest("[data-outline-fold]");
-    const content = event.target.closest("[data-content-fold]");
-    if (!nav && !content) return;
+    if (!nav) return;
     event.stopPropagation();
-    try {
-      if (nav) {
-        const id = key(parts[Number(nav.dataset.outlineFold)]);
-        if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
-        visibility();
-        schedule();
-      } else {
-        toggleDocumentFold(editor, parts[Number(content.dataset.contentFold)]);
-      }
-    } catch (failure) { showError(failure.message); }
+    const id = key(parts[Number(nav.dataset.outlineFold)]);
+    if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+    visibility();
+    schedule();
   }
   outline.addEventListener("click", click);
-  expand.addEventListener("click", () => { collapsed.clear(); expandGroups(); visibility(); schedule(); });
-  expandContent.addEventListener("click", () => expandDocumentFolds(editor));
-  follow.addEventListener("change", () => { lastActive = null; schedule(); });
+  expand?.addEventListener("click", () => {
+    collapsed.clear();
+    expandGroups();
+    visibility();
+    schedule();
+  });
   const mobileToggle = surface.closest("form")?.querySelector("#editor-outline-toggle");
   mobileToggle?.addEventListener("click", () => {
     const open = surface.closest(".editor-workspace-body").classList.toggle("editor-outline-open");
@@ -250,7 +220,6 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
     owner.defaultView.removeEventListener("resize", schedule);
     observer?.disconnect();
     if (frame !== null) cancelAnimationFrame(frame);
-    options.remove();
   });
   return {render, schedule};
 }

@@ -27,10 +27,10 @@ import {
   buildTableEdit, applyTableEdit,
 } from "./tables.js";
 import {semanticDOM} from "./semantic-structure.js";
-import {applyList, listState, mountListEditing} from "./lists.js";
+import {applyList, canFormatList, listState, mountListEditing} from "./lists.js";
 import {insertHorizontalRule} from "./horizontal-rule.js";
 import {
-  documentParts, foldedDocumentParts, showDocumentPart, visiblePart,
+  documentParts, showDocumentPart, visiblePart,
   workspaceContext, setWorkspaceContext,
 } from "./workspace.js";
 import {mountDynamicOutline} from "./outline.js";
@@ -44,7 +44,7 @@ import {mountSectionManagement} from "./section-management.js";
 import {mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
-import {isTocNumberingChange, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 import {mountNoteRepairs} from "./note-repairs.js";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
@@ -55,7 +55,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
 })) {
   const owner = form.ownerDocument;
   const surface = form.querySelector("#editor-surface");
-  const partSelect = form.querySelector("#editor-part");
   const outline = form.querySelector("#editor-outline-items");
   const path = form.querySelector("#editor-selection-path");
   const menu = form.querySelector("#editor-context-menu");
@@ -77,7 +76,6 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let parts = [], menuTarget = null;
   const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError,
     initial.presentation);
-  const sectionFilter = bookViews.filter;
   let context = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
   setWorkspaceContext(editor, context);
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
@@ -280,31 +278,19 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       return {...part, role: part.role || original?.role, marker: tocMarker(numbering[index])};
     });
     const sections = movableSections(editor.state.doc, context);
-    const scope = visiblePart(editor);
-    if (scope && bookViews.view !== "sections") bookViews.show("sections");
-    sectionFilter.replaceChildren(new Option("All sections", ""));
     outline.replaceChildren();
-    let matched = !scope;
-    const choices = [{label: "Whole book", depth: 0}, ...parts];
-    for (const [index, part] of choices.entries()) {
-      const value = index ? String(index - 1) : "";
-      const current = index ? scope?.from === part.from && scope?.to === part.to : !scope;
+    for (const [index, part] of parts.entries()) {
+      const value = String(index);
       const title = `${part.marker ? `${part.marker} ` : ""}${part.label}`;
-      const label = index
-        ? `${"  ".repeat(Math.min(part.depth, 8))}${part.displayKind || part.kind}: ${title}`
-        : title;
-      if (index) sectionFilter.add(new Option(label, value));
-      if (current) sectionFilter.value = value;
-      if (current) matched = true;
+      const label = `${"  ".repeat(Math.min(part.depth, 8))}${part.displayKind || part.kind}: ${title}`;
       const button = owner.createElement("button");
       button.type = "button";
       button.textContent = label;
       button.dataset.part = value;
       button.title = part.label;
-      if (current) button.setAttribute("aria-current", "true");
-      if (index) outline.append(button);
-      const sectionIndex = index ? sections.findIndex(section =>
-        section.from + 1 === part.from && section.to - 1 === part.to) : -1;
+      outline.append(button);
+      const sectionIndex = sections.findIndex(section =>
+        section.from + 1 === part.from && section.to - 1 === part.to);
       if (sectionIndex >= 0) {
         button.draggable = true;
         button.dataset.sectionMove = String(sectionIndex);
@@ -313,47 +299,15 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         button.title = `${part.label} — Right-click or Shift+F10 for section actions`;
       }
     }
-    if (!matched) {
-      const option = new Option(`Focused range: ${scope.label}`, "focused-range");
-      option.disabled = true;
-      sectionFilter.add(option);
-      sectionFilter.value = option.value;
-    }
     dynamicOutline.render(parts);
     bookViews.navigation(outline);
     bookViews.refresh(parts);
   }
-  function choosePart(value) {
-    try {
-      showError("");
-      closeMenu();
-      bookViews.show("sections");
-      showDocumentPart(editor, value === "" ? null : parts[Number(value)]);
-      revealStart(surface);
-      editor.commands.focus();
-    } catch (failure) {
-      showError(failure.message);
-    }
-    refreshOutline();
-  }
-  function chooseView(value) {
-    try {
-      showError("");
-      closeMenu();
-      bookViews.show(value);
-      showDocumentPart(editor, null);
-      revealStart(surface);
-      refreshOutline();
-    } catch (failure) { showError(failure.message); }
-  }
-  partSelect.addEventListener("change", () => chooseView(partSelect.value));
-  sectionFilter.addEventListener("change", () => choosePart(sectionFilter.value));
   function navigatePart(index) {
     try {
       showError("");
       closeMenu();
       const part = parts[index];
-      if (!["book", "sections"].includes(bookViews.view)) bookViews.show("sections");
       showDocumentPart(editor, part, {filter: false});
       refreshOutline();
       const target = editor.view.nodeDOM(part.kind === "Section" ? part.from - 1 : part.from);
@@ -361,13 +315,11 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       editor.view.focus();
     } catch (failure) { showError(failure.message); }
   }
-  // Book-level rows navigate like section rows: reveal and scroll within a view that
-  // contains them; the View select isolates a generated page or the sections.
+  // Book-level rows reveal and scroll to their generated page or prose region.
   function navigateBook(value) {
     try {
       showError("");
       closeMenu();
-      if (![value, "book"].includes(bookViews.view)) bookViews.show(value === "sections" ? "sections" : "book");
       if (visiblePart(editor)) showDocumentPart(editor, null);
       refreshOutline();
       const target = bookViews.target(value);
@@ -435,7 +387,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   function updateTools() {
     const prose = ["book", "sections"].includes(bookViews.view);
-    trigger.disabled = !prose;
+    const permitted = editor.isEditable;
+    trigger.disabled = !prose || !permitted;
     const {selection} = editor.state;
     const element = elementContext();
     const actions = {
@@ -448,7 +401,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       "detach-caption": element?.detachCaption,
     };
     for (const button of menu.querySelectorAll("[data-element-action]")) {
-      button.hidden = !actions[button.dataset.elementAction] || !prose;
+      button.hidden = !actions[button.dataset.elementAction] || !prose || !permitted;
       button.disabled = button.hidden;
     }
     const captionGroup = menu.querySelector("[data-caption-actions]");
@@ -464,8 +417,12 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       selection.$from.depth > 1 &&
       selection.$from.node(selection.$from.depth - 1) === selection.$to.node(selection.$to.depth - 1);
     function available(button, applicable, enabled = applicable) {
-      button.hidden = !applicable || !prose;
-      button.disabled = !enabled || !prose;
+      const hidden = !applicable || !prose || !permitted;
+      if (hidden && button === owner.activeElement) {
+        (trigger.disabled ? editor.view.dom : trigger).focus({preventScroll: true});
+      }
+      button.hidden = hidden;
+      button.disabled = !enabled || !permitted;
     }
     const contentMove = form.querySelector("#editor-content-move-open");
     if (contentMove) available(contentMove, !selection.empty && (textSelection || blockSelection));
@@ -502,7 +459,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     };
     for (const button of form.querySelectorAll("[data-list]")) {
       const action = button.dataset.list, format = ["ul", "ol"].includes(action);
-      available(button, true, format || lists[action]);
+      available(button, format ? canFormatList(editor) : lists[action]);
       if (format) {
         button.setAttribute("aria-checked", String(lists.type === action));
         if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(lists.type === action));
@@ -537,8 +494,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         button.dataset.inlineAction = "remove";
         button.dataset.inlineTag = tag;
         button.dataset.inlineIndex = String(tagIndex);
-        button.hidden = !prose;
-        button.disabled = !prose;
+        button.hidden = !prose || !permitted;
+        button.disabled = !permitted;
         button.textContent = `Remove ${name}${counts[tag] > 1 ? ` (${tagIndex === 0 ? "outer" : "inner"})` : ""}`;
         inlineTargetList.append(button);
         const change = owner.createElement("button");
@@ -547,8 +504,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         change.dataset.inlineAction = "change";
         change.dataset.inlineTag = tag;
         change.dataset.inlineIndex = String(tagIndex);
-        change.hidden = !prose;
-        change.disabled = !prose;
+        change.hidden = !prose || !permitted;
+        change.disabled = !permitted;
         change.textContent = `Change ${name} to ${tag === "cite" ? "inline quotation" : "source title"}`;
         inlineTargetList.append(change);
       }
@@ -572,10 +529,13 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     }
     for (const button of form.querySelectorAll("[data-align]")) {
       available(button, canAlignTextBlock(editor));
-      button.setAttribute("aria-checked", String(textBlockAlignment(editor) === button.dataset.align));
+      const active = textBlockAlignment(editor) === button.dataset.align;
+      button.setAttribute("aria-checked", String(active));
+      if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(active));
     }
     for (const button of form.querySelectorAll("[data-history]")) {
-      button.disabled = !(button.dataset.history === "undo" ? undo : redo)(editor.state);
+      button.hidden = !permitted;
+      button.disabled = !permitted || !(button.dataset.history === "undo" ? undo : redo)(editor.state);
     }
     for (const group of menu.querySelectorAll("[role=group]")) {
       group.hidden = ![...group.querySelectorAll("button")].some(button => !button.hidden);
@@ -1044,20 +1004,12 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   owner.addEventListener("scroll", dismissOnScroll, true);
   viewport.addEventListener("resize", dismissOnResize);
   let lastScope = visiblePart(editor);
-  let lastFolds = foldedDocumentParts(editor);
   editor.on("transaction", ({transaction}) => {
-    const generatedView = !["book", "sections"].includes(bookViews.view);
-    const tocFormatting = transaction.getMeta("readingHubToc") ||
-      generatedView && transaction.docChanged && isTocNumberingChange(transaction.before, transaction.doc);
-    const revealProse = !tocFormatting && (transaction.docChanged || transaction.selectionSet) && generatedView;
-    if (revealProse) bookViews.show("sections");
     if (transaction.docChanged) closeMenu();
     updateTools();
     const scope = visiblePart(editor);
-    const folds = foldedDocumentParts(editor);
-    if (transaction.docChanged || scope !== lastScope || folds !== lastFolds || revealProse) refreshOutline();
+    if (transaction.docChanged || scope !== lastScope) refreshOutline();
     lastScope = scope;
-    lastFolds = folds;
   });
   editor.on("destroy", () => {
     owner.removeEventListener("pointerdown", outside);

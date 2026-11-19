@@ -117,6 +117,16 @@ function selectionRange(editor) {
   return {paragraphs, from, to};
 }
 
+export function canFormatList(editor) {
+  try {
+    selectionRange(editor);
+    return true;
+  } catch (failure) {
+    if (failure instanceof Error) return false;
+    throw failure;
+  }
+}
+
 function asBlockItem(editor, node, mappings) {
   if (node.type.name === "li") return node;
   const paragraph = editor.schema.nodes.p.create(null, node.content);

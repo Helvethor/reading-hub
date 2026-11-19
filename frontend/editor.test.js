@@ -86,7 +86,7 @@ test("saved editions allow selection and navigation without edits or submission"
   assert.equal(editor.isEditable, false);
   assert(form.querySelector('[type="submit"]').disabled);
   assert(form.querySelector("[data-mark]").disabled);
-  assert(!form.querySelector("#editor-part").disabled);
+  assert.equal(form.querySelector("#editor-part"), null);
   assert(!form.querySelector("[data-part]").disabled);
   selectText("Selectable", "Selectable".length);
   assert(!editor.state.selection.empty);
@@ -101,9 +101,8 @@ test("saved editions allow selection and navigation without edits or submission"
   const menuEvent = new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true});
   form.querySelector("#editor-surface").dispatchEvent(menuEvent);
   assert(menuEvent.defaultPrevented);
-  const show = form.querySelector("#editor-part");
-  show.value = "sections";
-  show.dispatchEvent(new dom.window.Event("change"));
+  form.querySelector('[data-part="1"]').click();
+  assert.equal(visiblePart(editor), null);
   assert.equal(editor.getHTML(), original);
 });
 
@@ -1013,23 +1012,24 @@ test("anthology Article title edits remain local and do not rename the internal 
   assert(moved.includes('data-section-label="Corrected local title"'));
 });
 
-test("book views have five choices, four navigation groups and a separate section filter", () => {
+test("the complete book stays visible while outline navigation scrolls without filtering", () => {
   const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Opening.</p>' +
     '<h3>Detail</h3><p>Details.</p></section><section id="b"><h2>Second</h2><p>Ending.</p></section>');
-  const primary = form.querySelector("#editor-part");
-  const filter = form.querySelector("#editor-section-filter");
   const outline = form.querySelector("#editor-outline-items");
   const original = editor.getHTML(), json = editor.getJSON();
-  assert.deepEqual([...primary.options].map(option => [option.value, option.textContent]),
-    [["book", "Whole book"], ["title", "Title"], ["toc", "ToC"], ["sections", "Sections"],
-      ["metadata", "Metadata page"]]);
+  assert.equal(form.querySelector("#editor-part"), null);
+  assert.equal(form.querySelector("#editor-section-filter"), null);
+  assert.equal(form.querySelector("#editor-result-filter"), null);
+  assert.equal(form.querySelector("#editor-diff-baseline"), null);
+  assert.equal(form.querySelector(".editor-help"), null);
+  assert.equal(form.querySelector(".editor-outline-help"), null);
   assert.deepEqual([...outline.querySelectorAll("[data-book-group]")].map(group => group.dataset.bookGroup),
     ["title", "toc", "sections", "metadata"]);
   assert.equal(outline.querySelectorAll(".editor-book-sections [data-part]").length,
     documentParts(editor.state.doc).length);
   const rows = [...outline.querySelectorAll(".editor-outline-row")];
   assert.deepEqual(rows.slice(0, 3).map(row => row.dataset.bookRow), ["title", "toc", "sections"],
-    "Navigation starts with the pages and content; Whole book is only a Show choice.");
+    "Navigation starts with the pages and content.");
   assert(!outline.querySelector('[data-book-view="book"], [data-part=""]'));
   assert.deepEqual([...outline.querySelectorAll("[data-book-row]")].map(row => [
     row.dataset.bookRow,
@@ -1045,48 +1045,25 @@ test("book views have five choices, four navigation groups and a separate sectio
   }
   assert(!outline.querySelector('[data-book-group="title"] [data-part]'));
   assert(!outline.querySelector('[data-book-group="toc"] [data-part]'));
-  assert.equal(filter.value, "");
   const title = form.querySelector(".editor-title-page"), toc = form.querySelector(".editor-toc-page");
   const metadataPage = form.querySelector(".editor-metadata-page");
   assert(!title.hidden && !toc.hidden && !editor.view.dom.hidden && !metadataPage.hidden);
   assert.equal(editor.view.dom.nextElementSibling, metadataPage, "The metadata page closes the book.");
-  assert(filter.closest("label").hidden);
   let updates = 0;
   editor.on("update", () => updates++);
-  for (const [view, titleHidden, tocHidden, proseHidden, metadataHidden] of [
-    ["title", false, true, true, true], ["toc", true, false, true, true],
-    ["sections", true, true, false, true], ["metadata", true, true, true, false],
-    ["book", false, false, false, false],
-  ]) {
-    primary.value = view;
-    primary.dispatchEvent(new dom.window.Event("change"));
-    assert.equal(title.hidden, titleHidden);
-    assert.equal(toc.hidden, tocHidden);
-    assert.equal(metadataPage.hidden, metadataHidden);
-    assert.equal(editor.view.dom.hidden, proseHidden);
-    assert.equal(filter.closest("label").hidden, view !== "sections");
-    assert.equal(outline.querySelector("[data-book-view][aria-current=page]")?.dataset.bookView,
-      view === "book" ? undefined : view);
-    assert.equal(form.querySelector("#editor-tools").disabled, proseHidden);
-    assert.equal(editor.getHTML(), original);
-    assert.deepEqual(editor.getJSON(), json);
-  }
-  assert.equal(updates, 0, "Views must not dirty prose, reset review or create recovery writes.");
-  assert(!undo(editor.state), "Viewing generated pages must not add document history.");
-  primary.value = "sections";
-  primary.dispatchEvent(new dom.window.Event("change"));
-  filter.value = "0";
-  filter.dispatchEvent(new dom.window.Event("change"));
-  assert.equal(visiblePart(editor).id, "a");
   outline.querySelector('[data-book-view="toc"]').click();
-  assert.equal(primary.value, "book", "Navigation reveals the ToC within the book instead of isolating it.");
   assert.equal(visiblePart(editor), null);
   assert(!toc.hidden && !editor.view.dom.hidden);
   form.querySelector('[data-toc-part="0"]').click();
-  assert.equal(primary.value, "book");
   assert.equal(visiblePart(editor), null, "ToC navigation reveals rather than filters content.");
   assert(!editor.view.dom.hidden);
+  outline.querySelector('[data-part="2"]').click();
+  assert.equal(visiblePart(editor), null, "Outline destinations never create a hidden-content scope.");
+  assert.equal(title.hidden || toc.hidden || metadataPage.hidden || editor.view.dom.hidden, false);
+  assert.equal(updates, 0, "Navigation must not dirty prose, reset review or create recovery writes.");
+  assert(!undo(editor.state), "Navigation must not add document history.");
   assert.equal(editor.getHTML(), original);
+  assert.deepEqual(editor.getJSON(), json);
 });
 
 test("common formatting controls are visible, keyboard-operable and preserve the text selection", () => {
@@ -1210,7 +1187,7 @@ test("ToC regenerates after section reorder, rename, undo and article replacemen
   assert.deepEqual(labels(), ["Article", "Detail"]);
   form.querySelector('[data-book-view="toc"]').click();
   form.querySelector('[data-toc-part="1"]').click();
-  assert.equal(form.querySelector("#editor-part").value, "book");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert.equal(editor.getHTML(), "<h2>Article</h2><p>Article body.</p><h3>Detail</h3><p>More.</p>");
   editor.commands.setContent("<p>Unsectioned article.</p>");
   assert.deepEqual(labels(), []);
@@ -1221,9 +1198,6 @@ test("generated views never route context actions to hidden prose and history re
   const form = mountSectionWorkspace("<p>Original.</p>");
   selectText("Original", 8);
   editor.commands.insertContent("Changed");
-  const primary = form.querySelector("#editor-part");
-  primary.value = "title";
-  primary.dispatchEvent(new dom.window.Event("change"));
   const title = form.querySelector(".editor-title-page");
   const context = new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true});
   title.querySelector("h1").dispatchEvent(context);
@@ -1244,16 +1218,14 @@ test("generated views never route context actions to hidden prose and history re
   nav.focus();
   nav.dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "z", ctrlKey: true, bubbles: true}));
   assert.equal(editor.getHTML(), "<p>Original.</p>");
-  assert.equal(primary.value, "sections");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert(!editor.view.dom.hidden);
   assert.equal(document.activeElement.dataset.bookView, "title",
     "History retains navigation focus even when changed prose is revealed.");
-  primary.value = "toc";
-  primary.dispatchEvent(new dom.window.Event("change"));
   showDocumentPart(editor, null);
-  assert.equal(primary.value, "toc", "Scope-only refresh must not accidentally reveal prose.");
+  assert.equal(visiblePart(editor), null, "All prose remains visible after navigation.");
   editor.commands.setTextSelection(1);
-  assert.equal(primary.value, "sections", "Programmatic content navigation reveals the canvas.");
+  assert(!editor.view.dom.hidden, "Programmatic content navigation keeps the canvas visible.");
 });
 
 test("book, page and group rows follow the viewport like section rows and navigate by scrolling", async () => {
@@ -1285,7 +1257,7 @@ test("book, page and group rows follow the viewport like section rows and naviga
   dom.window.scrollTo = ({top}) => pageScrolls.push(top);
   offset = -150;
   outline.querySelector('[data-book-view="toc"]').click();
-  assert.equal(form.querySelector("#editor-part").value, "book");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert.deepEqual(pageScrolls, [], "ToC navigation stays within the content pane.");
   assert(surface.scrollTop > 0, "The generated page is revealed inside the content pane.");
   assert.equal(document.activeElement.dataset.bookView, "toc");
@@ -1308,17 +1280,13 @@ test("Sections group folds independently and remains folded across content updat
   assert.equal(fold().getAttribute("aria-expanded"), "true");
   fold().click();
   assert.equal(fold().getAttribute("aria-label"), "Expand Sections navigation group");
-  [...form.querySelectorAll(".editor-outline-options button")]
-    .find(button => button.textContent === "Expand outline").click();
+  form.querySelector("#editor-outline-expand").click();
   assert(!form.querySelector(".editor-book-sections").hidden);
 });
 
 test("ToC entries default to none and Ctrl-click sibling selections retain right-click numbering", () => {
   const form = mountSectionWorkspace('<section id="a"><h2>First</h2><p>Body</p><h3>Nested</h3>' +
     '<p>Detail</p></section><section id="b"><h2>Second</h2><p>End</p></section>');
-  const isolate = form.querySelector("#editor-part");
-  isolate.value = "toc";
-  isolate.dispatchEvent(new dom.window.Event("change"));
   const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
   assert([...form.querySelectorAll("[data-toc-part]")].every(button =>
     button.parentElement.style.listStyleType === "none"));
@@ -1336,7 +1304,7 @@ test("ToC entries default to none and Ctrl-click sibling selections retain right
   assert.deepEqual([...menu.querySelectorAll("[data-toc-style]")].map(button => button.dataset.tocStyle),
     ["none", "disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"]);
   menu.querySelector('[data-toc-style="upper-roman"]').click();
-  assert.equal(form.querySelector("#editor-part").value, "toc", "Formatting must keep the ToC visible.");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert.equal(entry(0).parentElement.style.listStyleType, "upper-roman");
   assert.equal(entry(2).parentElement.style.listStyleType, "upper-roman");
   assert.equal(entry(0).parentElement.value, 1);
@@ -1346,7 +1314,7 @@ test("ToC entries default to none and Ctrl-click sibling selections retain right
   assert(!editor.getHTML().includes("editor-toc"));
   assert(undo(editor.state, editor.view.dispatch));
   assert.equal(editor.getHTML(), original, "One undo removes formatting from the whole set.");
-  assert.equal(form.querySelector("#editor-part").value, "toc", "Numbering Undo keeps the ToC visible.");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert(redo(editor.state, editor.view.dispatch));
   const saved = editor.getHTML();
   editor.destroy();
@@ -1360,9 +1328,6 @@ test("ToC visibility hides Notes automatically and allows granular overrides kep
     '<section id="n"><h2>Notes</h2><h3>Chapter notes</h3><p>1. Note</p></section>' +
     '<section id="e"><h2>End-notes:</h2><p>2. Note</p></section>' +
     '<section id="r"><h2>References</h2><p>Sources</p></section>');
-  const isolate = form.querySelector("#editor-part");
-  isolate.value = "toc";
-  isolate.dispatchEvent(new dom.window.Event("change"));
   const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
   const hidden = () => [...form.querySelectorAll("[data-toc-part]")]
     .filter(button => button.parentElement.classList.contains("editor-toc-hidden"))
@@ -1378,7 +1343,7 @@ test("ToC visibility hides Notes automatically and allows granular overrides kep
     ["auto", "show", "hide"]);
   assert.equal(menu.querySelector('[data-toc-entry][aria-checked="true"]').dataset.tocEntry, "auto");
   menu.querySelector('[data-toc-entry="show"]').click();
-  assert.equal(form.querySelector("#editor-part").value, "toc");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert.deepEqual(hidden(), ["3"]);
   entry(4).dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true}));
   menu.querySelector('[data-toc-entry="hide"]').click();
@@ -1406,9 +1371,6 @@ test("navigation and ToC labels omit heading note references that stay in conten
     '<p id="n2">Other</p></section><section id="b"><h2>Square x<sup>2</sup> and 2<sup>e</sup></h2><p>Body</p></section>');
   assert.deepEqual(documentParts(editor.state.doc).map(part => part.label),
     ["Appendix", "Group and Dyelo", "Square x2 and 2e"]);
-  const isolate = form.querySelector("#editor-part");
-  isolate.value = "toc";
-  isolate.dispatchEvent(new dom.window.Event("change"));
   assert.deepEqual([...form.querySelectorAll("[data-toc-part]")].map(button => button.textContent),
     ["Appendix", "Group and Dyelo", "Square x2 and 2e"]);
   assert.match(editor.getHTML(), /Appendix<sup><a[^>]*>\[8\]<\/a><\/sup>/);
@@ -1448,9 +1410,6 @@ test("ToC selection rejects a different parent without losing the set and expose
   const form = mountSectionWorkspace('<h2>First</h2><p>Body</p><h3>Nested</h3>' +
     '<p>Detail</p><h2>Second</h2><p>End</p>', {}, {showError: message => { if (message) errors.push(message); }});
   const entry = index => form.querySelector(`[data-toc-part="${index}"]`);
-  const isolate = form.querySelector("#editor-part");
-  isolate.value = "toc";
-  isolate.dispatchEvent(new dom.window.Event("change"));
   for (const index of [0, 1]) entry(index).dispatchEvent(new dom.window.MouseEvent("click",
     {ctrlKey: true, bubbles: true}));
   assert.match(errors[0], /same parent and level/);
@@ -1475,7 +1434,7 @@ test("ToC selection rejects a different parent without losing the set and expose
   assert(!editor.getHTML().includes("data-toc-style"));
   entry(0).focus();
   entry(0).dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "z", ctrlKey: true, bubbles: true}));
-  assert.equal(form.querySelector("#editor-part").value, "toc");
+  assert.equal(form.querySelector("#editor-part"), null);
   assert.equal(document.activeElement, entry(0), "Numbering history restores visible entry focus.");
   entry(0).dispatchEvent(new dom.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
   assert.equal(form.querySelectorAll('[data-toc-part][aria-pressed="true"]').length, 0);
@@ -1516,7 +1475,7 @@ test("ToC markers mirror section titles and headings without entering prose, cli
   applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, "upper-roman");
   assert.deepEqual(markers(), ["I. ", "II. "]);
   assert.deepEqual(navigation(), ["I. First", "Nested", "II. Second"]);
-  assert(form.querySelector("#editor-section-filter").textContent.includes("II. Second"));
+  assert(form.querySelector(".editor-book-sections").textContent.includes("II. Second"));
   const marker = editor.view.dom.querySelector("#a h2 .editor-toc-marker");
   assert.equal(marker.getAttribute("contenteditable"), "false");
   assert.equal(marker.parentElement.textContent, "I. First");
@@ -1663,7 +1622,8 @@ test("compact selection tools expose only applicable actions and toggle alignmen
   selectText("Text", 4);
   assert.equal(form.querySelector('[data-mark="em"]').getAttribute("aria-label"), "Italic");
   assert(form.querySelector('[data-mark="em"] i'));
-  assert.equal(form.querySelectorAll("[data-align]").length, 4);
+  assert.equal(form.querySelectorAll("[data-align]").length, 8,
+    "Formatting controls are available in both the command bar and Selection tools.");
   assert(form.querySelector('[data-align="center"] svg'));
   assert(form.querySelector('[data-element-action="edit-alt"]').hidden);
   assert(form.querySelector("[data-link]").hidden);
@@ -2707,7 +2667,9 @@ test("outline hierarchy uses real containing ranges and independent navigation f
   assert.equal(hierarchy[c].parent, -1);
   const nav = document.createElement("nav"), outline = document.createElement("div");
   const surface = document.createElement("div");
-  nav.append(outline);
+  const expand = document.createElement("button");
+  expand.id = "editor-outline-expand";
+  nav.append(expand, outline);
   document.body.append(nav, surface);
   parts.forEach((part, index) => {
     const button = document.createElement("button");
@@ -2732,17 +2694,19 @@ test("outline hierarchy uses real containing ranges and independent navigation f
   assert.equal(controls.previousElementSibling.className, "editor-outline-kind");
   assert.equal(controls.closest(".editor-outline-row").firstElementChild.className,
     "editor-outline-guides");
-  for (const selector of ["[data-outline-fold]", "[data-content-fold]", "[data-section-actions]"]) {
+  for (const selector of ["[data-outline-fold]", "[data-section-actions]"]) {
     assert(controls.querySelector(selector), `${selector} belongs in the right-aligned control row.`);
   }
+  assert.equal(controls.querySelector("[data-content-fold]"), null,
+    "Outline controls must not fold document content.");
   outline.querySelector(`[data-outline-fold="${a}"]`).click();
   assert(outline.querySelector(`[data-outline-index="${b}"]`).hidden);
   assert(!outline.querySelector(`[data-outline-index="${c}"]`).hidden);
   assert.equal(foldedDocumentParts(editor).length, 0);
-  nav.querySelector(".editor-outline-options button").click();
+  expand.click();
   assert(!outline.querySelector(`[data-outline-index="${b}"]`).hidden);
-  outline.querySelector(`[data-content-fold="${a}"]`).click();
-  assert.equal(foldedDocumentParts(editor).length, 1);
+  assert.equal(foldedDocumentParts(editor).length, 0);
+  assert(!editor.view.dom.hidden, "Folding navigation rows never hides document content.");
   assert(!outline.querySelector(`[data-outline-index="${b}"]`).hidden);
   await new Promise(resolve => setTimeout(resolve, 5));
   assert.deepEqual(errors, []);
@@ -2789,13 +2753,11 @@ test("outline scroll tracking highlights viewport sections and follows the activ
   assert(nav.scrollTop > 0);
   assert.equal(editor.state.selection, selection);
   assert.equal(surface.scrollTop, 0);
-  const follow = nav.querySelector('input[type="checkbox"]');
-  follow.checked = false;
-  nav.scrollTop = 0;
+  assert.equal(nav.querySelector('input[type="checkbox"]'), null,
+    "Outline follow-scroll is unconditional; there is no toggle.");
   offset = 0;
   surface.dispatchEvent(new dom.window.Event("scroll"));
   await new Promise(resolve => setTimeout(resolve, 10));
-  assert.equal(nav.scrollTop, 0);
   assert.equal(outline.querySelector(".editor-outline-active .editor-outline-title").textContent, "A");
 });
 
@@ -3177,7 +3139,7 @@ test("title page preview right-click hides, shows and resets filled fields", () 
     new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
   const menu = form.querySelector("#editor-title-menu");
   assert(!menu.hidden);
-  const layout = ["Full title presentation", "Compact title presentation", "Layout and separation\u2026"];
+  const layout = ["Full title presentation", "Compact title presentation"];
   assert.deepEqual([...menu.querySelectorAll("button")].map(button => button.textContent),
     ["Hide Rights", "Show Publisher", ...layout, "Close"]);
   menu.querySelector('[data-title-hide="rights"]').click();
@@ -3494,11 +3456,10 @@ test("workspace mounts section moves immediately and outline targets nested sect
   assert.equal(editor.view.dom.querySelectorAll(".editor-outside-part").length, 0);
   assert.equal(editor.getHTML(), original);
   const focused = documentParts(editor.state.doc)[0];
-  form.querySelector("#editor-section-filter").value = "0";
-  form.querySelector("#editor-section-filter").dispatchEvent(new dom.window.Event("change"));
-  assert.equal(visiblePart(editor).from, focused.from, "The secondary selector explicitly filters.");
+  assert.equal(form.querySelector("#editor-section-filter"), null);
+  assert.equal(visiblePart(editor), null, "Section navigation does not filter document content.");
   form.querySelector('[data-book-view="sections"]').click();
-  assert.equal(visiblePart(editor), null, "Sections navigation clears the explicit filter.");
+  assert.equal(visiblePart(editor), null, "Sections navigation keeps the complete document visible.");
   const currentItem = form.querySelector('[data-section-move="1"]');
   currentItem.dispatchEvent(new dom.window.MouseEvent("contextmenu", {bubbles: true, shiftKey: true}));
   const menu = form.querySelector("#editor-section-actions");
@@ -6526,29 +6487,26 @@ test("moving a section carries its deliberate separation without reassigning it 
   assert.deepEqual([...editor.view.dom.querySelectorAll("section")].map(section => section.id), ["one", "two"]);
 });
 
-test("outline Layout and separation edits generated boundaries and resets by removing the override", () => {
+test("generated page layout choices apply and reset document boundary overrides", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
-  const dialog = form.querySelector("#editor-layout-separation");
-  dialog.showModal = () => { dialog.open = true; };
-  dialog.close = () => { dialog.open = false; };
   const menu = form.querySelector("#editor-page-menu");
   form.querySelector('[data-book-view="toc"]').dispatchEvent(
     new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
-  [...menu.querySelectorAll("button")].find(button => /Layout and separation/.test(button.textContent)).click();
-  assert(dialog.open);
-  const select = dialog.querySelector("select");
-  select.value = "new-page";
-  [...dialog.querySelectorAll("button")].find(button => button.textContent === "Apply").click();
-  assert.equal(editor.state.doc.attrs.layout.overrides.toc, "new-page");
+  const alternate = [...menu.querySelectorAll(".editor-layout-menu button")].find(button => !button.disabled);
+  alternate.click();
+  assert.equal(editor.state.doc.attrs.layout.overrides.toc,
+    alternate.textContent === "Continuous" ? "continuous" : "new-page");
   assert.equal(editor.state.doc.attrs.layout.defaults, "legacy",
     "Changing one boundary must not silently apply new defaults to the other parts.");
   assert.equal(editor.getHTML(), '<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
   form.querySelector('[data-book-view="toc"]').dispatchEvent(
     new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
-  [...menu.querySelectorAll("button")].find(button => /Layout and separation/.test(button.textContent)).click();
-  [...dialog.querySelectorAll("button")].find(button => button.textContent === "Reset to default").click();
+  const reset = [...menu.querySelectorAll(".editor-layout-menu button")]
+    .find(button => button.textContent === "Reset to default");
+  assert(reset, "The changed page layout exposes a reset action.");
+  reset.click();
   assert.equal(editor.state.doc.attrs.layout, null);
-  form.querySelector(".editor-layout-summary button").click();
+  form.querySelector("#editor-layout-defaults").click();
   assert.deepEqual(editor.state.doc.attrs.layout, {version: 1, defaults: "type", overrides: {}});
 });
 
@@ -6591,14 +6549,14 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   };
   let items = open(outline.querySelector('[data-book-view="toc"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
-    [["Include table of contents page", "false"], ["Layout and separation\u2026", null], ["Close", null]]);
+    [["Include table of contents page", "false"], ["Continuous", "true"], ["New page", "false"],
+      ["Close", null]]);
   items[0].click();
   assert(menu.hidden);
   assert.deepEqual(events.at(-1), {key: "contents_page", value: true});
   items = open(outline.querySelector('[data-book-view="title"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
-    [["Full title presentation", "false"], ["Compact title presentation", "true"],
-      ["Layout and separation\u2026", null], ["Close", null]]);
+    [["Full title presentation", "false"], ["Compact title presentation", "true"], ["Close", null]]);
   items[0].click();
   assert.deepEqual(events.at(-1), {key: "title_layout", value: "full"});
   value = {...value, metadata: {...value.metadata, title_layout: "full", contents_page: true}};
@@ -6607,14 +6565,14 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   assert(toc.querySelector("[data-toc-part]"), "Including the ToC page restores the entries.");
   items = open(toc.querySelector("h2"));
   assert.deepEqual(items.map(item => item.textContent),
-    ["Include table of contents page", "Reset to article preset (omitted)", "Layout and separation\u2026", "Close"]);
+    ["Include table of contents page", "Reset to article preset (omitted)", "Continuous", "New page", "Close"]);
   items[1].click();
   assert.deepEqual(events.at(-1), {key: "contents_page", value: null});
   const page = form.querySelector(".editor-metadata-page");
   items = open(page.querySelector("h2"));
   assert.deepEqual(items.map(item => item.textContent), ["Include metadata page at the end",
-    "Layout and separation\u2026", "Edit complete metadata\u2026", "Close"]);
-  items[2].click();
+    "Continuous", "New page", "Edit complete metadata\u2026", "Close"]);
+  items.find(item => item.textContent === "Edit complete metadata\u2026").click();
   assert.deepEqual(tabs, ["metadata"]);
   page.querySelector(".editor-metadata-page-edit").click();
   assert.deepEqual(tabs, ["metadata", "metadata"]);

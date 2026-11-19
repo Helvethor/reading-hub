@@ -2091,13 +2091,15 @@ content cleanup, deployment and live-data changes are out of scope.
 
 ### V.t: Compact editor commands, contextual tools and whole-document view
 
-**Status: specification only.** The current editor exposes common formatting
-in a small text-and-symbol toolbar while additional supported formatting is
-buried in Selection tools. Toolbar and menu applicability can be inconsistent.
-The Editor pane also adds separate controls for result/diff, comparison loading,
-outline follow-scroll, partial-content views and recovery, plus several help
-disclosures. Consolidate routine editing into compact, consistent commands
-without changing document meaning or removing guarded editing capabilities.
+**Status: source implementation present; focused frontend/backend checks pass;
+native-browser acceptance remains open.** The editor previously exposed common
+formatting in a small text-and-symbol toolbar while additional supported
+formatting was buried in Selection tools. Toolbar and menu applicability could
+be inconsistent. The Editor pane also added separate controls for result/diff,
+comparison loading, outline follow-scroll, partial-content views and recovery,
+plus several help disclosures. The source change consolidates routine editing
+into compact, consistent commands without changing document meaning or removing
+guarded editing capabilities.
 
 **Editor command and formatting toolbars.**
 
@@ -2217,6 +2219,12 @@ tables, figures, captions, sections and generated pages.
 
 Stop when the consolidated command/navigation workflow and preservation
 invariants pass; do not expand into unrelated editor redesign.
+
+Implementation verification: `npm test` (360 tests), `npm run build`, and
+`python workflow.py test library.tests.test_document_editor_views` (45 tests)
+pass. Native-browser focus/pointer/keyboard behavior, desktop and narrow layout,
+themes, browser zoom, and unchanged save/reopen, Read, print and PDF output have
+not yet been verified.
 
 ### Delivery boundaries and implementation-agent handoff
 

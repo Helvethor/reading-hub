@@ -551,8 +551,9 @@ export function mountSectionManagement(form, editor, showError, moves, creation,
     event.preventDefault();
     selected = selectedPart(button);
     menu.replaceChildren();
-    action("Layout and separation\u2026", () => form.dispatchEvent(
-      new owner.defaultView.CustomEvent("editor-layout-part", {detail: {part: selected.part}})), true, "↔");
+    form.dispatchEvent(new owner.defaultView.CustomEvent("editor-layout-menu", {
+      detail: {menu, part: selected.part, doc: selected.doc, close: closeMenu},
+    }));
     action("Edit title / URL / role…", () => edit(selected.index), selected.index >= 0, "✎");
     action("Move section…", () => moves.open(selected.index), selected.index >= 0, "↗", true);
     const directions = owner.createElement("div");

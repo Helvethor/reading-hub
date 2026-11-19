@@ -3,7 +3,7 @@ import {bookPages, factSpans, metadataEntries, pagePreset, titleLayouts, titlePa
 import {outlineHierarchy} from "./outline.js";
 import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
   tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
-import {contentSeparation, layoutPreset, partLayout, separations,
+import {contentSeparation, partLayout, separations,
   setDocumentLayout, setPartSeparation} from "./part-layout.js";
 import {closeHistory} from "@tiptap/pm/history";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
@@ -19,18 +19,6 @@ const pageSettings = {
 export function mountBookViews(form, editor, readDocument, navigate, showError, presentation = {}) {
   const owner = form.ownerDocument;
   const surface = form.querySelector("#editor-surface");
-  const primary = form.querySelector("#editor-part");
-  let filter = form.querySelector("#editor-section-filter");
-  if (!filter) {
-    const label = owner.createElement("label");
-    label.className = "editor-section-filter-control";
-    label.append("Section ");
-    filter = owner.createElement("select");
-    filter.id = "editor-section-filter";
-    label.append(filter);
-    primary.after(label);
-  }
-  primary.replaceChildren(...views.map(([value, label]) => new Option(label, value)));
   const title = owner.createElement("section");
   title.className = "editor-generated-page editor-title-page";
   title.setAttribute("aria-label", "Title page and metadata");
@@ -296,33 +284,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       const value = key === "title_layout" ? preset : preset ? "included" : "omitted";
       button(`Reset to ${presetLabel()} preset (${value})`, "menuitem", null, null, {pageReset: page});
     }
-    const separation = element("button", "Layout and separation\u2026");
-    separation.type = "button";
-    separation.dataset.menuIcon = "↔";
-    separation.className = "editor-menu-divider";
-    separation.setAttribute("role", "menuitem");
-    separation.addEventListener("click", () => { close(); openSeparation(page); });
-    container.append(separation);
   }
-  const layoutDialog = owner.createElement("dialog");
-  layoutDialog.id = "editor-layout-separation";
-  layoutDialog.setAttribute("aria-label", "Layout and separation");
-  const layoutHeading = element("h2", "Layout and separation");
-  const layoutReason = element("p", "");
-  const separationLabel = element("label", "Separation before ");
-  const separation = owner.createElement("select");
-  separation.id = "editor-layout-before";
-  separationLabel.append(separation);
-  const applySeparation = element("button", "Apply");
-  const resetSeparation = element("button", "Reset to default");
-  const cancelSeparation = element("button", "Cancel");
-  applySeparation.type = resetSeparation.type = cancelSeparation.type = "button";
-  const layoutError = element("p", "");
-  layoutError.setAttribute("role", "alert");
-  layoutDialog.append(layoutHeading, layoutReason, separationLabel, layoutError,
-    applySeparation, resetSeparation, cancelSeparation);
-  form.append(layoutDialog);
-  let layoutProposal;
   function sectionDepth(position) {
     const resolved = editor.state.doc.resolve(position);
     let depth = 0;
@@ -331,68 +293,89 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     }
     return depth;
   }
-  function openSeparation(part, contentPart = null) {
+  function layoutChoices(container, target, close) {
     const metadata = layoutMetadata();
-    const position = contentPart ? tocEntryPosition(contentPart) : null;
-    const node = position === null ? null : editor.state.doc.nodeAt(position);
-    const info = contentPart ? contentSeparation(node, {...contentPart,
-      depth: sectionDepth(position)},
-    metadata, isBook()) : partLayout(metadata, isBook())[part];
-    layoutProposal = {doc: editor.state.doc, part, position};
-    layoutHeading.textContent = `Layout and separation - ${contentPart?.label || part}`;
-    layoutReason.textContent = `${info.value === "new-page" ? "New page" : "Continuous"} (${info.origin}: ${info.reason}). ` +
-      "Visibility and title presentation are independent. Screen reading uses spacing instead of physical pages.";
-    const inherited = contentPart ? contentSeparation(
-      {attrs: {...node.attrs, "data-layout-before": null}},
-      {...contentPart, depth: sectionDepth(position)},
-      metadata, isBook()) : partLayout({...metadata, layout: {...metadata.layout,
-      overrides: Object.fromEntries(Object.entries(metadata.layout?.overrides || {})
-        .filter(([key]) => key !== part))}}, isBook())[part];
-    separation.replaceChildren(new Option(`Default - ${inherited.value} (${inherited.reason})`, ""),
-      ...separations.map(value => new Option(value === "new-page" ? "New page" : "Continuous", value)));
-    separation.value = contentPart ? node.attrs["data-layout-before"] || ""
-      : metadata.layout?.overrides?.[part] || "";
-    separation.disabled = part === "title";
-    if (part === "title") layoutReason.textContent += " The first visible part starts normally; set separation on the following part.";
-    layoutError.textContent = "";
-    layoutDialog.showModal();
-    separation.focus();
+    const doc = editor.state.doc;
+    const position = target.part ? tocEntryPosition(target.part) : null;
+    const node = position === null ? null : doc.nodeAt(position);
+    const info = target.part
+      ? node && contentSeparation(node, {...target.part, depth: sectionDepth(position)},
+        metadata, isBook())
+      : partLayout(metadata, isBook())[target.name];
+    if (!info) throw new Error("This layout target is no longer available. Open its menu again.");
+    const override = target.part
+      ? Boolean(node.attrs["data-layout-before"])
+      : Boolean(metadata.layout?.overrides?.[target.name]);
+    const group = owner.createElement("div");
+    group.className = "editor-menu-group editor-layout-menu";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "Layout and separation");
+    group.append(element("span", "Layout and separation"), element("p",
+      `${info.value === "new-page" ? "New page" : "Continuous"} (${info.origin}: ${info.reason})`));
+    const choices = target.name === "title" ? [] : separations;
+    for (const value of choices) {
+      const label = value === "new-page" ? "New page" : "Continuous";
+      const button = element("button", label);
+      button.type = "button";
+      button.setAttribute("role", "menuitemradio");
+      button.setAttribute("aria-checked", String(info.value === value));
+      button.dataset.menuIcon = value === "new-page" ? "↵" : "↔";
+      button.disabled = info.value === value;
+      button.addEventListener("click", () => {
+        try {
+          if (doc !== editor.state.doc) throw new Error("The document changed. Open the layout menu again.");
+          if (target.part) setPartSeparation(editor, position, value);
+          else {
+            const layout = editor.state.doc.attrs.layout || metadata.layout ||
+              {version: 1, defaults: "legacy", overrides: {}};
+            setDocumentLayout(editor, {...layout,
+              overrides: {...layout.overrides, [target.name]: value}});
+          }
+          showError("");
+          close();
+        } catch (failure) { showError(failure.message); }
+      });
+      group.append(button);
+    }
+    if (override && target.name !== "title") {
+      const reset = element("button", "Reset to default");
+      reset.type = "button";
+      reset.setAttribute("role", "menuitem");
+      reset.dataset.menuIcon = "↶";
+      reset.addEventListener("click", () => {
+        try {
+          if (doc !== editor.state.doc) throw new Error("The document changed. Open the layout menu again.");
+          if (target.part) setPartSeparation(editor, position, null);
+          else {
+            const layout = editor.state.doc.attrs.layout || metadata.layout;
+            const overrides = {...layout.overrides};
+            delete overrides[target.name];
+            setDocumentLayout(editor, layout.defaults === "legacy" && !Object.keys(overrides).length
+              ? null : {...layout, overrides});
+          }
+          showError("");
+          close();
+        } catch (failure) { showError(failure.message); }
+      });
+      group.append(reset);
+    }
+    if (target.name === "title") {
+      group.append(element("p", "The title page starts the document; set separation on the following part."));
+    }
+    container.append(group);
   }
-  applySeparation.addEventListener("click", () => {
-    try {
-      if (layoutProposal.doc !== editor.state.doc) throw new Error("Content changed. Reopen Layout and separation.");
-      const {part, position} = layoutProposal;
-      if (part === "title") { layoutDialog.close(); return; }
-      if (position !== null) setPartSeparation(editor, position, separation.value || null);
-      else {
-        const layout = editor.state.doc.attrs.layout || layoutMetadata().layout
-          || {version: 1, defaults: "legacy", overrides: {}};
-        const overrides = {...layout.overrides};
-        if (separation.value) overrides[part] = separation.value;
-        else delete overrides[part];
-        setDocumentLayout(editor, layout.defaults === "legacy" && !Object.keys(overrides).length
-          ? null : {...layout, overrides});
-      }
-      layoutDialog.close();
-    } catch (failure) { layoutError.textContent = failure.message; }
-  });
-  resetSeparation.addEventListener("click", () => {
-    separation.value = "";
-    applySeparation.click();
-  });
-  cancelSeparation.addEventListener("click", () => layoutDialog.close());
-  form.addEventListener("editor-layout-part", event => openSeparation(null, event.detail.part));
-  const layoutSummary = owner.createElement("details");
-  layoutSummary.className = "editor-layout-summary";
-  const layoutSummaryLabel = element("summary", "Layout and separation");
-  const layoutSummaryText = element("p", "");
-  const useDefaults = element("button", "Use work-type layout defaults");
-  useDefaults.type = "button";
-  useDefaults.addEventListener("click", () => {
+  form.querySelector("#editor-layout-defaults")?.addEventListener("click", () => {
     setDocumentLayout(editor, {version: 1, defaults: "type", overrides: {}});
   });
-  layoutSummary.append(layoutSummaryLabel, layoutSummaryText, useDefaults);
-  form.querySelector(".editor-outline")?.prepend(layoutSummary);
+  form.addEventListener("editor-layout-menu", event => {
+    const {menu: targetMenu, part, doc, close} = event.detail;
+    if (doc !== editor.state.doc) {
+      showError("The document changed. Open the layout menu again.");
+      return;
+    }
+    try { layoutChoices(targetMenu, {part}, close); }
+    catch (failure) { showError(failure.message); }
+  });
   function openPageMenu(event, page) {
     if (event.shiftKey && event.type === "contextmenu") return;
     event.preventDefault();
@@ -401,6 +384,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const names = {title: "Title page", toc: "Table of contents page", metadata: "Metadata page"};
     pageMenu.replaceChildren(element("p", names[page]));
     pageItems(pageMenu, page, () => { pageMenu.hidden = true; });
+    layoutChoices(pageMenu, {name: page}, () => { pageMenu.hidden = true; });
     if (page === "metadata") {
       const edit = element("button", "Edit complete metadata\u2026");
       edit.type = "button";
@@ -413,6 +397,18 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       });
       pageMenu.append(edit);
     }
+    showContextMenu(pageMenu, event, pageReturn);
+  }
+  function openLayoutMenu(event, name, label) {
+    if (event.shiftKey && event.type === "contextmenu") return;
+    event.preventDefault();
+    closeMenus();
+    pageReturn = event.target.closest("button, [tabindex]") || event.target;
+    pageMenu.replaceChildren(element("p", label));
+    layoutChoices(pageMenu, {name}, () => {
+      pageMenu.hidden = true;
+      pageReturn?.focus?.({preventScroll: true});
+    });
     showContextMenu(pageMenu, event, pageReturn);
   }
   function showMetadataTab() {
@@ -465,8 +461,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     fieldMenu.remove();
     pageMenu.remove();
     metadataPage.remove();
-    layoutDialog.remove();
-    layoutSummary.remove();
   });
   editor.on("transaction", ({transaction}) => {
     if (transaction.docChanged) {
@@ -475,19 +469,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       selectionDoc = editor.state.doc;
     }
   });
-  let view = "book", sectionsCollapsed = false;
-  function applyView() {
-    primary.value = view;
-    title.hidden = !["book", "title"].includes(view);
-    toc.hidden = !["book", "toc"].includes(view);
-    metadataPage.hidden = !["book", "metadata"].includes(view);
-    editor.view.dom.hidden = !["book", "sections"].includes(view);
-    filter.closest("label").hidden = view !== "sections";
-    for (const button of form.querySelectorAll("[data-book-view]")) {
-      if (button.dataset.bookView === view) button.setAttribute("aria-current", "page");
-      else button.removeAttribute("aria-current");
-    }
-  }
+  let sectionsCollapsed = false;
   function refresh(parts) {
     currentParts = parts;
     if (selectionDoc !== editor.state.doc) selected.clear();
@@ -540,9 +522,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const currentMetadata = layoutMetadata(metadata);
     const currentBook = isBook();
     const boundaries = partLayout(currentMetadata, currentBook);
-    layoutSummaryText.textContent = `${layoutPreset(metadata, isBook()).reason}. ` +
-      Object.entries(boundaries).map(([key, info]) => `${key}: ${info.value} (${info.origin})`).join("; ") +
-      ". Each outline part offers Layout and separation; Reset to default removes only its override.";
     title.dataset.layoutBefore = boundaries.title.value;
     title.dataset.layoutAfter = boundaries[layout.contents_page ? "toc" : "body"].value;
     toc.dataset.layoutBefore = boundaries.toc.value;
@@ -574,7 +553,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       hierarchy = outlineHierarchy(parts);
       updateSelection();
       pageStates();
-      applyView();
       return;
     }
     toc.classList.remove("editor-page-disabled");
@@ -618,7 +596,6 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     else toc.append(element("p", "No sections or headings yet."));
     updateSelection();
     pageStates();
-    applyView();
   }
   function renderMetadataPage(document, metadata, included) {
     metadataPage.classList.toggle("editor-page-disabled", !included);
@@ -740,11 +717,13 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const editionRow = bookRow("edition", "Edition and review status", "Page", {last: true});
     const editionButton = editionRow.querySelector("[data-book-view]");
     delete editionButton.dataset.bookView;
-    editionButton.title = "Mandatory generated end matter - Layout and separation";
-    editionButton.addEventListener("click", () => openSeparation("edition"));
-    editionButton.addEventListener("contextmenu", event => {
-      event.preventDefault();
-      openSeparation("edition");
+    editionButton.title = "Mandatory generated end matter — right-click for Layout and separation";
+    editionButton.addEventListener("click", event =>
+      openLayoutMenu(event, "edition", "Edition and review status"));
+    editionButton.addEventListener("contextmenu", event =>
+      openLayoutMenu(event, "edition", "Edition and review status"));
+    editionButton.addEventListener("keydown", event => {
+      if (menuKey(event)) openLayoutMenu(event, "edition", "Edition and review status");
     });
     outline.append(editionRow);
     pageStates();
@@ -757,18 +736,17 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       };
       outline.addEventListener("contextmenu", event => {
         const value = page(event);
-        if (value === "sections") { event.preventDefault(); openSeparation("body"); }
+        if (value === "sections") openLayoutMenu(event, "body", "Content");
         else if (value) openPageMenu(event, value);
       });
       outline.addEventListener("keydown", event => {
         const value = page(event);
         if (value && menuKey(event)) {
-          if (value === "sections") { event.preventDefault(); openSeparation("body"); }
+          if (value === "sections") openLayoutMenu(event, "body", "Content");
           else openPageMenu(event, value);
         }
       });
     }
-    applyView();
   }
   // Navigation rows show whether a generated page is compact or omitted from the book.
   function pageStates() {
@@ -800,19 +778,17 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     return node;
   }
   return {
-    filter, refresh, navigation, targets,
+    refresh, navigation, targets,
     target(value) {
       return {title, toc, sections: editor.view.dom, metadata: metadataPage}[value];
     },
     expandNavigation() {
       if (sectionsCollapsed) form.querySelector('[data-book-group-fold="sections"]')?.click();
     },
-    get view() { return view; },
+    get view() { return "book"; },
     show(value) {
       if (!views.some(([key]) => key === value)) throw new Error("Choose a supported book view.");
-      view = value;
       closeMenus();
-      applyView();
     },
     get pages() { return pages(); },
   };

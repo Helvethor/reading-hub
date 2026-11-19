@@ -3,13 +3,12 @@ import {showDocumentDifferences, currentDifferences} from "./document-diffs.js";
 
 export function mountDifferenceControls(form, editor, initial, showError) {
   const owner = form.ownerDocument;
-  const filter = form.querySelector("#editor-result-filter");
+  const toggle = form.querySelector("#editor-diff-toggle");
   const revision = form.querySelector("#editor-diff-revision");
-  const load = form.querySelector("#editor-diff-baseline");
   const status = form.querySelector("#editor-diff-status");
   const announcement = form.querySelector("#editor-diff-announcement");
-  if (!filter || !revision || !load || !status || !announcement) {
-    for (const control of [filter, revision, load]) {
+  if (!toggle || !revision || !status || !announcement) {
+    for (const control of [toggle, revision]) {
       if (control) control.disabled = true;
     }
     showError("Content differences are unavailable because the editor page and JavaScript " +
@@ -17,7 +16,7 @@ export function mountDifferenceControls(form, editor, initial, showError) {
       "this page. Other editing remains available; saved editions and drafts are unchanged.");
     return null;
   }
-  let baseline, baselineRevision = 0, pending = 0;
+  let baseline, baselineRevision = 0, pending = 0, diffEnabled = false;
   const baselineLabel = number => number === 0
     ? "the pinned starting document" : `saved revision ${number}`;
   function parse(value) {
@@ -26,46 +25,64 @@ export function mountDifferenceControls(form, editor, initial, showError) {
     finally { candidate.destroy(); }
   }
   baseline = parse(initial.baseline_document || initial.document);
+  function updateToggle() {
+    const action = diffEnabled ? "Show result" : "Show differences";
+    toggle.setAttribute("aria-label", action);
+    toggle.title = action;
+    toggle.setAttribute("aria-pressed", String(diffEnabled));
+  }
   function report(announce = false) {
-    const differences = currentDifferences(editor);
     const selected = Number(revision.value);
-    const selectedNotice = selected === baselineRevision ? "" :
-      ` Selected ${baselineLabel(selected)} is not loaded.`;
-    status.textContent = filter.value === "result"
-      ? `Loaded baseline: ${baselineLabel(baselineRevision)}.${selectedNotice} Result view; differences are off.`
-      : `Loaded baseline: ${baselineLabel(baselineRevision)}.${selectedNotice} ` +
-        `${differences.length} changed range(s).`;
+    if (baselineRevision === null) {
+      status.textContent = `Comparison with ${baselineLabel(selected)} is not loaded.`;
+    } else {
+      const differences = currentDifferences(editor);
+      const selectedNotice = selected === baselineRevision ? "" :
+        ` Selected ${baselineLabel(selected)} is not loaded.`;
+      status.textContent = `Loaded baseline: ${baselineLabel(baselineRevision)}.${selectedNotice} ` +
+        (diffEnabled ? `${differences.length} changed range(s).` : "Result view; differences are off.");
+    }
     if (announce) announcement.textContent = status.textContent;
   }
   function apply(announce = false) {
-    showDocumentDifferences(editor, baseline, filter.value === "diffs");
+    showDocumentDifferences(editor, baseline, diffEnabled);
+    updateToggle();
     report(announce);
   }
-  filter.addEventListener("change", () => {
-    try { apply(true); }
-    catch (failure) {
-      filter.value = "result";
-      showDocumentDifferences(editor, baseline, false);
-      report(true);
-      showError(failure.message);
-    }
+  toggle.addEventListener("click", () => {
+    diffEnabled = !diffEnabled;
+    apply(true);
   });
-  revision.addEventListener("change", () => report(true));
-  load.addEventListener("click", async () => {
+  revision.addEventListener("change", async () => {
     const number = Number(revision.value);
-    if (!Number.isInteger(number) || number < 0 || number > initial.revision || revision.value === "") {
+    if (!Number.isInteger(number) || number < 0 || number > initial.revision ||
+        revision.value === "") {
       showError(`Choose a saved baseline revision from 0 to ${initial.revision}.`);
       return;
     }
+    if (number === baselineRevision) {
+      apply(true);
+      return;
+    }
     if (!initial.draft) {
-      if (number === 0) { baselineRevision = 0; apply(true); }
-      else showError("Save a corrected version before selecting another baseline.");
+      if (number !== 0) {
+        showError("Save a corrected version before selecting another baseline.");
+        revision.value = String(baselineRevision);
+        return;
+      }
+      baseline = parse(initial.baseline_document || initial.document);
+      baselineRevision = 0;
+      showError("");
+      apply(true);
       return;
     }
     const request = ++pending;
     const draft = initial.draft;
-    load.disabled = true;
-    status.textContent = `Loaded baseline: ${baselineLabel(baselineRevision)}. Loading ${baselineLabel(number)}…`;
+    baseline = null;
+    baselineRevision = null;
+    showDocumentDifferences(editor, null, false);
+    status.textContent = `Loading ${baselineLabel(number)}…`;
+    revision.setAttribute("aria-busy", "true");
     announcement.textContent = status.textContent;
     try {
       const url = new URL(form.dataset.baselineUrl, location.href);
@@ -77,27 +94,34 @@ export function mountDifferenceControls(form, editor, initial, showError) {
       }
       const value = await response.json();
       if (!response.ok) throw new Error(value.error || `Baseline could not be loaded (${response.status}).`);
-      if (request !== pending || initial.draft !== draft) return;
+      if (request !== pending || initial.draft !== draft || Number(revision.value) !== number) return;
       baseline = parse(value.document);
       baselineRevision = number;
       showError("");
       apply(true);
     } catch (failure) {
+      if (request !== pending || Number(revision.value) !== number) return;
+      baseline = null;
+      baselineRevision = null;
+      showDocumentDifferences(editor, null, false);
+      report(true);
       showError(failure.message);
-      report();
+    } finally {
+      if (request === pending) revision.removeAttribute("aria-busy");
     }
-    finally { if (request === pending) load.disabled = false; }
   });
   editor.on("update", () => report());
   function refresh() {
     const selected = Number(revision.value);
+    const lastRevision = initial.draft ? initial.revision : 0;
     revision.replaceChildren(new owner.defaultView.Option("Pinned starting version", "0"));
-    for (let number = 1; number <= initial.revision; number++) {
+    for (let number = 1; number <= lastRevision; number++) {
       revision.add(new owner.defaultView.Option(`Saved version ${number}`, String(number)));
     }
-    revision.value = String(Number.isInteger(selected) && selected <= initial.revision ? selected : 0);
+    revision.value = String(Number.isInteger(selected) && selected <= lastRevision ? selected : 0);
     report();
   }
   refresh();
+  updateToggle();
   return {refresh};
 }

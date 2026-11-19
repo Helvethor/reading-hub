@@ -6,9 +6,6 @@
 #editor-note-repair { width: min(48rem, 90vw); max-height: 85vh; overflow: auto; }
 #editor-note-repair select { max-width: 100%; }
 #editor-diff-status { flex: 1 1 20rem; min-width: min(100%, 20rem); font-size: .78rem; color: var(--muted); }
-.editor-diff-help { flex: 0 1 auto; font-size: .78rem; }
-.editor-diff-help summary { cursor: pointer; }
-.editor-diff-help p { max-width: 38rem; margin: .4rem 0; }
 #editor-surface .editor-diff-added { background: #c9efce; color: #152c19; }
 #editor-surface .editor-diff-removed { background: #f9d0d0; color: #491515; }
 #editor-surface .editor-diff-removed-blocks { display: contents; }
@@ -29,8 +26,12 @@
 .editor-structure-link { font-weight: 700; }
 .editor-pilot-toolbar { position: static; column-gap: .5rem; }
 .editor-pilot-toolbar select { min-width: 0; max-width: 13rem; }
-.editor-format-toolbar { padding-inline-end: .5rem; border-inline-end: 1px solid var(--line); }
-.editor-format-toolbar button { min-width: 2.25rem; }
+.editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding-inline-end: .5rem; border-inline-end: 1px solid var(--line); }
+.editor-format-toolbar button { min-width: 1.9rem; padding: .3rem; }
+.editor-format-toolbar svg, .editor-pilot-toolbar button svg, .editor-pilot-toolbar a svg, .editor-outline-toolbar button svg { width: 1rem; height: 1rem; flex: 0 0 1rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+.editor-pilot-toolbar button, .editor-pilot-toolbar a { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; }
+.editor-pilot-toolbar [hidden], .editor-format-toolbar [hidden] { display: none !important; }
+.editor-license-link { font-size: .75rem; white-space: nowrap; }
 .editor-history-toolbar { margin-inline-end: .2rem; }
 .editor-pilot-toolbar .editor-save,
 .editor-pilot-toolbar .editor-save:is(:hover, :focus-visible) { background: var(--accent); color: var(--paper); }
@@ -46,9 +47,9 @@
 .editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: calc(100dvh - 1rem); min-height: 0; }
 .editor-outline { position: static; align-self: stretch; box-sizing: border-box; min-height: 0; overflow-y: auto; overscroll-behavior-y: auto; padding: .75rem; background: var(--surface-raised, #f8f9f5); border-inline-end: 1px solid var(--line); }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
-.editor-section-controls { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; margin-block: .6rem; padding-block: .25rem; background: var(--surface-raised, #f8f9f5); }
-.editor-outline-help { font-size: .85rem; }
-.editor-section-controls button { font-size: .8rem; padding: .4rem; }
+.editor-section-controls { position: static; display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; padding-block: .25rem .55rem; background: var(--surface-raised, #f8f9f5); }
+.editor-outline-toolbar { border-bottom: 2px solid var(--accent, #486b38); }
+.editor-section-controls button { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; padding: .3rem .4rem; }
 #editor-surface .editor-section-boundary { border: 1px solid #718b63; border-inline-start: 3px solid #486b38; padding: .5rem .75rem; margin-block: 1rem; }
 #editor-surface .editor-selected-block { outline: 3px solid #315d9b; outline-offset: 2px; background: #e6effc; }
 #editor-surface .editor-section-edge { display: block; color: #344a2e; background: #edf1e8; font: .75rem/1.5 system-ui, sans-serif; padding: .25rem .4rem; user-select: none; white-space: normal; }
@@ -71,13 +72,9 @@
 #editor-outline-items button { padding: .4rem; border: 0; background: transparent; color: #302221; text-align: start; white-space: pre-wrap; font-size: .85rem; font-weight: 400; overflow-wrap: anywhere; }
 #editor-outline-items button:hover { background: #e5eadf; }
 #editor-outline-items button[aria-current="true"] { background: #344a2e; color: white; }
-.editor-outline-options { display: flex; flex-wrap: wrap; gap: .4rem; margin-block: .6rem; font-size: .75rem; }
-.editor-outline-options label { display: flex; align-items: center; gap: .3rem; }
-.editor-outline-options button { padding: .25rem .4rem; font: inherit; }
 #editor-outline-toggle { display: none; }
 .editor-scope { margin-block: .35rem 1rem; }
 .editor-history-link { font-weight: 600; }
-.editor-help { max-width: 76rem; margin-block: 1rem; }
 .editor-review-panel { min-height: 16rem; padding: 1rem; }
 .editor-outline-root { position: relative; padding-inline-start: .85rem; }
 .editor-outline-root::after { content: ""; position: absolute; inset-inline-start: .425rem; bottom: 0; height: 50%; border-inline-start: 1px solid var(--editor-tree-line, #98a48e); }
@@ -105,7 +102,7 @@
 .editor-book-sections::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: -.425rem; border-inline-start: 1px solid var(--editor-tree-line, #98a48e); pointer-events: none; }
 #editor-outline-items [data-book-view][aria-current=page] { box-shadow: inset 0 0 0 1px currentColor; }
 .editor-book-sections { margin-inline-start: .85rem; }
-#document-editor .editor-section-filter-control[hidden], #editor-surface [hidden], .editor-book-sections[hidden] { display: none !important; }
+#editor-surface [hidden], .editor-book-sections[hidden] { display: none !important; }
 .editor-generated-page { margin: 1rem; padding: 1.5rem; border: 1px solid var(--editor-border, #cbd1c4); background: var(--editor-paper, white); color: var(--ink, #302221); }
 .editor-title-page { text-align: center; min-height: 20rem; }
 .editor-title-page .document-metadata { text-align: start; max-width: 35rem; margin-inline: auto; }
@@ -134,7 +131,7 @@
 .editor-outline-visible { background: #edf1e8; }
 #editor-outline-items .editor-outline-active > [data-part], #editor-outline-items .editor-outline-active > [data-book-view] { background: #344a2e; color: white; }
 #editor-outline-items .editor-outline-focused { box-shadow: inset 0 0 0 1px currentColor; }
-#editor-outline-items [data-outline-fold], #editor-outline-items [data-content-fold] { text-align: center; padding-inline: .15rem; }
+#editor-outline-items [data-outline-fold] { text-align: center; padding-inline: .15rem; }
 #editor-surface .editor-folded-content { display: none !important; }
 #editor-surface .tiptap .editor-fold-placeholder { display: block; margin-block: .5rem; padding: .5rem .75rem; border: 1px dashed #486b38; background: #edf1e8; color: #344a2e; font: .85rem system-ui, sans-serif; cursor: pointer; white-space: normal; }
 #editor-outline-menu { position: static; padding: .4rem; border: 1px solid var(--line); background: var(--surface-raised, #f8f9f5); }
@@ -170,9 +167,6 @@
 }
 /* The editor canvas uses the available width; the reading measure applies to publications. */
 #editor-surface.reader-content { max-width: none; margin-inline: 0; }
-.editor-part-control { flex: 1; min-width: 8rem; }
-#editor-part { width: min(100%, 22rem); max-width: 100%; }
-.editor-help { font-size: .85rem; }
 .editor-review-controls { margin: 1rem 0; padding: 1rem; border: 1px solid #cbd1c4; }
 .editor-review-controls label { display: block; margin: .6rem 0; }
 .editor-metadata { margin: 1.5rem auto 0; max-width: 56rem; padding-top: 1rem; border-top: 1px solid var(--editor-border, #cbd1c4); text-align: start; font: .85rem/1.35 system-ui, sans-serif; }
@@ -214,7 +208,7 @@
 #editor-surface .tiptap > * { white-space: normal; }
 #editor-surface .tiptap pre { white-space: pre-wrap; }
 #editor-surface .tiptap, #editor-surface .tiptap * { cursor: url("editor-text-cursor.svg") 12 12, text; caret-color: #302221; }
-#editor-surface:focus-within { box-shadow: inset 0 0 0 2px #486b38; }
+#editor-surface:focus-within { position: relative; z-index: 1; outline: 2px solid var(--accent, #486b38); outline-offset: -2px; }
 #editor-surface .tiptap:focus { outline: none; }
 #editor-surface .editor-toc-marker { user-select: none; pointer-events: none; }
 #editor-surface .editor-outside-part { display: none !important; }
@@ -240,7 +234,7 @@
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) > button { display: block; width: 100%; margin-top: .1rem; text-align: start; }
 :is(#editor-context-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline: 3px solid #486b38; outline-offset: 1px; }
 :is(#editor-context-menu, #editor-toc-menu, #editor-title-menu, #editor-page-menu) button[aria-checked="true"] { background: #344a2e; color: white; }
-.editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; border-bottom: 1px solid #cbd1c4; }
+.editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; }
 .editor-menu-heading { grid-column: 1 / -1; font-weight: 600; font-size: .7rem; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu).editor-floating-menu { position: fixed; z-index: 1000; width: min(22rem, calc(100vw - 1rem)); min-width: 0; max-height: calc(100dvh - 1rem); overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; box-shadow: 0 .3rem 1.5rem rgb(0 0 0 / .2); }
 .editor-floating-menu > p { margin: .4rem .3rem .2rem; padding-block-start: .4rem; border-top: 1px solid var(--editor-border, #cbd1c4); font: 600 .7rem/1.4 system-ui, sans-serif; }
@@ -286,8 +280,6 @@
   .editor-outline { display: none; height: auto; overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--line); }
   #editor-outline-toggle { display: inline-block; }
   .editor-outline-open .editor-outline { display: block; position: static; max-height: none; overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--line); }
-  .editor-part-control { order: 1; flex-basis: 100%; }
-  #editor-part { width: calc(100% - 3rem); }
   #editor-surface[data-workspace-scroll-pane] { flex: none; height: auto; min-height: 0; overflow: visible; }
   #editor-surface .tiptap { padding-inline: .7rem; }
   #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font-size: .65rem; }

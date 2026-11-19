@@ -104,58 +104,65 @@
     </details>
     {% endif %}
       <div class="editor-pilot-toolbar workspace-command-bar" role="group" aria-label="Editor commands">
-        <div class="editor-format-toolbar workspace-joined-controls" role="group" aria-label="Common formatting">
+        <div class="editor-format-toolbar workspace-joined-controls" role="group" aria-label="Formatting">
           <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
           <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
+          <button type="button" aria-label="Underline" title="Underline" aria-pressed="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
+          <button type="button" aria-label="Strikethrough" title="Strikethrough" aria-pressed="false" data-mark="s" disabled><s aria-hidden="true">S</s></button>
+          <button type="button" aria-label="Superscript" title="Superscript" aria-pressed="false" data-mark="sup" disabled><span aria-hidden="true">x<sup>2</sup></span></button>
+          <button type="button" aria-label="Subscript" title="Subscript" aria-pressed="false" data-mark="sub" disabled><span aria-hidden="true">x<sub>2</sub></span></button>
           <button type="button" aria-label="Paragraph" title="Paragraph" aria-pressed="false" data-block="p" disabled>¶</button>
           <button type="button" aria-label="Heading 2" title="Heading 2" aria-pressed="false" data-block="h2" disabled>H2</button>
           <button type="button" aria-label="Heading 3" title="Heading 3" aria-pressed="false" data-block="h3" disabled>H3</button>
-          <button type="button" aria-label="Bulleted list" title="Bulleted list" aria-pressed="false" data-list="ul" disabled>• List</button>
-          <button type="button" aria-label="Numbered list" title="Numbered list" aria-pressed="false" data-list="ol" disabled>1. List</button>
-          <button type="button" aria-label="Insert horizontal rule" title="Insert horizontal rule" data-rule-insert disabled>HR</button>
-          <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled>Link</button>
+          <button type="button" aria-label="Heading 4" title="Heading 4" aria-pressed="false" data-block="h4" disabled>H4</button>
+          <button type="button" aria-label="Heading 5" title="Heading 5" aria-pressed="false" data-block="h5" disabled>H5</button>
+          <button type="button" aria-label="Heading 6" title="Heading 6" aria-pressed="false" data-block="h6" disabled>H6</button>
+          <button type="button" aria-label="Align left" title="Align left; click again to inherit" aria-pressed="false" data-align="left" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h10M2 11h16M2 15h10"/></svg></button>
+          <button type="button" aria-label="Align center" title="Align center; click again to inherit" aria-pressed="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
+          <button type="button" aria-label="Align right" title="Align right; click again to inherit" aria-pressed="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
+          <button type="button" aria-label="Justify" title="Justify; click again to inherit" aria-pressed="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
+          <button type="button" aria-label="Bulleted list" title="Bulleted list" aria-pressed="false" data-list="ul" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11"/><circle cx="2" cy="4" r=".7"/><circle cx="2" cy="10" r=".7"/><circle cx="2" cy="16" r=".7"/></svg></button>
+          <button type="button" aria-label="Numbered list" title="Numbered list" aria-pressed="false" data-list="ol" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11M1 2h2v5M1 7h4M1 11h4v2l-4 4h4"/></svg></button>
+          <button type="button" aria-label="Insert horizontal rule" title="Insert horizontal rule" data-rule-insert disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 10h16"/></svg></button>
+          <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 12l4-4M7 14H5a3 3 0 0 1 0-6h3m4-2h3a3 3 0 0 1 0 6h-3"/></svg></button>
         </div>
-        <button type="button" id="editor-tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled>Selection tools</button>
+        <button type="button" id="editor-tools" aria-label="Selection tools" title="Selection tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 3l6 14 2-6 6-2z"/></svg><span>Selection tools</span></button>
         <div class="editor-history-toolbar workspace-joined-controls" role="group" aria-label="History">
-          <button type="button" data-history="undo" disabled>Undo</button>
-          <button type="button" data-history="redo" disabled>Redo</button>
+          <button type="button" aria-label="Undo" title="Undo" data-history="undo" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 5L3 9l5 4M4 9h7a5 5 0 0 1 5 5"/></svg></button>
+          <button type="button" aria-label="Redo" title="Redo" data-history="redo" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M12 5l5 4-5 4m4-4H9a5 5 0 0 0-5 5"/></svg></button>
         </div>
-        <button type="submit" class="editor-save" disabled>Save</button>
+        <button type="submit" class="editor-save" aria-label="Save" title="Save" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 3h12l2 2v12H3zM6 3v5h8V3M6 17v-6h8v6"/></svg><span>Save</span></button>
         <span id="workspace-save-state" role="status">
           {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
         </span>
-        <a id="editor-publication" class="button secondary" data-workflow-panel="Publish" hidden>Publish&hellip;</a>
-        <label class="editor-part-control">Show <select id="editor-part" disabled><option value="book">Whole book</option><option value="title">Title</option><option value="toc">ToC</option><option value="sections">Sections</option><option value="metadata">Metadata page</option></select></label>
-        <label class="editor-section-filter-control" hidden>Section <select id="editor-section-filter" disabled><option value="">All sections</option></select></label>
-        <button type="button" id="editor-source-open" data-source-url="{% url 'document-editor-source' version.pk %}" disabled>Insert from source&hellip;</button>
+        <a id="editor-publication" class="button secondary" aria-label="Publish" title="Publish" data-workflow-panel="Publish" hidden><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 15V3m-4 4l4-4 4 4M4 12v5h12v-5"/></svg><span>Publish&hellip;</span></a>
+        <button type="button" id="editor-source-open" aria-label="Insert from source" title="Insert from source" data-source-url="{% url 'document-editor-source' version.pk %}" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Insert from source&hellip;</span></button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
+        <button type="button" id="editor-restore" aria-label="Restore this tab's unsaved draft" title="Restore this tab's unsaved draft" hidden><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 8a6 6 0 1 1-1 5M3 4v5h5"/></svg><span>Restore</span></button>
+        <a class="editor-license-link" href="{% static 'library/generated/editor-licenses.txt' %}">Editor licenses</a>
       </div>
       <p id="editor-status" role="status">Loading the local editor and checking document fidelity…</p>
       <p id="editor-error" class="error" role="alert"></p>
       <div class="editor-tab-panel" id="editor-panel-editor" role="tabpanel" aria-labelledby="editor-tab-editor">
-      <div class="editor-diff-controls workspace-command-bar" role="group" aria-label="Result and differences">
-        <label>Content view <select id="editor-result-filter" disabled><option value="result">Result</option><option value="diffs">Diffs</option></select></label>
+      <div class="editor-diff-controls workspace-command-bar" role="group" aria-label="Comparison">
+        <button type="button" id="editor-diff-toggle" aria-label="Show differences" title="Show differences" aria-pressed="false" disabled>Diff</button>
         <label>Compare with <select id="editor-diff-revision" disabled><option value="0">Pinned starting version</option></select></label>
-        <button type="button" id="editor-diff-baseline" disabled>Update comparison</button>
         <span id="editor-diff-status" aria-live="off"></span>
-        <details class="editor-diff-help">
-          <summary>Difference help</summary>
-          <p>Green means added; red means removed. Block-format changes are noted above the block. Right-click a change to restore it as an unsaved, undoable edit. Comparing does not change saved content; use Compare in Review for saved metadata differences.</p>
-        </details>
       </div>
       <p id="editor-diff-announcement" class="editor-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="editor-workspace-body">
         <nav class="editor-outline" aria-label="Book parts" data-workspace-scroll-pane tabindex="0">
           <h2>Book outline</h2>
-          <div class="editor-section-controls">
-            <button type="button" id="editor-add-section-open" disabled>Add / restore section…</button>
-            <button type="button" id="editor-section-empty" disabled>New empty section…</button>
-            <button type="button" id="editor-section-move-open" disabled>Move section…</button>
-            <button type="button" id="editor-new-section-open">New section…</button>
-            <button type="button" id="editor-section-boundary-open">Section boundary…</button>
-            <button type="button" id="editor-target-open">Target ID…</button>
+          <div class="editor-section-controls editor-outline-toolbar" role="group" aria-label="Outline commands">
+            <button type="button" id="editor-add-section-open" aria-label="Add or restore section" title="Add or restore section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Add / restore section…</span></button>
+            <button type="button" id="editor-section-empty" aria-label="New empty section" title="New empty section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New empty section…</span></button>
+            <button type="button" id="editor-section-move-open" aria-label="Move section" title="Move section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h7M3 8h7M13 16V4m-4 4l4-4 4 4"/></svg><span>Move section…</span></button>
+            <button type="button" id="editor-new-section-open" aria-label="New section" title="New section"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New section…</span></button>
+            <button type="button" id="editor-section-boundary-open" aria-label="Repair section boundary" title="Repair section boundary"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 16h14M6 7l4 3-4 3"/></svg><span>Section boundary…</span></button>
+            <button type="button" id="editor-target-open" aria-label="Edit target ID" title="Edit target ID"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4h12v12H4zM7 7h6v6H7z"/></svg><span>Target ID…</span></button>
+            <button type="button" id="editor-layout-defaults" aria-label="Use work-type layout defaults" title="Use work-type layout defaults"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4h12M4 10h12M4 16h12M2 4h.1M2 10h.1M2 16h.1"/></svg><span>Use work-type layout defaults</span></button>
+            <button type="button" id="editor-outline-expand" aria-label="Expand all outline groups" title="Expand all outline groups"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Expand outline</span></button>
           </div>
-          <details class="editor-outline-help context-help"><summary>Outline help</summary><p>Branch lines trace the book, sections and headings. Right-click a section or heading (Shift+F10 by keyboard) for title/URL/role, move, add or boundary repair. Drag a section title onto another section's row: upper third = before, middle third = inside, lower third = after. Move section offers the same placements without dragging. Click a title to scroll; Show focuses one part.</p></details>
           <div id="editor-outline-items"></div>
         </nav>
         <div class="editor-canvas">
@@ -245,15 +252,6 @@
       <p><a id="editor-comparison" data-workflow-panel="Compare" hidden>Compare</a> <span class="muted">Unsaved editor changes are not included.</span></p>
       <details><summary>Compare retained starting content (read-only)</summary><pre>{% if draft %}{{ draft.document.html }}{% else %}{{ initial.document.html }}{% endif %}</pre></details>
       </div>
-    <details class="editor-help context-help">
-      <summary id="editor-help">Editing help and keyboard shortcuts</summary>
-      <p>Ctrl/Cmd-click toggles whole-block selection within a section. Right-click or Shift+F10 opens selection and section tools; selected blocks must be contiguous to become an excerpt section. Click within a list, table or figure to select that whole block.</p>
-      <p>Enter splits paragraphs and Backspace joins them. Ctrl/Cmd+C and Ctrl/Cmd+V copy semantic content, preserving formatting, links and retained images; external paste opens a preview. Ctrl/Cmd+Z and outline Undo restore edits.</p>
-      <p>Bulleted list and Numbered list act on a paragraph or complete sibling items; click the active type to remove list formatting. New plain items contain text directly, without paragraph wrappers; paragraphs with IDs or styling are retained. Selection tools includes Indent item, Outdent item and Move item up/down. Enter splits an item; Shift+Enter adds a line break. Enter removes an empty interior item or exits a final empty item one level, preserving targets and styling. Backspace at an item's start or Delete at its end joins compatible siblings. Unsafe target/style loss, internal structural joins and numbering resets are refused without changing content. Tab moves focus normally.</p>
-      <p>HR / Insert horizontal rule adds a rule at an ordinary paragraph caret, outside lists, figures, tables and notes. Text after the caret stays in a following paragraph. Undo restores the original. List labels and vertical bars belong to UL/OL containers, not LI items. These and HR cues are editor-only; they do not appear in Read or PDF.</p>
-      <p>Use paragraph up/down for adjacent blocks in the same container; use the outline to reorder sections. Blocks cannot move across sections, lists, tables or media. Shift+right-click keeps the browser menu. The outline and toolbar stay in normal page flow; the desktop content canvas scrolls independently.</p>
-      <p>Self-hosted Tiptap / ProseMirror. <a href="{% static 'library/generated/editor-licenses.txt' %}">Bundled open-source licenses</a>.</p>
-    </details>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
       <div role="group" aria-label="History and menu" class="editor-menu-group editor-menu-history">
         <button type="button" role="menuitem" data-history="undo" disabled>↶ Undo</button>
@@ -341,7 +339,6 @@
       <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
       <button type="button" role="menuitem" data-link-remove disabled>Remove link (keep text and targets)</button>
     </div>
-    <button type="button" id="editor-restore" hidden>Restore this tab's unsaved draft</button>
   </form>
     <div class="editor-tab-panel editor-book-structure" id="editor-panel-structure" role="tabpanel" aria-labelledby="editor-tab-structure" tabindex="0" hidden>
       <h3>Pinned source Book structure — {% if initial.structure.book %}{{ initial.structure.parts|length }} page parts{% else %}single-page work{% endif %}</h3>
