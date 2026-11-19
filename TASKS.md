@@ -298,6 +298,40 @@ Out of scope: workflow redesign, framework replacement, content/record changes,
 deployment and certification of previously unresolved interaction defects.
 Checkpoint validated implementation stages locally when separately authorized.
 
+### Milestone SV5: Editor toolbar spacing and alignment regression
+
+Recorded 2026-11-19. **Status: planned; not implemented or browser-validated.**
+Restore the existing [visual contract](SPECIFICATION.md#square-visual-language-and-joined-controls)
+for the editor command area without changing command behavior.
+
+Source inspection identifies an editor-specific `gap: 0` override on Format
+and Outline toolbars, plus `.editor-command-panel` padding of `.35rem .5rem`
+stacked with the inner command bar's `.5rem` padding. This is source-based
+diagnosis, not rendered-browser evidence.
+
+- [ ] Remove the editor-specific zero-gap override so Format and Outline
+  inherit the shared 3px control spacing; retain stretch alignment.
+- [ ] Make `.editor-command-panel` an unpadded structural wrapper. Keep padding
+  owned by the inner `.workspace-command-bar` consistently across Format,
+  Outline and Diff, matching `.editor-pilot-toolbar`.
+- [ ] Add focused browser-layout regression coverage for measured spacing and
+  alignment, rather than relying on stylesheet-text or DOM-only assertions.
+- [ ] Validate an isolated synthetic preview in both Marxist themes at desktop,
+  narrow widths and native 200% zoom. Measure exactly 3px between adjacent
+  formatting buttons, horizontally and between wrapped rows; confirm matching
+  command-bar content insets and a single 8px padding layer on all four sides.
+- [ ] Preserve visible focus, disabled/selected states, overflow-free wrapping,
+  keyboard command-tab switching, unsaved editor content and stable command-area
+  height when switching Format, Outline and Diff.
+- [ ] Record observed browser evidence and limitations, then checkpoint the
+  validated fix locally.
+
+Scope is the spacing/alignment regression in `editor-pilot.css`; no JavaScript
+changes are expected. Do not redesign toolbars or change publication/PDF output.
+Implementation and validation do not authorize deployment or live-data changes.
+Earlier SV completion evidence remains historical; it does not close this
+reported regression.
+
 ### Milestone V.q: Viewport-stable tab switching
 
 Recorded 2026-11-18. **Status: source implementation is in the current
