@@ -2383,6 +2383,61 @@ No application changes, deployment or live-data changes are authorized by this
 specification. The tabbed switch is the proposed design for subsequent
 implementation approval; no alternative toolbar system belongs in this scope.
 
+#### V.u surface containment regression fix plan
+
+**Status: planned; blocking user-reported regression (2026-11-19).** The editor
+surface spills outside its stage and no longer provides independent scrolling.
+Source inspection identifies a strong candidate, not a browser-confirmed cause:
+V.u inserted `.editor-surface-frame` between the flex-column canvas and
+`#editor-surface`, but the wrapper is not a flex/grid container. The surface's
+`flex` sizing therefore no longer constrains it to the wrapper; with `height:
+auto` it can grow with document content despite `overflow-y: auto`.
+
+**Recommended bounded fix.** Keep the non-scrolling border wrapper and restore
+the sizing chain from the bounded desktop workspace through canvas and frame
+to the surface. Start with a column-flex frame, shrinkable on both axes, so the
+existing flex surface fills only the available frame space and owns document
+overflow. Confirm the resulting computed layout before adding any further
+constraints. Keep the focus overlay attached to that stationary frame and above
+section borders.
+
+Do not mask the bug with clipping on an ancestor, a second scroll container,
+arbitrary document-height limits, hard-coded header offsets, or JavaScript resize
+measurement. Removing the wrapper would undo its paint-order purpose and is not
+the preferred fix. Do not change toolbar or document geometry beyond restoring
+the existing stage contract. Preserve narrow/short-screen rules: those modes
+deliberately use natural document/page scrolling and must not become trapped in
+a desktop-height pane.
+
+**Implementation and verification sequence.**
+
+1. Reproduce in an isolated long book and article using production markup/CSS.
+   Record workspace/canvas/frame/surface rectangles, computed sizing/overflow,
+   surface `clientHeight`/`scrollHeight`, and the responsive rules actually
+   active. Compare against pre-wrapper layout to confirm or reject the diagnosis.
+2. Apply the smallest sizing-chain correction, including narrow/short overrides
+   only if needed. Keep `#editor-surface` as the desktop canvas scroll owner;
+   preserve the independently scrolling outline and ordinary outer-page scroll.
+3. Add a focused browser geometry regression using production CSS and the
+   wrapper markup. For long desktop content, require surface bounds within the
+   frame (within 1 CSS px), `scrollHeight > clientHeight`, a bounded stage height
+   that does not grow with document length, and a working surface `scrollTop`.
+   DOM/class assertions or jsdom alone do not prove this outcome.
+4. Verify wheel, scrollbar and focused keyboard scrolling to the last section
+   and metadata page, plus outline navigation/follow-scroll. The stationary
+   frame must remain visible above section borders at top/middle/bottom. Switch
+   Format/Outline/Diff and enable differences without losing scrolling,
+   selection or pending edits. Check short content too, without forced overflow.
+5. Repeat with both themes, native 100%/200% zoom, and widths/heights on either
+   side of the existing 760px/520px responsive breakpoints. In natural-flow
+   modes all content remains reachable through page scrolling, with no clipping
+   or extra trapped scroll region. Preserve aligned 1px section borders,
+   generated pages, saving/recovery and output semantics.
+
+Stop after containment and scrolling are demonstrated in rendered fixtures and
+native interaction; report synthetic checks separately. This plan authorizes
+neither implementation nor deployment or live-data changes.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where

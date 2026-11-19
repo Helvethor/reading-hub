@@ -369,6 +369,14 @@ and visual acceptance remain open.** See the
 - [ ] Measure rendered edges within 1 CSS px and verify labels/nested sections
   are not clipped.
 
+**Blocking regression reported 2026-11-19: surface containment and scrolling.**
+The border wrapper appears to interrupt the surface's constrained flex sizing.
+See the [bounded fix plan](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-surface-containment-regression-fix-plan).
+- [ ] Restore the desktop surface's bounded height and independent scrolling
+  without removing the stationary focus frame or clipping document content.
+- [ ] Verify actual rendered containment, pointer/keyboard scrolling, last-content
+  reachability and narrow/short-screen page flow before accepting the fix.
+
 Automated verification: `npm test`, `npm run build`, and
 `python workflow.py test library.tests.test_document_editor_views` pass.
 Native-browser, zoom/theme, focus/scroll, edge-measurement, and
