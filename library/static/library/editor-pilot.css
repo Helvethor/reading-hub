@@ -253,11 +253,14 @@
 :is(#editor-context-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline: 3px solid #486b38; outline-offset: 1px; }
 :is(#editor-context-menu, #editor-toc-menu, #editor-title-menu, #editor-page-menu) button[aria-checked="true"] { background: #344a2e; color: white; }
 .editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; }
+.editor-layout-menu { display: flex; flex-wrap: nowrap; }
+.editor-layout-menu > button { flex: none; white-space: nowrap; }
 .editor-menu-heading { grid-column: 1 / -1; font-weight: 600; font-size: .7rem; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu).editor-floating-menu { position: fixed; z-index: 1000; width: min(22rem, calc(100vw - 1rem)); min-width: 0; max-height: calc(100dvh - 1rem); overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; box-shadow: 0 .3rem 1.5rem rgb(0 0 0 / .2); }
 .editor-floating-menu > p { margin: .4rem .3rem .2rem; padding-block-start: .4rem; border-top: 1px solid var(--editor-border, #cbd1c4); font: 600 .7rem/1.4 system-ui, sans-serif; }
 .editor-floating-menu > p:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .editor-floating-menu button[data-menu-icon]::before { content: attr(data-menu-icon) / ""; display: inline-block; width: 1.5rem; text-align: center; margin-inline-end: .25rem; }
+.editor-floating-menu .editor-layout-menu > button[data-menu-icon]::before { width: auto; }
 .editor-floating-menu .editor-menu-directions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .15rem; }
 .editor-floating-menu button.editor-menu-divider { margin-top: .35rem; padding-top: .5rem; border-top: 1px solid var(--editor-border, #cbd1c4); border-radius: 0; }
 .editor-floating-menu .editor-menu-footer { display: flex; justify-content: flex-end; margin-top: .4rem; padding-top: .3rem; border-top: 1px solid var(--editor-border, #cbd1c4); }

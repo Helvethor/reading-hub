@@ -2313,8 +2313,9 @@ narrow widths; an in-place submenu with Back is acceptable when a flyout cannot
 fit. Capture the document selection/target across the whole menu interaction.
 
 **Separation: two adjacent state-buttons.** In the target's context menu, show
-one compact row: **New page** and **Continuous**. Remove the reason paragraph,
-Default choice and separate Reset to default command from this row.
+one compact row: **New page** and **Continuous**. Size each button to fit its icon
+and label without wrapping, including in narrow menus. Remove the reason
+paragraph, Default choice and separate Reset to default command from this row.
 
 | Existing override | Interaction | Result |
 |---|---|---|
