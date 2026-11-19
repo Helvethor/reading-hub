@@ -57,7 +57,10 @@
 .editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: calc(100dvh - 1rem); min-height: 0; }
 .editor-outline { position: static; align-self: stretch; box-sizing: border-box; min-height: 0; overflow-y: auto; overscroll-behavior-y: auto; padding: .75rem; background: var(--surface-raised, #f8f9f5); border-inline-end: 1px solid var(--line); }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
-#editor-surface .editor-section-boundary { border: 1px solid #718b63; padding: .5rem .75rem; margin-block: 1rem; }
+#editor-surface { --editor-surface-gap: 1rem; }
+#editor-surface .editor-section-boundary { display: flow-root; border: 1px solid #718b63; padding: .5rem .75rem; margin-block: var(--editor-surface-gap); }
+#editor-surface .editor-section-boundary > .editor-section-start + * { margin-block-start: 0; }
+#editor-surface .editor-section-boundary > :not(.editor-section-edge):has(+ .editor-section-end) { margin-block-end: 0; }
 #editor-surface .editor-selected-block { outline: 3px solid #315d9b; outline-offset: 2px; background: #e6effc; }
 #editor-surface .editor-section-edge { display: block; color: #344a2e; background: #edf1e8; font: .75rem/1.5 system-ui, sans-serif; padding: .25rem .4rem; user-select: none; white-space: normal; }
 #editor-surface .editor-section-end { border-top: 1px dashed #718b63; }
@@ -110,7 +113,7 @@
 #editor-outline-items [data-book-view][aria-current=page] { box-shadow: inset 0 0 0 1px currentColor; }
 .editor-book-sections { margin-inline-start: .85rem; }
 #editor-surface [hidden], .editor-book-sections[hidden] { display: none !important; }
-.editor-generated-page { margin: 1rem; padding: 1.5rem; border: 1px solid var(--editor-border, #cbd1c4); background: var(--editor-paper, white); color: var(--ink, #302221); }
+.editor-generated-page { margin: var(--editor-surface-gap, 1rem); padding: 1.5rem; border: 1px solid var(--editor-border, #cbd1c4); background: var(--editor-paper, white); color: var(--ink, #302221); }
 .editor-title-page { text-align: center; min-height: 20rem; }
 .editor-title-page .document-metadata { text-align: start; max-width: 35rem; margin-inline: auto; }
 .editor-generated-notice, .editor-toc-page > p { font: .8rem/1.5 system-ui, sans-serif; color: var(--muted, #4c554b); }
@@ -123,7 +126,8 @@
 .editor-toc-hidden-note { font: italic .75em system-ui, sans-serif; }
 .editor-title-page.editor-title-compact { min-height: 0; padding-bottom: 1rem; text-align: start; }
 .editor-title-page .document-facts { text-align: start; max-width: 54rem; margin-inline: 0; }
-.editor-title-page[data-layout-after="new-page"]::after { content: "Page break"; display: block; margin: 1.5rem -1.5rem -1.5rem; padding: .2rem; border-top: 2px dashed var(--editor-border, #cbd1c4); font: .7rem/1.4 system-ui, sans-serif; color: var(--muted, #4c554b); text-align: center; }
+.editor-page-break { display: flex; align-items: center; gap: .6rem; margin-block: var(--editor-surface-gap, 1rem); color: var(--muted, #4c554b); font: .7rem/1.4 system-ui, sans-serif; text-align: center; user-select: none; }
+.editor-page-break::before, .editor-page-break::after { content: ""; flex: 1 1 auto; border-top: 1px dashed var(--editor-border, #cbd1c4); }
 .editor-generated-page.editor-page-disabled { padding-block: .6rem; border-style: dashed; background: transparent; opacity: .75; }
 .editor-generated-page.editor-page-disabled h2 { margin: 0; font-size: 1rem; }
 .editor-generated-page:focus-visible { outline: 2px solid var(--accent, #486b38); outline-offset: 2px; }
@@ -212,7 +216,7 @@
 #editor-publication { display: inline-block; margin: .75rem 0; font-weight: 700; }
 #editor-publication[hidden] { display: none; }
 /* A percentage minimum fills the canvas before generated pages, pushing them past its footer. */
-#editor-surface .tiptap { --editor-canvas-inline-padding: 1.2rem; position: relative; min-height: 0; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
+#editor-surface .tiptap { --editor-canvas-inline-padding: 1.2rem; position: relative; min-height: 0; box-sizing: border-box; padding: 1.2rem; padding-block: var(--editor-surface-gap, 1rem); background: white; color: #302221; white-space: pre-wrap; }
 /* Keep the editor root's caret policy, but render source HTML spacing like the reader. */
 #editor-surface .tiptap > * { white-space: normal; }
 #editor-surface .tiptap pre { white-space: pre-wrap; }
@@ -235,7 +239,12 @@
 #editor-surface .editor-leaf-label { display: block; position: relative; height: 0; width: 0; margin-inline-start: var(--editor-label-gutter); pointer-events: none; user-select: none; }
 #editor-surface .tiptap .editor-external-block-label { margin-block-start: 0; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
-#editor-surface .tiptap > .editor-section-boundary { margin-inline: calc(1rem - var(--editor-canvas-inline-padding, 1.2rem)); }
+#editor-surface .tiptap > .editor-section-boundary { margin-inline: calc(var(--editor-surface-gap) - var(--editor-canvas-inline-padding, 1.2rem)); }
+#editor-surface .tiptap > .editor-section-boundary:first-child,
+#editor-surface .tiptap > .editor-page-break:first-child + .editor-section-boundary { margin-block-start: calc(-1 * var(--editor-surface-gap)); }
+#editor-surface .tiptap > .editor-page-break:first-child { margin-block-start: calc(-1 * var(--editor-surface-gap)); }
+#editor-surface .tiptap > .editor-page-break:first-child + .editor-section-boundary { margin-block-start: 0; }
+#editor-surface .tiptap > .editor-section-boundary:last-child { margin-block-end: calc(-1 * var(--editor-surface-gap)); }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
 #editor-context-menu [data-menu-category-list] { display: grid; gap: .2rem; }
 #editor-context-menu [data-menu-category] { display: flex; justify-content: space-between; gap: .4rem; text-align: start; }
@@ -364,10 +373,3 @@
 
 .editor-layout-summary { margin-block: .5rem; font-size: .8rem; }
 .editor-layout-summary p { overflow-wrap: anywhere; }
-.editor-layout-new-page,
-.editor-generated-page[data-layout-before="new-page"],
-.ProseMirror[data-layout-before="new-page"] {
-  margin-block-start: 2rem;
-  padding-block-start: 1rem;
-  border-block-start: 1px solid var(--line);
-}

@@ -3,6 +3,7 @@ import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state";
 import {Decoration, DecorationSet} from "@tiptap/pm/view";
 import {headingLabel, sectionHeading} from "./section-info.js";
 import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {contentSeparation, partLayout, resolveLayoutMetadata} from "./part-layout.js";
 
 const workspaceKey = new PluginKey("readingHubWorkspace");
 const headingTypes = new Set(["h2", "h3", "h4", "h5", "h6"]);
@@ -27,6 +28,8 @@ export function workspaceContext(doc, document = {}, structure = {}) {
     ? rootSectionId : null;
   return {
     title: document.title || "",
+    metadata: resolveLayoutMetadata(doc, document.metadata || {}),
+    book: structure.book,
     parts,
     legacyArticleId,
     rootSectionId,
@@ -105,6 +108,39 @@ function decorations(doc, scope, folds = [], context = {}) {
   const result = [];
   const hidden = folds.map(part => foldBody(doc, part));
   const parts = documentParts(doc, context), numbering = tocNumberingEntries(doc, parts);
+  const metadata = resolveLayoutMetadata(doc, context.metadata);
+  const boundaries = partLayout(metadata, context.book);
+  const separation = part => {
+    const position = part.kind === "Section" ? part.from - 1 : part.from;
+    const node = doc.nodeAt(position);
+    return node && contentSeparation(node, part, metadata, context.book).value;
+  };
+  const addPageBreak = (position, label) => {
+    result.push(Decoration.widget(position, view => {
+      const marker = view.dom.ownerDocument.createElement("span");
+      marker.className = "editor-page-break";
+      marker.setAttribute("role", "separator");
+      marker.setAttribute("aria-label", `Page break before ${label}`);
+      marker.setAttribute("contenteditable", "false");
+      marker.dataset.editorPageBreak = label;
+      marker.textContent = "Page break";
+      return marker;
+    }, {side: -1, key: `page-break-${position}-${label}`,
+      stopEvent: () => true, ignoreSelection: true}));
+  };
+  const firstPart = parts[0];
+  if (boundaries.body.value === "new-page" || firstPart && separation(firstPart) === "new-page") {
+    const firstPosition = firstPart &&
+      (firstPart.kind === "Section" ? firstPart.from - 1 : firstPart.from);
+    addPageBreak(0, firstPosition === 0 ? firstPart.label : "body");
+  }
+  parts.forEach((part, index) => {
+    if (index === 0 || separation(part) !== "new-page") return;
+    const position = part.kind === "Section" ? part.from - 1 : part.from;
+    if (scope && (position < scope.from || position >= scope.to) ||
+        hidden.some(range => position >= range.from && position < range.to)) return;
+    addPageBreak(position, part.label);
+  });
   parts.forEach((part, index) => {
     const marker = tocMarker(numbering[index]);
     if (!marker) return;

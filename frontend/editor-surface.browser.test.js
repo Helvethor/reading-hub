@@ -91,3 +91,67 @@ test("the editor surface scrolls inside its desktop frame and follows the page i
     rmSync(temp, {recursive: true, force: true});
   }
 });
+
+test("surface block gaps and section insets share one spacing at 100% and 200% zoom", () => {
+  const css = ["reader.css", "workspace.css", "editor-pilot.css"].map(name =>
+    readFileSync(new URL(`../library/static/library/${name}`, import.meta.url), "utf8")).join("\n");
+  const page = `<!doctype html><meta charset="utf-8"><style>
+    ${css}
+    body { margin: 0; }
+    #editor-surface { width: 900px; }
+  </style><main id="editor-surface">
+    <section class="editor-generated-page" id="title">Title</section>
+    <section class="editor-generated-page" id="toc"><span class="editor-page-break" role="separator" aria-label="Page break before table of contents">Page break</span>Contents</section>
+    <div class="tiptap" contenteditable="true"><section class="editor-section-boundary"><span class="editor-section-edge editor-section-start">Section: One</span><h2>One</h2><p>First paragraph.</p><span class="editor-section-edge editor-section-end">End section: One</span></section><section class="editor-section-boundary"><span class="editor-section-edge editor-section-start">Section: Two</span><h2>Two</h2><p>Second paragraph.</p><span class="editor-section-edge editor-section-end">End section: Two</span></section></div>
+    <section class="editor-generated-page" id="metadata">Metadata</section>
+  </main><script>
+    const surface = document.querySelector('#editor-surface');
+    const results = [1, 2].map(zoom => {
+      document.body.style.zoom = zoom;
+      const currentPages = ['title', 'toc', 'metadata'].map(id =>
+        document.querySelector('#' + id).getBoundingClientRect());
+      const currentSections = [...document.querySelectorAll('.editor-section-boundary')]
+        .map(section => section.getBoundingClientRect());
+      const currentSurface = surface.getBoundingClientRect();
+      const marker = document.querySelector('.editor-page-break');
+      const gap = (before, after) => (after.top - before.bottom) / zoom;
+      return {
+        zoom,
+        markerText: marker.textContent,
+        markerLine: getComputedStyle(marker, '::before').borderTopStyle,
+        gaps: [
+          gap(currentPages[0], currentPages[1]),
+          gap(currentPages[1], currentSections[0]),
+          gap(currentSections[0], currentSections[1]),
+          gap(currentSections[1], currentPages[2]),
+        ],
+        insets: [
+          (currentPages[0].left - currentSurface.left) / zoom,
+          (currentSections[0].left - currentSurface.left) / zoom,
+        ],
+      };
+    });
+    document.documentElement.dataset.results = JSON.stringify(results);
+  </script>`;
+  const temp = mkdtempSync(join(tmpdir(), "reading-hub-layout-"));
+  try {
+    const file = join(temp, "layout.html");
+    writeFileSync(file, page);
+    const output = execFileSync(process.env.CHROMIUM || "chromium", [
+      "--headless", "--disable-background-networking", `--user-data-dir=${join(temp, "profile")}`,
+      "--dump-dom", pathToFileURL(file).href,
+    ], {encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "ignore"]});
+    const result = JSON.parse(new JSDOM(output).window.document.documentElement.dataset.results);
+    assert.deepEqual(result.map(entry => entry.zoom), [1, 2]);
+    for (const entry of result) {
+      assert.equal(entry.markerText, "Page break");
+      assert.equal(entry.markerLine, "dashed");
+      for (const distance of [...entry.gaps, ...entry.insets]) {
+        assert(Math.abs(distance - 16) <= 1,
+          `${entry.zoom * 100}% zoom should measure 16px, got ${distance}px in ${JSON.stringify(entry)}.`);
+      }
+    }
+  } finally {
+    rmSync(temp, {recursive: true, force: true});
+  }
+});

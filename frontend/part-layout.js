@@ -5,6 +5,16 @@ export const layoutParts = ["title", "toc", "body", "metadata", "edition"];
 export const separations = ["continuous", "new-page"];
 const bookTypes = new Set(["book", "anthology", "pamphlet", "report"]);
 
+export function resolveLayoutMetadata(doc, source = {}) {
+  const metadata = {...source};
+  if (doc.attrs.pages) {
+    for (const key of ["title_layout", "contents_page", "metadata_page"]) delete metadata[key];
+    Object.assign(metadata, doc.attrs.pages);
+  }
+  if (doc.attrs.layout) metadata.layout = doc.attrs.layout;
+  return metadata;
+}
+
 export function layoutPreset(metadata, book) {
   const type = metadata.work_type;
   return {book: type && type !== "other" ? bookTypes.has(type) : Boolean(book),
@@ -59,4 +69,5 @@ export function setPartSeparation(editor, position, value) {
   }
   editor.view.dispatch(closeHistory(editor.state.tr.setNodeMarkup(position, null,
     {...node.attrs, "data-layout-before": value})));
+  editor.view.dispatch(closeHistory(editor.state.tr));
 }

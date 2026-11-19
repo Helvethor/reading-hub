@@ -6647,6 +6647,67 @@ test("section separation toggles preserve exact targets and allow an explicit in
   assert.equal(editor.state.doc.nodeAt(0).attrs.id, "s");
 });
 
+test("surface layout menus set heading separations and keep their markers live", () => {
+  const form = mountSectionWorkspace(
+    '<p id="preface">Before the first section.</p>' +
+    '<section id="chapter"><h2>Chapter</h2><h3 id="nested">Nested heading</h3><p>Body.</p></section>',
+  );
+  const heading = editor.view.dom.querySelector("#nested");
+  const menu = form.querySelector("#editor-context-menu");
+  editor.view.posAtCoords = () => null;
+  editor.view.dom.querySelector("#preface").dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+    bubbles: true, cancelable: true, clientX: 20, clientY: 30,
+  }));
+  assert.equal(menu.querySelectorAll(".editor-layout-menu").length, 0,
+    "Content before the first section has no layout target.");
+  const position = documentParts(editor.state.doc).find(part => part.kind === "H3").from;
+  editor.commands.setTextSelection(position + 2);
+  heading.dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+    bubbles: true, cancelable: true, clientX: 20, clientY: 30,
+  }));
+  const choose = value => [...menu.querySelectorAll(".editor-layout-menu button")]
+    .find(button => button.textContent === value);
+  assert(choose("New page"), "A heading right-click offers the layout controls.");
+  assert.equal(choose("New page").getAttribute("aria-checked"), "false");
+  choose("New page").click();
+  assert.equal(menu.querySelectorAll(".editor-layout-menu").length, 1);
+  assert.equal(editor.state.doc.nodeAt(position).attrs["data-layout-before"], "new-page");
+  assert(editor.view.dom.querySelector('[data-editor-page-break="Nested heading"]'));
+
+  const endPosition = position + editor.state.doc.nodeAt(position).nodeSize - 1;
+  editor.commands.setTextSelection(endPosition);
+  editor.commands.insertContent(" edited");
+  assert(editor.view.dom.querySelector('[data-editor-page-break="Nested heading edited"]'));
+  assert(!editor.getHTML().includes("Page break"), "Decorative markers are not serialized into the document.");
+  undo(editor.state, editor.view.dispatch);
+  assert(editor.view.dom.querySelector('[data-editor-page-break="Nested heading"]'));
+  redo(editor.state, editor.view.dispatch);
+  assert(editor.view.dom.querySelector('[data-editor-page-break="Nested heading edited"]'));
+
+  editor.commands.setTextSelection(endPosition);
+  editor.view.dom.querySelector("#nested").dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "F10", shiftKey: true, bubbles: true, cancelable: true,
+  }));
+  assert.equal(menu.querySelectorAll(".editor-layout-menu").length, 1,
+    "Reopening the menu replaces rather than duplicates its layout controls.");
+  assert.equal(choose("New page").getAttribute("aria-checked"), "true");
+  choose("New page").click();
+  assert.equal(editor.state.doc.nodeAt(position).attrs["data-layout-before"], null);
+  assert(!editor.view.dom.querySelector('[data-editor-page-break="Nested heading edited"]'));
+});
+
+test("generated pages and the body use one accessible page-break marker", () => {
+  const form = mountSectionWorkspace('<section id="chapter"><h2>Chapter</h2><p>Body.</p></section>');
+  const surface = form.querySelector("#editor-surface");
+  assert.equal(surface.querySelectorAll(".editor-toc-page > .editor-page-break").length, 1);
+  assert.equal(surface.querySelectorAll(".editor-metadata-page > .editor-page-break").length, 1);
+  assert.equal(editor.view.dom.querySelectorAll('[data-editor-page-break="Chapter"]').length, 1,
+    "The first section shares the body boundary marker instead of duplicating it.");
+  assert.equal(surface.querySelectorAll(".editor-layout-new-page").length, 0);
+  assert.equal(editor.view.dom.querySelector('[data-editor-page-break="Chapter"]').getAttribute("role"),
+    "separator");
+});
+
 test("compact title facts pack into aligned rows of one, two or three columns", () => {
   assert.deepEqual(factSpans([14, 17, 7, 140, 66]), [2, 2, 2, 6, 6]);
   assert.deepEqual(factSpans([14, 30, 10]), [3, 3, 6], "A medium value limits its row to two columns.");

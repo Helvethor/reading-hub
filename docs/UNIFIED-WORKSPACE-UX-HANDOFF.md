@@ -2447,9 +2447,18 @@ separately. This fix does not authorize deployment or live-data changes.
 
 ### V.v: Uniform surface spacing and live page-break markers
 
-**Status: specified 2026-11-19; not implemented.** This milestone follows V.u
-and changes editor presentation and surface context menus only. It does not
-change stored separation semantics, Read/print/PDF output or inheritance rules.
+**Status: implemented 2026-11-19; focused JavaScript tests, frontend build and
+synthetic Chromium geometry at 100%/200% CSS zoom pass.** The geometry fixture
+uses CSS `zoom`, not the browser's native page-zoom control. Native-browser
+spacing measurements and end-to-end Read/print/PDF comparison remain. This
+milestone follows V.u and changes editor presentation and surface context menus
+only. It does not change stored separation semantics, Read/print/PDF output or
+inheritance rules.
+
+The implementation uses ProseMirror decorations for document-boundary markers,
+so marker elements are excluded from saved HTML. Generated-page markers are
+rendered from the current effective layout state. Surface context menus reuse
+the shared Layout controls and stored separation attributes.
 
 **Reported problems and starting evidence.**
 

@@ -381,19 +381,19 @@ See the [bounded fix plan](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-surface-conta
 
 ### Milestone V.v: Uniform surface spacing and live page-break markers
 
-**Status: specified 2026-11-19; not implemented.** See the
+**Status: implemented 2026-11-19; focused checks pass; native-browser acceptance remains.** See the
 [V.v handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vv-uniform-surface-spacing-and-live-page-break-markers).
 
-- [ ] Make vertical gaps around sections equal their horizontal inset and the
+- [x] Make vertical gaps around sections equal their horizontal inset and the
   gaps between title, ToC, metadata and other generated pages.
-- [ ] Render every effective New page boundary with one dashed "Page break"
+- [x] Render every effective New page boundary with one dashed "Page break"
   marker; remove the solid-line variant.
-- [ ] Derive markers from editor state so H3-H6 page breaks remain visible after
+- [x] Derive markers from editor state so H3-H6 page breaks remain visible after
   load, live edits, undo/redo, moves, folding, diff mode and reload.
-- [ ] Offer New page / Continuous toggles on right-click (and Shift+F10) for
+- [x] Offer New page / Continuous toggles on right-click (and Shift+F10) for
   sections and headings in the editor surface, updating markers immediately.
-- [ ] Verify measured spacing, marker persistence and unchanged output semantics
-  in native browsers.
+- [ ] Verify measured spacing at 100% and 200% zoom and marker persistence in a
+  native browser; confirm unchanged Read/print/PDF output semantics.
 
 Automated verification: `npm test`, `npm run build`, and
 `python workflow.py test library.tests.test_document_editor_views` pass.

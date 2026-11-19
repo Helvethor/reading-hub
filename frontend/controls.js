@@ -81,7 +81,14 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let menuReturnFocus = null;
   const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError,
     initial.presentation);
-  let context = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
+  function currentWorkspaceContext() {
+    const book = form.querySelector("#editor-organization-book");
+    return workspaceContext(editor.state.doc, readDocument(), {
+      ...initial.structure,
+      book: book ? book.checked : initial.presentation?.book ?? initial.structure?.book,
+    });
+  }
+  let context = currentWorkspaceContext();
   setWorkspaceContext(editor, context);
   const dynamicOutline = mountDynamicOutline(editor, outline, surface, showError,
     () => bookViews.expandNavigation(), () => bookViews.targets());
@@ -578,11 +585,38 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     if (selectedImage(editor)) path.textContent += " / Image";
     return element;
   }
-  function openMenu(point) {
+  function surfacePart(target) {
+    const element = target.nodeType === 1 ? target : target.parentElement;
+    if (!element || !editor.view.dom.contains(element)) return null;
+    const currentParts = documentParts(editor.state.doc, context);
+    const heading = element.closest("h2, h3, h4, h5, h6");
+    if (heading) {
+      const part = currentParts.find(candidate => candidate.kind === heading.tagName &&
+        editor.view.nodeDOM(candidate.from) === heading);
+      if (part) return part;
+    }
+    const position = editor.view.posAtDOM(element, 0);
+    const part = currentParts.filter(candidate =>
+      position >= candidate.from && position < candidate.to)
+      .sort((left, right) => left.to - left.from - (right.to - right.from))[0];
+    if (part) return part;
+    const section = element.closest(".editor-section-boundary");
+    if (section) return currentParts.find(candidate => candidate.kind === "Section" &&
+      editor.view.nodeDOM(candidate.from - 1) === section) || null;
+    return null;
+  }
+  function caretPart() {
+    const position = editor.state.selection.from;
+    return documentParts(editor.state.doc, context)
+      .filter(part => position >= part.from && position < part.to)
+      .sort((left, right) => left.to - left.from - (right.to - right.from))[0] || null;
+  }
+  function openMenu(point, layoutPart = null) {
     closeMenu();
     menuReturnFocus = owner.activeElement === trigger ? trigger : editor.view.dom;
     menuTarget = {doc: editor.state.doc, bookmark: editor.state.selection.getBookmark()};
     const element = updateTools();
+    menu.querySelectorAll(".editor-layout-menu").forEach(group => group.remove());
     const {selection} = editor.state;
     const heading = menu.querySelector("#editor-menu-element-target");
     if (heading) {
@@ -605,12 +639,17 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       ? "At the cursor" : "Selected text: styling applies only to this selection";
     menu.setAttribute("aria-describedby",
       element ? "editor-menu-element-target" : "editor-menu-target");
+    if (layoutPart) {
+      form.dispatchEvent(new owner.defaultView.CustomEvent("editor-layout-menu", {
+        detail: {menu, part: layoutPart, doc: editor.state.doc, close: () => closeMenu()},
+      }));
+    }
     showContextMenu(menu, point);
     trigger.setAttribute("aria-expanded", "true");
   }
   function openAtSelection() {
     const caret = editor.view.coordsAtPos(editor.state.selection.from);
-    openMenu({x: caret.left, y: caret.bottom});
+    openMenu({x: caret.left, y: caret.bottom}, caretPart());
   }
   trigger.addEventListener("click", () => {
     const bounds = trigger.getBoundingClientRect();
@@ -653,7 +692,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
         TextSelection.near(editor.state.doc.resolve(position.pos)),
       ));
     }
-    openMenu({x: event.clientX, y: event.clientY});
+    openMenu({x: event.clientX, y: event.clientY}, surfacePart(event.target));
   });
   surface.addEventListener("keydown", event => {
     if (!editor.view.dom.contains(event.target) || editor.view.dom.hidden) return;
@@ -1038,7 +1077,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
     viewport.removeEventListener("resize", dismissOnResize);
   });
   function updateWorkspaceContext() {
-    const next = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
+    const next = currentWorkspaceContext();
     if (JSON.stringify(next) === JSON.stringify(context)) return;
     context = next;
     setWorkspaceContext(editor, context);
@@ -1046,6 +1085,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   form.querySelector('[name="title"]')?.addEventListener("input", updateWorkspaceContext);
   form.querySelector('[name="work_type"]')?.addEventListener("change", updateWorkspaceContext);
+  form.querySelector("#editor-organization-book")?.addEventListener("change", updateWorkspaceContext);
   const sectionMoves = mountSectionMoves(form, editor, showError, {externalMenu: true});
   const sectionCreation = mountSectionCreation(form, editor, showError);
   mountSectionManagement(form, editor, showError, sectionMoves, sectionCreation, initial);

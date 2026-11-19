@@ -4,7 +4,7 @@ import {outlineHierarchy} from "./outline.js";
 import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
   tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
 import {contentSeparation, partLayout, separations,
-  setDocumentLayout, setPartSeparation} from "./part-layout.js";
+  resolveLayoutMetadata, setDocumentLayout, setPartSeparation} from "./part-layout.js";
 import {closeHistory} from "@tiptap/pm/history";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
@@ -38,13 +38,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     return bookPages(layoutMetadata(), book ? book.checked : Boolean(presentation.book));
   }
   function layoutMetadata(source = readDocument().metadata) {
-    const metadata = {...source};
-    if (editor.state.doc.attrs.pages) {
-      for (const key of ["title_layout", "contents_page", "metadata_page"]) delete metadata[key];
-      Object.assign(metadata, editor.state.doc.attrs.pages);
-    }
-    if (editor.state.doc.attrs.layout) metadata.layout = editor.state.doc.attrs.layout;
-    return metadata;
+    return resolveLayoutMetadata(editor.state.doc, source);
   }
   const isBook = () => form.querySelector("#editor-organization-book")?.checked ?? Boolean(presentation.book);
   const menu = owner.createElement("div");
@@ -520,28 +514,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const currentMetadata = layoutMetadata(metadata);
     const currentBook = isBook();
     const boundaries = partLayout(currentMetadata, currentBook);
-    title.dataset.layoutBefore = boundaries.title.value;
-    title.dataset.layoutAfter = boundaries[layout.contents_page ? "toc" : "body"].value;
     toc.dataset.layoutBefore = boundaries.toc.value;
     metadataPage.dataset.layoutBefore = boundaries.metadata.value;
-    editor.view.dom.dataset.layoutBefore = boundaries.body.value;
-    parts.forEach(part => {
-      const position = tocEntryPosition(part);
-      const node = editor.state.doc.nodeAt(position);
-      const dom = editor.view.nodeDOM(position);
-      if (node && dom instanceof owner.defaultView.HTMLElement) {
-        const resolved = editor.state.doc.resolve(position);
-        const first = Array.from({length: resolved.depth + 1},
-          (_, depth) => resolved.index(depth)).every(index => index === 0);
-        const info = contentSeparation(node, {...part, depth: sectionDepth(position)},
-          currentMetadata, currentBook);
-        if (first && node.attrs["data-layout-before"] === "new-page") {
-          editor.view.dom.dataset.layoutBefore = "new-page";
-        }
-        dom.classList.toggle("editor-layout-new-page", info.value === "new-page" && !first);
-      }
-    });
-    if (!layout.contents_page) title.dataset.layoutAfter = editor.view.dom.dataset.layoutBefore;
+    pageBreak(metadataPage, boundaries.metadata.value === "new-page", "metadata");
     if (!layout.contents_page) {
       toc.classList.add("editor-page-disabled");
       const stub = element("p", "Not included in this book: navigation and the PDF outline still list every section. Right-click to include the table of contents page.");
@@ -551,6 +526,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       hierarchy = outlineHierarchy(parts);
       updateSelection();
       pageStates();
+      pageBreak(toc, boundaries.toc.value === "new-page", "table of contents");
       return;
     }
     toc.classList.remove("editor-page-disabled");
@@ -594,6 +570,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     else toc.append(element("p", "No sections or headings yet."));
     updateSelection();
     pageStates();
+    pageBreak(toc, boundaries.toc.value === "new-page", "table of contents");
   }
   function renderMetadataPage(document, metadata, included) {
     metadataPage.classList.toggle("editor-page-disabled", !included);
@@ -630,6 +607,17 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     }
     table.append(body);
     metadataPage.append(table);
+  }
+  function pageBreak(page, enabled, label) {
+    page.querySelector(":scope > .editor-page-break")?.remove();
+    if (!enabled) return;
+    const marker = element("span", "Page break");
+    marker.className = "editor-page-break";
+    marker.setAttribute("role", "separator");
+    marker.setAttribute("aria-label", `Page break before ${label}`);
+    marker.setAttribute("contenteditable", "false");
+    marker.dataset.editorPageBreak = label;
+    page.prepend(marker);
   }
   // Book-level entries use the same row component as section rows: tree guides, a
   // kind badge, a controls column and a title button that navigates within the book.
