@@ -17,15 +17,21 @@ local simulation. Do not modify the existing live service on port 8765.
 - Use Docker Compose on one server; defer Kubernetes, multi-server operation and
   multiple application replicas.
 - Build and validate an immutable image locally, then deploy that exact image
-  to the server. Prefer transfer over SSH initially; a private image registry
-  is an optional later choice, not a prerequisite.
+  to the server. A host-local agent should inspect and perform the separately
+  authorized deployment; arrange a verified transfer of the image to the host.
+  A private image registry is optional, not a prerequisite.
 - Run Django through a pinned production WSGI server behind a reverse proxy
-  that terminates HTTPS.
+  that terminates HTTPS. The private proxy-to-application connection may use
+  HTTP; only the trusted proxy may reach the application.
 - Keep SQLite for the initial single-instance deployment. Database, retained
   blobs and signing key must persist outside the image and be backed up together
-  according to the recovery plan.
+  with the server's Borg/Borgmatic setup. Off-site backup is deferred, and the
+  operator accepts the risk of losing a same-server backup with the server.
 - Make public reading available over HTTPS. Keep management authenticated and
   do not enable public registration until its policy is explicitly decided.
+- Start the first production installation with a fresh database, not a transfer
+  of the existing library. Create the first administrator interactively on the
+  host; do not put credentials in the agent conversation, scripts or logs.
 - Keep code release, schema migration and real-data transfer as distinct
   operations. Starting or updating the web container must not silently migrate
   the database, resume workers, start crawls or alter publications.
@@ -45,20 +51,26 @@ Before implementing public-facing account or server behavior, record:
 - Whether any visitor may register, or whether the sole manager creates accounts.
 - Which management routes and functions must be inaccessible to ordinary users.
 - Server OS/resources, SSH access model, DNS control, firewall and TLS termination.
-- Expected read/write concurrency and backup recovery-point/recovery-time goals.
+- Accepted SQLite use limits and practical backup/recovery expectations.
 
 **Decision record (2026-11-19):** public reading is anonymous; public account
 registration is disabled pending a separate decision. Management remains
-authenticated and restricted by the existing staff/permission checks. Server,
-network, concurrency and recovery details are deferred; this blocks remote
-deployment planning, not the authorized local runtime milestone.
+authenticated and restricted by the existing staff/permission checks. The
+operator will use a fresh database and accepts same-server backup risk for the
+first deployment. Borg/Borgmatic provides backup, the server reverse proxy
+terminates TLS and its private upstream may use HTTP. SQLite remains
+single-instance; write-concurrency work is deferred until a future database
+replacement. A host-local agent is the preferred deployment operator.
 
 **Acceptance:** written decisions are sufficient to configure the server and
 authentication behavior without guessing. If account access remains undecided,
 keep registration disabled.
 
-The remote-server portion of D0 remains open until the deferred server,
-concurrency and recovery values are recorded. Do not begin D5/D6 on assumptions.
+The host-local agent must establish the actual server, network, backup schedule,
+retention, key recovery and access details before D5/D6. Record acceptable
+backup frequency and recovery expectations with the operator; no numeric
+concurrency target or off-site destination is required for this first attempt.
+Inspection is not authorization to change the host or expose the site.
 
 ### D1 — Production Django runtime
 
@@ -112,8 +124,10 @@ and place the HTTPS reverse proxy in front of it.
 served the homepage, collected CSS and a generated PDF, rejected an unexpected
 Host, and redirected plain HTTP to HTTPS. `check --deploy` still reports W005/W021
 because subdomain-wide HSTS and browser preload policy were intentionally not
-assumed; resolve those domain policies before a public release. This is not a
-public-readiness claim.
+assumed. Decide those domain policies before public release; accepting the
+current warnings does not enable subdomain HSTS or preload. Coordinate the
+app's one-day HSTS policy with the server proxy. This is not a public-readiness
+claim.
 
 ### D2 — Reproducible container image
 
@@ -201,13 +215,17 @@ unrelated listener on 8443, public DNS and real library data were not touched.
 - Document which state is persistent, including SQLite, retained blobs and the
   signing key; exclude reproducible caches only after confirming they can be
   safely rebuilt.
-- Define encrypted off-server backup storage, retention, integrity checks and
-  alerting for missed backups or low disk space.
-- Back up SQLite through its online backup API and capture matching blobs/key
-  consistently. Do not treat copying the database file alone as a full backup.
+- Configure the server's Borg/Borgmatic backup, retention, integrity checks and
+  alerts for missed backups or low disk space. Off-site storage is deferred;
+  same-server loss risk is explicitly accepted.
+- Back up SQLite consistently using the version-compatible Borgmatic SQLite
+  hook, with matching blobs/key captured in the same archive while application
+  writers are quiesced. Do not treat copying the live database file alone as a
+  full backup. Follow the [host-agent handoff](OPERATIONS.md#public-host-agent-handoff).
 - Rehearse restore into a separate directory; run database integrity checks and
   verify representative retained sources, account login and PDF generation.
-- Observe SQLite locking/write contention under realistic expected use.
+- Defer write-concurrency testing and database replacement; retain one app
+  instance and explicitly accept potential SQLite lock contention.
 
 **Status (2026-11-19, partial):** a private temporary backup and restore rehearsal
 passed using only the D3 synthetic data. SQLite's online backup API produced a
@@ -221,25 +239,27 @@ in D3. Hashes of the backed-up and restored components matched, and the original
 synthetic state hashes were unchanged. The temporary restore, containers and
 files were removed afterward.
 
-This does not complete D4: no encrypted off-server destination, key-management
-policy, retention, integrity alerting, RPO/RTO or realistic write-concurrency
-target has been selected or tested. No real library data was backed up.
+This does not complete D4: the production Borgmatic configuration, schedule,
+retention, key recovery, monitoring and restore remain unverified. Off-site
+storage and write-concurrency work are deferred by the operator. No real
+library data was backed up.
 
 **Acceptance:** a documented backup can be restored without touching the
 original; restored data passes integrity and representative application checks.
-If expected write concurrency or recovery requirements exceed what SQLite can
-reliably support, pause this route and reassess the database before launch.
+The single-instance SQLite and same-server backup limitations must be understood
+at launch; revisit them if actual use or recovery requirements outgrow them.
 
 ### D5 — Remote server release and recovery
 
-- Prepare a restricted deployment account, Docker/Compose, firewall and SSH
-  access. Only the reverse proxy should accept public web traffic; do not expose
+- The host-local agent inspects the existing deployment account, Docker/Compose,
+  firewall and access model, then proposes any necessary changes for approval.
+  Only the reverse proxy should accept public web traffic; do not expose
   Gunicorn or Django's development server directly.
 - Configure DNS for `read.shabang.ch` and public TLS with a trusted certificate
   and renewal monitoring. Self-signed certificates are not acceptable for
   public visitors.
-- Transfer the selected image over SSH (or later use an approved private
-  registry); verify its digest and source revision on the host.
+- Transfer the selected image by an approved method (or later use an approved
+  private registry); verify its image identity and source revision on the host.
 - Add preflight, health/readiness checks, logs and disk/backup monitoring.
 - Retain the previous image and document a source rollback that does not claim
   to reverse database migrations or user-data changes.
@@ -247,27 +267,35 @@ reliably support, pause this route and reassess the database before launch.
   resume catalogue processing only by an explicit operator action.
 
 **Acceptance:** on a disposable remote target, deployment serves the expected
-revision over HTTPS; an injected startup failure leaves a documented recovery
-path to the previous image; health checks and logs are inspectable; persistent
-data remains unchanged by image replacement.
+revision over HTTPS; an injected startup failure has a documented recovery path
+and, when a previous image exists, rollback to that image is verified; health
+checks and logs are inspectable; persistent data remains unchanged by image
+replacement.
 
 ### D6 — Private-server rehearsal and launch decision
 
-Deploy the synthetic instance to the intended server before migrating real
-library data. Verify hostname, TLS, authentication policy, read/edit boundaries,
-static assets, PDF, container restart persistence, backup completion, restore,
-disk monitoring and source rollback.
+Deploy a separate synthetic instance to the intended server before creating
+the fresh production database. Verify hostname, TLS, authentication policy,
+read/edit boundaries, static assets, PDF, container restart persistence, backup
+completion, restore, disk monitoring and source rollback.
 
 **Acceptance gate:** record exact image digest, server configuration, health
 results, backup/restore result, operator procedure and unresolved risks.
 Public DNS/firewall exposure is a separate explicit decision; passing this
 rehearsal does not itself authorize it.
 
-### D7 — Optional real-data migration and public cutover
+### D7 — Fresh production database and public cutover
 
-Treat transfer of an existing library as a separate, explicitly authorized
-operation. It may include private accounts, corrections, publications, retained
-sources and signing keys. Before transfer:
+The selected first launch starts with a fresh database and no imported
+local library. After separately authorized initialization and migrations,
+the operator creates the first administrator interactively on the host; see
+the [host-agent handoff](OPERATIONS.md#public-host-agent-handoff). Verify login,
+the disabled public signup policy and a fresh production backup before public
+cutover. Public DNS/firewall exposure is separately authorized.
+
+Any later transfer of an existing library remains a separate, explicitly
+authorized operation. It may include private accounts, corrections,
+publications, retained sources and signing keys. Before transfer:
 
 - Identify the exact source data and destination; never use development
   fixtures to restore production.
@@ -278,10 +306,11 @@ sources and signing keys. Before transfer:
 - Obtain explicit authorization for each required schema migration and for
   public DNS/firewall cutover.
 
-**Acceptance:** destination integrity and representative read/PDF/workflow
-checks pass; backups and rollback limits are understood; public exposure and
-data transfer were separately authorized. Do not claim application correctness,
-accessibility or performance beyond the evidence actually collected.
+**Acceptance:** the fresh database and administrator work, a production backup
+is verified, representative checks pass where data exists, and backup and
+rollback limits are understood. Public exposure is separately authorized;
+any later data transfer is separately authorized. Do not claim application
+correctness, accessibility or performance beyond the evidence collected.
 
 ## Implementation boundaries
 

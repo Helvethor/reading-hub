@@ -87,8 +87,11 @@ with Docker Compose, a production WSGI server and reverse-proxy HTTPS. SQLite
 remains appropriate for the initial single-instance deployment. D1's production
 runtime, D2's reproducible container image and D3's isolated local HTTPS
 simulation are implemented and locally validated with synthetic data. A local
-synthetic D4 restore rehearsal also passed; off-server backup policy, recovery
-targets, expected write concurrency and remote-server decisions remain open.
+synthetic D4 restore rehearsal also passed. Off-site backup is deferred with
+same-server loss risk accepted. The server's Borg/Borgmatic
+backup and restore remain unverified, as do remote-server details. Write
+concurrency work is deferred; the first deployment uses one app instance and a
+fresh database. A host-local agent is the preferred deployment operator.
 Exact D3 and partial D4 evidence are in
 [the public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md).
 

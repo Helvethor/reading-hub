@@ -153,6 +153,96 @@ development, staging, live or real-library storage. The exact D3 implementation
 and observed acceptance evidence are in the
 [roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md).
 
+### Public host-agent handoff
+
+This is a handoff for a future, separately authorized deployment, not evidence
+that a host has been configured. A host-local agent should first inspect the
+existing server setup without changing it: OS/resources, Docker/Compose,
+deployment access, firewall, DNS, reverse proxy and certificate renewal,
+Borg/Borgmatic version and repository, available storage, and monitoring.
+Report conflicts and the proposed changes to the operator. Do not expose a
+listener, change existing services, initialize production data, run migrations,
+or create accounts merely because this handoff exists.
+
+For an approved deployment:
+
+- Use the exact validated image and record its source revision and image
+  identity before and after transfer. Verify the identity appropriate to the
+  transfer method (a local image ID is not a registry manifest digest). Prepare
+  a private persistent data directory writable by the image's UID/GID
+  `10001:10001`; keep it separate from the synthetic rehearsal and other apps.
+  Do not reuse the local simulation Compose file as a production deployment.
+- Allow only the server's trusted proxy to reach Gunicorn. The proxy terminates
+  public TLS and may use HTTP on its private upstream; forward the canonical
+  `Host: read.shabang.ch` and overwrite untrusted `X-Forwarded-Proto` with
+  `https`. Verify trusted TLS, renewal, secure cookies, redirects and rejection
+  of unexpected hosts. Coordinate the app's one-day HSTS with proxy policy.
+- Use one application instance with the image's single Gunicorn worker. Leave
+  workers disabled during the synthetic rehearsal; any later worker start or
+  catalogue processing requires explicit operator action. Image replacement
+  must not silently run migrations or start workers.
+- Rehearse on separate synthetic storage, including read/edit/PDF, replacement,
+  backup, isolated restore, logs and rollback. Record exact image identity and
+  results. The operator separately authorizes initialization of a fresh
+  production database, its migrations and eventual public exposure.
+
+#### Borgmatic requirements for the host agent
+
+1. Inspect the host's existing Borgmatic version and configuration before
+   changing it; do not disrupt other applications' backups. Confirm the
+   host-visible data directory, database path, repository, available space,
+   access permissions and the operator's backup frequency, retention and
+   recovery expectations. Monitor failed/missed runs and low disk space.
+   The operator accepts that same-server backups do not survive server loss;
+   off-site backup is deferred. Verify repository encryption and protect
+   access; report an unencrypted setup for an operator decision. Keep recovery
+   credentials and configuration recoverable independently of the server.
+2. Configure a SQLite-consistent backup using the installed version's
+   `sqlite_databases` hook and `sqlite3` command, following the
+   [Borgmatic SQLite documentation](https://torsion.org/borgmatic/reference/configuration/data-sources/sqlite/)
+   and version-specific generated configuration. The hook is available from
+   Borgmatic 1.7.9; older releases need a separately verified consistent
+   alternative or upgrade, not a raw live database copy. Borgmatic before
+   1.8.0 places database hooks under `hooks:`.
+3. Capture the matching `blobs/` and `secret-key` in the same archive, plus
+   any other non-reproducible state the installation actually uses, such as
+   the optional sampler database. Do not treat the hook's database snapshot
+   alone as a full backup. Quiesce all web and worker writers for the complete
+   database-and-files capture, or use a proven consistent whole-state snapshot.
+   Coordinate downtime and failure recovery with the operator; do not stop,
+   restart or resume workers as an incidental backup side effect. Avoid
+   archiving a raw live SQLite file, its WAL/SHM files or recursive repository
+   contents as substitutes for the hook. Exclude derived caches only after
+   verifying they can be rebuilt.
+4. Validate the configuration for the installed version, run a synthetic backup
+   using the actual server setup, and restore its archive to a separate private
+   location without touching the source. Verify SQLite integrity and foreign
+   keys, matching retained blobs and key, application login, representative
+   reading and PDF regeneration. Confirm scheduled execution and alerting.
+   Document exact restore steps and image identity. Repeat verification with
+   fresh production state once initialized; never overwrite it for a rehearsal.
+
+#### First production administrator
+
+Public signup is disabled in production, including the normal first-user
+bootstrap. After separately authorized initialization and explicit migrations
+of the **fresh production** database, the operator can run Django's interactive
+`python manage.py createsuperuser` in the selected production image with the
+same production environment and mounted data directory. With a suitable
+production Compose service this is, for example:
+
+```sh
+docker compose run --rm web python manage.py createsuperuser
+```
+
+The operator runs this personally in a private host terminal with a TTY, not
+through an agent's captured command session. Do not pass the password as an
+argument or environment variable, send it to the agent, or record it in logs.
+`createsuperuser` grants both staff and full
+superuser permissions; it is an administrator, not a staff-only account. Check
+login and disabled signup, and back up the initialized state before cutover.
+Do not run this command against synthetic or existing data by mistake.
+
 ### Development loop
 
 From any clone/worktree:
