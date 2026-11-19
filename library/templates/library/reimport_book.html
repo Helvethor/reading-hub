@@ -1,0 +1,24 @@
+{% extends 'library/base.html' %}
+{% block title %}Reimport as book | {{ site.name }}{% endblock %}
+{% block content %}
+<section class="page-container">
+  <h1>Reimport as book</h1>
+  <p>{{ version.title }} &middot; edition {{ version.pk }}</p>
+  <p>Use this edition's retained contents page to discover linked HTML sections, even if it was originally detected as an article. The contents page itself is included. Duplicate URLs and fragment links to the same page are imported once, in source order.</p>
+  <p class="notice">Confirmation fetches the linked pages over the network and creates a source-generated book version. Existing versions, working copies, saved edits and the reader default stay unchanged. No edited content is copied or published. Review the result before explicitly selecting it as the reader default. Existing catalogue ownership and reviewed organization are not overridden.</p>
+  {% if reimport_error %}<p class="error" role="alert">{{ reimport_error }}</p>{% endif %}
+  {% if source %}
+  <h2>Proposed sections</h2>
+  <ol>{% for part in source.parts %}
+    <li>{{ part.title }} &mdash; <a href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ part.url }}</a></li>
+  {% endfor %}</ol>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="preview_digest" value="{{ preview_digest }}">
+    <label><input type="checkbox" name="confirm" value="yes" required> I reviewed these sources and confirm fetching the linked sections.</label>
+    <button type="submit">Reimport as book</button>
+  </form>
+  {% endif %}
+  <p><a href="{% url 'document-lineage' version.document_id %}?filter=sources">Cancel</a></p>
+</section>
+{% endblock %}

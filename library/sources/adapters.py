@@ -24,8 +24,17 @@ def adapter_for(url):
     raise ImportFailure(f"No source adapter registered for {host}.", "unsupported")
 
 
-def discover(soup, url):
-    source = adapter_for(url).discover(soup, url)
+def discover(soup, url, *, force_book=False):
+    if force_book and urlsplit(url).hostname != "www.marxists.org":
+        raise ImportFailure(
+            "Linked-section book reimport is currently supported for Marxists Internet Archive.",
+            "unsupported",
+        )
+    adapter = adapter_for(url)
+    source = (
+        adapter.discover(soup, url, force_book=True)
+        if force_book else adapter.discover(soup, url)
+    )
     if source.book and not any(part.url == url and not part.section for part in source.parts):
         source.parts.insert(0, Part(url, "Contents", role="preface", use_source_headings=True))
     if source.book:

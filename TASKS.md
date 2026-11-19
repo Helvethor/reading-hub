@@ -82,6 +82,29 @@ interaction acceptance remain incomplete.
 
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 
+### Import recovery: linked-section books (2026-11-19)
+
+- [x] Detect labelled archive contents independently of index filenames, including
+  cross-directory prefaces and deduplicated chapter fragments.
+- [x] Add reviewer-only **Sources > Reimport as book...**, with retained-source
+  preview, explicit confirmation, bounded linked-page fetching and whole-job
+  failure on a missing section. Preserve saved edits, versions, reader default
+  and reviewed organization/ownership.
+- [x] Verify the supplied dated Manifesto contents page detects 12 source URLs:
+  the contents page, seven prefaces and four chapter pages. This was detection
+  against the actual public HTML, not a live-library import or full-book fidelity
+  check. Automated synthetic pipeline/UI checks cover ordered assembly and
+  confirmed recovery. Browser/human acceptance and live deployment remain untested.
+  Focused isolated validation: `python workflow.py test
+  library.tests.test_pipeline library.tests.test_archive library.tests.test_sources`
+  passed 81 tests. Adding `library.tests.test_book_membership` and
+  `library.tests.test_document_lineage` passed 104 of 106 tests; the two failures
+  (legacy member-reader redirect and hard-coded CSRF cookie name) reproduce on
+  committed baseline `0ed7f7a`. Three separately exercised organization failures
+  also reproduce on that baseline with the same generated assets. Changed Python
+  passes Ruff; the migration consistency and CRLF-aware whitespace checks pass.
+  Migration 0035 records the new job-mode choice; no live migration was run.
+
 Both former directions, cosmetic cleanup and workflow restructuring with shared
 components, are required milestones. Deliver both; visual cleanup alone is not
 the stopping point. The [UI/UX implementation handoff](docs/UI-UX-IMPLEMENTATION-HANDOFF.md)

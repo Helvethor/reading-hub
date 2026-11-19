@@ -94,6 +94,11 @@ def enqueue(url, mode=Job.Mode.IMPORT, snapshot=None):
         .first()
     )
     if chapter:
+        if mode == Job.Mode.BOOK:
+            raise ImportFailure(
+                "This source belongs to a book. Review its catalogue membership first.",
+                "book_structure",
+            )
         url = chapter.book.url
         reject_reviewed_index(url)
         if mode == Job.Mode.REFORMAT:
@@ -111,16 +116,55 @@ def enqueue(url, mode=Job.Mode.IMPORT, snapshot=None):
             URLAlias.objects.get_or_create(url=url, defaults={"document": document})
         active = document.jobs.filter(status__in=[Job.Status.QUEUED, Job.Status.RUNNING]).first()
         if active:
+            if mode == Job.Mode.BOOK and (
+                active.mode != mode or active.snapshot_id != getattr(snapshot, "pk", None)
+            ):
+                raise ImportFailure(
+                    "Another import is active. Wait for it before reimporting as a book.",
+                    "active_job",
+                )
             return active
         if mode == Job.Mode.IMPORT:
             reader_target = document.reader_target()
             if reader_target:
                 return reader_target
-        if mode == Job.Mode.REFORMAT and (snapshot is None or snapshot.document_id != document.pk):
+        if mode in {Job.Mode.REFORMAT, Job.Mode.BOOK} and (
+            snapshot is None or snapshot.document_id != document.pk
+        ):
             raise ImportFailure(
                 "Select a stored source snapshot belonging to this document.", "invalid_snapshot"
             )
         return Job.objects.create(document=document, mode=mode, snapshot=snapshot)
+
+
+def book_reimport_source(manifest):
+    initial = manifest["pages"][0]
+    url = canonical_url(initial["url"])
+    reject_reviewed_index(url)
+    from library.services.organizations import override
+
+    if CatalogueEntry.objects.filter(
+        site__profile=get_profile().key, url=url, book__isnull=False,
+    ).exists():
+        raise ImportFailure(
+            "This source belongs to a book. Review its catalogue membership first.",
+            "book_structure",
+        )
+    if override(url):
+        raise ImportFailure(
+            "Saved work organization exists. Review catalogue membership instead of "
+            "overriding it with automatic book discovery.",
+            "book_structure",
+        )
+    source = discover(
+        parse_html(read_blob(initial["digest"]), initial.get("headers", {})),
+        url, force_book=True,
+    )
+    urls = list(dict.fromkeys(part.url for part in source.parts))
+    if len(urls) > MAX_PAGES:
+        raise LimitExceeded(f"Book index exceeds the {MAX_PAGES} unique HTML page limit.")
+    reject_reviewed_indexes(urls)
+    return source
 
 
 def progress(job, stage, completed=None, total=None):
@@ -168,7 +212,9 @@ def prepare_pages(manifest, organization=None, *, provenance=None, original_sour
     initial = manifest["pages"][0]
     reject_reviewed_index(canonical_url(initial["url"]))
     soup = parse_html(read_blob(initial["digest"]), initial["headers"])
-    source = discover(soup, canonical_url(initial["url"]))
+    source = discover(
+        soup, canonical_url(initial["url"]), force_book=manifest.get("discovery") == "book",
+    )
     from library.services.organizations import organized_source
 
     if original_source:
@@ -317,9 +363,22 @@ def prepare_pages(manifest, organization=None, *, provenance=None, original_sour
 def fetch_snapshot(job):
     reject_reviewed_index(job.document.url)
     fetcher = Fetcher(lambda stage: progress(job, stage))
-    initial, body = import_page(job, fetcher, job.document.url)
-    soup = parse_html(body, initial["headers"])
-    source = discover(soup, job.document.url)
+    latest = job.document.latest() if job.mode == Job.Mode.REFRESH else None
+    force_book = job.mode == Job.Mode.BOOK or bool(
+        latest and latest.snapshot.manifest.get("discovery") == "book"
+    )
+    if job.mode == Job.Mode.BOOK:
+        initial = job.snapshot.manifest["pages"][0]
+        body = read_blob(initial["digest"])
+        fetcher.downloaded += len(body)
+        if fetcher.downloaded > MAX_BYTES:
+            raise LimitExceeded(f"Import exceeds the {MAX_BYTES}-byte source limit.")
+        source = book_reimport_source(job.snapshot.manifest)
+    else:
+        initial, body = import_page(job, fetcher, job.document.url)
+        source = discover(
+            parse_html(body, initial["headers"]), job.document.url, force_book=force_book,
+        )
     from library.services.organizations import organized_source
 
     source = organized_source(source, job.document.url)
@@ -327,6 +386,8 @@ def fetch_snapshot(job):
     if len(unique_urls) > MAX_PAGES:
         raise LimitExceeded(f"Book index exceeds the {MAX_PAGES} unique HTML page limit.")
     manifest = {"pages": [initial], "assets": {}, "parts": [asdict(p) for p in source.parts]}
+    if force_book:
+        manifest["discovery"] = "book"
     progress(job, "Discovered source structure", 1, len(unique_urls))
     for index, url in enumerate(unique_urls[1:], 2):
         entry, _ = import_page(job, fetcher, url)
@@ -456,6 +517,10 @@ def publish(
     from library.services.organizations import lock_organization
 
     lock_organization()
+    previous_reader = (
+        Document.objects.get(pk=job.document_id).reader_target()
+        if job.mode == Job.Mode.BOOK else None
+    )
     progress(job, "Formatting stored source")
     source, html, structure, stylesheet, asset_warnings = format_rendition(
         manifest, asset_warnings, organization
@@ -522,9 +587,15 @@ def publish(
             title=source.title,
             aliases=aliases,
         )
-        Document.objects.filter(
-            pk=job.document_id, reader_selection_explicit=False,
-        ).update(reader_rendition=rendition)
+        if job.mode == Job.Mode.BOOK:
+            if previous_reader:
+                Document.objects.filter(
+                    pk=job.document_id, reader_rendition__isnull=True,
+                ).update(reader_rendition=previous_reader)
+        else:
+            Document.objects.filter(
+                pk=job.document_id, reader_selection_explicit=False,
+            ).update(reader_rendition=rendition)
         enrich_from_rendition(rendition)
         if register_membership and source.book:
             site = CrawlSite.objects.filter(

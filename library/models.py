@@ -464,6 +464,7 @@ class Job(models.Model):
         IMPORT = "import", "Import"
         REFRESH = "refresh", "Refresh source"
         REFORMAT = "reformat", "Reformat stored source"
+        BOOK = "book", "Reimport as book"
 
     class Status(models.TextChoices):
         QUEUED = "queued", "Queued"

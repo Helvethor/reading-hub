@@ -93,7 +93,7 @@ def is_site_language_url(url):
     return True
 
 
-def discover(soup, url):
+def discover(soup, url, *, force_book=False):
     host = urlsplit(url).hostname
     if host in SITE_LANGUAGES and not is_site_language_url(url):
         raise ImportFailure(
@@ -101,9 +101,14 @@ def discover(soup, url):
             "unsupported_language",
         )
     if host == "www.marxists.org":
-        source = archive.discover(soup, url)
+        source = archive.discover(soup, url, force_book=force_book)
         source.metadata["language"] = source_language(soup, url)
         return source
+    if force_book:
+        raise ImportFailure(
+            "Linked-section book reimport is currently supported for Marxists Internet Archive.",
+            "unsupported",
+        )
     selector = ARTICLE_SELECTORS.get(host)
     body = soup.select_one(selector) if selector else None
     if body is None or len(body.get_text(" ", strip=True)) < 100:

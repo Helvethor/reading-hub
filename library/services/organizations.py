@@ -106,7 +106,10 @@ def stored_source(url):
                     break
         if initial is None:
             raise ValueError(f"Missing retained page: {url}. Capture it before organizing.")
-    return discover(parse_html(read_blob(initial["digest"]), initial.get("headers", {})), url)
+    return discover(
+        parse_html(read_blob(initial["digest"]), initial.get("headers", {})), url,
+        force_book=bool(rendition and rendition.snapshot.manifest.get("discovery") == "book"),
+    )
 
 
 def current_spec(url):

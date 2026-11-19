@@ -228,32 +228,80 @@ def title_author(soup, url=""):
     return title.strip(), author.strip()
 
 
-def chapter_parts(soup, url):
+def contents_links(soup):
+    containers = soup.select(".contents, .table-of-contents, #toc")
+    containers += soup.find_all(class_=re.compile(r"^toc\d*$"))
+    links = [anchor for node in containers for anchor in node.select("a[href]")]
+    if links:
+        return links
+    labels = {
+        "contents", "table of contents", "sommaire", "table des matieres",
+        "inhalt", "inhaltsverzeichnis", "indice", "sumario",
+    }
+    marker = next(
+        (node for node in soup.select("h1, h2, h3, h4, h5, h6, p")
+         if fold(node.get_text(" ", strip=True)).strip(" :.") in labels),
+        None,
+    )
+    return list(marker.find_all_next("a", href=True)) if marker else None
+
+
+def chapter_parts(soup, url, *, force_book=False):
     directory = url.rsplit("/", 1)[0] + "/"
+    origin = urlsplit(url)
+    directory_path = urlsplit(directory).path
     filename = urlsplit(url).path.rsplit("/", 1)[-1].lower()
     is_index = filename in {"", "index.htm", "index.html", "er00t.htm"} or bool(
         re.search(r"(?:contents?|toc|index\d*|sommaire|indice|inhalt)\.html?$", filename)
     )
-    if not is_index:
+    marked_links = contents_links(soup)
+    if not is_index and marked_links is None and not force_book:
         return []
     parts = {}
     fragments = {}
-    for anchor in soup.select("a[href]"):
+    anchors = (
+        marked_links if not is_index and marked_links is not None else soup.select("a[href]")
+    )
+    for anchor in anchors:
+        if anchor.find_parent(["nav", "footer"]):
+            continue
         if anchor.find_parent(
-            class_=re.compile(r"^(?:footer|toplink|information|info|title|versoes)$")
+            class_=re.compile(r"^(?:footer|final|toplink|information|info|title|versoes)$")
         ):
+            continue
+        paragraph = anchor.find_parent("p")
+        if not is_index and paragraph and (
+            len(paragraph.get_text(" ", strip=True))
+            - sum(len(link.get_text(" ", strip=True)) for link in paragraph.select("a"))
+        ) >= 100:
             continue
         raw = str(anchor["href"])
         target = urljoin(url, raw)
         parsed = urlsplit(target)
-        if not target.startswith(directory) or parsed.query:
+        if (
+            parsed.scheme not in {"http", "https"}
+            or parsed.netloc != origin.netloc
+            or parsed.query
+        ):
             continue
-        relative = parsed.path[len(urlsplit(directory).path) :]
-        if not relative.lower().endswith((".htm", ".html")):
+        local = parsed.path.startswith(directory_path)
+        cross_work = (
+            marked_links is not None
+            and anchor in marked_links
+            and parsed.path.split("/")[1:2] == origin.path.split("/")[1:2]
+            and re.search(r"/works/\d{4}/", parsed.path)
+            and anchor.find_parent(["h2", "h3", "h4", "h5", "h6", "li"])
+        )
+        if not local and not cross_work:
             continue
-        if "/" in relative:
-            if anchor.find_parent(["ul", "ol"]) or anchor.find_parent(
-                class_=re.compile(r"^(?:toc\d*|index)$")
+        relative = parsed.path[len(directory_path) :]
+        if not parsed.path.lower().endswith((".htm", ".html")):
+            continue
+        if local and "/" in relative:
+            if (
+                marked_links is not None and anchor in marked_links
+                or anchor.find_parent(["ul", "ol"])
+                or anchor.find_parent(class_=re.compile(r"^(?:toc\d*|index)$"))
             ):
                 raise ImportFailure(
                     "Archive contents link to nested chapter directories; "
@@ -280,6 +328,8 @@ def chapter_parts(soup, url):
         parts[target] = Part(target, label, group)
     for target, part in parts.items():
         part.use_source_headings = fragments[target]
+    if not is_index and not force_book and len(parts) < 2:
+        return []
     return list(parts.values())
 
 
@@ -327,7 +377,7 @@ def is_discovery_page(soup, url):
     )
 
 
-def discover(soup, url):
+def discover(soup, url, *, force_book=False):
     if is_discovery_page(soup, url):
         raise ImportFailure(
             "This is a discovery index/listing, not an article or a book.", "discovery"
@@ -338,7 +388,9 @@ def discover(soup, url):
     if not title:
         raise ImportFailure("Archive work title was not found.", "layout")
     filename = urlsplit(url).path.rstrip("/").split("/")[-1].lower()
-    parts = chapter_parts(soup, url)
+    parts = chapter_parts(soup, url, force_book=force_book)
+    if force_book and not parts:
+        raise ImportFailure("No linked HTML sections were found on this contents page.", "layout")
     if not parts and not has_prose(soup) and not soup.select_one(".titre"):
         raise ImportFailure("Archive directory or unsupported work layout.", "layout")
     if (

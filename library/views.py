@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -8,15 +9,16 @@ from django.db.models.functions import Lower
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from library.forms import URLRequestForm
+from library.metadata_views import metadata_reviewer_required
 from library.models import Blob, CatalogueEntry, CrawlCapture, Document, Job, Rendition
 from library.organization_views import redirect_member
 from library.profile import SORTS, get_profile, source_name
 from library.services.errors import ImportFailure
 from library.services.pdf import PDFExportError, cached_pdf, pdf_filename
-from library.services.pipeline import enqueue
+from library.services.pipeline import book_reimport_source, enqueue, fingerprint
 from library.services.storage import blob_path
 
 logger = logging.getLogger("library")
@@ -288,6 +290,35 @@ def reformat(request, pk):
     return enqueue_response(request, version.document.url, Job.Mode.REFORMAT, version.snapshot)
 
 
+@require_http_methods(["GET", "POST"])
+@metadata_reviewer_required
+def reimport_book(request, pk):
+    version = get_object_or_404(Rendition.objects.select_related("snapshot", "document"), pk=pk)
+    source, error, digest = None, "", ""
+    try:
+        source = book_reimport_source(version.snapshot.manifest)
+        digest = fingerprint({
+            "snapshot": version.snapshot_id,
+            "parts": [asdict(part) for part in source.parts],
+        })
+        if request.method == "POST":
+            if request.POST.get("confirm") != "yes":
+                raise ValueError("Confirm fetching the linked sections as a book.")
+            if request.POST.get("preview_digest") != digest:
+                raise ValueError(
+                    "The proposed sections changed. Review this preview and confirm again."
+                )
+            return queued_response(enqueue(
+                version.document.url, Job.Mode.BOOK, version.snapshot,
+            ))
+    except (ImportFailure, ValueError, OSError) as exc:
+        error = str(exc)
+    return render(request, "library/reimport_book.html", {
+        "version": version, "source": source, "reimport_error": error,
+        "preview_digest": digest,
+    }, status=422 if error else 200)
+
+
 @require_GET
 def job_detail(request, pk):
     job = get_object_or_404(Job.objects.select_related("document", "rendition"), pk=pk)
@@ -314,6 +345,8 @@ def retry_job(request, pk):
     job = get_object_or_404(Job.objects.select_related("document", "snapshot"), pk=pk)
     if job.status != Job.Status.FAILED:
         return redirect("job", pk=job.pk)
+    if job.mode == Job.Mode.BOOK:
+        return redirect("reimport-book", pk=job.snapshot.renditions.order_by("pk").first().pk)
     mode = job.mode if job.mode == Job.Mode.REFORMAT else Job.Mode.REFRESH
     return enqueue_response(request, job.document.url, mode, job.snapshot)
 

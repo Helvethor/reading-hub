@@ -20,6 +20,10 @@
     · <a href="{% url 'document-editor-source-policy' reader_target.pk %}"{% if embedded %} data-workflow-panel="Source classification"{% endif %}>Source classification and decisions</a>
   </p>
   {% endif %}
+  {% if can_review and reader_target and can_reimport_book and lineage_filter == "sources" %}
+  <p><a class="button secondary" href="{% url 'reimport-book' reader_target.pk %}" target="_blank" rel="noopener" aria-describedby="book-reimport-context">Reimport as book&hellip;</a></p>
+  <p id="book-reimport-context" class="muted">Review linked sections in a new tab, then fetch them as a multi-section book. Existing edits and the reader default stay unchanged.</p>
+  {% endif %}
   {% if lineage_error %}<p class="error" role="alert">{{ lineage_error }}</p>{% endif %}
   <details class="lineage-work-context">
     <summary>Work context and reader output</summary>

@@ -15,6 +15,7 @@ from profiles.marxist.corpus import ArchiveCorpus
 ROOT = "https://www.marxists.org"
 BOOK = ROOT + "/archive/example/works/1900/book/index.htm"
 ARTICLE = ROOT + "/francais/example/works/1900/article.htm"
+MANIFESTO = ROOT + "/francais/marx/works/1847/00/kmfe18470000.htm"
 
 
 def page(content, metadata="", title="Example work"):
@@ -34,7 +35,79 @@ def index():
     )
 
 
+def dated_contents():
+    prefaces = [
+        ("marx", "1872/06/kmfe18720624"),
+        ("marx", "1882/01/kmfe18820121"),
+        ("engels", "1883/06/fe18830628"),
+        ("engels", "1888/01/fe18880130"),
+        ("engels", "1890/05/fe18900501"),
+        ("engels", "1892/02/fe18920210"),
+        ("engels", "1893/02/fe18930201"),
+    ]
+    return page(
+        '<p class="titre">Synthetic linked book</p><h1>Test Author</h1>'
+        '<p class="ss-titre">Sommaire</p>'
+        '<a href="download.epub">Download</a>'
+        '<a href="https://example.org/help.htm">External help</a>'
+        '<h5>'
+        + "".join(
+            f'<a href="../../../../{author}/works/{path}.htm">Preface {i}</a><br>'
+            for i, (author, path) in enumerate(prefaces, 1)
+        )
+        + '</h5><h4><a href="kmfe18470000a.htm">Opening</a></h4><h5>'
+        + "".join(
+            f'<a href="kmfe18470000{letter}.htm#section">Section {i}</a><br>'
+            for i, letter in enumerate("abcd", 1)
+        )
+        + '</h5><footer><a href="unrelated.htm">Navigation</a></footer>'
+    )
+
+
 class ArchiveLayoutTests(SimpleTestCase):
+    def test_dated_contents_includes_cross_directory_prefaces_and_deduplicates_fragments(self):
+        source = discover(parse_html(dated_contents()), MANIFESTO)
+        self.assertTrue(source.book)
+        self.assertEqual(len(source.parts), 12)
+        self.assertEqual(source.parts[0].url, MANIFESTO)
+        self.assertEqual(
+            [part.url for part in source.parts[1:8]],
+            [
+                ROOT + "/francais/marx/works/1872/06/kmfe18720624.htm",
+                ROOT + "/francais/marx/works/1882/01/kmfe18820121.htm",
+                ROOT + "/francais/engels/works/1883/06/fe18830628.htm",
+                ROOT + "/francais/engels/works/1888/01/fe18880130.htm",
+                ROOT + "/francais/engels/works/1890/05/fe18900501.htm",
+                ROOT + "/francais/engels/works/1892/02/fe18920210.htm",
+                ROOT + "/francais/engels/works/1893/02/fe18930201.htm",
+            ],
+        )
+        self.assertFalse(source.parts[8].use_source_headings)
+        self.assertTrue(source.parts[9].use_source_headings)
+        self.assertEqual(
+            [part.url for part in source.parts[8:]],
+            [MANIFESTO.replace(".htm", f"{letter}.htm") for letter in "abcd"],
+        )
+
+    def test_article_citations_and_navigation_do_not_trigger_book_detection(self):
+        data = page(
+            '<h1>Article</h1><h2>Contents</h2>'
+            f'<p>{PARAGRAPH}<a href="one.htm">Citation one</a>'
+            '<a href="two.htm">Citation two</a></p>'
+            '<nav><a href="next.htm">Next</a><a href="previous.htm">Previous</a></nav>'
+        )
+        self.assertFalse(discover(parse_html(data), ARTICLE).book)
+
+    def test_manual_book_discovery_bypasses_missing_contents_marker_not_discovery_policy(self):
+        data = page(
+            '<h1>Linked work</h1><ul><li><a href="one.htm">One</a></li>'
+            '<li><a href="two.htm">Two</a></li></ul>' + f'<p>{PARAGRAPH}</p>'
+        )
+        self.assertFalse(discover(parse_html(data), ARTICLE).book)
+        self.assertTrue(discover(parse_html(data), ARTICLE, force_book=True).book)
+        with self.assertRaisesRegex(ImportFailure, "discovery index"):
+            discover(parse_html(data), ROOT + "/francais/", force_book=True)
+
     def test_subtitle_inferred_from_legacy_title_group_or_explicit_metadata(self):
         source = discover(
             parse_html(page(
@@ -224,6 +297,12 @@ class ArchiveLayoutTests(SimpleTestCase):
         )
         with self.assertRaisesMessage(ImportFailure, "nested chapter directories"):
             discover(parse_html(data), BOOK)
+        labelled = page(
+            '<h1>Example book</h1><p>Sommaire</p><h5>'
+            '<a href="one.htm">One</a><a href="volume/two.htm">Two</a></h5>'
+        )
+        with self.assertRaisesMessage(ImportFailure, "nested chapter directories"):
+            discover(parse_html(labelled), ARTICLE)
 
     def test_language_and_author_directories_are_not_books(self):
         data = page(

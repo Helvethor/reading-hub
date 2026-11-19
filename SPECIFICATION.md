@@ -1695,6 +1695,21 @@ verification or completeness certification is implied.
 
 - Supported URLs use durable jobs; cached URLs reuse successful editions.
   Source refresh retrieves new evidence; stored-source reformatting is offline.
+- Archive book detection uses labelled contents headings/containers as well as
+  index filenames. Labelled contents can include same-language, same-host
+  cross-directory `works/YEAR/` prefaces; citations, navigation, downloads and
+  duplicate fragment URLs are not separate sections. Unknown nested local
+  chapter directories still fail explicitly rather than importing a partial book.
+- Reviewers can use **Sources > Reimport as book...** for a misclassified
+  Marxists Internet Archive work. An offline confirmation lists sections from
+  the exact edition's retained contents page. Confirmation fetches the linked
+  pages through the normal bounded engine and creates a source-generated book
+  version, without replacing saved edits, publishing or changing the reader
+  default. The result remains available for review and explicit reader selection.
+  Reviewed organization/ownership is not overridden; missing required sections
+  fail the whole job. Retained forced-book discovery also survives source refresh,
+  offline reformatting and membership-based draft generation. This is not a
+  general arbitrary-site crawler or live-data repair.
 - Normalize titles/headings, prose, quotations, tables, images and links;
   generate a table of contents and assemble supported multi-page HTML books.
 - Save raster assets locally; missing assets have explicit warnings/placeholders.

@@ -1,17 +1,28 @@
 import io
 import tempfile
+from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
 from bs4 import BeautifulSoup
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 from PIL import Image
 
-from library.models import Blob, Document, FetchCheck, Job, Rendition, Snapshot
+from library.models import (
+    Blob,
+    CatalogueEntry,
+    CrawlSite,
+    Document,
+    FetchCheck,
+    Job,
+    Rendition,
+    Snapshot,
+)
 from library.services.errors import ImportFailure, LimitExceeded
 from library.services.fetch import Response
 from library.services.pipeline import claim_job, enqueue, process_job, recover_interrupted
@@ -240,6 +251,143 @@ class PipelineTests(TestCase):
         self.assertLess(
             soup.get_text().index("First chapter"), soup.get_text().index("Second chapter")
         )
+
+    def misclassified_book(self):
+        url = BOOK.replace("index.htm", "dated-work.htm")
+        self.content = book_index()
+        enqueue(url)
+        old = process_job(claim_job())
+        self.assertIsNotNone(old)
+        self.assertFalse(old.structure["book"])
+        return old
+
+    def test_confirmed_book_reimport_preserves_edits_reader_and_retained_index(self):
+        from library.profile import get_profile
+        from library.services.document_edits import create_draft, save_revision
+        from library.services.fresh_document_drafts import preview_membership_draft
+
+        CrawlSite.objects.create(profile=get_profile().key, host="www.marxists.org")
+        old = self.misclassified_book()
+        reviewer = get_user_model().objects.create_user("book-reviewer", is_staff=True)
+        draft = create_draft(old, reviewer)
+        document = {**draft.document, "title": "Saved reviewer title"}
+        revision = save_revision(draft, reviewer, document, 0)
+        saved_document = deepcopy(revision.document)
+        original_html = old.html
+        self.client.force_login(reviewer)
+        url = f"/versions/{old.pk}/reimport-book/"
+        self.mock.reset_mock()
+        preview = self.client.get(url)
+        self.assertContains(preview, "First chapter")
+        self.assertContains(preview, "Second chapter")
+        self.assertContains(preview, "reader default stay unchanged")
+        self.mock.assert_not_called()
+        count = Job.objects.count()
+        self.assertEqual(self.client.post(url).status_code, 422)
+        self.assertEqual(
+            self.client.post(url, {"confirm": "yes", "preview_digest": "stale"}).status_code,
+            422,
+        )
+        self.assertEqual(Job.objects.count(), count)
+        response = self.client.post(url, {
+            "confirm": "yes", "preview_digest": preview.context["preview_digest"],
+        })
+        job = Job.objects.get(mode=Job.Mode.BOOK)
+        self.assertRedirects(response, f"/jobs/{job.pk}/")
+        new = process_job(claim_job())
+        job.refresh_from_db()
+        self.assertIsNotNone(new, job.error)
+        self.assertTrue(new.structure["book"])
+        self.assertEqual(new.structure["pages"], 3)
+        self.assertEqual(
+            [call.args[0] for call in self.mock.call_args_list],
+            [BOOK.replace("index.htm", f"chapter{i}.htm") for i in (1, 2)],
+        )
+        self.assertEqual(
+            new.snapshot.manifest["pages"][0], old.snapshot.manifest["pages"][0],
+        )
+        old.refresh_from_db()
+        old.document.refresh_from_db()
+        self.assertEqual(old.html, original_html)
+        self.assertEqual(old.document.reader_target().pk, old.pk)
+        revision.refresh_from_db()
+        self.assertEqual(revision.document, saved_document)
+        book = CatalogueEntry.objects.get(url=old.document.url)
+        self.assertEqual(book.chapters.count(), 2)
+        self.assertIsNotNone(preview_membership_draft(new))
+        self.assertContains(
+            self.client.get(f"/documents/{old.document_id}/lineage/?filter=sources"),
+            f'href="{url}"',
+        )
+        self.mock.reset_mock()
+        enqueue(old.document.url, Job.Mode.REFORMAT, new.snapshot)
+        reformatted = process_job(claim_job())
+        self.assertTrue(reformatted.structure["book"])
+        self.mock.assert_not_called()
+        enqueue(old.document.url, Job.Mode.REFRESH)
+        refreshed = process_job(claim_job())
+        self.assertTrue(refreshed.structure["book"])
+        self.assertEqual(refreshed.structure["pages"], 3)
+
+    def test_book_reimport_permissions_failure_and_retry_keep_original_reader(self):
+        old = self.misclassified_book()
+        url = f"/versions/{old.pk}/reimport-book/"
+        self.assertEqual(self.client.get(url).status_code, 302)
+        ordinary = get_user_model().objects.create_user("ordinary-reader")
+        self.client.force_login(ordinary)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url, {"confirm": "yes"}).status_code, 403)
+        job = enqueue(old.document.url, Job.Mode.BOOK, old.snapshot)
+        self.mock.side_effect = ImportFailure("Required chapter failed", "incomplete")
+        with self.assertLogs("library", level="ERROR"):
+            self.assertIsNone(process_job(claim_job()))
+        job.refresh_from_db()
+        self.assertEqual(job.status, Job.Status.FAILED)
+        old.document.refresh_from_db()
+        self.assertEqual(old.document.reader_target().pk, old.pk)
+        self.assertEqual(Rendition.objects.count(), 1)
+        self.assertRedirects(
+            self.client.post(f"/jobs/{job.pk}/retry/"), url, fetch_redirect_response=False,
+        )
+
+    def test_dated_contents_import_fetches_all_eleven_linked_sources_in_order(self):
+        from library.profile import get_profile
+        from library.tests.test_archive import MANIFESTO, dated_contents
+
+        CrawlSite.objects.create(profile=get_profile().key, host="www.marxists.org")
+        self.mock.side_effect = lambda url, **kwargs: Response(
+            url, dated_contents() if url == MANIFESTO else chapter(1), "text/html", {},
+        )
+        enqueue(MANIFESTO)
+        version = process_job(claim_job())
+        self.assertIsNotNone(version, Job.objects.get().error)
+        self.assertTrue(version.structure["book"])
+        self.assertEqual(version.structure["pages"], 12)
+        self.assertEqual(len(version.snapshot.manifest["pages"]), 12)
+        self.assertEqual(self.mock.call_count, 12)
+        self.assertEqual(
+            [entry["url"] for entry in version.snapshot.manifest["pages"]],
+            [call.args[0] for call in self.mock.call_args_list],
+        )
+        self.assertIn("Subsection 1", version.html)
+        self.assertEqual(CatalogueEntry.objects.get(url=MANIFESTO).chapters.count(), 11)
+
+    def test_book_reimport_refuses_reviewed_organization_limits_and_conflicting_jobs(self):
+        from library.services.pipeline import book_reimport_source
+
+        old = self.misclassified_book()
+        self.mock.reset_mock()
+        with patch("library.services.organizations.override", return_value=object()):
+            with self.assertRaisesRegex(ImportFailure, "Saved work organization"):
+                book_reimport_source(old.snapshot.manifest)
+        with patch("library.services.pipeline.MAX_PAGES", 2):
+            with self.assertRaises(LimitExceeded):
+                book_reimport_source(old.snapshot.manifest)
+        self.mock.assert_not_called()
+        active = enqueue(old.document.url, Job.Mode.REFRESH)
+        with self.assertRaisesRegex(ImportFailure, "Another import is active"):
+            enqueue(old.document.url, Job.Mode.BOOK, old.snapshot)
+        self.assertEqual(Job.objects.filter(status=Job.Status.QUEUED).get(), active)
 
     def test_french_accent_reformat_updates_all_surfaces_without_network_or_source_changes(self):
         from library.tests.test_sources import book_index

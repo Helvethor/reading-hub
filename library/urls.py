@@ -104,6 +104,7 @@ urlpatterns = [
     path("documents/<int:pk>/lineage/", document_lineage_views.workspace,
          name="document-lineage"),
     path("documents/<int:pk>/refresh/", views.refresh, name="refresh"),
+    path("versions/<int:pk>/reimport-book/", views.reimport_book, name="reimport-book"),
     path("versions/<int:pk>/", document_editor_views.work_workspace, name="reader"),
     path("versions/<int:pk>/", document_editor_views.work_workspace, name="document-editor"),
     path(

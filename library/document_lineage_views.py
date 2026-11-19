@@ -1,4 +1,4 @@
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
@@ -350,6 +350,7 @@ def workspace(request, pk):
         "reader_selection_explicit": document.reader_selection_explicit,
         "can_edit_work": can_review,
         "can_review": can_review,
+        "can_reimport_book": urlsplit(document.url).hostname == "www.marxists.org",
         "reader_selection_history": DocumentReaderSelection.objects.filter(
             document=document,
         ).select_related("previous_rendition", "rendition", "reviewer").order_by(
