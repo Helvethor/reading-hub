@@ -2385,13 +2385,21 @@ implementation approval; no alternative toolbar system belongs in this scope.
 
 #### V.u surface containment regression fix plan
 
-**Status: planned; blocking user-reported regression (2026-11-19).** The editor
-surface spills outside its stage and no longer provides independent scrolling.
-Source inspection identifies a strong candidate, not a browser-confirmed cause:
-V.u inserted `.editor-surface-frame` between the flex-column canvas and
-`#editor-surface`, but the wrapper is not a flex/grid container. The surface's
-`flex` sizing therefore no longer constrains it to the wrapper; with `height:
-auto` it can grow with document content despite `overflow-y: auto`.
+**Status: fixed and verified for bounded containment (2026-11-19); extended
+native acceptance remains open.** V.u inserted `.editor-surface-frame` between
+the flex-column canvas and `#editor-surface`. Without a flex container, the
+surface grew to its content height despite `overflow-y: auto`. Before the fix,
+the Chromium regression at 1200×800 measured a 767px frame containing a 3792px
+surface with zero scroll range. A shrinkable column-flex frame restores sizing
+without changing the overlay or the existing responsive overrides.
+
+Run `node --test frontend/editor-surface.browser.test.js` with Chromium
+installed. It exercises production markup/CSS with long and short content and
+layouts on both sides of the 760px and 520px breakpoints. In the authenticated
+isolated preview, wheel and keyboard input scrolled the book and article panes
+to the end without moving the page or frame. Scrollbar drag, outline follow,
+command/draft continuity, native theme/zoom acceptance and save/output journeys
+were not rerun for this fix.
 
 **Recommended bounded fix.** Keep the non-scrolling border wrapper and restore
 the sizing chain from the bounded desktop workspace through canvas and frame
@@ -2434,9 +2442,8 @@ a desktop-height pane.
    or extra trapped scroll region. Preserve aligned 1px section borders,
    generated pages, saving/recovery and output semantics.
 
-Stop after containment and scrolling are demonstrated in rendered fixtures and
-native interaction; report synthetic checks separately. This plan authorizes
-neither implementation nor deployment or live-data changes.
+Keep this fix scoped to containment and scrolling; report synthetic checks
+separately. This fix does not authorize deployment or live-data changes.
 
 ### Delivery boundaries and implementation-agent handoff
 

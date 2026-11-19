@@ -370,12 +370,14 @@ and visual acceptance remain open.** See the
   are not clipped.
 
 **Blocking regression reported 2026-11-19: surface containment and scrolling.**
-The border wrapper appears to interrupt the surface's constrained flex sizing.
+The border wrapper interrupted the surface's constrained flex sizing.
 See the [bounded fix plan](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-surface-containment-regression-fix-plan).
-- [ ] Restore the desktop surface's bounded height and independent scrolling
+- [x] Restore the desktop surface's bounded height and independent scrolling
   without removing the stationary focus frame or clipping document content.
-- [ ] Verify actual rendered containment, pointer/keyboard scrolling, last-content
-  reachability and narrow/short-screen page flow before accepting the fix.
+- [x] Verify rendered containment and narrow/short-screen page flow in Chromium,
+  and wheel/keyboard scrolling to the pane end on isolated book and article fixtures.
+- [ ] Complete the remaining native acceptance matrix: scrollbar drag, outline
+  follow and command/draft continuity, both themes and native 200% zoom.
 
 Automated verification: `npm test`, `npm run build`, and
 `python workflow.py test library.tests.test_document_editor_views` pass.

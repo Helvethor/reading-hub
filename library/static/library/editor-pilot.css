@@ -162,7 +162,7 @@
 #editor-content-move pre { max-height: 12rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 .editor-canvas { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 #editor-selection-path { margin: 0; padding: .5rem .75rem; font: .8rem/1.4 system-ui, sans-serif; background: #f8f9f5; border-bottom: 1px solid #cbd1c4; overflow-wrap: anywhere; }
-.editor-surface-frame { position: relative; isolation: isolate; flex: 1 1 auto; min-height: 0; }
+.editor-surface-frame { position: relative; isolation: isolate; display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0; }
 .editor-surface-frame:focus-within::after { content: ""; position: absolute; z-index: 10; inset: 0; box-sizing: border-box; border: 2px solid var(--accent, #486b38); pointer-events: none; }
 #editor-surface { flex: 1; min-height: 0; background: white; }
 #editor-surface[data-workspace-scroll-pane] {
