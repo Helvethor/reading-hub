@@ -574,6 +574,57 @@ Direct lineage URLs remain available. Full V1-V16 acceptance remains partial;
 local implementation/deployment is authorized, but remote deployment and live
 publication/default changes are not.
 
+### Locatable content defects and publication warnings (specified, not implemented)
+
+In the semantic-document workspace, a content defect that can be represented
+safely must not prevent Read preview, draft PDF or publication. For example, an
+unresolved internal target such as `#missing-note` remains a visible,
+non-working link, not an invented destination or removed content. Show the
+defect alongside the affected preview and PDF action so an imperfect result is
+not mistaken for a clean one; generate the exact requested saved or unsaved
+snapshot without silently saving or changing it.
+
+Provide a navigable issue list in the editor, including the defect, target and
+enough surrounding text or section context to distinguish occurrences. Each
+occurrence, including repeated links to the same missing target, has a
+keyboard-accessible action to reveal its containing section if folded, navigate
+to and visibly highlight or focus the offending link in the editor. Navigation
+must preserve unsaved changes and existing undo/recovery state. If a location
+cannot be resolved or has become stale after editing, say so and refresh or
+recheck the issues rather than navigating to a guessed location. Rechecking
+after a repair updates the list; no persistent document IDs or content changes
+are introduced solely for navigation.
+
+The saved-revision publication preview lists the current defects and their
+consequences, offers a route back to each location for repair, and permits
+publication only after an explicit acknowledgement of the defects in addition
+to the existing publication confirmation. Bind acknowledgement and preview to
+the exact saved revision and current issue set; changes or stale previews require
+review and acknowledgement again. A clean revision does not require a defect
+acknowledgement. Publication creates the usual immutable edition, does not
+silently repair defects, and does not imply full or section verification.
+Verification of incomplete documents remains blocked under the existing rules.
+
+This relaxation applies to content-quality defects that the renderer can
+represent without inventing content, including unresolved internal links and
+existing unavailable-image placeholders. It does not waive semantic/schema
+or security validation, permissions, concurrency, required asset availability
+and integrity, or retained-evidence integrity. When safe, faithful projection
+is impossible, report the blocking reason explicitly and preserve the draft.
+Existing immutable editions and exact-version links remain unchanged. The
+legacy source-correction and book-organization preview/validation paths are
+not changed by this workspace specification.
+
+Acceptance requires a synthetic long document with multiple unresolved links,
+including repeated targets and a folded section: locate and repair each
+occurrence from the editor and publication review without losing edits; verify
+that rechecking removes only repaired issues. Exercise Read and actual draft PDF
+before repair, then save and publish the defective revision only after the
+explicit warning acknowledgement. Check the exact published Read/PDF content,
+unchanged broken links and review status; verify clean publication, stale
+acknowledgement refusal, and the unchanged hard validation and integrity gates.
+Test keyboard and focus behavior as well as pointer navigation.
+
 Workspace refinement V.a-V.d (implemented, acceptance partial):
 all main tab content, including the editor canvas, uses
 document scrolling with the footer after active content. This describes the
@@ -2569,10 +2620,13 @@ acceptance is still open and does not change the default local editor workflow.
 - Keep edited-source scope separate from assembled-work scope. Book organization
   retains inclusion, part title/role and ordering. Content sourced from several
   pages retains all contributors' capture/asset provenance.
-- Server validation remains authoritative: reject invalid semantic documents,
-  unresolved internal notes/targets and unavailable required assets. Preview the
-  affected document/whole book before explicit publication. Saved drafts may
-  remain incomplete, with errors visible; publication requires passing checks.
+- Server validation remains authoritative: reject invalid semantic documents and
+  unavailable required assets. Saved drafts may remain incomplete, with issues
+  visible. The currently implemented publication gate also rejects unresolved
+  internal notes/targets; the planned
+  [content-defect warning contract](#locatable-content-defects-and-publication-warnings-specified-not-implemented)
+  supersedes that gate for safely representable defects. Preview the affected
+  document/whole book before explicit publication.
 - Saving appends a revision; publication creates a new immutable edition.
   Optimistic concurrency rejects stale saves/publications without losing drafts.
   Source refresh and parser changes create separate draft bases; no automatic
