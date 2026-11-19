@@ -107,12 +107,13 @@ starts workers. Bind Gunicorn to a private interface, for example
 `.venv/bin/gunicorn --bind 127.0.0.1:8000 config.production_wsgi:application`,
 and place the HTTPS reverse proxy in front of it.
 
-**Status (2026-11-19):** the local D1 runtime implementation is complete in
-the working tree. Isolated Gunicorn smoke checks served the homepage, collected
-CSS and a generated PDF, rejected an unexpected Host, and redirected plain HTTP
-to HTTPS. `check --deploy` still reports W005/W021 because subdomain-wide HSTS
-and browser preload policy were intentionally not assumed; resolve those domain
-policies before a public release. This is not a public-readiness claim.
+**Status (2026-11-19):** the local D1 runtime implementation is committed as
+`59069b847fbb0ef3134d2bcc044d970c410cd41e`. Isolated Gunicorn smoke checks
+served the homepage, collected CSS and a generated PDF, rejected an unexpected
+Host, and redirected plain HTTP to HTTPS. `check --deploy` still reports W005/W021
+because subdomain-wide HSTS and browser preload policy were intentionally not
+assumed; resolve those domain policies before a public release. This is not a
+public-readiness claim.
 
 ### D2 — Reproducible container image
 
@@ -126,6 +127,19 @@ policies before a public release. This is not a public-readiness claim.
 
 **Acceptance:** a clean image build starts outside the developer checkout, with
 no access to its data or credentials, and reports the expected source revision.
+
+**Status (2026-11-19):** implemented and committed as
+`86f2878cb8908365b74ca9ae12570f07227c0f1f`. The locally built image
+`reading-hub:86f2878cb8908365b74ca9ae12570f07227c0f1f` has digest
+`sha256:75139192beb2614b413db367737208e5153f6225bf141bfd1ba73a53ea4750d2`;
+its OCI revision label matches that commit. The image uses digest-pinned Python,
+Node and Dockerfile frontend inputs, a dated Debian snapshot, `requirements.lock`,
+`npm ci`, and the production static build. A synthetic container with no network
+or published port ran as UID 10001, remained unready until migrations were
+explicitly applied, then passed readiness, homepage, static-asset and PDF checks.
+Development tests and dependencies, checkout data and credentials were absent
+from the image. This is local image evidence only; D3's HTTPS simulation and
+remote deployment remain separate.
 
 ### D3 — Isolated local production simulation
 

@@ -80,15 +80,15 @@ forms were submitted with `requestSubmit`, not a direct API or database edit.
 Promotion applied no migrations or content changes. Full publication and human
 interaction acceptance remain incomplete.
 
-### Public deployment route (D1 local runtime implemented; no public delivery)
+### Public deployment route (D1/D2 locally implemented; no public delivery)
 
 The agreed direction is a single private server at `read.shabang.ch`, packaged
 with Docker Compose, a production WSGI server and reverse-proxy HTTPS. SQLite
 remains appropriate for the initial single-instance deployment. D1's production
-settings, WSGI entry point and local runtime checks are implemented; the remote
-server, concurrency and recovery decisions remain open. The detailed sequence,
-acceptance gates and current evidence are in [the public deployment
-roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md).
+runtime and D2's reproducible container image are implemented and locally
+validated with synthetic data; the remote server, concurrency and recovery
+decisions remain open. The detailed sequence, acceptance gates and current
+evidence are in [the public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md).
 
 Local production simulation with synthetic isolated data, a separate port and
 an unsigned local certificate is authorized. Public DNS/firewall exposure,
