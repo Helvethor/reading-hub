@@ -324,6 +324,11 @@ browser acceptance remains open.** See the
 [V.t handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vt-compact-editor-commands-contextual-tools-and-whole-document-view)
 for command visibility, navigation, layout and end-to-end acceptance.
 
+The [V.u revision](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-stable-toolbars-submenus-and-compact-separation)
+supersedes toolbar visibility, menu structure, toolbar placement and separation
+controls below. V.t's focus-border change has not resolved section-border
+overpainting according to user feedback; it is not accepted visual evidence.
+
 - [x] Unify toolbar and Selection tools actions/icons; expose all applicable
   supported formatting actions and hide inapplicable actions in both surfaces.
 - [x] Replace result/diff selection with a Diff state-button and automatically
@@ -340,6 +345,22 @@ Focused automated verification: `npm test` (360 tests), `npm run build`, and
 pass. Native-browser interaction, responsive/zoom/theme behavior and
 save/reopen/Read/print/PDF acceptance remain unverified; no deployment or
 live-data changes were made.
+
+### Milestone V.u: Stable toolbars, submenus and compact separation
+
+**Status: specification only; toolbar switch proposed.** See the
+[V.u handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-stable-toolbars-submenus-and-compact-separation).
+
+- [ ] Keep toolbar command positions fixed, disabling unavailable actions;
+  make common commands icon-only with accessible names and tooltips.
+- [ ] Replace the flat Selection tools groups with category submenus while
+  retaining exact targets and hiding inapplicable contextual actions.
+- [ ] Move outline commands to the top and provide one shared command area
+  switched by Format / Outline / Diff tabs; keep common commands persistent.
+- [ ] Replace verbose separation choices with New page / Continuous toggles;
+  toggling off an explicit override restores inheritance.
+- [ ] Correct the viewport focus frame so section borders cannot overpaint it;
+  verify native-browser scroll, focus, submenu and toolbar journeys.
 
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 

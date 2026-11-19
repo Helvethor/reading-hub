@@ -116,6 +116,11 @@ menus internally, and dismiss on outside interaction, page/pane scroll or resize
 The [V.t editor command and navigation milestone](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vt-compact-editor-commands-contextual-tools-and-whole-document-view)
 specifies the complete editor toolbar, applicable-action visibility, whole-
 document canvas and outline command contract.
+The [V.u revision](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-stable-toolbars-submenus-and-compact-separation)
+supersedes V.t's hide-inapplicable toolbar policy: toolbar commands stay in fixed
+positions and are disabled when unavailable. It specifies hierarchical Selection
+tools, icon-only common commands, one switchable Format/Outline/Diff command area,
+and two separation override toggles. Unchanged V.s/V.t preservation rules remain.
 All editor right-click menus follow the same floating placement and compact
 visual language: page/layout settings, outline/section actions, ToC numbering
 and visibility, title fields, metadata fields and difference restoration.

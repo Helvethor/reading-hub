@@ -2091,6 +2091,13 @@ content cleanup, deployment and live-data changes are out of scope.
 
 ### V.t: Compact editor commands, contextual tools and whole-document view
 
+**Revision:** [V.u](#vu-stable-toolbars-submenus-and-compact-separation) supersedes
+the toolbar hide-inapplicable policy, flat Selection tools grouping, toolbar
+placement and verbose separation controls below. The user reports that section
+borders still overpaint the surface focus frame; V.t's automated checks do not
+establish that visual outcome. Unchanged whole-document, comparison and
+preservation requirements still apply.
+
 **Status: source implementation present; focused frontend/backend checks pass;
 native-browser acceptance remains open.** The editor previously exposed common
 formatting in a small text-and-symbol toolbar while additional supported
@@ -2225,6 +2232,135 @@ Implementation verification: `npm test` (360 tests), `npm run build`, and
 pass. Native-browser focus/pointer/keyboard behavior, desktop and narrow layout,
 themes, browser zoom, and unchanged save/reopen, Read, print and PDF output have
 not yet been verified.
+
+### V.u: Stable toolbars, submenus and compact separation
+
+**Status: specification only (2026-11-19).** This revision follows source
+implementation of V.t, not validated native-browser acceptance. Inspection
+confirms toolbar text alongside icons, separate formatting/diff/outline command
+areas, and tall layout menus with effective-setting explanations and a separate
+reset command. Section borders still overpaint the focus frame according to
+user feedback; the source currently uses a negative-offset surface outline.
+No native-browser reproduction or new implementation is claimed here.
+
+**Stable toolbar and common commands.** All commands belonging to a toolbar
+remain in their fixed order and slots when context changes. Grey out and disable
+inapplicable commands instead of hiding them. Keep one applicability model for
+command execution; visibility differs by surface, not by whether an invalid
+operation is allowed. Disabled controls retain meaningful names and a concise
+unavailability explanation where useful. Preserve permission checks.
+
+Undo, Redo and Close have icons only, including in menus. Selection tools,
+Insert from source, Restore and Save in the common command bar also have icons
+only: no visible text spans. Use recognizable distinct icons, text tooltips and
+accessible names; decorative icons are not announced. Restore keeps its slot,
+disabled when no recoverable tab draft exists. Undo/Redo remain in place when
+history is empty. Preserve explicit recovery, save guards and status messages.
+This supersedes V.t's hide-when-unavailable toolbar behavior and recovery slot.
+
+**One top command area: recommended switch.**
+
+| Approach | Benefit and cost |
+|---|---|
+| **Format / Outline / Diff tabs (recommended)** | All three destinations remain visible; one click switches tools without consuming three toolbar rows. Small, explicit UI state. |
+| Toolbar chooser dropdown | Slightly narrower, but hides destinations and needs an extra interaction. Defer unless real width evidence requires it. |
+
+Place a compact three-tab selector at the top of the editor and display exactly
+one associated command toolbar beneath/beside it. Format is the initial choice;
+switching is explicit, never triggered by caret movement, scrolling or opening
+a context menu. Move the outline commands out of the outline pane into this
+shared top area. Do not duplicate them in the pane.
+
+Keep the common icon command bar outside the switched region so Selection tools,
+Undo/Redo, Save, Insert from source and Restore remain reachable in every mode.
+The book outline itself and editor canvas stay in place. Switching toolbars
+preserves caret/selection, outline target, scroll, draft, Diff on/off and baseline;
+it never remounts the editor, saves or changes content. Diff can remain enabled
+while Format or Outline commands are displayed.
+
+Use keyboard-operable tab semantics (arrow keys, Home/End, selected state and
+associated panels). Inactive toolbar panels are hidden and not focusable. Keep
+the command area's height stable across switches at a given viewport, allowing
+the space required by its largest panel rather than moving the canvas. All
+three toolbars use compact, square, bottom-edge and theme-accent styling.
+Responsive wrapping may change geometry on resize, not on command availability.
+
+**Hierarchical Selection tools.** Replace the long flat group list with
+category entries opening submenus:
+
+- **Styling**: Bold, Italic, Underline, Strikethrough, Superscript, Subscript.
+- **Type**: Paragraph and supported H2-H6 heading types.
+- **Alignment**: Left, Center, Right, Justify.
+- **Lists**, **Move / separate**, **Insert**, **Links**, **Inline semantics**
+  and contextual **Element / Caption / Table** categories cover the remaining
+  existing actions without losing capabilities or duplicating commands.
+
+Keep applicable Undo/Redo and Close as a compact icon row rather than a submenu.
+Show only applicable contextual submenu actions; omit empty categories. This
+menu remains context-sensitive, unlike fixed toolbars. Preserve V.s exact
+element/ancestor scope and target identity. Prefer recognizable icons inside
+submenus, retaining concise text when an icon cannot communicate the action
+reliably. No horizontal group rules or long explanatory paragraphs.
+
+Submenus open by pointer or keyboard, not hover alone: Right/Enter opens,
+Left/Escape returns to the parent, arrows/Home/End navigate visible items.
+Escape at the root closes and returns focus. Keep pointer travel between parent
+and submenu reliable and all panels viewport-bounded, including at zoom and
+narrow widths; an in-place submenu with Back is acceptable when a flyout cannot
+fit. Capture the document selection/target across the whole menu interaction.
+
+**Separation: two adjacent state-buttons.** In the target's context menu, show
+one compact row: **New page** and **Continuous**. Remove the reason paragraph,
+Default choice and separate Reset to default command from this row.
+
+| Existing override | Interaction | Result |
+|---|---|---|
+| None | Activate either button | Set that explicit separation override. |
+| New page or Continuous | Activate the other button | Replace the override. |
+| New page or Continuous | Deactivate the active button | Remove the override and inherit the default. |
+
+Pressed means an explicit override, not the effective inherited value. With no
+override, both buttons are unpressed even if the default is New page. Show the
+effective default through a concise accessible description/tooltip, not another
+tall block of menu text. At most one button is pressed; both off is valid.
+Expose toggle semantics, not a radio group that requires one choice.
+Keep existing ineligible-boundary rules, exact target/stale-target guards and
+undo behavior; clearing an override does not rewrite defaults or other parts.
+The global Use work-type layout defaults command remains separate in Outline.
+
+**Focus-frame defect.** The surface's accent frame must cover nested section
+borders as well as text/media. Treat it as a viewport frame, not a scrolling
+document decoration: it stays aligned with all surface edges during scroll.
+Choose a correct paint/stacking boundary instead of increasing the surface's
+z-index alone. No document child can paint over the frame; it must not capture
+pointer events, obscure the caret, clip content or change layout.
+
+**Bounded implementation order and acceptance.**
+
+1. Establish stable common commands and the shared Format/Outline/Diff switch.
+   At a fixed viewport, move between plain text, captions, tables, node selections
+   and empty history/recovery: command slots and canvas position do not move;
+   unavailable commands cannot run. Confirm icon-only common actions, tooltips,
+   accessible names, keyboard tabs, selection preservation and unchanged save.
+2. Replace Selection tools groups with submenus. Reach every retained action
+   using pointer and keyboard, including a caption relationship through its
+   exact figure target. Verify focus return, checked states, edge positioning,
+   no empty categories and preserved target across submenu navigation.
+3. Implement separation toggles. For content and generated parts, test no
+   override -> set -> replace -> clear -> undo, including an override equal to
+   the default. Verify invalid/stale targets change nothing.
+4. Fix and visually verify the focus frame with nested sections at the top,
+   middle and bottom of the scroll range. Use native-browser rendering in both
+   themes and at 100%/200% zoom; inspect frame/section intersections, not CSS
+   declarations alone. Exercise text selection and pointer editing at edges.
+
+Validate each coherent slice with focused existing tests and a local checkpoint;
+do not use test counts as visual acceptance. Use isolated synthetic book/article
+drafts; carry forward full-content visibility, automatic comparison loading and
+race/failure handling, recovery, serialization and reader/print/PDF preservation.
+No application changes, deployment or live-data changes are authorized by this
+specification. The tabbed switch is the proposed design for subsequent
+implementation approval; no alternative toolbar system belongs in this scope.
 
 ### Delivery boundaries and implementation-agent handoff
 
