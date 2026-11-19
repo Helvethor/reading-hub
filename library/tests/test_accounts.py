@@ -81,6 +81,24 @@ class AccountTests(TestCase):
         strict = Client(enforce_csrf_checks=True)
         self.assertEqual(strict.post(reverse("signup"), {}).status_code, 403)
 
+    @override_settings(READING_HUB_ALLOW_SIGNUP=False)
+    def test_signup_is_disabled_and_not_advertised_when_policy_forbids_it(self):
+        self.assertEqual(self.client.get(reverse("signup")).status_code, 404)
+        self.assertEqual(
+            self.client.post(
+                reverse("signup"),
+                {
+                    "username": "public-reader",
+                    "password1": PASSWORD,
+                    "password2": PASSWORD,
+                },
+            ).status_code,
+            404,
+        )
+        self.assertFalse(User.objects.filter(username="public-reader").exists())
+        self.assertNotContains(self.client.get("/"), "Create account")
+        self.assertNotContains(self.client.get(reverse("login")), "Create account")
+
     def test_login_logout_password_change_and_safe_redirect(self):
         user = User.objects.create_user("reader", password=PASSWORD)
         self.assertEqual(

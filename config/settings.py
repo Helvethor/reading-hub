@@ -40,6 +40,7 @@ except FileExistsError:
 SECRET_KEY = secret_path.read_text(encoding="ascii").strip()
 DEBUG = READING_HUB_ENVIRONMENT == "development"
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+READING_HUB_ALLOW_SIGNUP = True
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

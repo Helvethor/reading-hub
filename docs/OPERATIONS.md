@@ -50,6 +50,7 @@ are not implicitly trusted. Existing source extraction is unchanged, so adapter
 | Development | Current checkout, including uncommitted edits | Persistent synthetic data per checkout | `127.0.0.1:8766` |
 | Test | Selected checkout/candidate | Fresh private directory per run | None |
 | Staging | Archived exact Git commit and candidate-local assets/dependencies | Disposable representative synthetic data | `127.0.0.1:8767` |
+| Production simulation | Production WSGI settings from the current checkout | Separate synthetic data root, outside the checkout and all other environments | Explicit free localhost port |
 | Live | Explicitly promoted frozen candidate | Existing protected library | Registered listener, normally `127.0.0.1:8765` |
 
 Use Python >= 3.14, Node/npm, Git and a Linux/WSL shell. WeasyPrint also

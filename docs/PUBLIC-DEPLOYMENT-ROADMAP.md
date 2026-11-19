@@ -47,9 +47,18 @@ Before implementing public-facing account or server behavior, record:
 - Server OS/resources, SSH access model, DNS control, firewall and TLS termination.
 - Expected read/write concurrency and backup recovery-point/recovery-time goals.
 
+**Decision record (2026-11-19):** public reading is anonymous; public account
+registration is disabled pending a separate decision. Management remains
+authenticated and restricted by the existing staff/permission checks. Server,
+network, concurrency and recovery details are deferred; this blocks remote
+deployment planning, not the authorized local runtime milestone.
+
 **Acceptance:** written decisions are sufficient to configure the server and
 authentication behavior without guessing. If account access remains undecided,
 keep registration disabled.
+
+The remote-server portion of D0 remains open until the deferred server,
+concurrency and recovery values are recorded. Do not begin D5/D6 on assumptions.
 
 ### D1 — Production Django runtime
 
@@ -67,6 +76,43 @@ keep registration disabled.
 **Acceptance:** production Django checks pass; the WSGI service starts without
 `runserver`; host/HTTPS settings reject unexpected hosts; representative static
 assets and a generated PDF are served correctly.
+
+Production mode uses `DJANGO_SETTINGS_MODULE=config.production_settings` or
+the `config.production_wsgi` Gunicorn entry point. Set
+`READING_HUB_ENVIRONMENT=production` and an explicit, private
+`READING_HUB_DATA` outside the checkout; the database defaults inside that
+directory. The mode uses only `read.shabang.ch` as its allowed host and
+`https://read.shabang.ch` as its trusted origin. Do not expose Gunicorn directly:
+it trusts `X-Forwarded-Proto` from its reverse proxy.
+
+Run setup and release operations explicitly, with the same production
+environment configured for each command:
+
+```sh
+export DJANGO_SETTINGS_MODULE=config.production_settings
+export READING_HUB_ENVIRONMENT=production
+export READING_HUB_DATA=/absolute/path/to/private/reading-hub-data
+npm ci
+npm run build
+python manage.py check --deploy
+python manage.py makemigrations --check --dry-run
+python manage.py migrate --plan
+python manage.py collectstatic --noinput
+```
+
+After the separate backup and migration decision, apply schema changes with an
+explicit `python manage.py migrate --noinput`. Web startup never migrates or
+starts workers. Bind Gunicorn to a private interface, for example
+`127.0.0.1:8000`, using
+`.venv/bin/gunicorn --bind 127.0.0.1:8000 config.production_wsgi:application`,
+and place the HTTPS reverse proxy in front of it.
+
+**Status (2026-11-19):** the local D1 runtime implementation is complete in
+the working tree. Isolated Gunicorn smoke checks served the homepage, collected
+CSS and a generated PDF, rejected an unexpected Host, and redirected plain HTTP
+to HTTPS. `check --deploy` still reports W005/W021 because subdomain-wide HSTS
+and browser preload policy were intentionally not assumed; resolve those domain
+policies before a public release. This is not a public-readiness claim.
 
 ### D2 — Reproducible container image
 

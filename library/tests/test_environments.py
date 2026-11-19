@@ -45,10 +45,16 @@ class EnvironmentContractTests(SimpleTestCase):
 
     def test_live_storage_is_rejected_before_any_runtime_file_is_created(self):
         live = self.checkout / "data"
-        for role in ("development", "test", "staging"):
+        for role in ("development", "test", "staging", "production"):
             with self.subTest(role=role), self.assertRaisesRegex(ValueError, "protected live"):
                 validate_environment(role, self.checkout, live, live / "library.sqlite3")
         self.assertFalse(live.exists())
+
+    @override_settings(READING_HUB_ENVIRONMENT="production")
+    def test_production_runserver_is_refused(self):
+        command = load_command_class("library", "runserver")
+        with self.assertRaisesRegex(CommandError, "production WSGI server"):
+            command.get_handler()
 
     def test_registered_live_and_database_override_are_protected(self):
         live = self.root / "private-live"

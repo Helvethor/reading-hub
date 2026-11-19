@@ -5,7 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-ROLES = {"development", "test", "staging", "live"}
+ROLES = {"development", "test", "staging", "production", "live"}
 RUNTIME_PATHS = (
     "secret-key",
     "blobs",

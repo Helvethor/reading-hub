@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView, redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.debug import sensitive_post_parameters
@@ -105,6 +105,8 @@ def administrator_required(view):
 @sensitive_post_parameters("password1", "password2")
 @require_http_methods(["GET", "POST"])
 def signup(request):
+    if not settings.READING_HUB_ALLOW_SIGNUP:
+        raise Http404
     if request.user.is_authenticated:
         return redirect("home")
     form = UserCreationForm(request.POST if request.method == "POST" else None)

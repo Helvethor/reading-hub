@@ -10,6 +10,8 @@ dependencies = [
     "Pillow>=12,<13",
     "WeasyPrint>=68,<69",
     "tinycss2>=1.5,<2",
+    "gunicorn>=23,<24",
+    "whitenoise>=6.9,<7",
 ]
 
 [project.optional-dependencies]

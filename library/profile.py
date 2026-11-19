@@ -192,6 +192,7 @@ def site_context(request):
         "app_version": APP_VERSION,
         "runtime_environment": settings.READING_HUB_ENVIRONMENT,
         "runtime_revision": settings.READING_HUB_REVISION,
+        "allow_signup": settings.READING_HUB_ALLOW_SIGNUP,
         "theme_choices": theme_choices(),
         "selected_theme": selected_theme(request),
         "sort_labels": [

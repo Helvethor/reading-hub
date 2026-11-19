@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.staticfiles.management.commands.runserver import Command as StaticCommand
+from django.core.management.base import CommandError
 
 
 class UncachedDevelopmentHandler:
@@ -24,6 +25,8 @@ class UncachedDevelopmentHandler:
 
 class Command(StaticCommand):
     def get_handler(self, *args, **options):
+        if settings.READING_HUB_ENVIRONMENT == "production":
+            raise CommandError("Use the configured production WSGI server instead of runserver.")
         handler = super().get_handler(*args, **options)
         if settings.READING_HUB_ENVIRONMENT == "development":
             return UncachedDevelopmentHandler(handler)

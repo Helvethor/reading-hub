@@ -9,6 +9,6 @@
     <input type="hidden" name="next" value="{{ next }}">
     <div class="form-actions"><button type="submit">Sign in</button></div></fieldset>
   </form>
-  <p><a href="{% url 'signup' %}">Create account</a> for private highlights and underlining.</p>
+  {% if allow_signup %}<p><a href="{% url 'signup' %}">Create account</a> for private highlights and underlining.</p>{% endif %}
 </div>
 {% endblock %}
