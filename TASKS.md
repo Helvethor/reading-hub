@@ -361,6 +361,9 @@ live-data changes were made.
   toggling off an explicit override restores inheritance.
 - [ ] Correct the viewport focus frame so section borders cannot overpaint it;
   verify native-browser scroll, focus, submenu and toolbar journeys.
+- [ ] Align top-level section borders with title, ToC and metadata page borders
+  in the editor; make all section borders uniformly 1px on every side while
+  preserving nested hierarchy and label gutters.
 
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 

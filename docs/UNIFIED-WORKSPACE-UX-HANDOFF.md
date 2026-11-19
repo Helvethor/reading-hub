@@ -2335,6 +2335,14 @@ Choose a correct paint/stacking boundary instead of increasing the surface's
 z-index alone. No document child can paint over the frame; it must not capture
 pointer events, obscure the caret, clip content or change layout.
 
+**Section border geometry (editor only).** Align the outer inline-start and
+inline-end edges of top-level section borders with the title, ToC and metadata
+page borders in the same editor canvas. Use a uniform 1 CSS px border on all
+four sides of every section, including nested sections; remove the thicker
+inline-start accent edge. Preserve nested-section hierarchy and label gutters
+inside that shared outer alignment. This does not change Read, print or PDF
+layout.
+
 **Bounded implementation order and acceptance.**
 
 1. Establish stable common commands and the shared Format/Outline/Diff switch.
@@ -2353,6 +2361,10 @@ pointer events, obscure the caret, clip content or change layout.
    middle and bottom of the scroll range. Use native-browser rendering in both
    themes and at 100%/200% zoom; inspect frame/section intersections, not CSS
    declarations alone. Exercise text selection and pointer editing at edges.
+   Measure top-level section and generated-page border edges at the same canvas
+   width: inline-start/end coordinates must agree within 1 CSS px. Verify all
+   four section border widths are 1 CSS px, including nested sections; no label
+   or content may be clipped to achieve alignment.
 
 Validate each coherent slice with focused existing tests and a local checkpoint;
 do not use test counts as visual acceptance. Use isolated synthetic book/article
