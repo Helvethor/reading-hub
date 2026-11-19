@@ -2445,6 +2445,84 @@ a desktop-height pane.
 Keep this fix scoped to containment and scrolling; report synthetic checks
 separately. This fix does not authorize deployment or live-data changes.
 
+### V.v: Uniform surface spacing and live page-break markers
+
+**Status: specified 2026-11-19; not implemented.** This milestone follows V.u
+and changes editor presentation and surface context menus only. It does not
+change stored separation semantics, Read/print/PDF output or inheritance rules.
+
+**Reported problems and starting evidence.**
+
+- Vertical space around sections is visibly larger than their horizontal inset
+  and the gaps between title, ToC and metadata pages. Current CSS combines
+  `margin-block: 1rem` on `.editor-section-boundary` with collapsing child
+  heading/paragraph margins, while generated pages use `margin: 1rem`.
+- A New page separation on an H3 (or deeper heading/section) is not reliably
+  visible. After a fresh load a bar can appear without the "Page break" text;
+  during live editing the marker may disappear. `book-views.js` toggles
+  `editor-layout-new-page` on ProseMirror-owned DOM only during book-view
+  refreshes, so ProseMirror redraws can discard it.
+- Two marker styles exist: the title-page `::after` uses a dashed line and
+  "Page break", while `.editor-layout-new-page` and generated-page/body markers
+  use a solid border with no text.
+- New page / Continuous toggles exist in outline, ToC and generated-page menus,
+  but right-clicking a section or heading in the editor surface does not offer
+  them.
+
+**Uniform spacing.** Use one editor spacing token for the gap between adjacent
+surface blocks: title page, ToC page, top-level sections, metadata page and
+other generated pages. The vertical gap before, between and after top-level
+sections equals their horizontal inset from the canvas and equals the gap
+between generated pages. Nested sections use the same token relative to their
+parent border. Heading and first/last child margins must not add extra space
+inside or outside a section border: neutralise leading/trailing child margins
+within the section padding rather than shrinking content typography. Preserve V.u
+edge alignment, 1px borders, block labels, fold placeholders and drop targets.
+
+**Single page-break marker.** Every effective New page boundary displayed in the
+editor uses the same marker: a full-width dashed line in the editor border/accent
+colour with a centred, visible "Page break" text label. This applies to boundaries
+before ToC, body, sections at every heading level (H2-H6), metadata and other
+generated pages, and to the boundary after the title page. Continuous boundaries
+show no marker. Remove the solid-line variant. The marker is decorative,
+non-editable and excluded from the document, copy/paste, diffs and saved HTML;
+expose the boundary state to assistive technologies once through the target's
+description or an equivalent non-duplicated name.
+
+Render the marker from editor state, not by mutating ProseMirror-owned DOM after
+render. Use a decoration/node-view or equivalent mechanism recomputed on every
+relevant transaction and metadata/layout change, so it survives typing,
+undo/redo, heading level changes, section moves, folding, diff mode and reload.
+The marker for the first body section must not duplicate the body-boundary marker.
+
+**Surface right-click.** Right-clicking a heading or anywhere in a section on the
+editor surface offers the same compact New page / Continuous toggle pair as the
+outline (V.u semantics: activating the active override clears it to inherit; the
+inherited default stays in the description). Target the nearest enclosing
+section heading; if the pointer is on a heading, that heading's section is the
+target. Keyboard invocation (ContextMenu, Shift+F10) uses the caret's section.
+Place the toggles in the existing surface context menu without increasing
+Selection tools submenus or text. A change updates the marker immediately, is
+one undoable document edit, marks the draft modified, and leaves selection,
+scroll position and unrelated menu targets intact. Inapplicable targets, such
+as content before the first section, show no toggles.
+
+**Acceptance.**
+
+1. On an isolated book with title, ToC, nested H2-H4 sections and metadata page,
+   measured vertical gaps between all adjacent top-level surface blocks and the
+   horizontal section inset agree within 1 CSS px, at 100% and 200% zoom.
+2. Set New page on an H3 from the surface menu: the dashed "Page break" marker
+   appears immediately. It persists while typing in and around the heading,
+   after undo/redo, heading level changes, moving the section, toggling diff,
+   saving and reloading. Toggle it off and the marker disappears or reflects
+   the inherited value immediately.
+3. Every New page boundary type uses the identical marker; no solid page-break
+   line remains in the editor.
+4. Saved HTML, diffs and Read/print/PDF separation output are unchanged except
+   for the intended stored separation attribute.
+5. Report jsdom/unit, synthetic browser and native-browser evidence separately.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where

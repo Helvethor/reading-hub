@@ -121,6 +121,9 @@ supersedes V.t's hide-inapplicable toolbar policy: toolbar commands stay in fixe
 positions and are disabled when unavailable. It specifies hierarchical Selection
 tools, icon-only common commands, one switchable Format/Outline/Diff command area,
 and two separation override toggles. Unchanged V.s/V.t preservation rules remain.
+The [V.v milestone](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vv-uniform-surface-spacing-and-live-page-break-markers)
+specifies uniform surface spacing, one dashed "Page break" marker for all New page
+boundaries, and New page / Continuous toggles in surface section/heading menus.
 All editor right-click menus follow the same floating placement and compact
 visual language: page/layout settings, outline/section actions, ToC numbering
 and visibility, title fields, metadata fields and difference restoration.

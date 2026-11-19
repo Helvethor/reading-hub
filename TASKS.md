@@ -379,6 +379,22 @@ See the [bounded fix plan](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-surface-conta
 - [ ] Complete the remaining native acceptance matrix: scrollbar drag, outline
   follow and command/draft continuity, both themes and native 200% zoom.
 
+### Milestone V.v: Uniform surface spacing and live page-break markers
+
+**Status: specified 2026-11-19; not implemented.** See the
+[V.v handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vv-uniform-surface-spacing-and-live-page-break-markers).
+
+- [ ] Make vertical gaps around sections equal their horizontal inset and the
+  gaps between title, ToC, metadata and other generated pages.
+- [ ] Render every effective New page boundary with one dashed "Page break"
+  marker; remove the solid-line variant.
+- [ ] Derive markers from editor state so H3-H6 page breaks remain visible after
+  load, live edits, undo/redo, moves, folding, diff mode and reload.
+- [ ] Offer New page / Continuous toggles on right-click (and Shift+F10) for
+  sections and headings in the editor surface, updating markers immediately.
+- [ ] Verify measured spacing, marker persistence and unchanged output semantics
+  in native browsers.
+
 Automated verification: `npm test`, `npm run build`, and
 `python workflow.py test library.tests.test_document_editor_views` pass.
 Native-browser, zoom/theme, focus/scroll, edge-measurement, and
