@@ -50,17 +50,19 @@ def live_registration():
 
 
 def protected_paths(checkout):
-    paths = {Path(checkout).resolve() / "data"}
-    common = subprocess.run(
-        ["git", "-C", str(checkout), "rev-parse", "--git-common-dir"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if common.returncode == 0:
-        directory = (Path(checkout) / common.stdout.strip()).resolve()
-        if directory.name == ".git":
-            paths.add(directory.parent / "data")
+    checkout = Path(checkout).resolve()
+    paths = {checkout / "data"}
+    if (checkout / ".git").exists():
+        common = subprocess.run(
+            ["git", "-C", str(checkout), "rev-parse", "--git-common-dir"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if common.returncode == 0:
+            directory = (checkout / common.stdout.strip()).resolve()
+            if directory.name == ".git":
+                paths.add(directory.parent / "data")
     registered = live_registration()
     if registered:
         paths.update((Path(registered["data"]).resolve(), Path(registered["database"]).resolve()))

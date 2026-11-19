@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
@@ -89,6 +91,18 @@ def home_context(request, form=None):
 @require_GET
 def home(request):
     return render(request, "library/home.html", home_context(request))
+
+
+@require_GET
+def health(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT 1")
+        if cursor.fetchone() != (1,):
+            return HttpResponse("unavailable", status=503, content_type="text/plain")
+    executor = MigrationExecutor(connection)
+    if executor.migration_plan(executor.loader.graph.leaf_nodes()):
+        return HttpResponse("unavailable", status=503, content_type="text/plain")
+    return HttpResponse("ok", content_type="text/plain")
 
 
 def queued_response(result):

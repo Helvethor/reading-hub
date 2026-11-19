@@ -50,6 +50,12 @@ class EnvironmentContractTests(SimpleTestCase):
                 validate_environment(role, self.checkout, live, live / "library.sqlite3")
         self.assertFalse(live.exists())
 
+    def test_non_git_runtime_does_not_require_git(self):
+        data = self.root / "production"
+        with patch("config.environments.subprocess.run") as run:
+            validate_environment("production", self.checkout, data, data / "library.sqlite3")
+        run.assert_not_called()
+
     @override_settings(READING_HUB_ENVIRONMENT="production")
     def test_production_runserver_is_refused(self):
         command = load_command_class("library", "runserver")

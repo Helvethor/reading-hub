@@ -31,6 +31,7 @@ urlpatterns = [
     path("versions/<int:pk>/reading-style/default/", reading_style_views.default_profile,
          name="reading-style-default"),
     path("review/", review_views.overview, name="work-review"),
+    path("healthz/", views.health, name="health"),
     path("", views.home, name="home"),
     path("accounts/signup/", account_views.signup, name="signup"),
     path("accounts/settings/", account_views.user_settings, name="user-settings"),
