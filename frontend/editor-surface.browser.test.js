@@ -155,3 +155,67 @@ test("surface block gaps and section insets share one spacing at 100% and 200% z
     rmSync(temp, {recursive: true, force: true});
   }
 });
+
+test("page-break markers sit outside page boxes and inside enclosing sections at 100% and 200% zoom", () => {
+  const css = ["reader.css", "workspace.css", "editor-pilot.css"].map(name =>
+    readFileSync(new URL(`../library/static/library/${name}`, import.meta.url), "utf8")).join("\n");
+  const page = `<!doctype html><meta charset="utf-8"><style>
+    ${css}
+    body { margin: 0; }
+    #editor-surface { width: 900px; }
+    #editor-surface .tiptap { min-height: 20rem; }
+  </style><main id="editor-surface">
+    <section class="editor-generated-page" id="title">Title</section>
+    <span class="editor-page-break editor-page-break-before-page" id="toc-break">Page break</span>
+    <section class="editor-generated-page" id="toc">Contents</section>
+    <div class="tiptap" contenteditable="true">
+      <section class="editor-section-boundary" id="first"><h2>First</h2><p>Opening.</p></section>
+      <span class="editor-page-break" id="section-break">Page break</span>
+      <section class="editor-section-boundary" id="second">
+        <span class="editor-page-break" id="heading-break">Page break</span>
+        <h2 id="heading">Second</h2><p>Body.</p>
+      </section>
+    </div>
+  </main><script>
+    const surface = document.querySelector('#editor-surface');
+    const results = [1, 2].map(zoom => {
+      document.body.style.zoom = zoom;
+      const rect = selector => document.querySelector(selector).getBoundingClientRect();
+      const page = rect('#toc'), pageMarker = rect('#toc-break');
+      const section = rect('#second'), sectionMarker = rect('#section-break');
+      const content = rect('#heading'), headingMarker = rect('#heading-break');
+      const scale = value => value / zoom;
+      return {
+        zoom,
+        pageMarkerOutside: !document.querySelector('#toc-break').contains(document.querySelector('#toc')) &&
+          document.querySelector('#toc-break').parentElement === surface,
+        headingMarkerInside: document.querySelector('#heading-break').parentElement ===
+          document.querySelector('#second'),
+        pageAlignment: [scale(pageMarker.left - page.left), scale(pageMarker.right - page.right)],
+        sectionAlignment: [scale(sectionMarker.left - section.left), scale(sectionMarker.right - section.right)],
+        headingAlignment: [scale(headingMarker.left - content.left), scale(headingMarker.right - content.right)],
+      };
+    });
+    document.documentElement.dataset.results = JSON.stringify(results);
+  </script>`;
+  const temp = mkdtempSync(join(tmpdir(), "reading-hub-break-geometry-"));
+  try {
+    const file = join(temp, "geometry.html");
+    writeFileSync(file, page);
+    const output = execFileSync(process.env.CHROMIUM || "chromium", [
+      "--headless", "--disable-background-networking", `--user-data-dir=${join(temp, "profile")}`,
+      "--dump-dom", pathToFileURL(file).href,
+    ], {encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "ignore"]});
+    const results = JSON.parse(new JSDOM(output).window.document.documentElement.dataset.results);
+    assert.deepEqual(results.map(entry => entry.zoom), [1, 2]);
+    for (const result of results) {
+      assert(result.pageMarkerOutside && result.headingMarkerInside);
+      for (const distance of [...result.pageAlignment, ...result.sectionAlignment, ...result.headingAlignment]) {
+        assert(Math.abs(distance) <= 1,
+          `${result.zoom * 100}% zoom marker alignment: ${JSON.stringify(result)}`);
+      }
+    }
+  } finally {
+    rmSync(temp, {recursive: true, force: true});
+  }
+});

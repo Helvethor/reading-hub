@@ -426,22 +426,33 @@ live-data changes were made.
 
 ### Milestone V.w: Reliable outline and coherent separation boundaries
 
-**Status: specified 2026-11-19; not implemented.** See the
+**Status: source implemented; focused automated checks pass; native-browser and
+full output acceptance remain.** See the
 [V.w handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vw-reliable-outline-and-coherent-separation-boundaries).
 
-- [ ] Preserve every H2-H6 outline entry, including a lone H2 sharing its
+- [x] Preserve every H2-H6 outline entry, including a lone H2 sharing its
   container's range; keep structural Article/Section parent rows distinct.
-- [ ] Define separation before exact targets and share one setting across
+- [x] Define separation before exact targets and share one setting across
   coincident body/container/first-heading boundaries; retain distinct boundaries
   when introductory content intervenes.
-- [ ] Inventory legacy conflicts and define compatibility/precedence explicitly;
-  do not silently rewrite overrides or migrate user records.
-- [ ] Keep surface/outline/body controls, inheritance, undo/redo, save/reopen and
-  Read/print/PDF effective separation consistent.
-- [ ] Place each dashed marker outside and above its target box, or inside an
-  enclosing section for internal targets; show one marker per shared boundary.
-- [ ] Verify lone-heading stability, shared/distinct boundaries, marker alignment
-  and spacing, both themes, native zoom and output parity on isolated fixtures.
+- [x] Define and test legacy shared-boundary precedence: one explicit choice
+  overrides inherited values; conflicting explicit values resolve to New page.
+  Existing overrides are not rewritten or migrated.
+- [x] Keep editor surface/outline/body controls, inherited/effective values and
+  undo/redo in sync at shared or distinct boundaries.
+- [ ] Verify save/reopen and actual Read/print/PDF effective output beyond
+  backend projection tests.
+- [x] Place one dashed marker outside and above each generated-page target, or
+  inside an enclosing section for internal targets; share markers at coincident
+  boundaries. Synthetic geometry checks passed at 100% and 200% zoom.
+- [ ] Complete native-browser, both-theme, saved/reopened-draft and actual
+  Read/print/PDF acceptance on isolated fixtures.
+
+Automated verification: `npm test` (369 tests), `npm run build`,
+`node --test frontend/editor-surface.browser.test.js`, and
+`python workflow.py test library.tests.test_book_views` pass. These establish
+source-level and synthetic-fixture behavior, not native-browser acceptance or
+saved/reopened/actual output parity. No deployment or live-data changes were made.
 
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 

@@ -2534,25 +2534,29 @@ as content before the first section, show no toggles.
 
 ### V.w: Reliable outline and coherent separation boundaries
 
-**Status: specified 2026-11-19; not implemented.** Follow V.v with a complete
-outline and separation workflow, not another marker-only patch. This milestone
-refines V.u/V.v target ownership and marker placement. Implementation, deployment
-and changes to existing drafts/publications require separate authorization.
+**Status: source implemented; focused automated checks pass; native-browser and
+full output acceptance remain.** V.w follows V.v with a complete outline and
+separation workflow, not another marker-only patch. This milestone refines
+V.u/V.v target ownership and marker placement. Deployment and changes to
+existing drafts/publications require separate authorization.
 
 **Starting evidence and limitations.** The reported article has a lone H2,
 "An offline reading exercise", missing from Sections until another H2 is added.
-In `frontend/workspace.js`, `documentParts` filters identical content ranges:
-a leading H2 spanning its Article container is discarded, but survives once a
-second H2 shortens that range. This is code-level evidence; authenticated draft
-reproduction remains outstanding. The supplied development URL opened anonymous
-Read during investigation; no draft was edited.
+The initial source filtered identical content ranges in `documentParts`, so a
+leading H2 spanning its Article container was discarded. The source now retains
+the heading as a distinct outline row, and focused tests cover adding/removing a
+sibling heading. Authenticated draft reproduction remains outstanding. The
+supplied development URL opened anonymous Read during investigation; no draft
+was edited.
 
-Body, container and heading separation settings currently have independent
-owners without a consistent rule for coincident boundaries. Editor decoration
-logic combines first-boundary values while backend presentation projection
-handles them separately. Generated-page markers are prepended inside their
-boxes; section markers are inserted before their targets. That implementation
-difference is not a justified user-facing pagination distinction.
+Body, container and heading separation settings previously had independent
+owners without a consistent rule for coincident boundaries. The source now
+shares those settings across structural coincidences, including body and first
+heading boundaries, while keeping introductory-content boundaries distinct.
+Editor decorations and backend Read/print/PDF projection use a shared precedence
+rule. Generated-page markers now render outside and immediately before their
+boxes; unit/synthetic geometry checks pass, but native-browser and actual-output
+acceptance remain outstanding.
 
 **Outline identity.**
 
@@ -2587,16 +2591,14 @@ difference is not a justified user-facing pagination distinction.
   inherited New page. Update every equivalent menu and marker immediately as
   one undoable edit, preserving selection, scroll and pending draft content.
 
-**Existing settings and output coherence.** Inventory legacy body/container/
-heading conflicts first. Define and test an explicit compatibility/precedence
-rule before implementation; do not silently discard a stored override or use
-an OR of independently resolved values as the new model. Surface conflicting
-legacy values and obtain authorization for any migration of existing records.
-Use one documented effective-boundary contract across editor menus, markers
-and backend Read/print/PDF projection, with parity tests for both implementations.
-Unchanged, non-conflicting settings retain their output semantics. Any deliberate
-change to legacy conflict resolution must be identified, not presented as a
-purely visual fix.
+**Existing settings and output coherence.** The implemented compatibility rule
+keeps all stored overrides unchanged: a single explicit choice overrides
+inherited values, and conflicting explicit choices at one shared boundary
+resolve to New page, preserving prior behavior. No existing records are
+migrated. Focused tests cover explicit conflict and inherited-value precedence,
+and backend projection tests exercise the effective boundary. A complete
+legacy-data inventory and actual save/reopen/Read/print/PDF parity acceptance
+remain outstanding; do not imply those are certified.
 
 **Marker placement.**
 

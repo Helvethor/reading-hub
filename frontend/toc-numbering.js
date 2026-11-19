@@ -22,7 +22,18 @@ export function tocEntryPosition(part) {
   return part.kind === "Section" ? part.from - 1 : part.from;
 }
 
+export function publicationParts(parts) {
+  const ranges = new Set();
+  return parts.filter(part => {
+    const range = `${part.from}:${part.to}`;
+    if (ranges.has(range)) return false;
+    ranges.add(range);
+    return true;
+  });
+}
+
 export function tocNumberingEntries(doc, parts = documentParts(doc)) {
+  parts = publicationParts(parts);
   const hierarchy = outlineHierarchy(parts), counts = new Map();
   return parts.map((part, index) => {
     const style = doc.nodeAt(tocEntryPosition(part)).attrs["data-toc-style"] || "none";
@@ -34,6 +45,7 @@ export function tocNumberingEntries(doc, parts = documentParts(doc)) {
 }
 
 export function tocVisibilityEntries(doc, parts = documentParts(doc)) {
+  parts = publicationParts(parts);
   const hierarchy = outlineHierarchy(parts), entries = [];
   parts.forEach((part, index) => {
     const setting = doc.nodeAt(tocEntryPosition(part)).attrs["data-toc-entry"] || "auto";
@@ -48,7 +60,7 @@ export function tocVisibilityEntries(doc, parts = documentParts(doc)) {
 export function applyTocVisibility(editor, proposal, setting) {
   if (!proposal || proposal.doc !== editor.state.doc) throw new Error("The document changed. Select ToC entries again.");
   if (!tocVisibilityOptions.some(([value]) => value === setting)) throw new Error("Choose a supported ToC visibility.");
-  const parts = documentParts(editor.state.doc);
+  const parts = publicationParts(documentParts(editor.state.doc));
   const indices = [...new Set(proposal.indices)];
   if (!indices.length || indices.some(index => !parts[index])) throw new Error("Select ToC entries again.");
   const tr = closeHistory(editor.state.tr).setMeta("readingHubToc", true);
@@ -98,7 +110,7 @@ export function isTocNumberingChange(before, after) {
 export function applyTocNumbering(editor, proposal, style) {
   if (!proposal || proposal.doc !== editor.state.doc) throw new Error("The document changed. Select ToC entries again.");
   if (!tocStyles.some(([value]) => value === style)) throw new Error("Choose a supported ToC numbering style.");
-  const parts = documentParts(editor.state.doc);
+  const parts = publicationParts(documentParts(editor.state.doc));
   const hierarchy = outlineHierarchy(parts);
   const indices = [...new Set(proposal.indices)];
   if (!indices.length || indices.some(index => !parts[index]) ||

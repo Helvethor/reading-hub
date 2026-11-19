@@ -34,7 +34,10 @@ class BookViewTests(SimpleTestCase):
             '<h3 id="nested" data-layout-before="new-page">Nested</h3><p>Detail.</p>'
             '</section><section id="two" data-section-role="chapter"><h2>Second</h2><p>End.</p></section>'
         )
-        metadata = {"work_type": "book", "layout": {"version": 1, "overrides": {"body": "continuous"}}}
+        metadata = {
+            "work_type": "book",
+            "layout": {"version": 1, "overrides": {"body": "continuous"}},
+        }
         document = {"version": 1, "title": "Book", "metadata": metadata, "html": html}
         canonical_document(document)
         output = publication_view(html, document_title="Book", metadata=metadata, book=True)
@@ -45,6 +48,53 @@ class BookViewTests(SimpleTestCase):
         self.assertEqual(soup.find(id="nested")["data-layout-before"], "new-page")
         self.assertEqual(soup.get_text(), BeautifulSoup(html, "html.parser").get_text())
         self.assertEqual(document["html"], html)
+
+    def test_coincident_body_container_and_heading_boundary_resolves_explicit_values(self):
+        html = (
+            '<section id="article"><h2 id="first" data-layout-before="continuous">'
+            'First</h2><p>Body.</p></section>'
+        )
+        metadata = {"work_type": "book", "layout": {"version": 1, "overrides": {}}}
+        projection = publication_view(html, book=True, metadata=metadata)
+        soup = BeautifulSoup(projection["content_html"], "html.parser")
+        self.assertEqual(projection["body_separation"], "continuous",
+                         "An explicit Continuous overrides inherited body and section defaults.")
+        self.assertEqual(soup.find(id="article")["data-layout-before"], "continuous")
+        self.assertEqual(soup.find(id="first")["data-layout-before"], "continuous")
+
+        conflict = (
+            '<section id="article" data-layout-before="continuous">'
+            '<h2 id="first" data-layout-before="new-page">First</h2><p>Body.</p></section>'
+        )
+        metadata["layout"]["overrides"]["body"] = "continuous"
+        projection = publication_view(conflict, book=True, metadata=metadata)
+        soup = BeautifulSoup(projection["content_html"], "html.parser")
+        self.assertEqual(projection["body_separation"], "new-page",
+                         "Conflicting explicit choices preserve the existing New page precedence.")
+        self.assertEqual(soup.find(id="article")["data-layout-before"], "continuous")
+        self.assertEqual(soup.find(id="first")["data-layout-before"], "continuous")
+
+    def test_introductory_content_keeps_heading_separation_distinct_from_body(self):
+        html = (
+            '<section id="article"><p>Opening.</p>'
+            '<h2 id="first" data-layout-before="new-page">First</h2><p>Body.</p></section>'
+        )
+        metadata = {"work_type": "book", "layout": {"version": 1, "overrides": {"body": "continuous"}}}
+        projection = publication_view(html, book=True, metadata=metadata)
+        soup = BeautifulSoup(projection["content_html"], "html.parser")
+        self.assertEqual(projection["body_separation"], "continuous")
+        self.assertEqual(soup.find(id="article")["data-layout-before"], "continuous")
+        self.assertEqual(soup.find(id="first")["data-layout-before"], "new-page")
+
+        html = (
+            '<section id="article" data-layout-before="continuous">Opening'
+            '<h2 id="first" data-layout-before="new-page">First</h2><p>Body.</p></section>'
+        )
+        projection = publication_view(html, book=True, metadata=metadata)
+        soup = BeautifulSoup(projection["content_html"], "html.parser")
+        self.assertEqual(projection["body_separation"], "continuous")
+        self.assertEqual(soup.find(id="article")["data-layout-before"], "continuous")
+        self.assertEqual(soup.find(id="first")["data-layout-before"], "new-page")
 
     def test_rendered_title_size_and_body_separation_are_independent_without_blank_pages(self):
         from weasyprint import CSS, HTML

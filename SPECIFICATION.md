@@ -127,8 +127,9 @@ boundaries, and New page / Continuous toggles in surface section/heading menus.
 The [V.w milestone](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vw-reliable-outline-and-coherent-separation-boundaries)
 specifies reliable lone-heading outline entries, shared separation settings for
 coincident boundaries, and markers outside their target boxes (inside enclosing
-sections only for internal targets). It refines V.u/V.v ownership and placement;
-implementation and legacy-conflict compatibility acceptance remain outstanding.
+sections only for internal targets). Source implementation and explicit
+legacy-conflict precedence are in place; native-browser, saved/reopened-draft
+and actual Read/print/PDF acceptance remain outstanding.
 All editor right-click menus follow the same floating placement and compact
 visual language: page/layout settings, outline/section actions, ToC numbering
 and visibility, title fields, metadata fields and difference restoration.

@@ -1,10 +1,12 @@
 import {bookPages, factSpans, metadataEntries, pagePreset, titleLayouts, titlePageFields, titlePageRows,
   titlePageSelection, workTypes} from "./metadata-fields.js";
 import {outlineHierarchy} from "./outline.js";
-import {applyTocNumbering, applyTocVisibility, tocEntryPosition, tocNumberingEntries, tocStyles,
-  tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
-import {contentSeparation, partLayout, separations,
-  resolveLayoutMetadata, setDocumentLayout, setPartSeparation} from "./part-layout.js";
+import {applyTocNumbering, applyTocVisibility, publicationParts, tocEntryPosition,
+  tocNumberingEntries, tocStyles, tocVisibilityEntries, tocVisibilityOptions} from "./toc-numbering.js";
+import {
+  bodyBoundary, partLayout, resolveLayoutMetadata, resolveSeparationBoundary,
+  separations, separationBoundary, setBoundarySeparation, setDocumentLayout,
+} from "./part-layout.js";
 import {closeHistory} from "@tiptap/pm/history";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 
@@ -33,6 +35,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   metadataPage.className = "editor-generated-page editor-metadata-page";
   metadataPage.setAttribute("aria-label", "Generated metadata page");
   editor.view.dom.after(metadataPage);
+  const pageBreakMarkers = new WeakMap();
   function pages() {
     const book = form.querySelector("#editor-organization-book");
     return bookPages(layoutMetadata(), book ? book.checked : Boolean(presentation.book));
@@ -47,7 +50,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   menu.setAttribute("aria-label", "ToC numbering style");
   menu.hidden = true;
   attachContextualPanel(form, menu, null, editor);
-  let selected = new Set(), selectionDoc = editor.state.doc, currentParts = [], hierarchy = [];
+  let selected = new Set(), selectionDoc = editor.state.doc, currentParts = [];
+  let currentTocParts = [], hierarchy = [];
   function closeMenu() { menu.hidden = true; }
   function updateSelection() {
     for (const button of toc.querySelectorAll("[data-toc-part]")) {
@@ -73,7 +77,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     caption.textContent = `${selected.size} ToC entry/entries - numbering style`;
     menu.append(caption);
     const styles = new Set([...selected].map(index =>
-      editor.state.doc.nodeAt(tocEntryPosition(currentParts[index])).attrs["data-toc-style"] || "none"));
+      editor.state.doc.nodeAt(tocEntryPosition(currentTocParts[index])).attrs["data-toc-style"] || "none"));
     for (const [style, label] of tocStyles) {
       const button = owner.createElement("button");
       button.type = "button";
@@ -99,7 +103,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     visibility.textContent = "Table of contents visibility";
     menu.append(visibility);
     const settings = new Set([...selected].map(index =>
-      editor.state.doc.nodeAt(tocEntryPosition(currentParts[index])).attrs["data-toc-entry"] || "auto"));
+      editor.state.doc.nodeAt(tocEntryPosition(currentTocParts[index])).attrs["data-toc-entry"] || "auto"));
     for (const [setting, label] of tocVisibilityOptions) {
       const button = owner.createElement("button");
       button.type = "button";
@@ -279,42 +283,38 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       button(`Reset to ${presetLabel()} preset (${value})`, "menuitem", null, null, {pageReset: page});
     }
   }
-  function sectionDepth(position) {
-    const resolved = editor.state.doc.resolve(position);
-    let depth = 0;
-    for (let index = 1; index <= resolved.depth; index++) {
-      if (resolved.node(index).type.name === "section") depth++;
-    }
-    return depth;
-  }
   function layoutChoices(container, target, close) {
     const metadata = layoutMetadata();
     const doc = editor.state.doc;
     const position = target.part ? tocEntryPosition(target.part) : null;
-    const node = position === null ? null : doc.nodeAt(position);
-    const info = target.part
-      ? node && contentSeparation(node, {...target.part, depth: sectionDepth(position)},
-        metadata, isBook())
-      : partLayout(metadata, isBook())[target.name];
+    const boundary = target.part ? separationBoundary(doc, target.part, currentParts) :
+      target.name === "body" ? bodyBoundary(doc, currentParts) : null;
+    const info = boundary ? resolveSeparationBoundary(boundary, metadata, isBook()) :
+      partLayout(metadata, isBook())[target.name];
     if (!info) throw new Error("This layout target is no longer available. Open its menu again.");
-    const explicit = target.part ? node.attrs["data-layout-before"] :
+    const explicit = boundary ? info.explicit :
       metadata.layout?.overrides?.[target.name];
     const group = owner.createElement("div");
     group.className = "editor-menu-group editor-layout-menu";
     group.setAttribute("role", "group");
-    const heading = element("span", "Layout");
+    const label = target.part ? `${target.part.displayKind || target.part.kind}: ${target.part.label}` :
+      target.name === "body" ? "Content body" :
+        ({title: "Title page", toc: "Table of contents", metadata: "Metadata page",
+          edition: "Edition and review status"}[target.name] || target.name);
+    const heading = element("span", `Separation before ${label}`);
     heading.id = `editor-layout-heading-${target.part ? position : target.name}`;
     heading.className = "editor-menu-heading";
     group.setAttribute("aria-labelledby", heading.id);
     group.append(heading);
-    const inherited = info.origin === "override" ?
-      (target.part ? contentSeparation({...node, attrs: {...node.attrs, "data-layout-before": null}},
-        {...target.part, depth: sectionDepth(position)}, metadata, isBook()).value :
-        partLayout({...metadata, layout: {...metadata.layout, overrides: {
-          ...metadata.layout?.overrides, [target.name]: undefined,
-        }}}, isBook())[target.name].value) : info.value;
-    const description = element("span",
-      `Inherited default: ${inherited === "new-page" ? "New page" : "Continuous"}. Activate an active choice again to inherit.`);
+    const inherited = boundary ? info.inherited : info.origin === "override" ?
+      partLayout({...metadata, layout: {...metadata.layout, overrides: {
+        ...metadata.layout?.overrides, [target.name]: undefined,
+      }}}, isBook())[target.name].value : info.value;
+    const description = element("span", [
+      `Inherited default: ${inherited === "new-page" ? "New page" : "Continuous"}.`,
+      info.conflict ? " Conflicting saved choices are retained; New page takes precedence until changed." : "",
+      " Activate an active choice again to inherit.",
+    ].join(""));
     description.id = `editor-layout-description-${target.part ? position : target.name}`;
     description.className = "editor-visually-hidden";
     group.append(description);
@@ -334,7 +334,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
         try {
           if (doc !== editor.state.doc) throw new Error("The document changed. Open the layout menu again.");
           const next = explicit === value ? null : value;
-          if (target.part) setPartSeparation(editor, position, next);
+          if (boundary) setBoundarySeparation(editor, boundary, next);
           else {
             const layout = editor.state.doc.attrs.layout || metadata.layout ||
               {version: 1, defaults: "legacy", overrides: {}};
@@ -464,6 +464,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   let sectionsCollapsed = false;
   function refresh(parts) {
     currentParts = parts;
+    currentTocParts = publicationParts(parts);
     if (selectionDoc !== editor.state.doc) selected.clear();
     selectionDoc = editor.state.doc;
     const document = readDocument();
@@ -523,7 +524,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       stub.className = "editor-generated-notice";
       toc.replaceChildren(element("h2", "Table of contents"), stub);
       toc.tabIndex = 0;
-      hierarchy = outlineHierarchy(parts);
+      hierarchy = outlineHierarchy(currentTocParts);
       updateSelection();
       pageStates();
       pageBreak(toc, boundaries.toc.value === "new-page", "table of contents");
@@ -534,11 +535,11 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     toc.replaceChildren(element("h2", "Table of contents"),
       element("p", "Ctrl-click sibling entries to select them; right-click to set numbering or hide entries from the published contents (navigation keeps them). Ordinary clicks navigate. Edit titles/order in the outline."));
     const list = owner.createElement("ol");
-    hierarchy = outlineHierarchy(parts);
+    hierarchy = outlineHierarchy(currentTocParts);
     const lists = new Map([[-1, list]]);
-    const numbering = tocNumberingEntries(editor.state.doc, parts);
-    const visibility = tocVisibilityEntries(editor.state.doc, parts);
-    parts.forEach((part, index) => {
+    const numbering = tocNumberingEntries(editor.state.doc, currentTocParts);
+    const visibility = tocVisibilityEntries(editor.state.doc, currentTocParts);
+    currentTocParts.forEach((part, index) => {
       const item = owner.createElement("li");
       const {style, number} = numbering[index];
       item.style.listStyleType = style;
@@ -558,7 +559,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
       button.addEventListener("click", event => {
         if (event.ctrlKey || event.metaKey) {
           try { showError(""); select(index, true); } catch (failure) { showError(failure.message); }
-        } else { selected.clear(); navigate(index); }
+        } else { selected.clear(); navigate(parts.indexOf(part)); }
       });
       item.append(button);
       const nested = owner.createElement("ol");
@@ -610,14 +611,22 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
   }
   function pageBreak(page, enabled, label) {
     page.querySelector(":scope > .editor-page-break")?.remove();
-    if (!enabled) return;
-    const marker = element("span", "Page break");
-    marker.className = "editor-page-break";
-    marker.setAttribute("role", "separator");
-    marker.setAttribute("aria-label", `Page break before ${label}`);
-    marker.setAttribute("contenteditable", "false");
-    marker.dataset.editorPageBreak = label;
-    page.prepend(marker);
+    let marker = pageBreakMarkers.get(page);
+    if (!enabled) {
+      marker?.remove();
+      return;
+    }
+    if (!marker) {
+      marker = element("span", "Page break");
+      marker.className = "editor-page-break";
+      marker.classList.add("editor-page-break-before-page");
+      marker.setAttribute("role", "separator");
+      marker.setAttribute("aria-label", `Page break before ${label}`);
+      marker.setAttribute("contenteditable", "false");
+      marker.dataset.editorPageBreak = label;
+      pageBreakMarkers.set(page, marker);
+    }
+    if (marker.nextElementSibling !== page) page.before(marker);
   }
   // Book-level entries use the same row component as section rows: tree guides, a
   // kind badge, a controls column and a title button that navigates within the book.

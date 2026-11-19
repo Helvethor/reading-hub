@@ -44,7 +44,7 @@ import {mountSectionManagement} from "./section-management.js";
 import {mountSectionExcerpts} from "./section-excerpts.js";
 import {BlockSelection} from "./block-selection.js";
 import {mountBookViews} from "./book-views.js";
-import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {publicationParts, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 import {mountNoteRepairs} from "./note-repairs.js";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
 import {mountEditorToolTabs} from "./editor-tool-tabs.js";
@@ -289,10 +289,13 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   function refreshOutline() {
     const currentParts = documentParts(editor.state.doc, context);
-    const numbering = tocNumberingEntries(editor.state.doc, currentParts);
+    const tocParts = publicationParts(currentParts);
+    const numbering = tocNumberingEntries(editor.state.doc, tocParts);
+    const tocEntries = new Map(tocParts.map((part, index) => [part, numbering[index]]));
     parts = currentParts.map((part, index) => {
       const original = initial.structure?.parts?.find(source => source.id === part.id);
-      return {...part, role: part.role || original?.role, marker: tocMarker(numbering[index])};
+      return {...part, role: part.role || original?.role,
+        marker: tocMarker(tocEntries.get(part) || {style: "none", number: 0})};
     });
     const sections = movableSections(editor.state.doc, context);
     outline.replaceChildren();

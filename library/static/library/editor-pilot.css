@@ -128,6 +128,11 @@
 .editor-title-page .document-facts { text-align: start; max-width: 54rem; margin-inline: 0; }
 .editor-page-break { display: flex; align-items: center; gap: .6rem; margin-block: var(--editor-surface-gap, 1rem); color: var(--muted, #4c554b); font: .7rem/1.4 system-ui, sans-serif; text-align: center; user-select: none; }
 .editor-page-break::before, .editor-page-break::after { content: ""; flex: 1 1 auto; border-top: 1px dashed var(--editor-border, #cbd1c4); }
+#editor-surface > .editor-page-break + .editor-generated-page { margin-block-start: 0; }
+#editor-surface > .editor-page-break-before-page { margin-inline: var(--editor-surface-gap, 1rem); }
+#editor-surface .editor-section-boundary > .editor-page-break + :not(.editor-section-edge),
+#editor-surface .editor-page-break + :is(h2, h3, h4, h5, h6) { margin-block-start: 0; }
+#editor-surface .editor-section-boundary > .editor-page-break { margin-block: .5rem; }
 .editor-generated-page.editor-page-disabled { padding-block: .6rem; border-style: dashed; background: transparent; opacity: .75; }
 .editor-generated-page.editor-page-disabled h2 { margin: 0; font-size: 1rem; }
 .editor-generated-page:focus-visible { outline: 2px solid var(--accent, #486b38); outline-offset: 2px; }
@@ -243,7 +248,8 @@
 #editor-surface .tiptap > .editor-section-boundary:first-child,
 #editor-surface .tiptap > .editor-page-break:first-child + .editor-section-boundary { margin-block-start: calc(-1 * var(--editor-surface-gap)); }
 #editor-surface .tiptap > .editor-page-break:first-child { margin-block-start: calc(-1 * var(--editor-surface-gap)); }
-#editor-surface .tiptap > .editor-page-break:first-child + .editor-section-boundary { margin-block-start: 0; }
+#editor-surface .tiptap > .editor-page-break { margin-inline: calc(var(--editor-surface-gap) - var(--editor-canvas-inline-padding, 1.2rem)); }
+#editor-surface .tiptap > .editor-page-break + .editor-section-boundary { margin-block-start: 0; }
 #editor-surface .tiptap > .editor-section-boundary:last-child { margin-block-end: calc(-1 * var(--editor-surface-gap)); }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
 #editor-context-menu [data-menu-category-list] { display: grid; gap: .2rem; }

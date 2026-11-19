@@ -2,8 +2,11 @@ import {Extension} from "@tiptap/core";
 import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state";
 import {Decoration, DecorationSet} from "@tiptap/pm/view";
 import {headingLabel, sectionHeading} from "./section-info.js";
-import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
-import {contentSeparation, partLayout, resolveLayoutMetadata} from "./part-layout.js";
+import {publicationParts, tocMarker, tocNumberingEntries} from "./toc-numbering.js";
+import {
+  bodyBoundary, resolveLayoutMetadata, resolveSeparationBoundary,
+  separationBoundary,
+} from "./part-layout.js";
 
 const workspaceKey = new PluginKey("readingHubWorkspace");
 const headingTypes = new Set(["h2", "h3", "h4", "h5", "h6"]);
@@ -75,6 +78,7 @@ export function documentParts(doc, context = {}) {
           from: pos, to: next?.pos ?? start + parent.content.size,
           depth: depth + Number(node.type.name.slice(1)) - firstLevel,
           label: headingLabel(node).trim().slice(0, 120) || "Untitled heading",
+          id: node.attrs.id,
           kind: node.type.name.toUpperCase(),
         });
       }
@@ -84,13 +88,7 @@ export function documentParts(doc, context = {}) {
     });
   }
   visit(doc, 0, 0);
-  const ranges = new Set();
-  return parts.filter(part => {
-    const range = `${part.from}:${part.to}`;
-    if (ranges.has(range)) return false;
-    ranges.add(range);
-    return true;
-  });
+  return parts;
 }
 
 function foldBody(doc, part) {
@@ -107,15 +105,14 @@ function foldBody(doc, part) {
 function decorations(doc, scope, folds = [], context = {}) {
   const result = [];
   const hidden = folds.map(part => foldBody(doc, part));
-  const parts = documentParts(doc, context), numbering = tocNumberingEntries(doc, parts);
+  const parts = documentParts(doc, context), tocParts = publicationParts(parts);
+  const numbering = tocNumberingEntries(doc, tocParts);
   const metadata = resolveLayoutMetadata(doc, context.metadata);
-  const boundaries = partLayout(metadata, context.book);
-  const separation = part => {
-    const position = part.kind === "Section" ? part.from - 1 : part.from;
-    const node = doc.nodeAt(position);
-    return node && contentSeparation(node, part, metadata, context.book).value;
-  };
+  const body = resolveSeparationBoundary(bodyBoundary(doc, parts), metadata, context.book);
+  const markers = new Map();
   const addPageBreak = (position, label) => {
+    if (markers.has(position)) return;
+    markers.set(position, label);
     result.push(Decoration.widget(position, view => {
       const marker = view.dom.ownerDocument.createElement("span");
       marker.className = "editor-page-break";
@@ -129,19 +126,19 @@ function decorations(doc, scope, folds = [], context = {}) {
       stopEvent: () => true, ignoreSelection: true}));
   };
   const firstPart = parts[0];
-  if (boundaries.body.value === "new-page" || firstPart && separation(firstPart) === "new-page") {
-    const firstPosition = firstPart &&
-      (firstPart.kind === "Section" ? firstPart.from - 1 : firstPart.from);
-    addPageBreak(0, firstPosition === 0 ? firstPart.label : "body");
+  if (body.value === "new-page") {
+    addPageBreak(0, firstPart && (firstPart.kind === "Section" ? firstPart.from - 1 :
+      firstPart.from) === 0 ? firstPart.label : "body");
   }
-  parts.forEach((part, index) => {
-    if (index === 0 || separation(part) !== "new-page") return;
-    const position = part.kind === "Section" ? part.from - 1 : part.from;
-    if (scope && (position < scope.from || position >= scope.to) ||
-        hidden.some(range => position >= range.from && position < range.to)) return;
-    addPageBreak(position, part.label);
+  parts.forEach(part => {
+    const boundary = separationBoundary(doc, part, parts);
+    if (resolveSeparationBoundary(boundary, metadata, context.book).value !== "new-page") return;
+    if (scope && (boundary.targetPosition < scope.from || boundary.targetPosition >= scope.to) ||
+        hidden.some(range => boundary.targetPosition >= range.from &&
+          boundary.targetPosition < range.to)) return;
+    addPageBreak(boundary.position, part.label);
   });
-  parts.forEach((part, index) => {
+  tocParts.forEach((part, index) => {
     const marker = tocMarker(numbering[index]);
     if (!marker) return;
     const heading = part.kind === "Section" ?
@@ -287,6 +284,11 @@ export function workspaceChanged(tr) {
   return !!tr.getMeta(workspaceKey);
 }
 
+export function samePartIdentity(left, right) {
+  if (!left || !right || left.kind !== right.kind) return false;
+  return left.id || right.id ? left.id === right.id : left.from === right.from;
+}
+
 function inside(selection, scope) {
   return !scope || (selection.from >= scope.from && selection.to <= scope.to);
 }
@@ -356,8 +358,8 @@ export function workspaceExtension(onError) {
               const parts = documentParts(tr.doc, context);
               folds = folds.map(part => {
                 const from = tr.docChanged ? tr.mapping.map(part.from, 1) : part.from;
-                const to = tr.docChanged ? tr.mapping.map(part.to, -1) : part.to;
-                return parts.find(candidate => candidate.from === from && candidate.to === to);
+                return parts.find(candidate => samePartIdentity(candidate, part) &&
+                  candidate.from === from);
               }).filter(Boolean);
             }
             if (scope && tr.docChanged) {
@@ -366,7 +368,7 @@ export function workspaceExtension(onError) {
             }
             if (scope && (tr.docChanged || change?.context)) {
               const current = documentParts(tr.doc, context).find(part =>
-                part.from === scope.from && part.to === scope.to);
+                samePartIdentity(part, scope));
               if (current) scope = {...scope, label: current.label};
             }
             if (!change && !tr.docChanged) return previous;
@@ -467,8 +469,7 @@ export function setWorkspaceContext(editor, context) {
 export function showDocumentPart(editor, part, {filter = true} = {}) {
   const {state} = editor;
   const context = getWorkspaceContext(editor);
-  if (part && !documentParts(state.doc, context).some(candidate =>
-    candidate.from === part.from && candidate.to === part.to)) {
+  if (part && !documentParts(state.doc, context).some(candidate => samePartIdentity(candidate, part))) {
     throw new Error("This part changed. Choose it again from the current outline.");
   }
   const folds = foldedDocumentParts(editor).filter(fold => part &&
@@ -488,11 +489,11 @@ export function foldedDocumentParts(editor) {
 
 export function toggleDocumentFold(editor, part) {
   const current = documentParts(editor.state.doc, getWorkspaceContext(editor)).find(candidate =>
-    candidate.from === part.from && candidate.to === part.to);
+    samePartIdentity(candidate, part));
   if (!current) throw new Error("This part changed. Choose it again from the outline.");
   const previous = foldedDocumentParts(editor);
-  const exists = previous.some(fold => fold.from === part.from && fold.to === part.to);
-  const folds = exists ? previous.filter(fold => fold.from !== part.from || fold.to !== part.to) :
+  const exists = previous.some(fold => samePartIdentity(fold, part));
+  const folds = exists ? previous.filter(fold => !samePartIdentity(fold, part)) :
     [...previous, current];
   const tr = editor.state.tr.setMeta(workspaceKey, {folds}).setMeta("addToHistory", false);
   if (!exists) {

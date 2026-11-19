@@ -1,14 +1,19 @@
 import {visibleBand} from "./page-scroll.js";
-import {visiblePart} from "./workspace.js";
+import {samePartIdentity, visiblePart} from "./workspace.js";
 
 export function outlineHierarchy(parts) {
   return parts.map((part, index) => {
     let parent = -1;
     for (let other = 0; other < index; other++) {
       const candidate = parts[other];
-      if (candidate.from <= part.from && candidate.to >= part.to &&
-          (candidate.from < part.from || candidate.to > part.to) &&
-          (parent < 0 || candidate.to - candidate.from < parts[parent].to - parts[parent].from)) {
+      const contains = candidate.from <= part.from && candidate.to >= part.to;
+      const sameRange = candidate.from === part.from && candidate.to === part.to;
+      const equalRangeParent = sameRange &&
+        (candidate.kind === "Section" || candidate.depth < part.depth);
+      const size = candidate.to - candidate.from;
+      const parentSize = parent < 0 ? Infinity : parts[parent].to - parts[parent].from;
+      if (contains && (candidate.from < part.from || candidate.to > part.to || equalRangeParent) &&
+          (size < parentSize || size === parentSize && candidate.depth > parts[parent]?.depth)) {
         parent = other;
       }
     }
@@ -27,7 +32,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
   const collapsed = new Set();
   let parts = [], hierarchy = [], frame = null, lastActive = null;
   const expand = owner.querySelector("#editor-outline-expand");
-  const key = part => `${part.kind}:${part.id || `${part.from}:${part.to}:${part.label}`}`;
+  const key = part => `${part.kind}:${part.id || part.from}`;
   function visibility() {
     outline.querySelectorAll("[data-outline-index]").forEach(row => {
       const index = Number(row.dataset.outlineIndex);
@@ -163,7 +168,7 @@ export function mountDynamicOutline(editor, outline, surface, showError, expandG
       header.append(badge, controls);
       button.replaceChildren(title);
       button.classList.toggle("editor-outline-focused",
-        visiblePart(editor)?.from === part.from && visiblePart(editor)?.to === part.to);
+        samePartIdentity(visiblePart(editor), part));
       if (hierarchy[index].children) {
         const toggle = owner.createElement("button");
         toggle.type = "button";

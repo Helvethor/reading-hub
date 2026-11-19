@@ -55,7 +55,10 @@ import {prepareSectionExcerpt, applySectionExcerpt, mountSectionExcerpts} from "
 import {BlockSelection, toggleBlockSelection} from "./block-selection.js";
 import {titlePageRows} from "./book-views.js";
 import {partLayout, contentSeparation, setDocumentLayout, setPartSeparation} from "./part-layout.js";
-import {applyTocNumbering, automaticallyHidden, tocMarker, tocNumberingEntries, tocVisibilityEntries} from "./toc-numbering.js";
+import {
+  applyTocNumbering, automaticallyHidden, publicationParts, tocMarker, tocNumberingEntries,
+  tocVisibilityEntries,
+} from "./toc-numbering.js";
 import {prepareNoteRepair, applyNoteRepair} from "./note-repairs.js";
 import {
   prepareTableInsertion, buildTableInsertion, applyTableInsertion, canEditTable,
@@ -1054,7 +1057,9 @@ test("the complete book stays visible while outline navigation scrolls without f
   const title = form.querySelector(".editor-title-page"), toc = form.querySelector(".editor-toc-page");
   const metadataPage = form.querySelector(".editor-metadata-page");
   assert(!title.hidden && !toc.hidden && !editor.view.dom.hidden && !metadataPage.hidden);
-  assert.equal(editor.view.dom.nextElementSibling, metadataPage, "The metadata page closes the book.");
+  assert.equal(editor.view.dom.nextElementSibling.nextElementSibling, metadataPage,
+    "The metadata page closes the book after its external boundary marker.");
+  assert.equal(editor.view.dom.nextElementSibling.dataset.editorPageBreak, "metadata");
   let updates = 0;
   editor.on("update", () => updates++);
   outline.querySelector('[data-book-view="toc"]').click();
@@ -1376,7 +1381,7 @@ test("navigation and ToC labels omit heading note references that stay in conten
     '<h3>Group<sup><a id="r2" href="#n2">[34]</a></sup> and <em>Dyelo</em></h3><p id="n1">Note</p>' +
     '<p id="n2">Other</p></section><section id="b"><h2>Square x<sup>2</sup> and 2<sup>e</sup></h2><p>Body</p></section>');
   assert.deepEqual(documentParts(editor.state.doc).map(part => part.label),
-    ["Appendix", "Group and Dyelo", "Square x2 and 2e"]);
+    ["Appendix", "Appendix", "Group and Dyelo", "Square x2 and 2e", "Square x2 and 2e"]);
   assert.deepEqual([...form.querySelectorAll("[data-toc-part]")].map(button => button.textContent),
     ["Appendix", "Group and Dyelo", "Square x2 and 2e"]);
   assert.match(editor.getHTML(), /Appendix<sup><a[^>]*>\[8\]<\/a><\/sup>/);
@@ -1480,7 +1485,7 @@ test("ToC markers mirror section titles and headings without entering prose, cli
   assert.deepEqual(markers(), []);
   applyTocNumbering(editor, {doc: editor.state.doc, indices: [0, 2]}, "upper-roman");
   assert.deepEqual(markers(), ["I. ", "II. "]);
-  assert.deepEqual(navigation(), ["I. First", "Nested", "II. Second"]);
+  assert.deepEqual(navigation(), ["I. First", "First", "Nested", "II. Second", "Second"]);
   assert(form.querySelector(".editor-book-sections").textContent.includes("II. Second"));
   const marker = editor.view.dom.querySelector("#a h2 .editor-toc-marker");
   assert.equal(marker.getAttribute("contenteditable"), "false");
@@ -1496,20 +1501,20 @@ test("ToC markers mirror section titles and headings without entering prose, cli
   assert.deepEqual(editor.getJSON(), json);
   form.querySelector('[data-book-view="sections"]').click();
   const parts = documentParts(editor.state.doc);
-  showDocumentPart(editor, parts[2]);
+  showDocumentPart(editor, parts.find(part => part.kind === "Section" && part.id === "b"));
   assert.deepEqual(markers(), ["II. "], "Filtering must not restart a series.");
   showDocumentPart(editor, null);
   assert(undo(editor.state, editor.view.dispatch));
   assert.deepEqual(markers(), []);
-  assert.deepEqual(navigation(), ["First", "Nested", "Second"]);
+  assert.deepEqual(navigation(), ["First", "First", "Nested", "Second", "Second"]);
   assert.equal(editor.getHTML(), original);
   assert(redo(editor.state, editor.view.dispatch));
   applyTocNumbering(editor, {doc: editor.state.doc, indices: [1]}, "lower-alpha");
   assert.deepEqual(markers(), ["I. ", "a. ", "II. "]);
-  assert.deepEqual(navigation(), ["I. First", "a. Nested", "II. Second"]);
+  assert.deepEqual(navigation(), ["I. First", "First", "a. Nested", "II. Second", "Second"]);
   moveSection(editor, {doc: editor.state.doc}, 1, "before", 0);
   assert.deepEqual(markers(), ["I. ", "II. ", "a. "]);
-  assert.deepEqual(navigation(), ["I. Second", "II. First", "a. Nested"]);
+  assert.deepEqual(navigation(), ["I. Second", "Second", "II. First", "First", "a. Nested"]);
   assert.equal(editor.view.dom.querySelector("#b h2").textContent, "I. Second");
   editor.destroy();
   editor = null;
@@ -1531,7 +1536,7 @@ test("editor and publication share hierarchy numbering acceptance examples", () 
   const cases = JSON.parse(readFileSync(new URL("./fixtures/book-views.json", import.meta.url), "utf8"));
   for (const fixture of cases) {
     open(fixture.html);
-    const parts = documentParts(editor.state.doc), hierarchy = outlineHierarchy(parts);
+    const parts = publicationParts(documentParts(editor.state.doc)), hierarchy = outlineHierarchy(parts);
     const numbering = tocNumberingEntries(editor.state.doc, parts);
     assert.deepEqual(parts.map((part, index) => [part.label, hierarchy[index].depth + 2,
       numbering[index].style, numbering[index].number, tocMarker(numbering[index])]), fixture.entries);
@@ -6699,13 +6704,107 @@ test("surface layout menus set heading separations and keep their markers live",
 test("generated pages and the body use one accessible page-break marker", () => {
   const form = mountSectionWorkspace('<section id="chapter"><h2>Chapter</h2><p>Body.</p></section>');
   const surface = form.querySelector("#editor-surface");
-  assert.equal(surface.querySelectorAll(".editor-toc-page > .editor-page-break").length, 1);
-  assert.equal(surface.querySelectorAll(".editor-metadata-page > .editor-page-break").length, 1);
+  assert.equal(surface.querySelectorAll(".editor-page-break + .editor-toc-page").length, 1);
+  assert.equal(surface.querySelectorAll(".editor-page-break + .editor-metadata-page").length, 1);
+  assert.equal(surface.querySelectorAll(".editor-toc-page > .editor-page-break").length, 0);
+  assert.equal(surface.querySelectorAll(".editor-metadata-page > .editor-page-break").length, 0);
   assert.equal(editor.view.dom.querySelectorAll('[data-editor-page-break="Chapter"]').length, 1,
     "The first section shares the body boundary marker instead of duplicating it.");
   assert.equal(surface.querySelectorAll(".editor-layout-new-page").length, 0);
   assert.equal(editor.view.dom.querySelector('[data-editor-page-break="Chapter"]').getAttribute("role"),
     "separator");
+});
+
+test("the outline retains a lone H2 that shares its Article range without duplicating the ToC", () => {
+  const form = mountSectionWorkspace(
+    '<section id="article" data-section-role="article"><h2 id="first">An offline reading exercise</h2></section>',
+  );
+  const parts = documentParts(editor.state.doc);
+  assert.deepEqual(parts.map(({kind, id}) => [kind, id]), [["Section", "article"], ["H2", "first"]]);
+  assert.equal(parts[1].label, "An offline reading exercise");
+  assert.deepEqual([parts[0].from, parts[0].to], [parts[1].from, parts[1].to]);
+  assert.equal(outlineHierarchy(parts)[1].parent, 0,
+    "The distinct heading row remains a child even when its range equals the Article.");
+  assert.equal(form.querySelectorAll(".editor-book-sections [data-outline-index]").length, 2);
+  assert.equal(form.querySelectorAll(".editor-toc-page [data-toc-part]").length, 1);
+  showDocumentPart(editor, parts[1]);
+  assert.equal(visiblePart(editor).kind, "H2",
+    "Navigation identity distinguishes the heading from its equal-range Article.");
+  showDocumentPart(editor, parts[0]);
+  assert.equal(visiblePart(editor).kind, "Section");
+  showDocumentPart(editor, null);
+
+  setPartSeparation(editor, parts[1].from, "new-page");
+  const sectionSize = editor.state.doc.nodeAt(0).nodeSize;
+  editor.commands.insertContentAt(sectionSize - 1, '<h2 id="second">A smaller heading</h2>');
+  let headings = documentParts(editor.state.doc).filter(part => part.kind === "H2");
+  assert.deepEqual(headings.map(part => part.id), ["first", "second"]);
+  assert.equal(editor.state.doc.nodeAt(headings[0].from).attrs["data-layout-before"], "new-page");
+  const second = headings[1];
+  editor.commands.deleteRange({from: second.from,
+    to: second.from + editor.state.doc.nodeAt(second.from).nodeSize});
+  headings = documentParts(editor.state.doc).filter(part => part.kind === "H2");
+  assert.deepEqual(headings.map(part => part.id), ["first"]);
+  assert.equal(editor.state.doc.nodeAt(headings[0].from).attrs["data-layout-before"], "new-page");
+  assert.equal(documentParts(editor.state.doc)[0].to, documentParts(editor.state.doc)[1].to);
+});
+
+test("coincident body, Article and first-heading controls share one undoable separation", () => {
+  const form = mountSectionWorkspace(
+    '<section id="article" data-section-role="article"><h2 id="first">First</h2><p>Body.</p></section>',
+    {}, {readDocument: () => ({title: "Synthetic reading article", metadata: {
+      work_type: "book", layout: {version: 1, overrides: {}},
+    }})},
+  );
+  const inheritedLayout = {version: 1, defaults: "type", overrides: {}};
+  setDocumentLayout(editor, inheritedLayout);
+  const bodyRow = form.querySelector('[data-book-row="sections"]');
+  bodyRow.dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+    bubbles: true, cancelable: true, clientX: 20, clientY: 30,
+  }));
+  const bodyMenu = form.querySelector("#editor-page-menu");
+  const chooseBody = value => [...bodyMenu.querySelectorAll(".editor-layout-menu button")]
+    .find(button => button.textContent === value);
+  assert(chooseBody("Continuous"), "The body menu exposes the shared boundary.");
+  chooseBody("Continuous").click();
+  const section = editor.state.doc.nodeAt(0), heading = documentParts(editor.state.doc)
+    .find(part => part.kind === "H2");
+  assert.equal(editor.state.doc.attrs.layout.overrides.body, "continuous");
+  assert.equal(section.attrs["data-layout-before"], "continuous");
+  assert.equal(editor.state.doc.nodeAt(heading.from).attrs["data-layout-before"], "continuous");
+  assert.equal(editor.view.dom.querySelectorAll(".editor-page-break").length, 0);
+
+  const headingIndex = documentParts(editor.state.doc).findIndex(part => part.kind === "H2");
+  form.querySelectorAll("#editor-outline-items [data-part]")[headingIndex]
+    .dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+      bubbles: true, cancelable: true, clientX: 20, clientY: 30,
+    }));
+  const sectionMenu = form.querySelector("#editor-section-actions");
+  const chooseHeading = value => [...sectionMenu.querySelectorAll(".editor-layout-menu button")]
+    .find(button => button.textContent === value);
+  assert.equal(chooseHeading("Continuous").getAttribute("aria-checked"), "true");
+  undo(editor.state, editor.view.dispatch);
+  assert.deepEqual(editor.state.doc.attrs.layout, inheritedLayout);
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], null);
+  assert.equal(editor.state.doc.nodeAt(heading.from).attrs["data-layout-before"], null);
+  assert.equal(editor.view.dom.querySelectorAll(".editor-page-break").length, 1,
+    "Undo restores the inherited New page boundary.");
+  redo(editor.state, editor.view.dispatch);
+  assert.equal(editor.state.doc.attrs.layout.overrides.body, "continuous");
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], "continuous");
+});
+
+test("introductory content separates the first heading boundary from the body", () => {
+  mountSectionWorkspace(
+    '<section id="chapter"><p>Opening.</p><h2 id="first">First</h2><p>Body.</p></section>',
+  );
+  setPartSeparation(editor, 0, "continuous");
+  const heading = documentParts(editor.state.doc).find(part => part.kind === "H2");
+  setPartSeparation(editor, heading.from, "new-page");
+  const markers = editor.view.dom.querySelectorAll(".editor-page-break");
+  assert.equal(markers.length, 1);
+  assert.equal(markers[0].dataset.editorPageBreak, "First");
+  assert.equal(markers[0].parentElement, editor.view.dom.querySelector("#chapter"));
 });
 
 test("compact title facts pack into aligned rows of one, two or three columns", () => {

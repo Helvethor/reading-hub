@@ -2,7 +2,7 @@
 
 import re
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 HEADINGS = {"h2", "h3", "h4", "h5", "h6"}
 STYLES = {"disc", "decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"}
@@ -268,7 +268,6 @@ def apply_part_layout(soup, metadata, book):
         work_type and work_type != "other"
     ) else bool(book)
     parts = book_entries(soup, book=book)
-    body_separation = part_layout(metadata, book)["body"]["value"]
 
     def first_in_body(node):
         while node is not soup:
@@ -277,21 +276,74 @@ def apply_part_layout(soup, metadata, book):
             node = node.parent
         return True
 
-    for part in parts:
-        node = part["node"]
-        explicit = node.get("data-layout-before")
+    def first_content_child(node):
+        return next((child for child in node.children if not isinstance(child, Comment) and
+                     (isinstance(child, Tag) or str(child).strip())), None)
+
+    def effective_boundary(explicit, inherited):
+        values = {value for value in explicit if value}
+        if len(values) > 1:
+            return "new-page"
+        return next(iter(values), "new-page" if "new-page" in inherited else "continuous")
+
+    def section_default(node):
         role = node.get("data-section-role")
-        default = "new-page" if (
+        return "new-page" if (
             modern and book_like and node.name == "section" and node.find_parent("section") is None
             and (not role or role in {"chapter", "article", "appendix"})
         ) else "continuous"
+
+    first = first_content_child(soup)
+    shared_first = []
+    if isinstance(first, Tag):
+        if first.name == "section":
+            shared_first.append(first)
+            heading = first_content_child(first)
+            if isinstance(heading, Tag) and heading.name in HEADINGS:
+                shared_first.append(heading)
+        elif first.name in HEADINGS:
+            shared_first.append(first)
+    inherited_body = part_layout({
+        **metadata,
+        "layout": {**layout, "overrides": {
+            key: value for key, value in layout.get("overrides", {}).items() if key != "body"
+        }},
+    }, book)["body"]["value"]
+    body_separation = effective_boundary(
+        [layout.get("overrides", {}).get("body"),
+         *(node.get("data-layout-before") for node in shared_first)],
+        [inherited_body, *(section_default(node) if node.name == "section" else "continuous"
+                           for node in shared_first)],
+    )
+
+    for part in parts:
+        node = part["node"]
+        explicit = node.get("data-layout-before")
+        default = section_default(node) if node.name == "section" else "continuous"
         if layout or explicit:
             node["data-layout-before"] = explicit or default
             # The body wrapper already applies this coincident first boundary.
             if first_in_body(node):
-                if explicit == "new-page":
-                    body_separation = "new-page"
                 node["data-layout-before"] = "continuous"
+
+    shared_first_ids = {id(node) for node in shared_first}
+    for section in soup.find_all("section"):
+        heading = first_content_child(section)
+        if not isinstance(heading, Tag) or heading.name not in HEADINGS:
+            continue
+        if id(section) in shared_first_ids:
+            section["data-layout-before"] = "continuous"
+            heading["data-layout-before"] = "continuous"
+            continue
+        section_value = section.get("data-layout-before")
+        heading_value = heading.get("data-layout-before")
+        value = effective_boundary(
+            [section_value, heading_value],
+            [section_default(section), "continuous"],
+        )
+        if layout or section_value or heading_value:
+            section["data-layout-before"] = value
+            heading["data-layout-before"] = "continuous"
     return body_separation
 
 
