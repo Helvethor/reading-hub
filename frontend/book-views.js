@@ -308,7 +308,11 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     const group = owner.createElement("div");
     group.className = "editor-menu-group editor-layout-menu";
     group.setAttribute("role", "group");
-    group.setAttribute("aria-label", "Layout and separation");
+    const heading = element("span", "Layout");
+    heading.id = `editor-layout-heading-${target.part ? position : target.name}`;
+    heading.className = "editor-menu-heading";
+    group.setAttribute("aria-labelledby", heading.id);
+    group.append(heading);
     const inherited = info.origin === "override" ?
       (target.part ? contentSeparation({...node, attrs: {...node.attrs, "data-layout-before": null}},
         {...target.part, depth: sectionDepth(position)}, metadata, isBook()).value :
@@ -321,6 +325,8 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
     description.className = "editor-visually-hidden";
     group.append(description);
     const choices = target.name === "title" ? [] : separations;
+    const row = element("div");
+    row.className = "editor-layout-choices";
     for (const value of choices) {
       const label = value === "new-page" ? "New page" : "Continuous";
       const button = element("button", label);
@@ -348,8 +354,9 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
           close();
         } catch (failure) { showError(failure.message); }
       });
-      group.append(button);
+      row.append(button);
     }
+    if (choices.length) group.append(row);
     if (target.name === "title") {
       group.append(element("p", "The title page starts the document; set separation on the following part."));
     }

@@ -2268,14 +2268,18 @@ This supersedes V.t's hide-when-unavailable toolbar behavior and recovery slot.
 | **Format / Outline / Diff tabs (recommended)** | All three destinations remain visible; one click switches tools without consuming three toolbar rows. Small, explicit UI state. |
 | Toolbar chooser dropdown | Slightly narrower, but hides destinations and needs an extra interaction. Defer unless real width evidence requires it. |
 
-Place a compact three-tab selector at the top of the editor and display exactly
-one associated command toolbar beneath/beside it. Format is the initial choice;
+Place the three-tab selector on the right of the Content / Metadata / Review /
+Pinned source structure row when Content is active. Wrap the selector to its own
+line if space is tight. Display exactly one associated command toolbar below,
+using the same themed button styles as the other workspace controls. Format is
+the initial choice;
 switching is explicit, never triggered by caret movement, scrolling or opening
 a context menu. Move the outline commands out of the outline pane into this
 shared top area. Do not duplicate them in the pane.
 
 Keep the common icon command bar outside the switched region so Selection tools,
-Undo/Redo, Save, Insert from source and Restore remain reachable in every mode.
+Undo/Redo, Save, Insert from source, Restore and the icon-only Publish command
+remain in the same place in every mode when available.
 The book outline itself and editor canvas stay in place. Switching toolbars
 preserves caret/selection, outline target, scroll, draft, Diff on/off and baseline;
 it never remounts the editor, saves or changes content. Diff can remain enabled
@@ -2305,16 +2309,17 @@ element/ancestor scope and target identity. Prefer recognizable icons inside
 submenus, retaining concise text when an icon cannot communicate the action
 reliably. No horizontal group rules or long explanatory paragraphs.
 
-Submenus open by pointer or keyboard, not hover alone: Right/Enter opens,
-Left/Escape returns to the parent, arrows/Home/End navigate visible items.
-Escape at the root closes and returns focus. Keep pointer travel between parent
-and submenu reliable and all panels viewport-bounded, including at zoom and
-narrow widths; an in-place submenu with Back is acceptable when a flyout cannot
-fit. Capture the document selection/target across the whole menu interaction.
+Hover opens a separate submenu panel to the right of the main panel, or to the
+left if there is not enough room on the right. Click/tap and Right/Enter also
+open it; Left/Escape returns to the parent, and arrows/Home/End navigate visible
+items. Escape at the root closes and returns focus. Keep pointer travel between
+panels reliable and all panels viewport-bounded, including at zoom and narrow
+widths; use an in-place submenu with Back when neither side fits. Capture the
+document selection/target across the whole menu interaction.
 
-**Separation: two adjacent state-buttons.** In the target's context menu, show
-one compact row: **New page** and **Continuous**. Size each button to fit its icon
-and label without wrapping, including in narrow menus. Remove the reason
+**Separation: two adjacent state-buttons.** Under **Layout** in the target's context
+menu, show one compact row: **New page** and **Continuous**. Size each button
+to fit its icon and label without wrapping, including in narrow menus. Remove the reason
 paragraph, Default choice and separate Reset to default command from this row.
 
 | Existing override | Interaction | Result |

@@ -656,7 +656,11 @@ class DocumentEditorViewTests(TestCase):
         self.assertNotContains(response, 'class="workspace-notices"')
         self.assertNotContains(response, 'editor-scope-help')
         self.assertContains(response, 'id="workspace-baseline-state"')
-        self.assertContains(response, 'class="workspace-tabs workspace-joined-controls editor-tabs"')
+        row = page.select_one(".workspace-tabs.editor-tab-row")
+        self.assertIsNotNone(row.select_one('.editor-tabs[role="tablist"] + #editor-command-tabs[role="tablist"]'))
+        publication = page.select_one("#editor-publication")
+        self.assertEqual(publication.get_text(strip=True), "")
+        self.assertEqual(publication["aria-label"], "Publish…")
         editor_bundle = page.select_one('script[src*="library/generated/editor-pilot.js"]')
         self.assertIn("workspace-vq-v71", editor_bundle["src"])
 

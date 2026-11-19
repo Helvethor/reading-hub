@@ -5768,24 +5768,24 @@ test("workspace menu formats the pinned selection and supports keyboard dismissa
 });
 
 test("editor command tabs switch panels with keyboard semantics without changing editor state", () => {
-  document.body.innerHTML = '<form><div id="editor-command-tabs" role="tablist">' +
+  document.body.innerHTML = '<div class="editor-workspace"><div id="editor-command-tabs" role="tablist">' +
     '<button role="tab" aria-controls="format-panel" aria-selected="true" data-editor-command-tab="format">Format</button>' +
     '<button role="tab" aria-controls="outline-panel" aria-selected="false" tabindex="-1" data-editor-command-tab="outline">Outline</button>' +
     '<button role="tab" aria-controls="diff-panel" aria-selected="false" tabindex="-1" data-editor-command-tab="diff">Diff</button></div>' +
-    '<div id="editor-command-panels"><div id="format-panel" role="tabpanel"></div>' +
-    '<div id="outline-panel" role="tabpanel" hidden></div><div id="diff-panel" role="tabpanel" hidden></div></div></form>';
+    '<form><div id="editor-command-panels"><div id="format-panel" role="tabpanel"></div>' +
+    '<div id="outline-panel" role="tabpanel" hidden></div><div id="diff-panel" role="tabpanel" hidden></div></div></form></div>';
   const form = document.querySelector("form");
   open("<p>Stable content</p>");
   const original = editor.getJSON();
   const tabs = mountEditorToolTabs(form);
-  const outline = form.querySelector('[data-editor-command-tab="outline"]');
+  const outline = document.querySelector('[data-editor-command-tab="outline"]');
   outline.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
     key: "ArrowRight", bubbles: true, cancelable: true,
   }));
   assert.equal(document.activeElement.dataset.editorCommandTab, "diff");
   assert.equal(form.querySelector("#diff-panel").hidden, false);
   assert.equal(form.querySelector("#outline-panel").hidden, true);
-  assert.equal(form.querySelector('[data-editor-command-tab="diff"]').getAttribute("aria-selected"), "true");
+  assert.equal(document.activeElement.getAttribute("aria-selected"), "true");
   tabs.activate("outline");
   assert.equal(form.querySelector("#outline-panel").hidden, false);
   assert.deepEqual(editor.getJSON(), original);
@@ -5818,6 +5818,48 @@ test("selection tool submenus open by keyboard, return to their parent and close
     key: "Escape", bubbles: true, cancelable: true,
   }));
   assert.equal(closed, 1);
+});
+
+test("selection tool hover keeps the parent visible and places the submenu on the available side", () => {
+  document.body.innerHTML = '<button id="trigger"></button><div id="menu" role="menu">' +
+    '<div data-menu-category-list><button data-menu-category aria-controls="styling">Styling</button></div>' +
+    '<div id="styling" role="menu" hidden><button data-menu-back>Back</button><button>Bold</button></div></div>';
+  const menu = document.querySelector("#menu");
+  const category = menu.querySelector("[data-menu-category]");
+  const submenu = menu.querySelector("#styling");
+  const viewport = document.documentElement;
+  for (const [property, value] of [["clientWidth", 900], ["clientHeight", 600]]) {
+    Object.defineProperty(viewport, property, {configurable: true, value});
+  }
+  let left = 16;
+  menu.getBoundingClientRect = () => ({left, right: left + 224});
+  category.getBoundingClientRect = () => ({top: 560});
+  submenu.getBoundingClientRect = () => ({width: 256, height: 100});
+  const controller = mountSelectionToolMenu(menu, document.querySelector("#trigger"), () => {});
+  controller.mount();
+  function hover(pointerType) {
+    const event = new dom.window.MouseEvent("pointerover", {bubbles: true});
+    Object.defineProperty(event, "pointerType", {value: pointerType});
+    category.dispatchEvent(event);
+  }
+  try {
+    category.focus();
+    hover("touch");
+    assert(submenu.hidden);
+    hover("mouse");
+    assert(!submenu.hidden && !category.parentElement.hidden);
+    assert.equal(document.activeElement, category);
+    assert.equal(submenu.style.left, "239px");
+    assert.equal(submenu.style.top, "492px");
+    controller.reset();
+    left = 660;
+    hover("mouse");
+    assert.equal(submenu.style.left, "405px");
+    assert.equal(menu.dataset.submenuSide, "left");
+  } finally {
+    delete viewport.clientWidth;
+    delete viewport.clientHeight;
+  }
 });
 
 test("paragraph alignment preserves IDs classes inline markup and backward selection", () => {

@@ -88,11 +88,18 @@
     </section>
     <section class="workspace-view-panel" id="workspace-panel-edit" role="tabpanel" aria-labelledby="workspace-tab-edit" tabindex="-1"{% if initial_tab != "edit" %} hidden{% endif %}>
   <div class="editor-workspace" data-editor-tab="editor">
-    <div class="workspace-tabs workspace-joined-controls editor-tabs" role="tablist" aria-label="Edit tools">
-      <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
-      <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
-      <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
-      <button type="button" role="tab" id="editor-tab-structure" aria-controls="editor-panel-structure" aria-selected="false" tabindex="-1" data-editor-tab="structure">Pinned source structure</button>
+    <div class="workspace-tabs editor-tab-row">
+      <div class="workspace-joined-controls editor-tabs" role="tablist" aria-label="Edit tools">
+        <button type="button" role="tab" id="editor-tab-editor" aria-controls="editor-panel-editor" aria-selected="true" data-editor-tab="editor">Content</button>
+        <button type="button" role="tab" id="editor-tab-metadata" aria-controls="editor-panel-metadata" aria-selected="false" tabindex="-1" data-editor-tab="metadata">Metadata</button>
+        <button type="button" role="tab" id="editor-tab-review" aria-controls="editor-panel-review" aria-selected="false" tabindex="-1" data-editor-tab="review">Review</button>
+        <button type="button" role="tab" id="editor-tab-structure" aria-controls="editor-panel-structure" aria-selected="false" tabindex="-1" data-editor-tab="structure">Pinned source structure</button>
+      </div>
+      <div class="workspace-joined-controls editor-command-tabs" id="editor-command-tabs" role="tablist" aria-label="Editor command area">
+        <button type="button" role="tab" id="editor-command-tab-format" aria-controls="editor-command-panel-format" aria-selected="true" data-editor-command-tab="format">Format</button>
+        <button type="button" role="tab" id="editor-command-tab-outline" aria-controls="editor-command-panel-outline" aria-selected="false" tabindex="-1" data-editor-command-tab="outline">Outline</button>
+        <button type="button" role="tab" id="editor-command-tab-diff" aria-controls="editor-command-panel-diff" aria-selected="false" tabindex="-1" data-editor-command-tab="diff">Diff</button>
+      </div>
     </div>
   <form id="document-editor" data-recovery-key="reading-hub-pilot:{{ user.pk }}:{{ version.pk }}" data-publication-url="{% url 'document-publication' version.pk %}" data-comparison-url="{% url 'document-comparison' version.pk %}" data-baseline-url="{% url 'document-editor-baseline' version.pk %}" novalidate>
     {% csrf_token %}
@@ -113,21 +120,16 @@
         <span id="workspace-save-state" role="status">
           {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
         </span>
-        <a id="editor-publication" class="button secondary" aria-label="Publish" title="Publish" data-workflow-panel="Publish" hidden><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 15V3m-4 4l4-4 4 4M4 12v5h12v-5"/></svg><span>Publish&hellip;</span></a>
+        <a id="editor-publication" class="button secondary" aria-label="Publish…" title="Publish…" data-workflow-panel="Publish" hidden><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 15V3m-4 4l4-4 4 4M4 12v5h12v-5"/></svg></a>
         <button type="button" id="editor-source-open" aria-label="Insert from source…" title="Insert from source…" data-source-url="{% url 'document-editor-source' version.pk %}" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
         <button type="button" id="editor-restore" aria-label="Restore this tab's unsaved draft" title="Restore this tab's unsaved draft" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 8a6 6 0 1 1-1 5M3 4v5h5"/></svg></button>
         <a class="editor-license-link" href="{% static 'library/generated/editor-licenses.txt' %}">Editor licenses</a>
       </div>
       <div class="editor-command-area">
-        <div class="workspace-tabs workspace-joined-controls editor-command-tabs" id="editor-command-tabs" role="tablist" aria-label="Editor command area">
-          <button type="button" role="tab" id="editor-command-tab-format" aria-controls="editor-command-panel-format" aria-selected="true" data-editor-command-tab="format">Format</button>
-          <button type="button" role="tab" id="editor-command-tab-outline" aria-controls="editor-command-panel-outline" aria-selected="false" tabindex="-1" data-editor-command-tab="outline">Outline</button>
-          <button type="button" role="tab" id="editor-command-tab-diff" aria-controls="editor-command-panel-diff" aria-selected="false" tabindex="-1" data-editor-command-tab="diff">Diff</button>
-        </div>
         <div id="editor-command-panels" class="editor-command-panels">
           <div class="editor-command-panel" id="editor-command-panel-format" role="tabpanel" aria-labelledby="editor-command-tab-format">
-            <div class="editor-format-toolbar workspace-joined-controls" role="group" aria-label="Formatting">
+            <div class="editor-format-toolbar workspace-command-bar workspace-joined-controls" role="group" aria-label="Formatting">
               <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
               <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
               <button type="button" aria-label="Underline" title="Underline" aria-pressed="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
@@ -151,7 +153,7 @@
             </div>
           </div>
           <div class="editor-command-panel" id="editor-command-panel-outline" role="tabpanel" aria-labelledby="editor-command-tab-outline" hidden>
-            <div class="editor-section-controls editor-outline-toolbar workspace-joined-controls" role="group" aria-label="Outline commands">
+            <div class="editor-outline-toolbar workspace-command-bar workspace-joined-controls" role="group" aria-label="Outline commands">
               <button type="button" id="editor-add-section-open" aria-label="Add or restore section" title="Add or restore section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Add / restore section…</span></button>
               <button type="button" id="editor-section-empty" aria-label="New empty section" title="New empty section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New empty section…</span></button>
               <button type="button" id="editor-section-move-open" aria-label="Move section" title="Move section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h7M3 8h7M13 16V4m-4 4l4-4 4 4"/></svg><span>Move section…</span></button>

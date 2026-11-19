@@ -27,17 +27,20 @@
 .editor-pilot-toolbar { position: static; column-gap: .5rem; }
 .editor-pilot-toolbar select { min-width: 0; max-width: 13rem; }
 .editor-command-area { border-bottom: 1px solid var(--line); }
-.editor-command-tabs { width: fit-content; max-width: 100%; }
+.editor-tab-row { gap: .35rem .75rem; }
+.editor-command-tabs { margin-inline-start: auto; }
+.editor-workspace:not([data-editor-tab="editor"]) :is(.editor-command-tabs, .editor-command-area) { display: none; }
 .editor-command-panels { position: relative; min-height: var(--editor-command-panel-height, 5rem); }
 .editor-command-panel { box-sizing: border-box; width: 100%; padding: .35rem .5rem; }
 .editor-command-panel[hidden] { display: none !important; }
-.editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; }
-.editor-format-toolbar button { min-width: 2rem; min-height: 2rem; padding: .3rem; }
+.editor-command-panel :is(.editor-format-toolbar, .editor-outline-toolbar) { gap: 0; align-items: stretch; }
+.editor-format-toolbar button { min-width: 2.25rem; padding-inline: .3rem; }
+.editor-outline-toolbar button { gap: .3rem; }
 .editor-format-toolbar svg, .editor-pilot-toolbar button svg, .editor-pilot-toolbar a svg, .editor-outline-toolbar button svg { width: 1rem; height: 1rem; flex: 0 0 1rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 .editor-pilot-toolbar button, .editor-pilot-toolbar a { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; }
 .editor-pilot-toolbar [hidden], .editor-format-toolbar [hidden] { display: none !important; }
-.editor-pilot-toolbar :is(#editor-tools, #editor-restore, #editor-source-open, .editor-save) { width: 2.2rem; min-width: 2.2rem; height: 2.2rem; padding: .45rem; }
-.editor-pilot-toolbar :is(#editor-tools, #editor-restore, #editor-source-open, .editor-save) svg { width: 1.25rem; height: 1.25rem; flex-basis: 1.25rem; }
+.editor-pilot-toolbar :is(#editor-tools, #editor-restore, #editor-source-open, #editor-publication, .editor-save) { box-sizing: border-box; width: 2.25rem; min-width: 2.25rem; height: 2.25rem; padding: .45rem; }
+.editor-pilot-toolbar :is(#editor-tools, #editor-restore, #editor-source-open, #editor-publication, .editor-save) svg { width: 1.25rem; height: 1.25rem; flex-basis: 1.25rem; }
 .editor-license-link { font-size: .75rem; white-space: nowrap; }
 .editor-history-toolbar { margin-inline-end: .2rem; }
 .editor-pilot-toolbar .editor-save,
@@ -54,9 +57,6 @@
 .editor-workspace-body { display: grid; grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr); height: calc(100dvh - 1rem); min-height: 0; }
 .editor-outline { position: static; align-self: stretch; box-sizing: border-box; min-height: 0; overflow-y: auto; overscroll-behavior-y: auto; padding: .75rem; background: var(--surface-raised, #f8f9f5); border-inline-end: 1px solid var(--line); }
 .editor-outline h2 { margin: 0; font-size: 1rem; }
-.editor-section-controls { position: static; display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; padding-block: .25rem .55rem; background: var(--surface-raised, #f8f9f5); }
-.editor-outline-toolbar { border-bottom: 2px solid var(--accent, #486b38); }
-.editor-section-controls button { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; padding: .3rem .4rem; }
 #editor-surface .editor-section-boundary { border: 1px solid #718b63; padding: .5rem .75rem; margin-block: 1rem; }
 #editor-surface .editor-selected-block { outline: 3px solid #315d9b; outline-offset: 2px; background: #e6effc; }
 #editor-surface .editor-section-edge { display: block; color: #344a2e; background: #edf1e8; font: .75rem/1.5 system-ui, sans-serif; padding: .25rem .4rem; user-select: none; white-space: normal; }
@@ -237,9 +237,19 @@
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
 #editor-surface .tiptap > .editor-section-boundary { margin-inline: calc(1rem - var(--editor-canvas-inline-padding, 1.2rem)); }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
-#editor-context-menu [data-menu-category-list] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .2rem; }
-#editor-context-menu [data-menu-category-list] button { text-align: start; }
+#editor-context-menu [data-menu-category-list] { display: grid; gap: .2rem; }
+#editor-context-menu [data-menu-category] { display: flex; justify-content: space-between; gap: .4rem; text-align: start; }
+#editor-context-menu [data-menu-category]::after { content: "›" / ""; }
+#editor-context-menu[data-submenu-side="left"] [aria-expanded="true"]::after { content: "‹" / ""; }
+#editor-context-menu [data-menu-category][aria-expanded="true"] { background: var(--editor-hover, var(--paper)); color: var(--ink); }
 #editor-context-menu .editor-menu-submenu:not([hidden]) { display: flex; flex-direction: column; gap: .3rem; }
+#editor-context-menu[data-submenu-side] .editor-menu-submenu {
+  position: fixed; top: 0; left: 0; z-index: 1; box-sizing: border-box;
+  width: min(16rem, calc(100vw - 1rem)); max-height: calc(100dvh - 1rem); overflow: auto;
+  overscroll-behavior: contain; padding: .4rem;
+  border: 1px solid var(--line); background: var(--surface-raised, #f8f9f5);
+  box-shadow: 0 .3rem 1.5rem rgb(0 0 0 / .2);
+}
 #editor-context-menu .editor-menu-submenu [data-menu-action-group] { display: flex; flex-wrap: wrap; gap: .2rem; }
 #editor-context-menu .editor-menu-submenu [data-menu-back] { width: fit-content; }
 #editor-context-menu .editor-menu-history { display: flex; flex-direction: row; justify-content: flex-end; gap: .2rem; }
@@ -253,14 +263,16 @@
 :is(#editor-context-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button:focus-visible, #editor-tools:focus-visible, #editor-outline-items button:focus-visible { outline: 3px solid #486b38; outline-offset: 1px; }
 :is(#editor-context-menu, #editor-toc-menu, #editor-title-menu, #editor-page-menu) button[aria-checked="true"] { background: #344a2e; color: white; }
 .editor-menu-group { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin: .3rem 0; padding-bottom: .3rem; }
-.editor-layout-menu { display: flex; flex-wrap: nowrap; }
-.editor-layout-menu > button { flex: none; white-space: nowrap; }
+.editor-layout-menu { display: block; }
+.editor-layout-choices { display: flex; flex-wrap: nowrap; gap: .15rem; }
+.editor-layout-choices > button { flex: none; white-space: nowrap; }
 .editor-menu-heading { grid-column: 1 / -1; font-weight: 600; font-size: .7rem; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu).editor-floating-menu { position: fixed; z-index: 1000; width: min(22rem, calc(100vw - 1rem)); min-width: 0; max-height: calc(100dvh - 1rem); overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; box-shadow: 0 .3rem 1.5rem rgb(0 0 0 / .2); }
+#editor-context-menu.editor-floating-menu { width: min(14rem, calc(100vw - 1rem)); }
 .editor-floating-menu > p { margin: .4rem .3rem .2rem; padding-block-start: .4rem; border-top: 1px solid var(--editor-border, #cbd1c4); font: 600 .7rem/1.4 system-ui, sans-serif; }
 .editor-floating-menu > p:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .editor-floating-menu button[data-menu-icon]::before { content: attr(data-menu-icon) / ""; display: inline-block; width: 1.5rem; text-align: center; margin-inline-end: .25rem; }
-.editor-floating-menu .editor-layout-menu > button[data-menu-icon]::before { width: auto; }
+.editor-floating-menu .editor-layout-choices > button[data-menu-icon]::before { width: auto; }
 .editor-floating-menu .editor-menu-directions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .15rem; }
 .editor-floating-menu button.editor-menu-divider { margin-top: .35rem; padding-top: .5rem; border-top: 1px solid var(--editor-border, #cbd1c4); border-radius: 0; }
 .editor-floating-menu .editor-menu-footer { display: flex; justify-content: flex-end; margin-top: .4rem; padding-top: .3rem; border-top: 1px solid var(--editor-border, #cbd1c4); }

@@ -1,5 +1,5 @@
 export function mountEditorToolTabs(form) {
-  const tablist = form.querySelector("#editor-command-tabs");
+  const tablist = (form.closest(".editor-workspace") || form).querySelector("#editor-command-tabs");
   const tabs = [...(tablist?.querySelectorAll('[role="tab"]') || [])];
   const panels = tabs.map(tab => form.querySelector(`#${tab.getAttribute("aria-controls")}`));
   if (!tablist || !tabs.length || panels.some(panel => !panel)) return null;
@@ -15,9 +15,12 @@ export function mountEditorToolTabs(form) {
     if (focus) selected.focus();
   }
 
+  const container = form.querySelector("#editor-command-panels");
+  let measuredWidth;
   function reserveHeight() {
-    const container = form.querySelector("#editor-command-panels");
-    if (!container || !container.getClientRects().length) return;
+    const width = container?.clientWidth;
+    if (!width || width === measuredWidth) return;
+    measuredWidth = width;
     let height = 0;
     for (const panel of panels) {
       const hidden = panel.hidden;
@@ -46,7 +49,9 @@ export function mountEditorToolTabs(form) {
       (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
     activate(tabs[next], true);
   });
-  form.ownerDocument.defaultView.addEventListener("resize", reserveHeight);
+  if (container && form.ownerDocument.defaultView.ResizeObserver) {
+    new form.ownerDocument.defaultView.ResizeObserver(reserveHeight).observe(container);
+  }
   reserveHeight();
   return {activate: name => {
     const tab = tabs.find(candidate => candidate.dataset.editorCommandTab === name);
