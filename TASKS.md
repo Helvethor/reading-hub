@@ -86,9 +86,10 @@ The agreed direction is a single private server at `read.shabang.ch`, packaged
 with Docker Compose, a production WSGI server and reverse-proxy HTTPS. SQLite
 remains appropriate for the initial single-instance deployment. D1's production
 runtime, D2's reproducible container image and D3's isolated local HTTPS
-simulation are implemented and locally validated with synthetic data; the
-remote server, concurrency and recovery decisions remain open. D3's exact image,
-container-recreation, TLS and workflow evidence are in
+simulation are implemented and locally validated with synthetic data. A local
+synthetic D4 restore rehearsal also passed; off-server backup policy, recovery
+targets, expected write concurrency and remote-server decisions remain open.
+Exact D3 and partial D4 evidence are in
 [the public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md).
 
 Local production simulation with synthetic isolated data, a separate port and

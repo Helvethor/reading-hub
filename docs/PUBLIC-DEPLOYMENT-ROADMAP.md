@@ -1,6 +1,6 @@
 # Public deployment roadmap
 
-Status: **D3 locally validated; no public deployment or production-readiness claim**.
+Status: **D3 locally validated; D4 local restore rehearsal passed; no public deployment or production-readiness claim**.
 This handoff records the agreed route for a future public Reading Hub at
 `read.shabang.ch`, hosted on one private server and managed by one project
 operator. It is an implementation guide, not authorization to expose a server,
@@ -208,6 +208,22 @@ unrelated listener on 8443, public DNS and real library data were not touched.
 - Rehearse restore into a separate directory; run database integrity checks and
   verify representative retained sources, account login and PDF generation.
 - Observe SQLite locking/write contention under realistic expected use.
+
+**Status (2026-11-19, partial):** a private temporary backup and restore rehearsal
+passed using only the D3 synthetic data. SQLite's online backup API produced a
+database with `integrity_check=ok` and no foreign-key violations. The backup
+included the database, retained blobs, application signing key, synthetic
+fixture credentials/manifest and local TLS files; the reproducible PDF cache
+was intentionally omitted. A separate temporary Compose instance passed
+Django system and migration checks, HTTPS readiness, reviewer login, article
+and book reads, static CSS, PDF regeneration and verification of the edits saved
+in D3. Hashes of the backed-up and restored components matched, and the original
+synthetic state hashes were unchanged. The temporary restore, containers and
+files were removed afterward.
+
+This does not complete D4: no encrypted off-server destination, key-management
+policy, retention, integrity alerting, RPO/RTO or realistic write-concurrency
+target has been selected or tested. No real library data was backed up.
 
 **Acceptance:** a documented backup can be restored without touching the
 original; restored data passes integrity and representative application checks.
