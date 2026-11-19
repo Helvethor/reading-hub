@@ -1717,7 +1717,9 @@ verification or completeness certification is implied.
 - Normalize titles/headings, prose, quotations, tables, images and links;
   generate a table of contents and assemble supported multi-page HTML books.
 - Save raster assets locally; missing assets have explicit warnings/placeholders.
-  Missing required chapters fail the entire import.
+  Missing required chapters fail the entire import; extraction failures identify
+  the source URL. Legacy archive pages with a title but no author heading retain
+  their opening prose and section anchors.
 - Empty/whitespace/break-only containers are removed from formatted output,
   preserving targets, images, dividers and table structure. Extraction block
   indices and retained bytes are not changed by output cleanup.

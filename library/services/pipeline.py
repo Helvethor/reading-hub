@@ -203,6 +203,15 @@ def import_page(job, fetcher, url):
     return save_response(response, url), response.body
 
 
+def extract_source_page(soup, url, **options):
+    try:
+        return extract(soup, url, **options)
+    except ImportFailure as exc:
+        if isinstance(exc, LimitExceeded):
+            raise
+        raise ImportFailure(f"{url}: {exc}", exc.code) from exc
+
+
 def prepare_pages(manifest, organization=None, *, provenance=None, original_source=False):
     if type(original_source) is not bool:
         raise ValueError("Choose whether to use original source inputs.")
@@ -286,7 +295,7 @@ def prepare_pages(manifest, organization=None, *, provenance=None, original_sour
         and not part.section and not part.excerpt
         for part in source.parts
     ):
-        index_body = extract(
+        index_body = extract_source_page(
             soup, initial["url"], index=True, book=False, chapter_title=source.title
         )
         correction = apply_retained_correction(
@@ -324,7 +333,7 @@ def prepare_pages(manifest, organization=None, *, provenance=None, original_sour
             pages.append((part, section_body))
             continue
         soup = parse_html(read_blob(entry["digest"]), entry["headers"])
-        body = extract(
+        body = extract_source_page(
             soup,
             part.url,
             index=source.book and canonical_url(part.url) == canonical_url(initial["url"]),

@@ -442,13 +442,14 @@ def extract(soup, url, *, book=False, group="", chapter_title=""):
                 node.decompose()
     elif legacy:
         header = body.find("h1")
-        if not header:
-            raise ImportFailure("Legacy archive author header was not found.", "layout")
-        for sibling in list(header.previous_siblings):
-            sibling.extract()
-        header.decompose()
+        if header:
+            for sibling in list(header.previous_siblings):
+                sibling.extract()
+            header.decompose()
         for node in list(body.select(".titre")):
-            node.decompose()
+            if node.parent:
+                preserve_targets(soup, node)
+                node.decompose()
     else:
         for node in list(body.select("h1, h2, h3, .author"))[:4]:
             text = node.get_text(" ", strip=True)

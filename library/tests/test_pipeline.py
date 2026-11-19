@@ -350,27 +350,77 @@ class PipelineTests(TestCase):
             self.client.post(f"/jobs/{job.pk}/retry/"), url, fetch_redirect_response=False,
         )
 
-    def test_dated_contents_import_fetches_all_eleven_linked_sources_in_order(self):
+    def test_dated_contents_reimport_preserves_headerless_chapter_prose_and_anchor(self):
         from library.profile import get_profile
         from library.tests.test_archive import MANIFESTO, dated_contents
 
         CrawlSite.objects.create(profile=get_profile().key, host="www.marxists.org")
-        self.mock.side_effect = lambda url, **kwargs: Response(
-            url, dated_contents() if url == MANIFESTO else chapter(1), "text/html", {},
-        )
+        opening = "Opening prose before the first numbered section."
+        first_chapter = MANIFESTO.replace(".htm", "a.htm")
+        later_anchors = {
+            MANIFESTO.replace(".htm", f"{letter}.htm"): f'name="sect{number}"'.encode()
+            for number, letter in enumerate("bcd", 2)
+        }
+
+        def fetch(url, *, asset=False):
+            body = chapter(1)
+            if url == MANIFESTO:
+                body = dated_contents()
+            elif url == first_chapter:
+                body = (
+                    '<html><body><p class="titre">Synthetic linked book</p>'
+                    f'<p>{opening}</p><a name="sect1"></a>'
+                    f'<p class="ss-titre">First numbered section</p><p>{PARAGRAPH}</p>'
+                    '</body></html>'
+                ).encode()
+            elif url in later_anchors:
+                body = body.replace(b'name="preface"', later_anchors[url])
+            return Response(url, body, "text/html", {})
+
+        self.mock.side_effect = fetch
         enqueue(MANIFESTO)
+        with patch("profiles.marxist.archive.chapter_parts", return_value=[]):
+            original = process_job(claim_job())
+        self.assertFalse(original.structure["book"])
+        self.mock.reset_mock()
+        job = enqueue(MANIFESTO, Job.Mode.BOOK, original.snapshot)
         version = process_job(claim_job())
-        self.assertIsNotNone(version, Job.objects.get().error)
+        job.refresh_from_db()
+        self.assertIsNotNone(version, job.error)
         self.assertTrue(version.structure["book"])
         self.assertEqual(version.structure["pages"], 12)
         self.assertEqual(len(version.snapshot.manifest["pages"]), 12)
-        self.assertEqual(self.mock.call_count, 12)
+        self.assertEqual(self.mock.call_count, 11)
         self.assertEqual(
             [entry["url"] for entry in version.snapshot.manifest["pages"]],
-            [call.args[0] for call in self.mock.call_args_list],
+            [MANIFESTO, *[call.args[0] for call in self.mock.call_args_list]],
         )
-        self.assertIn("Subsection 1", version.html)
+        output = BeautifulSoup(version.html, "html.parser")
+        link = output.find("a", string="Section 1")
+        self.assertTrue(link["href"].startswith("#"))
+        target = output.find(id=link["href"][1:])
+        self.assertIsNotNone(target)
+        self.assertEqual(target.find_previous("p").get_text(strip=True), opening)
+        self.assertEqual(target.find_next("h3").get_text(strip=True), "First numbered section")
+        self.assertEqual(Document.objects.get(pk=original.document_id).reader_target(), original)
         self.assertEqual(CatalogueEntry.objects.get(url=MANIFESTO).chapters.count(), 11)
+
+    def test_book_reimport_reports_unextractable_chapter_url_without_creating_version(self):
+        old = self.misclassified_book()
+        chapter_url = BOOK.replace("index.htm", "chapter2.htm")
+        self.mock.side_effect = lambda url, **kwargs: (
+            Response(url, b"<html><head><title>No body</title></head></html>", "text/html", {})
+            if url == chapter_url else self.fetch(url, **kwargs)
+        )
+        job = enqueue(old.document.url, Job.Mode.BOOK, old.snapshot)
+        with self.assertLogs("library", level="ERROR"):
+            self.assertIsNone(process_job(claim_job()))
+        job.refresh_from_db()
+        self.assertEqual(job.status, Job.Status.FAILED)
+        self.assertEqual(job.error_code, "layout")
+        self.assertEqual(job.error, f"{chapter_url}: Archive chapter has no HTML body.")
+        self.assertEqual(Rendition.objects.get(), old)
+        self.assertEqual(Document.objects.get(pk=old.document_id).reader_target(), old)
 
     def test_book_reimport_refuses_reviewed_organization_limits_and_conflicting_jobs(self):
         from library.services.pipeline import book_reimport_source

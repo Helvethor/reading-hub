@@ -57,7 +57,7 @@ def dated_contents():
         )
         + '</h5><h4><a href="kmfe18470000a.htm">Opening</a></h4><h5>'
         + "".join(
-            f'<a href="kmfe18470000{letter}.htm#section">Section {i}</a><br>'
+            f'<a href="kmfe18470000{letter}.htm#sect{i}">Section {i}</a><br>'
             for i, letter in enumerate("abcd", 1)
         )
         + '</h5><footer><a href="unrelated.htm">Navigation</a></footer>'
