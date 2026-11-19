@@ -295,7 +295,7 @@ if (form) {
       const raw = sessionStorage.getItem(storageKey);
       if (raw) {
         recoverable = JSON.parse(raw);
-        restore.hidden = false;
+        restore.disabled = false;
       }
     } catch (failure) {
       showError(`Tab recovery could not be read: ${failure.message}`);
@@ -325,7 +325,7 @@ if (form) {
         refreshSections(Array.isArray(recoverable.verified_sections)
           ? recoverable.verified_sections : []);
         form.elements.editorial.checked = recoverable.editorial === true;
-        restore.hidden = true;
+        restore.disabled = true;
         remember();
       } catch (failure) {
         showError(`Recovery was refused: ${failure.message}`);
@@ -400,7 +400,7 @@ if (form) {
           showError(`Revision saved, but recovery cleanup failed: ${failure.message}`);
         }
         storageKey = `${form.dataset.recoveryKey}:${result.draft}`;
-        restore.hidden = true;
+        restore.disabled = true;
         if (dirty) remember();
         if (result.issues.length) showError(result.issues.join("\n"));
       } catch (failure) {

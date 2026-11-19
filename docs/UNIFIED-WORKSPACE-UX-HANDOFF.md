@@ -2235,13 +2235,16 @@ not yet been verified.
 
 ### V.u: Stable toolbars, submenus and compact separation
 
-**Status: specification only (2026-11-19).** This revision follows source
-implementation of V.t, not validated native-browser acceptance. Inspection
-confirms toolbar text alongside icons, separate formatting/diff/outline command
+**Status: source implementation delivered (2026-11-19); native-browser
+acceptance remains open.** This revision follows source implementation of V.t,
+not validated native-browser acceptance. Before implementation, inspection
+confirmed toolbar text alongside icons, separate formatting/diff/outline command
 areas, and tall layout menus with effective-setting explanations and a separate
-reset command. Section borders still overpaint the focus frame according to
-user feedback; the source currently uses a negative-offset surface outline.
-No native-browser reproduction or new implementation is claimed here.
+reset command. User feedback also reported section borders overpainting the
+focus frame, whose prior implementation used a negative-offset surface outline.
+The source now implements the stable command tabs, contextual submenus, separation
+toggles, viewport focus frame and aligned uniform section borders below; no
+native-browser visual acceptance is claimed.
 
 **Stable toolbar and common commands.** All commands belonging to a toolbar
 remain in their fixed order and slots when context changes. Grey out and disable

@@ -35,6 +35,8 @@ import {
 } from "./workspace.js";
 import {mountWorkspace} from "./controls.js";
 import {mountEditorTabs} from "./editor-tabs.js";
+import {mountEditorToolTabs} from "./editor-tool-tabs.js";
+import {mountSelectionToolMenu} from "./selection-tool-menu.js";
 import {applySourceInsertion, sourceInsertionTarget} from "./source-insertion.js";
 import {mountMetadata} from "./metadata.js";
 import {bookPages, factSpans, metadataEntries, noteDates, pagePreset, parseEditorialNote, titlePageSelection} from "./metadata-fields.js";
@@ -848,20 +850,24 @@ test("compact selection tools navigate icon rows and preserve selection through 
     "keydown", {key: value, bubbles: true, cancelable: true},
   ));
   openMenu();
-  assert.equal(document.activeElement.id, "editor-menu-close", "Skip disabled history actions.");
+  assert.equal(document.activeElement.getAttribute("aria-controls"), "editor-menu-styling");
   key("ArrowRight");
+  assert.equal(menu.querySelector("#editor-menu-styling").hidden, false);
+  assert(document.activeElement.hasAttribute("data-menu-back"));
+  key("ArrowDown");
   assert.equal(document.activeElement.dataset.mark, "strong");
   key("ArrowLeft");
-  assert.equal(document.activeElement.id, "editor-menu-close");
+  assert.equal(document.activeElement.getAttribute("aria-controls"), "editor-menu-styling");
   key("End");
   key("ArrowRight");
-  assert.equal(document.activeElement.id, "editor-menu-close", "Wrap between rows.");
+  assert(document.activeElement.hasAttribute("data-menu-back"));
+  key("ArrowLeft");
   for (const button of menu.querySelectorAll("[data-list]")) {
     assert(button.getAttribute("aria-label"));
     assert(button.querySelector('svg[aria-hidden="true"]'));
   }
-  assert.equal(menu.querySelector("[data-move]").closest("[role=group]"),
-    menu.querySelector("#editor-content-move-open").closest("[role=group]"));
+  assert.equal(menu.querySelector("[data-move]").closest("[data-menu-action-group]"),
+    menu.querySelector("#editor-content-move-open").closest("[data-menu-action-group]"));
   menu.querySelector('[data-mark="strong"]').click();
   assert(editor.getHTML().includes("<strong>Second</strong>"));
   openMenu();
@@ -5761,6 +5767,59 @@ test("workspace menu formats the pinned selection and supports keyboard dismissa
   assert.deepEqual(messages.filter(Boolean), []);
 });
 
+test("editor command tabs switch panels with keyboard semantics without changing editor state", () => {
+  document.body.innerHTML = '<form><div id="editor-command-tabs" role="tablist">' +
+    '<button role="tab" aria-controls="format-panel" aria-selected="true" data-editor-command-tab="format">Format</button>' +
+    '<button role="tab" aria-controls="outline-panel" aria-selected="false" tabindex="-1" data-editor-command-tab="outline">Outline</button>' +
+    '<button role="tab" aria-controls="diff-panel" aria-selected="false" tabindex="-1" data-editor-command-tab="diff">Diff</button></div>' +
+    '<div id="editor-command-panels"><div id="format-panel" role="tabpanel"></div>' +
+    '<div id="outline-panel" role="tabpanel" hidden></div><div id="diff-panel" role="tabpanel" hidden></div></div></form>';
+  const form = document.querySelector("form");
+  open("<p>Stable content</p>");
+  const original = editor.getJSON();
+  const tabs = mountEditorToolTabs(form);
+  const outline = form.querySelector('[data-editor-command-tab="outline"]');
+  outline.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "ArrowRight", bubbles: true, cancelable: true,
+  }));
+  assert.equal(document.activeElement.dataset.editorCommandTab, "diff");
+  assert.equal(form.querySelector("#diff-panel").hidden, false);
+  assert.equal(form.querySelector("#outline-panel").hidden, true);
+  assert.equal(form.querySelector('[data-editor-command-tab="diff"]').getAttribute("aria-selected"), "true");
+  tabs.activate("outline");
+  assert.equal(form.querySelector("#outline-panel").hidden, false);
+  assert.deepEqual(editor.getJSON(), original);
+});
+
+test("selection tool submenus open by keyboard, return to their parent and close at the root", () => {
+  document.body.innerHTML = '<button id="trigger"></button><div id="menu" role="menu">' +
+    '<div data-menu-category-list><button role="menuitem" data-menu-category aria-controls="styling">Styling</button></div>' +
+    '<div id="styling" role="menu" hidden><button data-menu-back>Back</button><button>Bold</button></div></div>';
+  const menu = document.querySelector("#menu");
+  const category = menu.querySelector("[data-menu-category]");
+  let closed = 0;
+  const controller = mountSelectionToolMenu(menu, document.querySelector("#trigger"), () => { closed++; });
+  controller.mount();
+  category.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "ArrowRight", bubbles: true, cancelable: true,
+  }));
+  assert.equal(menu.querySelector("#styling").hidden, false);
+  assert.equal(category.getAttribute("aria-expanded"), "true");
+  menu.querySelector("#styling").dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "ArrowDown", bubbles: true, cancelable: true,
+  }));
+  assert.equal(document.activeElement.textContent, "Bold");
+  document.activeElement.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "Escape", bubbles: true, cancelable: true,
+  }));
+  assert.equal(menu.querySelector("#styling").hidden, true);
+  assert.equal(document.activeElement, category);
+  category.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "Escape", bubbles: true, cancelable: true,
+  }));
+  assert.equal(closed, 1);
+});
+
 test("paragraph alignment preserves IDs classes inline markup and backward selection", () => {
   const html = '<p id="target" class="text-bold-off text-align-left"><a href="#note">' +
     '<em>Text</em></a></p><p id="note">Note</p>';
@@ -6487,27 +6546,63 @@ test("moving a section carries its deliberate separation without reassigning it 
   assert.deepEqual([...editor.view.dom.querySelectorAll("section")].map(section => section.id), ["one", "two"]);
 });
 
-test("generated page layout choices apply and reset document boundary overrides", () => {
+test("generated page layout toggles set, clear and undo document boundary overrides", () => {
   const form = mountSectionWorkspace('<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
   const menu = form.querySelector("#editor-page-menu");
   form.querySelector('[data-book-view="toc"]').dispatchEvent(
     new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
-  const alternate = [...menu.querySelectorAll(".editor-layout-menu button")].find(button => !button.disabled);
+  const alternate = [...menu.querySelectorAll(".editor-layout-menu button")]
+    .find(button => button.textContent === "New page");
+  assert.equal(alternate.getAttribute("role"), "menuitemcheckbox");
+  assert.equal(alternate.getAttribute("aria-checked"), "false");
+  assert(!menu.textContent.includes("Reset to default"));
   alternate.click();
-  assert.equal(editor.state.doc.attrs.layout.overrides.toc,
-    alternate.textContent === "Continuous" ? "continuous" : "new-page");
+  assert.equal(editor.state.doc.attrs.layout.overrides.toc, "new-page");
   assert.equal(editor.state.doc.attrs.layout.defaults, "legacy",
     "Changing one boundary must not silently apply new defaults to the other parts.");
   assert.equal(editor.getHTML(), '<section id="s"><h2>Chapter</h2><p>Text.</p></section>');
   form.querySelector('[data-book-view="toc"]').dispatchEvent(
     new dom.window.MouseEvent("contextmenu", {bubbles: true, cancelable: true}));
-  const reset = [...menu.querySelectorAll(".editor-layout-menu button")]
-    .find(button => button.textContent === "Reset to default");
-  assert(reset, "The changed page layout exposes a reset action.");
-  reset.click();
+  const active = [...menu.querySelectorAll(".editor-layout-menu button")]
+    .find(button => button.getAttribute("aria-checked") === "true");
+  assert(active, "The explicit override is pressed.");
+  active.click();
   assert.equal(editor.state.doc.attrs.layout, null);
+  undo(editor.state, editor.view.dispatch);
+  assert.equal(editor.state.doc.attrs.layout.overrides.toc, "new-page");
   form.querySelector("#editor-layout-defaults").click();
   assert.deepEqual(editor.state.doc.attrs.layout, {version: 1, defaults: "type", overrides: {}});
+});
+
+test("section separation toggles preserve exact targets and allow an explicit inherited value", () => {
+  const form = mountSectionWorkspace(
+    '<section id="s"><h2>Chapter</h2><p>Text.</p></section>',
+  );
+  const menu = form.querySelector("#editor-section-actions");
+  const open = () => form.querySelector('#editor-outline-items [data-part="0"]')
+    .dispatchEvent(new dom.window.MouseEvent("contextmenu", {
+    bubbles: true, cancelable: true,
+  }));
+  const choose = value => {
+    open();
+    const button = [...menu.querySelectorAll(".editor-layout-menu button")]
+      .find(candidate => candidate.textContent === value);
+    assert(button, `${value} separation control exists`);
+    return button;
+  };
+  assert.equal(choose("New page").getAttribute("aria-checked"), "false");
+  assert.equal(choose("Continuous").getAttribute("aria-checked"), "false");
+  choose("New page").click();
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], "new-page");
+  choose("Continuous").click();
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], "continuous");
+  choose("Continuous").click();
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], null);
+  choose("Continuous").click();
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], "continuous");
+  undo(editor.state, editor.view.dispatch);
+  assert.equal(editor.state.doc.nodeAt(0).attrs["data-layout-before"], null);
+  assert.equal(editor.state.doc.nodeAt(0).attrs.id, "s");
 });
 
 test("compact title facts pack into aligned rows of one, two or three columns", () => {
@@ -6549,7 +6644,7 @@ test("article layout shows compact facts, omitted ToC and page settings by right
   };
   let items = open(outline.querySelector('[data-book-view="toc"]'));
   assert.deepEqual(items.map(item => [item.textContent, item.getAttribute("aria-checked")]),
-    [["Include table of contents page", "false"], ["Continuous", "true"], ["New page", "false"],
+    [["Include table of contents page", "false"], ["Continuous", "false"], ["New page", "false"],
       ["Close", null]]);
   items[0].click();
   assert(menu.hidden);

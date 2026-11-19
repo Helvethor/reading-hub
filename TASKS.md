@@ -348,22 +348,32 @@ live-data changes were made.
 
 ### Milestone V.u: Stable toolbars, submenus and compact separation
 
-**Status: specification only; toolbar switch proposed.** See the
+**Status: source implementation delivered; focused checks pass; native-browser
+and visual acceptance remain open.** See the
 [V.u handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vu-stable-toolbars-submenus-and-compact-separation).
 
-- [ ] Keep toolbar command positions fixed, disabling unavailable actions;
+- [x] Keep toolbar command positions fixed, disabling unavailable actions;
   make common commands icon-only with accessible names and tooltips.
-- [ ] Replace the flat Selection tools groups with category submenus while
+- [x] Replace the flat Selection tools groups with category submenus while
   retaining exact targets and hiding inapplicable contextual actions.
-- [ ] Move outline commands to the top and provide one shared command area
+- [x] Move outline commands to the top and provide one shared command area
   switched by Format / Outline / Diff tabs; keep common commands persistent.
-- [ ] Replace verbose separation choices with New page / Continuous toggles;
+- [x] Replace verbose separation choices with New page / Continuous toggles;
   toggling off an explicit override restores inheritance.
-- [ ] Correct the viewport focus frame so section borders cannot overpaint it;
-  verify native-browser scroll, focus, submenu and toolbar journeys.
-- [ ] Align top-level section borders with title, ToC and metadata page borders
-  in the editor; make all section borders uniformly 1px on every side while
-  preserving nested hierarchy and label gutters.
+- [x] Attach the focus frame to the non-scrolling editor viewport and remove the
+  thicker section edge.
+- [ ] Verify native-browser scroll, focus and submenu journeys at 100%/200% zoom
+  and inspect edge interactions.
+- [x] Align top-level section borders with title, ToC and metadata page borders
+  in the editor, using uniform 1px section borders.
+- [ ] Measure rendered edges within 1 CSS px and verify labels/nested sections
+  are not clipped.
+
+Automated verification: `npm test`, `npm run build`, and
+`python workflow.py test library.tests.test_document_editor_views` pass.
+Native-browser, zoom/theme, focus/scroll, edge-measurement, and
+save/reopen/Read/print/PDF acceptance remain to be verified. No deployment or
+live-data changes were made.
 
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 

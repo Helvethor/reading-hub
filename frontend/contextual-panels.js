@@ -16,6 +16,7 @@ export function attachContextualPanel(root, panel, anchor = null, editor = null)
   panels.append(panel);
   panel.classList.add("editor-floating-menu");
   panel.addEventListener("keydown", event => {
+    if (panel.querySelector("[data-menu-category]")) return;
     if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -84,5 +85,8 @@ export function showContextMenu(panel, event, anchor = event?.target) {
   for (const trigger of document.querySelectorAll(`[aria-controls="${panel.id}"]`)) {
     trigger.setAttribute("aria-expanded", "true");
   }
-  panel.querySelector("button:not(:disabled):not([hidden])")?.focus({preventScroll: true});
+  const first = panel.id === "editor-context-menu"
+    ? panel.querySelector("[data-menu-category]:not([hidden])")
+    : null;
+  (first || panel.querySelector("button:not(:disabled):not([hidden])"))?.focus({preventScroll: true});
 }

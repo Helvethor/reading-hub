@@ -47,6 +47,8 @@ import {mountBookViews} from "./book-views.js";
 import {tocMarker, tocNumberingEntries} from "./toc-numbering.js";
 import {mountNoteRepairs} from "./note-repairs.js";
 import {attachContextualPanel, showContextMenu} from "./contextual-panels.js";
+import {mountEditorToolTabs} from "./editor-tool-tabs.js";
+import {mountSelectionToolMenu} from "./selection-tool-menu.js";
 
 export function mountWorkspace(form, editor, showError, initial = {}, readDocument = () => ({
   title: form.querySelector('[name="title"]')
@@ -60,6 +62,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   const menu = form.querySelector("#editor-context-menu");
   attachContextualPanel(form, menu);
   const trigger = form.querySelector("#editor-tools");
+  mountEditorToolTabs(form);
+  const selectionToolsMenu = mountSelectionToolMenu(menu, trigger, () => closeMenu(true));
   const imageDialog = owner.querySelector("#editor-image");
   const linkDialog = owner.querySelector("#editor-link");
   const inlineQuotationDialog = owner.querySelector("#editor-inline-q");
@@ -74,6 +78,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   let linkTargets = [];
   let imageProposal = null;
   let parts = [], menuTarget = null;
+  let menuReturnFocus = null;
   const bookViews = mountBookViews(form, editor, readDocument, index => navigatePart(index), showError,
     initial.presentation);
   let context = workspaceContext(editor.state.doc, readDocument(), initial.structure || {});
@@ -265,10 +270,15 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
 
   function closeMenu(focus = false) {
+    selectionToolsMenu?.reset();
     menu.hidden = true;
     trigger.setAttribute("aria-expanded", "false");
     menuTarget = null;
-    if (focus) editor.commands.focus();
+    if (focus) {
+      if (menuReturnFocus === trigger) trigger.focus({preventScroll: true});
+      else editor.commands.focus();
+    }
+    menuReturnFocus = null;
   }
   function refreshOutline() {
     const currentParts = documentParts(editor.state.doc, context);
@@ -421,7 +431,8 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       if (hidden && button === owner.activeElement) {
         (trigger.disabled ? editor.view.dom : trigger).focus({preventScroll: true});
       }
-      button.hidden = hidden;
+      const fixedToolbar = button.closest(".editor-format-toolbar");
+      button.hidden = fixedToolbar ? false : hidden;
       button.disabled = !enabled || !permitted;
     }
     const contentMove = form.querySelector("#editor-content-move-open");
@@ -534,11 +545,21 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       if (button.hasAttribute("aria-pressed")) button.setAttribute("aria-pressed", String(active));
     }
     for (const button of form.querySelectorAll("[data-history]")) {
-      button.hidden = !permitted;
+      button.hidden = false;
       button.disabled = !permitted || !(button.dataset.history === "undo" ? undo : redo)(editor.state);
     }
-    for (const group of menu.querySelectorAll("[role=group]")) {
+    for (const group of menu.querySelectorAll("[data-menu-action-group]")) {
       group.hidden = ![...group.querySelectorAll("button")].some(button => !button.hidden);
+    }
+    for (const category of menu.querySelectorAll("[data-menu-category]")) {
+      const submenu = menu.querySelector(`#${category.getAttribute("aria-controls")}`);
+      category.hidden = ![...(submenu?.querySelectorAll("button:not([hidden]):not([data-menu-back])") || [])]
+        .some(button => {
+          for (let ancestor = button; ancestor && ancestor !== submenu; ancestor = ancestor.parentElement) {
+            if (ancestor.hidden) return false;
+          }
+          return Boolean(submenu);
+        });
     }
     const ancestors = [];
     for (let depth = 1; depth <= selection.$from.depth; depth++) {
@@ -559,6 +580,7 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
   }
   function openMenu(point) {
     closeMenu();
+    menuReturnFocus = owner.activeElement === trigger ? trigger : editor.view.dom;
     menuTarget = {doc: editor.state.doc, bookmark: editor.state.selection.getBookmark()};
     const element = updateTools();
     const {selection} = editor.state;
@@ -640,20 +662,19 @@ export function mountWorkspace(form, editor, showError, initial = {}, readDocume
       openAtSelection();
     }
   });
-  menu.addEventListener("keydown", event => {
+  if (selectionToolsMenu) selectionToolsMenu.mount();
+  else menu.addEventListener("keydown", event => {
     const items = [...menu.querySelectorAll("button:not(:disabled):not([hidden])")];
     const index = items.indexOf(owner.activeElement);
     if (["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
       event.preventDefault();
       const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
         (index + (["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1) + items.length) % items.length;
-      items[next].focus();
+      items[next]?.focus();
     } else if (event.key === "Escape") {
       event.preventDefault();
       closeMenu(true);
-    } else if (event.key === "Tab") {
-      closeMenu();
-    }
+    } else if (event.key === "Tab") closeMenu();
   });
   form.querySelector("#editor-menu-close").addEventListener("click", () => closeMenu(true));
   function perform(button) {

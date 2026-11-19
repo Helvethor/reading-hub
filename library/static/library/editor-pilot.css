@@ -26,11 +26,18 @@
 .editor-structure-link { font-weight: 700; }
 .editor-pilot-toolbar { position: static; column-gap: .5rem; }
 .editor-pilot-toolbar select { min-width: 0; max-width: 13rem; }
-.editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding-inline-end: .5rem; border-inline-end: 1px solid var(--line); }
-.editor-format-toolbar button { min-width: 1.9rem; padding: .3rem; }
+.editor-command-area { border-bottom: 1px solid var(--line); }
+.editor-command-tabs { width: fit-content; max-width: 100%; }
+.editor-command-panels { position: relative; min-height: var(--editor-command-panel-height, 5rem); }
+.editor-command-panel { box-sizing: border-box; width: 100%; padding: .35rem .5rem; }
+.editor-command-panel[hidden] { display: none !important; }
+.editor-format-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; }
+.editor-format-toolbar button { min-width: 2rem; min-height: 2rem; padding: .3rem; }
 .editor-format-toolbar svg, .editor-pilot-toolbar button svg, .editor-pilot-toolbar a svg, .editor-outline-toolbar button svg { width: 1rem; height: 1rem; flex: 0 0 1rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 .editor-pilot-toolbar button, .editor-pilot-toolbar a { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; }
 .editor-pilot-toolbar [hidden], .editor-format-toolbar [hidden] { display: none !important; }
+.editor-pilot-toolbar :is(#editor-tools, #editor-restore, #editor-source-open, .editor-save) { width: 2.2rem; min-width: 2.2rem; height: 2.2rem; padding: .45rem; }
+.editor-pilot-toolbar :is(#editor-tools, #editor-restore, #editor-source-open, .editor-save) svg { width: 1.25rem; height: 1.25rem; flex-basis: 1.25rem; }
 .editor-license-link { font-size: .75rem; white-space: nowrap; }
 .editor-history-toolbar { margin-inline-end: .2rem; }
 .editor-pilot-toolbar .editor-save,
@@ -50,7 +57,7 @@
 .editor-section-controls { position: static; display: flex; flex-wrap: wrap; gap: .3rem; margin-block: .6rem; padding-block: .25rem .55rem; background: var(--surface-raised, #f8f9f5); }
 .editor-outline-toolbar { border-bottom: 2px solid var(--accent, #486b38); }
 .editor-section-controls button { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; padding: .3rem .4rem; }
-#editor-surface .editor-section-boundary { border: 1px solid #718b63; border-inline-start: 3px solid #486b38; padding: .5rem .75rem; margin-block: 1rem; }
+#editor-surface .editor-section-boundary { border: 1px solid #718b63; padding: .5rem .75rem; margin-block: 1rem; }
 #editor-surface .editor-selected-block { outline: 3px solid #315d9b; outline-offset: 2px; background: #e6effc; }
 #editor-surface .editor-section-edge { display: block; color: #344a2e; background: #edf1e8; font: .75rem/1.5 system-ui, sans-serif; padding: .25rem .4rem; user-select: none; white-space: normal; }
 #editor-surface .editor-section-end { border-top: 1px dashed #718b63; }
@@ -155,6 +162,8 @@
 #editor-content-move pre { max-height: 12rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 .editor-canvas { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 #editor-selection-path { margin: 0; padding: .5rem .75rem; font: .8rem/1.4 system-ui, sans-serif; background: #f8f9f5; border-bottom: 1px solid #cbd1c4; overflow-wrap: anywhere; }
+.editor-surface-frame { position: relative; isolation: isolate; flex: 1 1 auto; min-height: 0; }
+.editor-surface-frame:focus-within::after { content: ""; position: absolute; z-index: 10; inset: 0; box-sizing: border-box; border: 2px solid var(--accent, #486b38); pointer-events: none; }
 #editor-surface { flex: 1; min-height: 0; background: white; }
 #editor-surface[data-workspace-scroll-pane] {
   flex: 1 1 auto;
@@ -203,12 +212,12 @@
 #editor-publication { display: inline-block; margin: .75rem 0; font-weight: 700; }
 #editor-publication[hidden] { display: none; }
 /* A percentage minimum fills the canvas before generated pages, pushing them past its footer. */
-#editor-surface .tiptap { position: relative; min-height: 0; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
+#editor-surface .tiptap { --editor-canvas-inline-padding: 1.2rem; position: relative; min-height: 0; box-sizing: border-box; padding: 1.2rem; background: white; color: #302221; white-space: pre-wrap; }
 /* Keep the editor root's caret policy, but render source HTML spacing like the reader. */
 #editor-surface .tiptap > * { white-space: normal; }
 #editor-surface .tiptap pre { white-space: pre-wrap; }
 #editor-surface .tiptap, #editor-surface .tiptap * { cursor: url("editor-text-cursor.svg") 12 12, text; caret-color: #302221; }
-#editor-surface:focus-within { position: relative; z-index: 1; outline: 2px solid var(--accent, #486b38); outline-offset: -2px; }
+#editor-surface:focus-within { outline: none; }
 #editor-surface .tiptap:focus { outline: none; }
 #editor-surface .editor-toc-marker { user-select: none; pointer-events: none; }
 #editor-surface .editor-outside-part { display: none !important; }
@@ -226,7 +235,16 @@
 #editor-surface .editor-leaf-label { display: block; position: relative; height: 0; width: 0; margin-inline-start: var(--editor-label-gutter); pointer-events: none; user-select: none; }
 #editor-surface .tiptap .editor-external-block-label { margin-block-start: 0; }
 #editor-surface .editor-inline-run.editor-labelled-block { display: block; }
+#editor-surface .tiptap > .editor-section-boundary { margin-inline: calc(1rem - var(--editor-canvas-inline-padding, 1.2rem)); }
 #editor-surface .ProseMirror-selectednode { outline: 2px solid #486b38; }
+#editor-context-menu [data-menu-category-list] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .2rem; }
+#editor-context-menu [data-menu-category-list] button { text-align: start; }
+#editor-context-menu .editor-menu-submenu:not([hidden]) { display: flex; flex-direction: column; gap: .3rem; }
+#editor-context-menu .editor-menu-submenu [data-menu-action-group] { display: flex; flex-wrap: wrap; gap: .2rem; }
+#editor-context-menu .editor-menu-submenu [data-menu-back] { width: fit-content; }
+#editor-context-menu .editor-menu-history { display: flex; flex-direction: row; justify-content: flex-end; gap: .2rem; }
+#editor-context-menu .editor-menu-history button { width: 2rem; height: 2rem; display: inline-grid; place-items: center; padding: .3rem; }
+#editor-context-menu svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) { box-sizing: border-box; position: static; z-index: auto; width: 100%; max-height: none; overflow: visible; padding: .4rem; border: 1px solid var(--line); border-radius: 0; background: var(--surface-raised, #f8f9f5); color: var(--ink, #302221); box-shadow: none; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu)[hidden], :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) [hidden] { display: none !important; }
 :is(#editor-context-menu, #editor-section-actions, #editor-outline-menu, #editor-toc-menu, #editor-diff-menu, #editor-metadata-menu, #editor-title-menu, #editor-page-menu) button { padding: .3rem .4rem; border: 0; border-radius: .2rem; background: transparent; color: #302221; font: 400 .8rem/1.35 system-ui, sans-serif; }
@@ -281,7 +299,7 @@
   #editor-outline-toggle { display: inline-block; }
   .editor-outline-open .editor-outline { display: block; position: static; max-height: none; overflow: visible; border-inline-end: 0; border-bottom: 1px solid var(--line); }
   #editor-surface[data-workspace-scroll-pane] { flex: none; height: auto; min-height: 0; overflow: visible; }
-  #editor-surface .tiptap { padding-inline: .7rem; }
+  #editor-surface .tiptap { --editor-canvas-inline-padding: .7rem; padding-inline: .7rem; }
   #editor-surface .editor-labelled-block:not(.editor-external-block-label)::before, #editor-surface .editor-leaf-label::before, #editor-surface .editor-label-measure { font-size: .65rem; }
 }
 @media (max-height: 520px) {

@@ -303,53 +303,44 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
         metadata, isBook())
       : partLayout(metadata, isBook())[target.name];
     if (!info) throw new Error("This layout target is no longer available. Open its menu again.");
-    const override = target.part
-      ? Boolean(node.attrs["data-layout-before"])
-      : Boolean(metadata.layout?.overrides?.[target.name]);
+    const explicit = target.part ? node.attrs["data-layout-before"] :
+      metadata.layout?.overrides?.[target.name];
     const group = owner.createElement("div");
     group.className = "editor-menu-group editor-layout-menu";
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", "Layout and separation");
-    group.append(element("span", "Layout and separation"), element("p",
-      `${info.value === "new-page" ? "New page" : "Continuous"} (${info.origin}: ${info.reason})`));
+    const inherited = info.origin === "override" ?
+      (target.part ? contentSeparation({...node, attrs: {...node.attrs, "data-layout-before": null}},
+        {...target.part, depth: sectionDepth(position)}, metadata, isBook()).value :
+        partLayout({...metadata, layout: {...metadata.layout, overrides: {
+          ...metadata.layout?.overrides, [target.name]: undefined,
+        }}}, isBook())[target.name].value) : info.value;
+    const description = element("span",
+      `Inherited default: ${inherited === "new-page" ? "New page" : "Continuous"}. Activate an active choice again to inherit.`);
+    description.id = `editor-layout-description-${target.part ? position : target.name}`;
+    description.className = "editor-visually-hidden";
+    group.append(description);
     const choices = target.name === "title" ? [] : separations;
     for (const value of choices) {
       const label = value === "new-page" ? "New page" : "Continuous";
       const button = element("button", label);
       button.type = "button";
-      button.setAttribute("role", "menuitemradio");
-      button.setAttribute("aria-checked", String(info.value === value));
+      button.setAttribute("role", "menuitemcheckbox");
+      button.setAttribute("aria-checked", String(explicit === value));
+      button.setAttribute("aria-describedby", description.id);
       button.dataset.menuIcon = value === "new-page" ? "↵" : "↔";
-      button.disabled = info.value === value;
+      button.title = `${label}; inherited default is ${inherited === "new-page" ? "New page" : "Continuous"}.`;
       button.addEventListener("click", () => {
         try {
           if (doc !== editor.state.doc) throw new Error("The document changed. Open the layout menu again.");
-          if (target.part) setPartSeparation(editor, position, value);
+          const next = explicit === value ? null : value;
+          if (target.part) setPartSeparation(editor, position, next);
           else {
             const layout = editor.state.doc.attrs.layout || metadata.layout ||
               {version: 1, defaults: "legacy", overrides: {}};
-            setDocumentLayout(editor, {...layout,
-              overrides: {...layout.overrides, [target.name]: value}});
-          }
-          showError("");
-          close();
-        } catch (failure) { showError(failure.message); }
-      });
-      group.append(button);
-    }
-    if (override && target.name !== "title") {
-      const reset = element("button", "Reset to default");
-      reset.type = "button";
-      reset.setAttribute("role", "menuitem");
-      reset.dataset.menuIcon = "↶";
-      reset.addEventListener("click", () => {
-        try {
-          if (doc !== editor.state.doc) throw new Error("The document changed. Open the layout menu again.");
-          if (target.part) setPartSeparation(editor, position, null);
-          else {
-            const layout = editor.state.doc.attrs.layout || metadata.layout;
             const overrides = {...layout.overrides};
-            delete overrides[target.name];
+            if (next) overrides[target.name] = next;
+            else delete overrides[target.name];
             setDocumentLayout(editor, layout.defaults === "legacy" && !Object.keys(overrides).length
               ? null : {...layout, overrides});
           }
@@ -357,7 +348,7 @@ export function mountBookViews(form, editor, readDocument, navigate, showError, 
           close();
         } catch (failure) { showError(failure.message); }
       });
-      group.append(reset);
+      group.append(button);
     }
     if (target.name === "title") {
       group.append(element("p", "The title page starts the document; set separation on the following part."));

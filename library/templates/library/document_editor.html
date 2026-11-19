@@ -104,70 +104,87 @@
     </details>
     {% endif %}
       <div class="editor-pilot-toolbar workspace-command-bar" role="group" aria-label="Editor commands">
-        <div class="editor-format-toolbar workspace-joined-controls" role="group" aria-label="Formatting">
-          <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
-          <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
-          <button type="button" aria-label="Underline" title="Underline" aria-pressed="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
-          <button type="button" aria-label="Strikethrough" title="Strikethrough" aria-pressed="false" data-mark="s" disabled><s aria-hidden="true">S</s></button>
-          <button type="button" aria-label="Superscript" title="Superscript" aria-pressed="false" data-mark="sup" disabled><span aria-hidden="true">x<sup>2</sup></span></button>
-          <button type="button" aria-label="Subscript" title="Subscript" aria-pressed="false" data-mark="sub" disabled><span aria-hidden="true">x<sub>2</sub></span></button>
-          <button type="button" aria-label="Paragraph" title="Paragraph" aria-pressed="false" data-block="p" disabled>¶</button>
-          <button type="button" aria-label="Heading 2" title="Heading 2" aria-pressed="false" data-block="h2" disabled>H2</button>
-          <button type="button" aria-label="Heading 3" title="Heading 3" aria-pressed="false" data-block="h3" disabled>H3</button>
-          <button type="button" aria-label="Heading 4" title="Heading 4" aria-pressed="false" data-block="h4" disabled>H4</button>
-          <button type="button" aria-label="Heading 5" title="Heading 5" aria-pressed="false" data-block="h5" disabled>H5</button>
-          <button type="button" aria-label="Heading 6" title="Heading 6" aria-pressed="false" data-block="h6" disabled>H6</button>
-          <button type="button" aria-label="Align left" title="Align left; click again to inherit" aria-pressed="false" data-align="left" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h10M2 11h16M2 15h10"/></svg></button>
-          <button type="button" aria-label="Align center" title="Align center; click again to inherit" aria-pressed="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
-          <button type="button" aria-label="Align right" title="Align right; click again to inherit" aria-pressed="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
-          <button type="button" aria-label="Justify" title="Justify; click again to inherit" aria-pressed="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
-          <button type="button" aria-label="Bulleted list" title="Bulleted list" aria-pressed="false" data-list="ul" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11"/><circle cx="2" cy="4" r=".7"/><circle cx="2" cy="10" r=".7"/><circle cx="2" cy="16" r=".7"/></svg></button>
-          <button type="button" aria-label="Numbered list" title="Numbered list" aria-pressed="false" data-list="ol" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11M1 2h2v5M1 7h4M1 11h4v2l-4 4h4"/></svg></button>
-          <button type="button" aria-label="Insert horizontal rule" title="Insert horizontal rule" data-rule-insert disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 10h16"/></svg></button>
-          <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 12l4-4M7 14H5a3 3 0 0 1 0-6h3m4-2h3a3 3 0 0 1 0 6h-3"/></svg></button>
-        </div>
-        <button type="button" id="editor-tools" aria-label="Selection tools" title="Selection tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 3l6 14 2-6 6-2z"/></svg><span>Selection tools</span></button>
+        <button type="button" id="editor-tools" aria-label="Selection tools" title="Selection tools" aria-haspopup="menu" aria-controls="editor-context-menu" aria-expanded="false" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 3l6 14 2-6 6-2z"/></svg></button>
         <div class="editor-history-toolbar workspace-joined-controls" role="group" aria-label="History">
           <button type="button" aria-label="Undo" title="Undo" data-history="undo" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 5L3 9l5 4M4 9h7a5 5 0 0 1 5 5"/></svg></button>
           <button type="button" aria-label="Redo" title="Redo" data-history="redo" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M12 5l5 4-5 4m4-4H9a5 5 0 0 0-5 5"/></svg></button>
         </div>
-        <button type="submit" class="editor-save" aria-label="Save" title="Save" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 3h12l2 2v12H3zM6 3v5h8V3M6 17v-6h8v6"/></svg><span>Save</span></button>
+        <button type="submit" class="editor-save" aria-label="Save" title="Save" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 3h12l2 2v12H3zM6 3v5h8V3M6 17v-6h8v6"/></svg></button>
         <span id="workspace-save-state" role="status">
           {% if choose_history %}Choose a working copy in Versions before editing or saving.{% elif draft %}No unsaved changes in this tab.{% else %}Read and PDF previews will not create a working copy.{% endif %}
         </span>
         <a id="editor-publication" class="button secondary" aria-label="Publish" title="Publish" data-workflow-panel="Publish" hidden><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 15V3m-4 4l4-4 4 4M4 12v5h12v-5"/></svg><span>Publish&hellip;</span></a>
-        <button type="button" id="editor-source-open" aria-label="Insert from source" title="Insert from source" data-source-url="{% url 'document-editor-source' version.pk %}" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Insert from source&hellip;</span></button>
+        <button type="button" id="editor-source-open" aria-label="Insert from source…" title="Insert from source…" data-source-url="{% url 'document-editor-source' version.pk %}" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button>
         <button type="button" id="editor-outline-toggle" aria-expanded="false" aria-controls="editor-outline-items">Outline</button>
-        <button type="button" id="editor-restore" aria-label="Restore this tab's unsaved draft" title="Restore this tab's unsaved draft" hidden><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 8a6 6 0 1 1-1 5M3 4v5h5"/></svg><span>Restore</span></button>
+        <button type="button" id="editor-restore" aria-label="Restore this tab's unsaved draft" title="Restore this tab's unsaved draft" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 8a6 6 0 1 1-1 5M3 4v5h5"/></svg></button>
         <a class="editor-license-link" href="{% static 'library/generated/editor-licenses.txt' %}">Editor licenses</a>
+      </div>
+      <div class="editor-command-area">
+        <div class="workspace-tabs workspace-joined-controls editor-command-tabs" id="editor-command-tabs" role="tablist" aria-label="Editor command area">
+          <button type="button" role="tab" id="editor-command-tab-format" aria-controls="editor-command-panel-format" aria-selected="true" data-editor-command-tab="format">Format</button>
+          <button type="button" role="tab" id="editor-command-tab-outline" aria-controls="editor-command-panel-outline" aria-selected="false" tabindex="-1" data-editor-command-tab="outline">Outline</button>
+          <button type="button" role="tab" id="editor-command-tab-diff" aria-controls="editor-command-panel-diff" aria-selected="false" tabindex="-1" data-editor-command-tab="diff">Diff</button>
+        </div>
+        <div id="editor-command-panels" class="editor-command-panels">
+          <div class="editor-command-panel" id="editor-command-panel-format" role="tabpanel" aria-labelledby="editor-command-tab-format">
+            <div class="editor-format-toolbar workspace-joined-controls" role="group" aria-label="Formatting">
+              <button type="button" aria-label="Bold" title="Bold" aria-pressed="false" data-mark="strong" disabled><strong aria-hidden="true">B</strong></button>
+              <button type="button" aria-label="Italic" title="Italic" aria-pressed="false" data-mark="em" disabled><em aria-hidden="true">I</em></button>
+              <button type="button" aria-label="Underline" title="Underline" aria-pressed="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
+              <button type="button" aria-label="Strikethrough" title="Strikethrough" aria-pressed="false" data-mark="s" disabled><s aria-hidden="true">S</s></button>
+              <button type="button" aria-label="Superscript" title="Superscript" aria-pressed="false" data-mark="sup" disabled><span aria-hidden="true">x<sup>2</sup></span></button>
+              <button type="button" aria-label="Subscript" title="Subscript" aria-pressed="false" data-mark="sub" disabled><span aria-hidden="true">x<sub>2</sub></span></button>
+              <button type="button" aria-label="Paragraph" title="Paragraph" aria-pressed="false" data-block="p" disabled>¶</button>
+              <button type="button" aria-label="Heading 2" title="Heading 2" aria-pressed="false" data-block="h2" disabled>H2</button>
+              <button type="button" aria-label="Heading 3" title="Heading 3" aria-pressed="false" data-block="h3" disabled>H3</button>
+              <button type="button" aria-label="Heading 4" title="Heading 4" aria-pressed="false" data-block="h4" disabled>H4</button>
+              <button type="button" aria-label="Heading 5" title="Heading 5" aria-pressed="false" data-block="h5" disabled>H5</button>
+              <button type="button" aria-label="Heading 6" title="Heading 6" aria-pressed="false" data-block="h6" disabled>H6</button>
+              <button type="button" aria-label="Align left" title="Align left; click again to inherit" aria-pressed="false" data-align="left" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h10M2 11h16M2 15h10"/></svg></button>
+              <button type="button" aria-label="Align center" title="Align center; click again to inherit" aria-pressed="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
+              <button type="button" aria-label="Align right" title="Align right; click again to inherit" aria-pressed="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
+              <button type="button" aria-label="Justify" title="Justify; click again to inherit" aria-pressed="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
+              <button type="button" aria-label="Bulleted list" title="Bulleted list" aria-pressed="false" data-list="ul" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11"/><circle cx="2" cy="4" r=".7"/><circle cx="2" cy="10" r=".7"/><circle cx="2" cy="16" r=".7"/></svg></button>
+              <button type="button" aria-label="Numbered list" title="Numbered list" aria-pressed="false" data-list="ol" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11M1 2h2v5M1 7h4M1 11h4v2l-4 4h4"/></svg></button>
+              <button type="button" aria-label="Insert horizontal rule" title="Insert horizontal rule" data-rule-insert disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 10h16"/></svg></button>
+              <button type="button" aria-label="Create link from selection" title="Create link from selection" data-link-insert disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 12l4-4M7 14H5a3 3 0 0 1 0-6h3m4-2h3a3 3 0 0 1 0 6h-3"/></svg></button>
+            </div>
+          </div>
+          <div class="editor-command-panel" id="editor-command-panel-outline" role="tabpanel" aria-labelledby="editor-command-tab-outline" hidden>
+            <div class="editor-section-controls editor-outline-toolbar workspace-joined-controls" role="group" aria-label="Outline commands">
+              <button type="button" id="editor-add-section-open" aria-label="Add or restore section" title="Add or restore section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Add / restore section…</span></button>
+              <button type="button" id="editor-section-empty" aria-label="New empty section" title="New empty section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New empty section…</span></button>
+              <button type="button" id="editor-section-move-open" aria-label="Move section" title="Move section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h7M3 8h7M13 16V4m-4 4l4-4 4 4"/></svg><span>Move section…</span></button>
+              <button type="button" id="editor-new-section-open" aria-label="New section" title="New section"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New section…</span></button>
+              <button type="button" id="editor-section-boundary-open" aria-label="Repair section boundary" title="Repair section boundary"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 16h14M6 7l4 3-4 3"/></svg><span>Section boundary…</span></button>
+              <button type="button" id="editor-target-open" aria-label="Edit target ID" title="Edit target ID"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4h12v12H4zM7 7h6v6H7z"/></svg><span>Target ID…</span></button>
+              <button type="button" id="editor-layout-defaults" aria-label="Use work-type layout defaults" title="Use work-type layout defaults"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4h12M4 10h12M4 16h12M2 4h.1M2 10h.1M2 16h.1"/></svg><span>Use work-type layout defaults</span></button>
+              <button type="button" id="editor-outline-expand" aria-label="Expand all outline groups" title="Expand all outline groups"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Expand outline</span></button>
+            </div>
+          </div>
+          <div class="editor-command-panel" id="editor-command-panel-diff" role="tabpanel" aria-labelledby="editor-command-tab-diff" hidden>
+            <div class="editor-diff-controls workspace-command-bar" role="group" aria-label="Comparison">
+              <button type="button" id="editor-diff-toggle" aria-label="Show differences" title="Show differences" aria-pressed="false" disabled>Diff</button>
+              <label>Compare with <select id="editor-diff-revision" disabled><option value="0">Pinned starting version</option></select></label>
+              <span id="editor-diff-status" aria-live="off"></span>
+            </div>
+          </div>
+        </div>
       </div>
       <p id="editor-status" role="status">Loading the local editor and checking document fidelity…</p>
       <p id="editor-error" class="error" role="alert"></p>
       <div class="editor-tab-panel" id="editor-panel-editor" role="tabpanel" aria-labelledby="editor-tab-editor">
-      <div class="editor-diff-controls workspace-command-bar" role="group" aria-label="Comparison">
-        <button type="button" id="editor-diff-toggle" aria-label="Show differences" title="Show differences" aria-pressed="false" disabled>Diff</button>
-        <label>Compare with <select id="editor-diff-revision" disabled><option value="0">Pinned starting version</option></select></label>
-        <span id="editor-diff-status" aria-live="off"></span>
-      </div>
       <p id="editor-diff-announcement" class="editor-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="editor-workspace-body">
         <nav class="editor-outline" aria-label="Book parts" data-workspace-scroll-pane tabindex="0">
           <h2>Book outline</h2>
-          <div class="editor-section-controls editor-outline-toolbar" role="group" aria-label="Outline commands">
-            <button type="button" id="editor-add-section-open" aria-label="Add or restore section" title="Add or restore section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Add / restore section…</span></button>
-            <button type="button" id="editor-section-empty" aria-label="New empty section" title="New empty section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New empty section…</span></button>
-            <button type="button" id="editor-section-move-open" aria-label="Move section" title="Move section" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h7M3 8h7M13 16V4m-4 4l4-4 4 4"/></svg><span>Move section…</span></button>
-            <button type="button" id="editor-new-section-open" aria-label="New section" title="New section"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 8h14M3 12h8M3 16h8"/></svg><span>New section…</span></button>
-            <button type="button" id="editor-section-boundary-open" aria-label="Repair section boundary" title="Repair section boundary"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 4h14M3 16h14M6 7l4 3-4 3"/></svg><span>Section boundary…</span></button>
-            <button type="button" id="editor-target-open" aria-label="Edit target ID" title="Edit target ID"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4h12v12H4zM7 7h6v6H7z"/></svg><span>Target ID…</span></button>
-            <button type="button" id="editor-layout-defaults" aria-label="Use work-type layout defaults" title="Use work-type layout defaults"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4h12M4 10h12M4 16h12M2 4h.1M2 10h.1M2 16h.1"/></svg><span>Use work-type layout defaults</span></button>
-            <button type="button" id="editor-outline-expand" aria-label="Expand all outline groups" title="Expand all outline groups"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><span>Expand outline</span></button>
-          </div>
           <div id="editor-outline-items"></div>
         </nav>
         <div class="editor-canvas">
           <p id="editor-selection-path" aria-label="Current block structure"></p>
-          <div id="editor-surface" class="reader-content" data-workspace-scroll-pane></div>
+          <div class="editor-surface-frame">
+            <div id="editor-surface" class="reader-content" data-workspace-scroll-pane></div>
+          </div>
         </div>
       </div>
       </div>
@@ -254,90 +271,134 @@
       </div>
     <div id="editor-context-menu" role="menu" aria-label="Selection tools" hidden>
       <div role="group" aria-label="History and menu" class="editor-menu-group editor-menu-history">
-        <button type="button" role="menuitem" data-history="undo" disabled>↶ Undo</button>
-        <button type="button" role="menuitem" data-history="redo" disabled>↷ Redo</button>
-        <button type="button" role="menuitem" id="editor-menu-close">× Close</button>
+        <button type="button" role="menuitem" aria-label="Undo" title="Undo" data-history="undo" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 5L3 9l5 4M4 9h7a5 5 0 0 1 5 5"/></svg></button>
+        <button type="button" role="menuitem" aria-label="Redo" title="Redo" data-history="redo" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M12 5l5 4-5 4m4-4H9a5 5 0 0 0-5 5"/></svg></button>
+        <button type="button" role="menuitem" id="editor-menu-close" aria-label="Close" title="Close"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M4 4l12 12M16 4L4 16"/></svg></button>
       </div>
       <h2 id="editor-menu-element-target" class="editor-menu-element-target" hidden></h2>
       <p id="editor-menu-target"></p>
-      <div role="group" aria-label="Caption actions" class="editor-menu-group editor-menu-actions" data-caption-actions hidden>
-        <span class="editor-menu-heading">Caption</span>
-        <button type="button" role="menuitem" data-element-action="caption-relationship" hidden>Edit caption relationship…</button>
-        <button type="button" role="menuitem" data-element-action="detach-caption" hidden>Detach caption</button>
+      <div data-menu-category-list role="group" aria-label="Selection tool categories">
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-styling">Styling</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-type">Type</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-alignment">Alignment</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-lists">Lists</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-movement">Move / separate</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-insert">Insert</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-links">Links</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-inline">Inline semantics</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-element">Element</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-caption">Caption</button>
+        <button type="button" role="menuitem" data-menu-category aria-haspopup="menu" aria-expanded="false" aria-controls="editor-menu-table">Table</button>
       </div>
-      <div role="group" aria-label="Element actions" class="editor-menu-group editor-menu-actions" data-element-actions>
-        <span class="editor-menu-heading">Element</span>
-        <button type="button" role="menuitem" data-element-action="remove-quotation" hidden>Remove quotation formatting</button>
-        <button type="button" role="menuitem" data-element-action="edit-alt" hidden>Edit alt text…</button>
-        <button type="button" role="menuitem" data-element-action="wrap-figure" hidden>Wrap in figure</button>
-        <button type="button" role="menuitem" data-element-action="add-caption" hidden>Add caption…</button>
-        <button type="button" role="menuitem" data-element-action="remove-figure" hidden>Remove figure grouping</button>
+      <div id="editor-menu-styling" class="editor-menu-submenu" role="menu" aria-label="Styling" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Text styling" data-menu-action-group>
+          <button type="button" role="menuitemcheckbox" aria-label="Bold" title="Bold" aria-checked="false" data-mark="strong" disabled><b aria-hidden="true">B</b></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Italic" title="Italic" aria-checked="false" data-mark="em" disabled><i aria-hidden="true">I</i></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Underline" title="Underline" aria-checked="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Strikethrough" title="Strikethrough" aria-checked="false" data-mark="s" disabled><s aria-hidden="true">S</s></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Superscript" title="Superscript" aria-checked="false" data-mark="sup" disabled><span aria-hidden="true">x<sup>2</sup></span></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Subscript" title="Subscript" aria-checked="false" data-mark="sub" disabled><span aria-hidden="true">x<sub>2</sub></span></button>
+        </div>
       </div>
-      <div role="group" aria-label="Text styling" class="editor-menu-group">
-        <span class="editor-menu-heading">Text styling</span>
-        <button type="button" role="menuitemcheckbox" aria-label="Bold" title="Bold" aria-checked="false" data-mark="strong" disabled><b aria-hidden="true">B</b></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Italic" title="Italic" aria-checked="false" data-mark="em" disabled><i aria-hidden="true">I</i></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Underline" title="Underline" aria-checked="false" data-mark="u" disabled><u aria-hidden="true">U</u></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Strikethrough" title="Strikethrough" aria-checked="false" data-mark="s" disabled><s aria-hidden="true">S</s></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Superscript" title="Superscript" aria-checked="false" data-mark="sup" disabled><span aria-hidden="true">x<sup>2</sup></span></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Subscript" title="Subscript" aria-checked="false" data-mark="sub" disabled><span aria-hidden="true">x<sub>2</sub></span></button>
+      <div id="editor-menu-type" class="editor-menu-submenu" role="menu" aria-label="Type" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Paragraph type" data-menu-action-group>
+          <button type="button" role="menuitemradio" aria-label="Paragraph" title="Paragraph" aria-checked="false" data-block="p" disabled>¶</button>
+          <button type="button" role="menuitemradio" aria-label="Heading 2" title="Heading 2" aria-checked="false" data-block="h2" disabled>H2</button>
+          <button type="button" role="menuitemradio" aria-label="Heading 3" title="Heading 3" aria-checked="false" data-block="h3" disabled>H3</button>
+          <button type="button" role="menuitemradio" aria-label="Heading 4" title="Heading 4" aria-checked="false" data-block="h4" disabled>H4</button>
+          <button type="button" role="menuitemradio" aria-label="Heading 5" title="Heading 5" aria-checked="false" data-block="h5" disabled>H5</button>
+          <button type="button" role="menuitemradio" aria-label="Heading 6" title="Heading 6" aria-checked="false" data-block="h6" disabled>H6</button>
+        </div>
       </div>
-      <div role="group" aria-label="Paragraph type" class="editor-menu-group">
-        <span class="editor-menu-heading">Paragraph type</span>
-        <button type="button" role="menuitemradio" aria-label="Paragraph" title="Paragraph" aria-checked="false" data-block="p" disabled>¶</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-block="h2" disabled>H2</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-block="h3" disabled>H3</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-block="h4" disabled>H4</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-block="h5" disabled>H5</button>
-        <button type="button" role="menuitemradio" aria-checked="false" data-block="h6" disabled>H6</button>
+      <div id="editor-menu-alignment" class="editor-menu-submenu" role="menu" aria-label="Alignment" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Paragraph alignment" data-menu-action-group>
+          <button type="button" role="menuitemcheckbox" aria-label="Align left" title="Align left; click again to inherit" aria-checked="false" data-align="left" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h10M2 11h16M2 15h10"/></svg></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Align center" title="Align center; click again to inherit" aria-checked="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Align right" title="Align right; click again to inherit" aria-checked="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Justify" title="Justify; click again to inherit" aria-checked="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
+        </div>
       </div>
-      <div role="group" aria-label="Paragraph alignment" class="editor-menu-group">
-        <span class="editor-menu-heading">Alignment · click again to inherit</span>
-        <button type="button" role="menuitemcheckbox" aria-label="Align left" title="Align left; click again to inherit" aria-checked="false" data-align="left" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h10M2 11h16M2 15h10"/></svg></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Align center" title="Align center; click again to inherit" aria-checked="false" data-align="center" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M5 7h10M2 11h16M5 15h10"/></svg></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Align right" title="Align right; click again to inherit" aria-checked="false" data-align="right" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M8 7h10M2 11h16M8 15h10"/></svg></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Justify" title="Justify; click again to inherit" aria-checked="false" data-align="justify" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M2 7h16M2 11h16M2 15h16"/></svg></button>
+      <div id="editor-menu-lists" class="editor-menu-submenu" role="menu" aria-label="Lists" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Lists" class="editor-list-tools" data-menu-action-group>
+          <button type="button" role="menuitemcheckbox" aria-label="Bulleted list" title="Bulleted list" aria-checked="false" data-list="ul" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11"/><circle cx="2" cy="4" r=".7"/><circle cx="2" cy="10" r=".7"/><circle cx="2" cy="16" r=".7"/></svg></button>
+          <button type="button" role="menuitemcheckbox" aria-label="Numbered list" title="Numbered list" aria-checked="false" data-list="ol" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11M1 2h2v5M1 7h4M1 11h4v2l-4 4h4"/></svg></button>
+          <button type="button" role="menuitem" aria-label="Indent item" title="Indent item" data-list="indent" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M9 8h9M9 12h9M2 17h16M2 7l4 3-4 3"/></svg></button>
+          <button type="button" role="menuitem" aria-label="Outdent item" title="Outdent item" data-list="outdent" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M9 8h9M9 12h9M2 17h16M6 7l-4 3 4 3"/></svg></button>
+          <button type="button" role="menuitem" aria-label="Move item up" title="Move item up" data-list="up" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 12h7M2 16h7M14 16V4M10 8l4-4 4 4"/></svg></button>
+          <button type="button" role="menuitem" aria-label="Move item down" title="Move item down" data-list="down" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 4h7M2 8h7M14 4v12M10 12l4 4 4-4"/></svg></button>
+        </div>
       </div>
-      <div role="group" aria-label="Lists" class="editor-menu-group editor-list-tools">
-        <span class="editor-menu-heading">Lists · click active type to remove</span>
-        <button type="button" role="menuitemcheckbox" aria-label="Bulleted list" title="Bulleted list" aria-checked="false" data-list="ul" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11"/><circle cx="2" cy="4" r=".7"/><circle cx="2" cy="10" r=".7"/><circle cx="2" cy="16" r=".7"/></svg></button>
-        <button type="button" role="menuitemcheckbox" aria-label="Numbered list" title="Numbered list" aria-checked="false" data-list="ol" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7 4h11M7 10h11M7 16h11M1 2h2v5M1 7h4M1 11h4v2l-4 4h4"/></svg></button>
-        <button type="button" role="menuitem" aria-label="Indent item" title="Indent item" data-list="indent" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M9 8h9M9 12h9M2 17h16M2 7l4 3-4 3"/></svg></button>
-        <button type="button" role="menuitem" aria-label="Outdent item" title="Outdent item" data-list="outdent" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h16M9 8h9M9 12h9M2 17h16M6 7l-4 3 4 3"/></svg></button>
-        <button type="button" role="menuitem" aria-label="Move item up" title="Move item up" data-list="up" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 12h7M2 16h7M14 16V4M10 8l4-4 4 4"/></svg></button>
-        <button type="button" role="menuitem" aria-label="Move item down" title="Move item down" data-list="down" disabled><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 4h7M2 8h7M14 4v12M10 12l4 4 4-4"/></svg></button>
+      <div id="editor-menu-movement" class="editor-menu-submenu" role="menu" aria-label="Move / separate" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Move and separate content" class="editor-menu-movement" data-menu-action-group>
+          <button type="button" role="menuitem" aria-label="Move paragraph up" title="Move paragraph up" data-move="-1" disabled>↑ Paragraph</button>
+          <button type="button" role="menuitem" aria-label="Move paragraph down" title="Move paragraph down" data-move="1" disabled>↓ Paragraph</button>
+          <button type="button" role="menuitem" id="editor-content-move-open" disabled>↗ Move selected content…</button>
+          <button type="button" role="menuitem" id="editor-section-excerpt-open" disabled>Separate as excerpt section…</button>
+        </div>
       </div>
-      <div role="group" aria-label="Move and separate content" class="editor-menu-group editor-menu-movement">
-        <span class="editor-menu-heading">Move / separate</span>
-        <button type="button" role="menuitem" aria-label="Move paragraph up" title="Move paragraph up" data-move="-1" disabled>↑ Paragraph</button>
-        <button type="button" role="menuitem" aria-label="Move paragraph down" title="Move paragraph down" data-move="1" disabled>↓ Paragraph</button>
-        <button type="button" role="menuitem" id="editor-content-move-open" disabled>↗ Move selected content…</button>
-        <button type="button" role="menuitem" id="editor-section-excerpt-open" disabled>Separate as excerpt section…</button>
+      <div id="editor-menu-insert" class="editor-menu-submenu" role="menu" aria-label="Insert" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Insert" data-menu-action-group>
+          <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
+          <button type="button" role="menuitem" data-quote-action="convert" disabled>Convert to quote</button>
+          <button type="button" role="menuitem" data-rule-insert disabled>Insert horizontal rule</button>
+        </div>
       </div>
-      <div role="group" aria-label="Inline semantics" class="editor-menu-group editor-menu-actions">
-        <span class="editor-menu-heading">Inline semantics</span>
-        <button type="button" role="menuitem" data-inline-mark="cite" disabled>Mark as source title</button>
-        <button type="button" role="menuitem" data-inline-mark="q" disabled>Mark as inline quotation</button>
-        <div data-inline-targets></div>
+      <div id="editor-menu-links" class="editor-menu-submenu" role="menu" aria-label="Links" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Links" data-menu-action-group>
+          <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
+          <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
+          <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
+          <button type="button" role="menuitem" data-link-remove disabled>Remove link (keep text and targets)</button>
+        </div>
       </div>
-      <button type="button" role="menuitem" data-quotation="insert" disabled>Insert quotation…</button>
-      <button type="button" role="menuitem" data-quote-action="convert" disabled>Convert to quote</button>
-      <button type="button" role="menuitem" data-table-action="insert-table" disabled>Insert table…</button>
-      <button type="button" role="menuitem" data-table-action="insert-row-above" disabled>Insert row above</button>
-      <button type="button" role="menuitem" data-table-action="insert-row-below" disabled>Insert row below</button>
-      <button type="button" role="menuitem" data-table-action="insert-column-left" disabled>Insert column left</button>
-      <button type="button" role="menuitem" data-table-action="insert-column-right" disabled>Insert column right</button>
-      <button type="button" role="menuitem" data-table-action="delete-row" disabled>Delete row…</button>
-      <button type="button" role="menuitem" data-table-action="delete-column" disabled>Delete column…</button>
-      <button type="button" role="menuitem" data-table-action="make-header" disabled>Make header cell</button>
-      <button type="button" role="menuitem" data-table-action="make-data" disabled>Make data cell</button>
-      <button type="button" role="menuitem" data-table-action="add-caption" disabled>Add table caption…</button>
-      <button type="button" role="menuitem" data-table-action="remove-caption" disabled>Remove table caption…</button>
-      <button type="button" role="menuitem" data-rule-insert disabled>Insert horizontal rule</button>
-      <button type="button" role="menuitem" data-link disabled>Edit link destination</button>
-      <button type="button" role="menuitem" data-note-repair disabled>Repair note reference and backlink…</button>
-      <button type="button" role="menuitem" data-link-insert disabled>Create link from selection</button>
-      <button type="button" role="menuitem" data-link-remove disabled>Remove link (keep text and targets)</button>
+      <div id="editor-menu-inline" class="editor-menu-submenu" role="menu" aria-label="Inline semantics" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Inline semantics" data-menu-action-group>
+          <button type="button" role="menuitem" data-inline-mark="cite" disabled>Mark as source title</button>
+          <button type="button" role="menuitem" data-inline-mark="q" disabled>Mark as inline quotation</button>
+          <div data-inline-targets></div>
+        </div>
+      </div>
+      <div id="editor-menu-element" class="editor-menu-submenu" role="menu" aria-label="Element" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Element actions" class="editor-menu-actions" data-menu-action-group data-element-actions>
+          <button type="button" role="menuitem" data-element-action="remove-quotation" hidden>Remove quotation formatting</button>
+          <button type="button" role="menuitem" data-element-action="edit-alt" hidden>Edit alt text…</button>
+          <button type="button" role="menuitem" data-element-action="wrap-figure" hidden>Wrap in figure</button>
+          <button type="button" role="menuitem" data-element-action="add-caption" hidden>Add caption…</button>
+          <button type="button" role="menuitem" data-element-action="remove-figure" hidden>Remove figure grouping</button>
+        </div>
+      </div>
+      <div id="editor-menu-caption" class="editor-menu-submenu" role="menu" aria-label="Caption" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Caption actions" class="editor-menu-actions" data-menu-action-group data-caption-actions>
+          <button type="button" role="menuitem" data-element-action="caption-relationship" hidden>Edit caption relationship…</button>
+          <button type="button" role="menuitem" data-element-action="detach-caption" hidden>Detach caption</button>
+        </div>
+      </div>
+      <div id="editor-menu-table" class="editor-menu-submenu" role="menu" aria-label="Table" hidden>
+        <button type="button" role="menuitem" data-menu-back>Back to Selection tools</button>
+        <div role="group" aria-label="Table" data-menu-action-group>
+          <button type="button" role="menuitem" data-table-action="insert-table" disabled>Insert table…</button>
+          <button type="button" role="menuitem" data-table-action="insert-row-above" disabled>Insert row above</button>
+          <button type="button" role="menuitem" data-table-action="insert-row-below" disabled>Insert row below</button>
+          <button type="button" role="menuitem" data-table-action="insert-column-left" disabled>Insert column left</button>
+          <button type="button" role="menuitem" data-table-action="insert-column-right" disabled>Insert column right</button>
+          <button type="button" role="menuitem" data-table-action="delete-row" disabled>Delete row…</button>
+          <button type="button" role="menuitem" data-table-action="delete-column" disabled>Delete column…</button>
+          <button type="button" role="menuitem" data-table-action="make-header" disabled>Make header cell</button>
+          <button type="button" role="menuitem" data-table-action="make-data" disabled>Make data cell</button>
+          <button type="button" role="menuitem" data-table-action="add-caption" disabled>Add table caption…</button>
+          <button type="button" role="menuitem" data-table-action="remove-caption" disabled>Remove table caption…</button>
+        </div>
+      </div>
     </div>
   </form>
     <div class="editor-tab-panel editor-book-structure" id="editor-panel-structure" role="tabpanel" aria-labelledby="editor-tab-structure" tabindex="0" hidden>
