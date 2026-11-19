@@ -2089,6 +2089,135 @@ nested quote and caption blocks:
 Stop after the consolidated workflow and preservation checks. Schema changes,
 content cleanup, deployment and live-data changes are out of scope.
 
+### V.t: Compact editor commands, contextual tools and whole-document view
+
+**Status: specification only.** The current editor exposes common formatting
+in a small text-and-symbol toolbar while additional supported formatting is
+buried in Selection tools. Toolbar and menu applicability can be inconsistent.
+The Editor pane also adds separate controls for result/diff, comparison loading,
+outline follow-scroll, partial-content views and recovery, plus several help
+disclosures. Consolidate routine editing into compact, consistent commands
+without changing document meaning or removing guarded editing capabilities.
+
+**Editor command and formatting toolbars.**
+
+- Use the same recognizable icons for list actions in `.editor-format-toolbar`
+  and Selection tools. Promote every currently supported, context-applicable
+  formatting command to the format toolbar, including underline, strike,
+  superscript and subscript, all supported heading levels, existing marks,
+  paragraph alignment and list formatting. Keep the existing applicable link
+  and horizontal-rule actions in the toolbar and give them meaningful icons.
+  Specialized structural and semantic commands remain in Selection tools.
+  Do not invent formatting semantics unsupported by the editor.
+- Use one shared applicability model for the format toolbar and Selection
+  tools. Show only commands applicable to the current caret, selection, node
+  and permission/context; hidden means unavailable, rather than a disabled
+  control that suggests the action is available. Preserve checked/pressed
+  state. Temporarily busy actions may remain disabled with an explicit reason.
+  When applicability changes, keep the current focus stable where possible and
+  never direct keyboard focus into a hidden control.
+- Use consistent, meaningful icons for Selection tools, Undo, Redo, Save,
+  Insert from source, Publish and other icon-capable editor commands. Keep
+  concise visible text only where an icon would be unclear or misleading.
+  Icon-only controls must have a clear accessible name and a text tooltip
+  naming the action; decorative icon markup is hidden from assistive technology.
+  Keep the existing guarded effects, confirmations and status messages.
+- Selection tools becomes shorter and more icon-led. Remove horizontal rules
+  between its action groups; preserve accessible group names, arrow/Home/End
+  navigation, Escape, outside dismissal, viewport containment and focus return.
+  Keep contextual or structural commands there rather than duplicating a second
+  permanent toolbar row. Do not remove an action merely to make the menu shorter.
+
+**Whole-document canvas and difference controls.**
+
+- Remove the **Show / Whole book** part selector and section filter. Always
+  render all editor content together, including title, ToC, sections and
+  metadata page. Outline activation scrolls/focuses its destination and may
+  highlight it; it never filters or hides other content. Remove content-fold
+  controls and the global **Expand editor** action. Outline hierarchy folding
+  may collapse navigation rows only; it must not hide document content.
+- Replace **Content view: Result/Diffs** with one **Diff** state-button. Its
+  accessible name describes the next/current state, its pressed state is
+  exposed, and it switches between ordinary result and comparison markup
+  without altering draft content.
+- Remove **Update comparison** and **Difference help**. Changing **Compare
+  with** loads and displays the selected saved baseline automatically. Keep
+  request ordering safe when the reviewer changes baselines rapidly: stale
+  responses cannot overwrite the latest choice, failures are reported, and a
+  failed load does not present an old comparison as the newly selected one.
+  Baseline loading and toggling Diff do not save or dirty a draft. Only offer
+  baselines the current editing context permits.
+
+**Outline commands and contextual layout.**
+
+- Remove `.editor-outline-options` and its **Follow scroll** toggle.
+  Follow-scroll is always active: as the editor moves, keep the active visible
+  outline row in view. Keep explicit fold/expand actions and their state.
+- Put **Use work-type layout defaults** and the existing section-management
+  commands in one compact toolbar directly associated with `.editor-outline`
+  (or its existing workspace command-bar surface). It uses the format toolbar's
+  icons-first treatment, compact spacing, theme accent and bottom border.
+  Preserve each command's permission, target, guard and outcome.
+- Remove the separate outline-help disclosure. Put the **Layout and
+  separation** choices directly in the applicable outline/right-click menu;
+  do not open a separate layout-and-separation popup/dialog for this routine
+  choice. For the selected page or part, expose its current effective setting,
+  eligible **Continuous** / **New page** choices, and **Reset to default**
+  only when an override exists. Apply to the exact context-menu target, preserve
+  work-type defaults and existing document-boundary rules, and report a stale
+  target rather than applying to another part.
+
+**Help, recovery and focus treatment.**
+
+- Remove `.editor-help` from the editor page; do not replace it with another
+  always-present help wall. Preserve keyboard access, command names/tooltips,
+  necessary warnings and license information without relying on removed help
+  text for discoverability.
+- When recoverable unsaved tab content exists, place its explicit **Restore**
+  action in the existing editor command bar. Use a recognizable restore icon
+  and concise visible name only where needed; accessible name and tooltip state
+  that it restores this tab's unsaved draft. Keep it hidden when there is
+  nothing to restore. Restoration remains explicit, scoped to this tab, and
+  must not overwrite newer edits without the existing recovery safeguards.
+- Keep the accent focus border around the editor surface, but render it above
+  document content as a non-obscuring, non-interactive visual layer. It must
+  not be painted underneath text/images, change document geometry or selection,
+  clip scrolling content, or interfere with pointer/keyboard editing.
+
+**Acceptance and stopping point.** Use an isolated representative editor draft
+containing prose, headings, lists at multiple nesting levels, links, citations,
+tables, figures, captions, sections and generated pages.
+
+- At each representative caret/selection/node, compare the visible format
+  toolbar and Selection tools against supported commands and applicability:
+  no missing supported formatting action, no irrelevant visible action, correct
+  active/pressed state, and identical list icons. Exercise each formatting
+  action and undo it; confirm icon-only controls have meaningful accessible
+  names and text tooltips, keyboard focus never lands in hidden commands, and
+  Selection tools has no horizontal group rules.
+- Load the full document and use every outline destination. Confirm all content
+  remains visible; navigation moves to the exact target. Verify automatic
+  outline follow-scroll without a toggle and that outline-only fold/unfold
+  never hides canvas content.
+- Switch baselines, including rapid successive choices and a failed request.
+  Each successful selection displays its own comparison without an Update
+  action; stale results never win. Toggle Diff on/off and confirm the draft's
+  serialized content, save state and review state remain unchanged.
+- Open layout choices by right-click/keyboard in the outline for generated and
+  content parts. Change and reset the exact target; verify inherited/default
+  states, stale-target errors and document-boundary behavior with no separate
+  layout popup.
+- Verify help disclosures are absent, recovery is available only when needed
+  and remains explicit, and the focus border is visible above long text and
+  replaced media without clipping or changing scroll/selection.
+- Check native keyboard and pointer interaction, both themes, desktop, narrow
+  layout and native browser zoom. Verify unchanged save/reopen, Read, print and
+  PDF output in isolated fixtures. No deployment, publication or live-data
+  mutation is part of this milestone.
+
+Stop when the consolidated command/navigation workflow and preservation
+invariants pass; do not expand into unrelated editor redesign.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where

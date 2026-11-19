@@ -317,6 +317,23 @@ for the action matrix and acceptance criteria.
 - [ ] Check native-browser focus and selection behavior, narrow layout and zoom,
   plus unchanged saved content and reader/print/PDF output in isolated fixtures.
 
+### Milestone V.t: Compact editor commands, contextual tools and whole-document view
+
+**Status: specification only.** See the
+[V.t handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vt-compact-editor-commands-contextual-tools-and-whole-document-view)
+for command visibility, navigation, layout and end-to-end acceptance.
+
+- [ ] Unify toolbar and Selection tools actions/icons; expose all applicable
+  supported formatting actions and hide inapplicable actions in both surfaces.
+- [ ] Replace result/diff selection with a Diff state-button and automatically
+  refresh comparison when its baseline changes.
+- [ ] Consolidate outline commands; remove follow-scroll settings and content
+  scope controls so the complete document remains visible.
+- [ ] Remove editor and outline help walls; move unsaved-draft recovery into the
+  editor command bar and correct the focused-surface border stacking.
+- [ ] Verify keyboard/focus, native-browser desktop and narrow/zoom layout, draft
+  recovery, comparison updates, and unchanged saved/reader/print/PDF behavior.
+
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
 - [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;

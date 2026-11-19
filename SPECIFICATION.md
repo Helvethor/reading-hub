@@ -113,6 +113,9 @@ keyboard navigation across rows (arrow keys, Home/End and Escape). Right-click
 anchors it at the pointer; keyboard invocation uses the caret and the toolbar
 button uses its own position. Keep the menu inside the viewport, scroll long
 menus internally, and dismiss on outside interaction, page/pane scroll or resize.
+The [V.t editor command and navigation milestone](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vt-compact-editor-commands-contextual-tools-and-whole-document-view)
+specifies the complete editor toolbar, applicable-action visibility, whole-
+document canvas and outline command contract.
 All editor right-click menus follow the same floating placement and compact
 visual language: page/layout settings, outline/section actions, ToC numbering
 and visibility, title fields, metadata fields and difference restoration.
