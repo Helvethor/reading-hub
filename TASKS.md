@@ -320,7 +320,8 @@ Checkpoint validated implementation stages locally when separately authorized.
 
 ### Milestone SV5: Editor toolbar spacing and alignment regression
 
-Recorded 2026-11-19. **Status: planned; not implemented or browser-validated.**
+Recorded 2026-11-19. **Status: CSS fix and rendered-layout regression implemented;
+full editor-preview acceptance remains open.**
 Restore the existing [visual contract](SPECIFICATION.md#square-visual-language-and-joined-controls)
 for the editor command area without changing command behavior.
 
@@ -329,22 +330,32 @@ and Outline toolbars, plus `.editor-command-panel` padding of `.35rem .5rem`
 stacked with the inner command bar's `.5rem` padding. This is source-based
 diagnosis, not rendered-browser evidence.
 
-- [ ] Remove the editor-specific zero-gap override so Format and Outline
+- [x] Remove the editor-specific zero-gap override so Format and Outline
   inherit the shared 3px control spacing; retain stretch alignment.
-- [ ] Make `.editor-command-panel` an unpadded structural wrapper. Keep padding
+- [x] Make `.editor-command-panel` an unpadded structural wrapper. Keep padding
   owned by the inner `.workspace-command-bar` consistently across Format,
   Outline and Diff, matching `.editor-pilot-toolbar`.
-- [ ] Add focused browser-layout regression coverage for measured spacing and
+- [x] Add focused browser-layout regression coverage for measured spacing and
   alignment, rather than relying on stylesheet-text or DOM-only assertions.
-- [ ] Validate an isolated synthetic preview in both Marxist themes at desktop,
-  narrow widths and native 200% zoom. Measure exactly 3px between adjacent
-  formatting buttons, horizontally and between wrapped rows; confirm matching
-  command-bar content insets and a single 8px padding layer on all four sides.
+- [ ] Validate the authenticated editor preview in both Marxist themes at
+  desktop, narrow widths and native 200% zoom. The focused Chromium fixture
+  currently measures the shipped stylesheets at 1440px, 640px and 390px, but is
+  not native-zoom or authenticated-preview evidence.
 - [ ] Preserve visible focus, disabled/selected states, overflow-free wrapping,
   keyboard command-tab switching, unsaved editor content and stable command-area
-  height when switching Format, Outline and Diff.
-- [ ] Record observed browser evidence and limitations, then checkpoint the
-  validated fix locally.
+  height when switching Format, Outline and Diff in the rendered editor.
+- [x] Record the automated browser evidence and its limits, then checkpoint the
+  CSS fix and focused validation locally.
+
+The `npm run test:browser:layout` regression passed in local headless Chromium
+for Marxist Paper and Dark at 1440px, 640px and 390px CSS viewports. It measures
+3px between adjacent Format and Outline controls, horizontally and between
+wrapped rows; confirms stretch alignment, no page overflow, zero wrapper
+padding and matching 8px command-bar padding. It renders a synthetic fixture
+with the actual stylesheet files, not the authenticated development editor.
+`npm test` and the isolated `library.tests.test_document_editor_views` module
+also passed. Native 200% zoom, visible state cues and real editor-tab/content
+preservation remain unverified in a rendered editor preview.
 
 Scope is the spacing/alignment regression in `editor-pilot.css`; no JavaScript
 changes are expected. Do not redesign toolbars or change publication/PDF output.

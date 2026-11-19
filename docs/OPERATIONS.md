@@ -1645,10 +1645,14 @@ Existing historical evidence remains available. For a new or updated deployment:
    ```sh
    npm ci
    npm test
+   npm run test:browser:layout
    npm run build
    ```
 
-   Use a supported Node/npm pairing; the pilot was tested with Node 20.
+   The rendered layout regression launches local Chromium from `PATH` or
+   `CHROMIUM_BIN`; it uses synthetic markup and the shipped stylesheets, not the
+   authenticated application or native browser zoom. Use a supported Node/npm
+   pairing; the pilot was tested with Node 20.
    Generated JS/CSS and `editor-licenses.txt` are under
    `library/static/library/generated/` and are gitignored. Build before
    `collectstatic` or serving static assets; do not install with `--omit=dev`

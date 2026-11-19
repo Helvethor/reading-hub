@@ -31,9 +31,9 @@
 .editor-command-tabs { margin-inline-start: auto; }
 .editor-workspace:not([data-editor-tab="editor"]) :is(.editor-command-tabs, .editor-command-area) { display: none; }
 .editor-command-panels { position: relative; min-height: var(--editor-command-panel-height, 5rem); }
-.editor-command-panel { box-sizing: border-box; width: 100%; padding: .35rem .5rem; }
+.editor-command-panel { box-sizing: border-box; width: 100%; padding: 0; }
 .editor-command-panel[hidden] { display: none !important; }
-.editor-command-panel :is(.editor-format-toolbar, .editor-outline-toolbar) { gap: 0; align-items: stretch; }
+.editor-command-panel :is(.editor-format-toolbar, .editor-outline-toolbar) { align-items: stretch; }
 .editor-format-toolbar button { min-width: 2.25rem; padding-inline: .3rem; }
 .editor-outline-toolbar button { gap: .3rem; }
 .editor-format-toolbar svg, .editor-pilot-toolbar button svg, .editor-pilot-toolbar a svg, .editor-outline-toolbar button svg { width: 1rem; height: 1rem; flex: 0 0 1rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
