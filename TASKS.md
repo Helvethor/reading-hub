@@ -401,6 +401,25 @@ Native-browser, zoom/theme, focus/scroll, edge-measurement, and
 save/reopen/Read/print/PDF acceptance remain to be verified. No deployment or
 live-data changes were made.
 
+### Milestone V.w: Reliable outline and coherent separation boundaries
+
+**Status: specified 2026-11-19; not implemented.** See the
+[V.w handoff](docs/UNIFIED-WORKSPACE-UX-HANDOFF.md#vw-reliable-outline-and-coherent-separation-boundaries).
+
+- [ ] Preserve every H2-H6 outline entry, including a lone H2 sharing its
+  container's range; keep structural Article/Section parent rows distinct.
+- [ ] Define separation before exact targets and share one setting across
+  coincident body/container/first-heading boundaries; retain distinct boundaries
+  when introductory content intervenes.
+- [ ] Inventory legacy conflicts and define compatibility/precedence explicitly;
+  do not silently rewrite overrides or migrate user records.
+- [ ] Keep surface/outline/body controls, inheritance, undo/redo, save/reopen and
+  Read/print/PDF effective separation consistent.
+- [ ] Place each dashed marker outside and above its target box, or inside an
+  enclosing section for internal targets; show one marker per shared boundary.
+- [ ] Verify lone-heading stability, shared/distinct boundaries, marker alignment
+  and spacing, both themes, native zoom and output parity on isolated fixtures.
+
 ### U1. Shared visual and interaction foundation (implementation present; acceptance partial)
 
 - [ ] Complete the inventory of current destinations/actions and obsolete workflow promises;

@@ -2532,6 +2532,113 @@ as content before the first section, show no toggles.
    for the intended stored separation attribute.
 5. Report jsdom/unit, synthetic browser and native-browser evidence separately.
 
+### V.w: Reliable outline and coherent separation boundaries
+
+**Status: specified 2026-11-19; not implemented.** Follow V.v with a complete
+outline and separation workflow, not another marker-only patch. This milestone
+refines V.u/V.v target ownership and marker placement. Implementation, deployment
+and changes to existing drafts/publications require separate authorization.
+
+**Starting evidence and limitations.** The reported article has a lone H2,
+"An offline reading exercise", missing from Sections until another H2 is added.
+In `frontend/workspace.js`, `documentParts` filters identical content ranges:
+a leading H2 spanning its Article container is discarded, but survives once a
+second H2 shortens that range. This is code-level evidence; authenticated draft
+reproduction remains outstanding. The supplied development URL opened anonymous
+Read during investigation; no draft was edited.
+
+Body, container and heading separation settings currently have independent
+owners without a consistent rule for coincident boundaries. Editor decoration
+logic combines first-boundary values while backend presentation projection
+handles them separately. Generated-page markers are prepended inside their
+boxes; section markers are inserted before their targets. That implementation
+difference is not a justified user-facing pagination distinction.
+
+**Outline identity.**
+
+- Always list H2-H6 headings, including a lone H2. Article/Section containers
+  remain structural parent rows; do not treat a container and its heading as
+  duplicates merely because their content ranges coincide.
+- Track distinct node identities/positions through edits. Adding or removing a
+  sibling heading must not determine another heading's visibility, identity or
+  separation settings.
+- The example outline contains Article: Synthetic reading article, then child
+  H2: An offline reading exercise, then child H3: A smaller heading.
+- Keep navigation identity distinct from ToC inclusion and publication rules;
+  restoring outline rows must not accidentally duplicate published ToC entries.
+
+**Separation means "before this target".**
+
+- Sections/body means before the entire content body, not a default applied to
+  every section. Article/Section means before that complete container. A heading
+  means before that heading and its following content.
+- Work-type defaults supply inherited values; they are not competing overrides.
+  Keep the compact New page / Continuous pair. Put the exact target in adjacent
+  menu context and expose the inherited/effective state accessibly.
+- Where body, Article/Section and its first heading begin at the same location
+  with no intervening content, expose one shared boundary and value. Every menu
+  for that boundary reads and changes the same setting, not independent values.
+  Outline entries remain distinct even when their separation boundary is shared.
+- Introductory content before a heading makes that heading boundary distinct.
+  Determine coincidence from document structure/content, not the current pixel
+  position or the number of outline rows.
+- Activating an inactive choice sets that explicit value; activating the active
+  override clears it to inherit. Explicit Continuous must be able to override
+  inherited New page. Update every equivalent menu and marker immediately as
+  one undoable edit, preserving selection, scroll and pending draft content.
+
+**Existing settings and output coherence.** Inventory legacy body/container/
+heading conflicts first. Define and test an explicit compatibility/precedence
+rule before implementation; do not silently discard a stored override or use
+an OR of independently resolved values as the new model. Surface conflicting
+legacy values and obtain authorization for any migration of existing records.
+Use one documented effective-boundary contract across editor menus, markers
+and backend Read/print/PDF projection, with parity tests for both implementations.
+Unchanged, non-conflicting settings retain their output semantics. Any deliberate
+change to legacy conflict resolution must be identified, not presented as a
+purely visual fix.
+
+**Marker placement.**
+
+- A break belongs before its target, not inside that target's content. For a
+  boxed Section, Article, ToC, Metadata or other generated page, draw the dashed
+  "Page break" marker outside and immediately above the box, aligned with its
+  borders. Do not retain the generated-page inside-box exception.
+- For an internal heading or introductory text, draw the marker immediately
+  before the target, inside any enclosing section and aligned with that content
+  area. Do not split the enclosing section's border. This containment reflects
+  an internal boundary, not a different kind of page break.
+- Coincident boundaries produce exactly one marker. The boundary after a title
+  page is the boundary before the following target, not a second marker.
+- Use consistent spacing around markers without accumulating section/page
+  margins and marker margins. Preserve V.u's aligned 1px box borders and V.v's
+  ordinary block-gap contract; measure break gaps separately.
+- Retain V.v's single dashed style, visible label, immediate transaction-driven
+  updates and exclusion from saved content, clipboard and document diffs.
+
+**Delivery and acceptance.**
+
+1. Reproduce the lone-H2 case on an isolated article. Fix identity independently
+   of boundary ownership, then verify the H2 appears immediately and after reload.
+   Adding/removing a second H2 must not alter the first heading's identity or
+   stored settings. Check nested H3-H6 and structural parent rows too.
+2. Cover coincident body/Article/first-heading boundaries and distinct boundaries
+   with introductory text. Choosing New page or Continuous from the surface,
+   outline or body command must update all equivalent controls and one marker.
+   Test clearing overrides, inheritance, undo/redo and save/reopen.
+3. Inventory and test legacy conflicts without modifying user records. Complete
+   the compatibility rule and migration decision before claiming the coherent
+   model delivered.
+4. In rendered article and book fixtures, verify markers outside target boxes
+   and inside enclosing boxes for internal boundaries, with aligned endpoints
+   within 1 CSS px. Check ToC, metadata, top-level/nested sections, first headings
+   and introductory content at native 100%/200% zoom in both themes.
+5. Verify Read/print/PDF agree with the effective editor state and preserve
+   unrelated content, hierarchy, IDs, ToC policies, saving/recovery and output
+   settings. Report unit, synthetic-browser, native-browser and actual output
+   evidence separately. Stop at this bounded workflow; no new pagination
+   controls, deployment or live-data changes are included.
+
 ### Delivery boundaries and implementation-agent handoff
 
 Deliver V.a/V.b together where
