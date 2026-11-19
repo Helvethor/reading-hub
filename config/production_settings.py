@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -17,6 +18,27 @@ from config.settings import MIDDLEWARE as BASE_MIDDLEWARE  # noqa: E402
 DEBUG = False
 ALLOWED_HOSTS = ["read.shabang.ch"]
 CSRF_TRUSTED_ORIGINS = ["https://read.shabang.ch"]
+if os.environ.get("READING_HUB_LOCAL_SIMULATION") == "1":
+    simulation_origin = os.environ.get("READING_HUB_LOCAL_SIMULATION_ORIGIN", "")
+    try:
+        parsed_origin = urlsplit(simulation_origin)
+        simulation_port = parsed_origin.port
+    except ValueError as exc:
+        message = "The local simulation origin must be a localhost HTTPS origin."
+        raise ImproperlyConfigured(message) from exc
+    if (
+        parsed_origin.scheme != "https"
+        or parsed_origin.hostname != "localhost"
+        or simulation_port is None
+        or parsed_origin.netloc != f"localhost:{simulation_port}"
+        or parsed_origin.path
+        or parsed_origin.query
+        or parsed_origin.fragment
+    ):
+        raise ImproperlyConfigured("The local simulation origin must be a localhost HTTPS origin.")
+    CSRF_TRUSTED_ORIGINS.append(simulation_origin)
+elif os.environ.get("READING_HUB_LOCAL_SIMULATION_ORIGIN"):
+    raise ImproperlyConfigured("A local simulation origin requires READING_HUB_LOCAL_SIMULATION=1.")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 86400

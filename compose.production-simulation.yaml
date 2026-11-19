@@ -1,0 +1,72 @@
+services:
+  web:
+    image: ${READING_HUB_IMAGE:?Build and select a revision-tagged image}
+    user: "${READING_HUB_SIMULATION_UID:?Initialize the local simulation}:${READING_HUB_SIMULATION_GID:?Initialize the local simulation}"
+    read_only: true
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=${READING_HUB_SIMULATION_UID},gid=${READING_HUB_SIMULATION_GID},mode=0700
+    environment:
+      READING_HUB_ALLOW_WORKERS: "0"
+      READING_HUB_LOCAL_SIMULATION: "1"
+      READING_HUB_LOCAL_SIMULATION_ORIGIN: "https://localhost:${READING_HUB_SIMULATION_HTTPS_PORT:?Initialize the local simulation}"
+    volumes:
+      - type: bind
+        source: ${READING_HUB_SIMULATION_DIR:?Initialize the local simulation}/data
+        target: /var/lib/reading-hub
+        bind:
+          create_host_path: false
+    expose:
+      - "8000"
+    networks:
+      - simulation
+
+  proxy:
+    image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+    user: "${READING_HUB_SIMULATION_UID}:${READING_HUB_SIMULATION_GID}"
+    entrypoint:
+      - nginx
+    command:
+      - -g
+      - daemon off;
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,uid=${READING_HUB_SIMULATION_UID},gid=${READING_HUB_SIMULATION_GID},mode=0700
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${READING_HUB_SIMULATION_HTTPS_PORT:?Initialize the local simulation}:8443"
+    volumes:
+      - type: bind
+        source: ./docker/production-simulation/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${READING_HUB_SIMULATION_DIR:?Initialize the local simulation}/tls/server.crt
+        target: /etc/nginx/tls/server.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${READING_HUB_SIMULATION_DIR:?Initialize the local simulation}/tls/server.key
+        target: /etc/nginx/tls/server.key
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - simulation
+
+networks:
+  simulation:
+    internal: true
