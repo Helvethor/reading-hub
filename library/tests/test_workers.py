@@ -4,7 +4,7 @@ import tempfile
 from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -26,6 +26,7 @@ from library.services.workers import (
 from library.tests.test_sources import ARTICLE
 
 
+@override_settings(READING_HUB_ALLOW_WORKERS=True)
 class WorkerControlsTests(TestCase):
     def scheduler(self):
         from library.management.commands.run_import_worker import Command
@@ -140,6 +141,39 @@ class WorkerControlsTests(TestCase):
             self.client.get("/workers/status/").json()["workers"][0]["status"], "stopped"
         )
         self.assertEqual(self.client.get("/workers/control/").status_code, 405)
+
+    def test_environment_supervisor_stops_workers_outside_configured_pool(self):
+        from library.management.commands.manage_environment_workers import Command
+
+        save_pool(3, 1024)
+        save_pool(1, 1024)
+        pool = configured_pool()
+        workers = list(pool.workers.order_by("number"))
+        with (
+            patch("library.management.commands.manage_environment_workers.operate") as operate,
+            patch(
+                "library.management.commands.manage_environment_workers.process_info",
+                return_value={"rss": 1},
+            ),
+            patch(
+                "library.management.commands.manage_environment_workers.worker_rows",
+                return_value=(pool, [{"worker": workers[0], "live": True}]),
+            ),
+            patch(
+                "library.management.commands.manage_environment_workers.write_supervisor_status",
+                return_value={"healthy": True},
+            ),
+        ):
+            self.assertEqual(Command().start_pool(), {"healthy": True})
+
+        self.assertEqual(
+            operate.call_args_list,
+            [
+                call("start", workers[0].pk),
+                call("stop", workers[1].pk),
+                call("stop", workers[2].pk),
+            ],
+        )
 
     def test_pool_and_individual_settings_and_bounds(self):
         response = self.client.post(

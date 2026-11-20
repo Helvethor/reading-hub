@@ -1,13 +1,14 @@
 ---
 name: local-server
-description: Start, inspect, stop, or restart isolated Reading Hub previews or an explicitly authorized live localhost server.
+description: Start, inspect, stop, or restart isolated Reading Hub previews or an explicitly authorized legacy localhost server.
 ---
 
 # Local server
 
 Use [the environment lifecycle](../../../docs/OPERATIONS.md#environment-contract).
-An ordinary developer/agent preview is development, not the existing live
-localhost listener on port 8765. Public hosting is outside this skill.
+Production is `https://read.shabang.ch`; this skill does not control it. An
+ordinary developer/agent preview is development, and localhost:8765 is the
+requested staging listener. Do not apply legacy localhost-live steps to staging.
 
 ## Isolated preview: default
 
@@ -21,26 +22,30 @@ python workflow.py dev stop
 Use `--checkout /absolute/path` before `dev` for another worktree, and
 `dev start --port PORT` for a free concurrent listener. Development normally
 uses port 8766 with private data/identities, autoreload and frontend watch.
-The launcher owns an independent supervisor, checks exact HTTP identity and
-provides safe status/stop; it does not require a detached conversation shell.
-Do not substitute live data or copy maintenance credentials. Workers remain
-disabled unless isolated processing was explicitly intended.
+The launcher owns an independent supervisor, starts one managed worker,
+checks exact HTTP and worker-supervisor identity, and provides safe status/stop;
+it does not require a detached conversation shell. Stop gracefully stops the
+worker before the preview. Do not substitute live data or copy credentials.
 
 For a frozen candidate use `stage start COMMIT`, `stage status COMMIT` and
-`stage stop COMMIT` after `stage prepare COMMIT`; staging normally uses 8767.
-Report which environment and URL actually respond.
+`stage stop COMMIT` after `stage prepare COMMIT`. Staging defaults to
+localhost:8765 and starts one managed worker. Report which environment and URL
+actually respond.
 
-The rest of this skill covers only an explicitly requested existing live server
-operation. A preview request never authorizes these actions.
+The remaining localhost-live instructions are legacy and are not for public
+production or the staging listener. A preview request never authorizes live
+operations.
 
 ## Scope and preflight
 
 - Work in the documented WSL/Linux installation (`~/reading-hub` in the
   `archlinux` distribution) unless the user names another local checkout.
-- The documented live listener is `127.0.0.1:8765`. Never bind to all interfaces,
-  tunnel, forward, or expose it to another machine.
-- The web process is separate from the managed import workers. Starting or
-  restarting this server must not start, stop, or change workers.
+- Do not use this legacy procedure for `127.0.0.1:8765`, now the requested
+  staging listener, or for public production. Never bind to all interfaces,
+  tunnel, forward, or expose a local listener to another machine.
+- This manual legacy server procedure does not manage import workers. Use the
+  workflow launcher for development or staging, where the worker supervisor is
+  part of the environment lifecycle.
 - Before acting, inspect the listener and its exact command line. For example:
 
   ```sh

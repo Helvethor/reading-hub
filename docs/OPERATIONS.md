@@ -29,9 +29,12 @@ Global maintenance and optional experiments are not publication-tailoring steps.
 
 ## 1. Local setup and start
 
-Development and release rehearsal use private storage. The existing
-`127.0.0.1:8765` service is **live**, not disposable development data. Its
-historical migration records are evidence, not instructions to migrate it again.
+The operator's current topology is production at `https://read.shabang.ch`,
+development at `127.0.0.1:8766`, and staging at `127.0.0.1:8765`. This
+supersedes older local-live instructions in this guide. The launcher defaults
+staging to 8765 and development to 8766. Confirm listener ownership before
+starting or replacing anything; do not treat public production as a local
+promotion target.
 
 Historical deployment evidence is retained in [the deployment log](archive/LOCAL-DEPLOYMENTS-before-environment-workflow.md).
 
@@ -45,19 +48,20 @@ are not implicitly trusted. Existing source extraction is unchanged, so adapter
 
 ### Environment contract
 
-| Role | Source | Runtime data | Default listener |
-|---|---|---|---|
-| Development | Current checkout, including uncommitted edits | Persistent synthetic data per checkout | `127.0.0.1:8766` |
-| Test | Selected checkout/candidate | Fresh private directory per run | None |
-| Staging | Archived exact Git commit and candidate-local assets/dependencies | Disposable representative synthetic data | `127.0.0.1:8767` |
-| Production simulation | Production WSGI settings from the current checkout | Separate synthetic data root, outside the checkout and all other environments | Explicit free localhost port |
-| Live | Explicitly promoted frozen candidate | Existing protected library | Registered listener, normally `127.0.0.1:8765` |
+| Role | Source | Runtime data | Default listener | Worker behavior |
+|---|---|---|---|---|
+| Development | Current checkout, including uncommitted edits | Persistent synthetic data per checkout | `127.0.0.1:8766` | One managed worker starts and is monitored |
+| Test | Selected checkout/candidate | Fresh private directory per run | None | No automatic worker; selected tests may opt in |
+| Staging | Archived exact Git commit and candidate-local assets/dependencies | Disposable representative synthetic data | `127.0.0.1:8765` | One managed worker starts and is monitored |
+| Production simulation | Production WSGI settings from the current checkout | Separate synthetic data root, outside the checkout and all other environments | Explicit free localhost port | Disabled |
+| Production | Public deployed service | Protected production library | `https://read.shabang.ch` | One managed worker on an authorized release; can process queued imports |
 
 Use Python >= 3.14, Node/npm, Git and a Linux/WSL shell. WeasyPrint also
 requires Pango/Harfbuzz/fontconfig and suitable fonts; on Arch Linux install
 `pango` and suitable fonts such as `noto-fonts` when missing. Public hosting,
 CI infrastructure and automatic migrations are outside this routine. All
-listeners remain localhost-only; never tunnel or bind to all interfaces. The
+local preview listeners remain localhost-only; never tunnel or bind them to all
+interfaces. Public production is separate from this contributor routine. The
 separate Docker/Compose production simulation for `read.shabang.ch` is a D3
 rehearsal, not part of this lifecycle or public-hosting support; follow the
 instructions below and the [public deployment roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md)
@@ -179,9 +183,10 @@ For an approved deployment:
   `https`. Verify trusted TLS, renewal, secure cookies, redirects and rejection
   of unexpected hosts. Coordinate the app's one-day HSTS with proxy policy.
 - Use one application instance with the image's single Gunicorn worker. Leave
-  workers disabled during the synthetic rehearsal; any later worker start or
-  catalogue processing requires explicit operator action. Image replacement
-  must not silently run migrations or start workers.
+  workers disabled during the synthetic rehearsal. An authorized production
+  image runs `manage.py serve_production`, which supervises one managed worker
+  alongside Gunicorn and gracefully stops both. It may process queued imports;
+  startup does not resume paused crawls, enqueue jobs or run migrations.
 - Rehearse on separate synthetic storage, including read/edit/PDF, replacement,
   backup, isolated restore, logs and rollback. Record exact image identity and
   results. The operator separately authorizes initialization of a fresh
@@ -402,30 +407,38 @@ python workflow.py --checkout /absolute/path/to/another/worktree dev start --por
 ```
 
 The launcher starts an independent, owned supervisor and waits for its exact
-environment/revision health response. Its log and status remain available after
-an agent conversation. Stop checks owner, process start identity and supervisor
-token, terminating only descendants of that owned preview. An occupied port
-never authorizes stopping its owner. Processes are not boot services or crash
-respawners. An agent may use this bounded start command directly; do not replace
-its supervisor with a conversation-attached server or shell background trick.
+environment/revision and worker-supervisor health response. Its log and status
+remain available after an agent conversation. Stop checks owner, process start
+identity and supervisor token. It gracefully asks the worker supervisor to stop
+workers before terminating web/watch processes. An occupied port never
+authorizes stopping its owner. An agent may use this bounded start command
+directly; do not replace its supervisor with a conversation-attached server or
+shell background trick.
 Repeated `dev start` remains idempotent after a new checkpoint; the displayed
 development revision identifies its startup base plus the current working tree.
-Stop before changing a running preview's port or worker permission.
+Stop before changing a running preview's port or worker configuration.
 If the execution environment disallows independent processes, report that
 limitation rather than changing the live service.
 
-Development and staging workers are disabled by default, including standalone
-worker commands. Only when isolated import processing is intended:
+Development and staging start their managed worker supervisors by default.
+Workers process already-queued imports and explicitly enabled background work.
+Startup does not enqueue jobs or resume paused crawls. The supervisor restarts
+unexpectedly failed workers; a deliberate stop in **Manage workers** remains in
+effect until the next environment restart. To explicitly run a selected test
+that starts a real worker subprocess:
 
 ```sh
-python workflow.py dev stop
-python workflow.py dev start --allow-workers
+python workflow.py test --with-workers library.tests.test_worker_subprocess
 ```
 
-Then explicitly operate the isolated **Manage workers** UI. Enabling the flag
-does not start workers, resume catalogues or enqueue jobs. There is no blanket
-network sandbox: an explicit import/recovery action can fetch under the normal
-source policy. Use retained synthetic fixtures for ordinary offline validation.
+The flag grants permission only to the selected test run; tests still choose
+when to start/stop the worker. It uses a private file-backed test database so
+the subprocess sees the same isolated fixtures and queue. Ordinary tests remain
+worker-free. There is no blanket network sandbox: an explicit import/recovery
+action can fetch under the normal source policy. Use retained synthetic
+fixtures and offline reformat jobs for bounded acceptance.
+An environment initialized before this lifecycle change must be stopped before
+its first start with the new worker setting.
 
 Use environment-scoped management commands instead of manually exporting paths:
 
@@ -464,7 +477,9 @@ inspect its named incomplete directory before removing only that directory and
 retrying. Never delete a candidate currently serving live or its dependencies.
 
 Staging has no autoreload or watcher; make changes in development and prepare a
-new committed revision. `stage test` runs the candidate's tests against fresh
+new committed revision. It uses the managed worker lifecycle and defaults to
+port 8765; a conflicting listener is never stopped automatically. `stage test`
+runs the candidate's tests against fresh
 test data, not against its persistent rehearsal database. Successful test
 directories are removed; failed-run evidence is retained at the printed exact
 path. Candidate preparation is not complete product acceptance.
@@ -489,10 +504,15 @@ hardlink live databases/blobs, copy live credentials or worker identities, or
 export user records by default. The routine currently ships synthetic fixtures,
 not an automatic live-data cloning tool.
 
-### Explicit live promotion and recovery
+### Legacy localhost live promotion and recovery
 
-Implementation, tests and staging do not authorize this phase. On an existing
-installation, identify the owned localhost web listener first:
+This `live` launcher manages a registered localhost `runserver`; it does not
+deploy to or control public production at `read.shabang.ch`. The old localhost
+live workflow is superseded by the topology above. Do not register staging on
+port 8765 as production or use these commands for the public site. Retained
+commands below are for separately authorized recovery of a legacy local
+installation only. On such an installation, identify the owned localhost web
+listener first:
 
 ```sh
 ss -ltnp 'sport = :8765'
@@ -1144,9 +1164,12 @@ retired standalone chapter readers.
 ## 4. Workers and crawls
 
 Managed worker controls support 1-8 workers and 256-8192 MiB per worker;
-the default is one worker at 1024 MiB. Existing deployment settings, not these
-defaults, govern a running pool. Saving settings does not start workers;
-memory changes apply on restart. Restart/stop lets the current task finish.
+the default is one worker at 1024 MiB. Development, staging and production
+service supervisors start the configured pool and monitor unexpected failures;
+with the default settings, exactly one worker starts. Saving a larger pool adds
+slots for the environment supervisor to start. Memory changes apply on worker
+restart. A deliberate worker stop remains in effect until the next environment
+restart, and stop/restart lets the current task finish.
 
 Linux `RLIMIT_AS` limits virtual address space, not physical RSS or reserved RAM.
 The UI reports PID, RSS, heartbeat, current activity, errors and bounded logs.

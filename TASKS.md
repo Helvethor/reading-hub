@@ -5,11 +5,70 @@ article hierarchy design accepted 2026-11-09. Read
 [SPECIFICATION](SPECIFICATION.md) first. This file owns ordering and completion
 status, not a second description of product behavior.
 
+### Environment milestone E1: align production topology and worker-backed acceptance (implementation complete; production release acceptance pending)
+
+The operator's current topology is production at `https://read.shabang.ch`,
+development at `127.0.0.1:8766`, and staging at `127.0.0.1:8765`. This
+supersedes older guidance that treated localhost:8765 as live and localhost:8767
+as staging. Public production is recorded as deployed in the
+[deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md); its current worker
+health and a completed production import have not been independently verified
+in this milestone.
+
+**Before E1:** the contributor launcher defaulted staging to port 8767 and did
+not manage workers outside the admin UI. The source now aligns the local
+topology and supervises workers in long-running environments. The existing
+production image still has its prior startup behavior; this change has not been
+deployed or verified against production.
+
+**Required behavior:** every long-running development, staging and production
+service starts and maintains exactly one managed worker by default. Production
+may process imports already in its queue when the service starts. Paused crawls
+remain paused and startup does not enqueue jobs. Ephemeral test runs do not
+start workers implicitly, but tests must be able to start one explicitly.
+
+**Plan**
+
+- [x] Align the launcher, environment table, quickstart, agent guidance and
+  local server/deploy instructions with the public-production / local-development
+  / local-staging topology. Make staging default to localhost:8765 while keeping
+  development at localhost:8766. Treat occupied ports as ownership boundaries;
+  never stop or repurpose an unidentified listener.
+- [x] Add lifecycle-managed worker startup and shutdown for development,
+  staging and production: exactly one worker starts by default, is monitored and
+  stops gracefully with its environment. Management and health checks must not
+  require a person to use the admin UI. Keep each environment's data, queue,
+  credentials and process ownership isolated; do not implicitly resume paused
+  crawls or enqueue work.
+- [ ] Exercise a bounded synthetic job through the real worker subprocess in
+  development and staging. Verify queue completion/failure reporting and that
+  resulting records and retained files stay in the selected environment. Verify
+  production starts one worker and may process its existing queue, without
+  resuming crawls or creating jobs. Do not use production records to validate
+  local behavior. Production acceptance is pending a separately authorized
+  release.
+- [x] Provide an explicit test-harness path to start and stop a worker for
+  selected tests while keeping ordinary ephemeral tests worker-free.
+
+**Implementation evidence:** staging defaults to 8765, development to 8766;
+both launch a private managed-worker supervisor, restart unexpectedly failed
+workers, and gracefully stop the pool before their other children. Production's
+container command supervises workers with Gunicorn, and its health check verifies
+the supervisor; this source change has not been released. `workflow.py test
+--with-workers` provides an explicit, file-backed test database for a real
+worker subprocess test; ordinary test runs do not start a worker.
+
+**Acceptance:** automated tests and bounded synthetic worker jobs are recorded
+after implementation below. Production startup, queued-import handling and
+worker health remain unverified until a separately authorized release. No
+production deployment, migration, import or publication is authorized by E1.
+
 ## Contributor workflow separation (2026-11-15)
 
-The user authorized development, staging, explicit live promotion and
-documentation consolidation. This does not authorize changing the running
-live instance or any real library data. The
+The user authorized development, staging, explicit local promotion and
+documentation consolidation at that time. The localhost promotion evidence
+below is historical and is not the deployment path for public production. This
+does not authorize changing any real library data. The
 [environment lifecycle](docs/OPERATIONS.md#environment-contract) owns the routine.
 
 - [x] Implement environment identity, isolated paths/cookies and safe owned
@@ -80,7 +139,7 @@ forms were submitted with `requestSubmit`, not a direct API or database edit.
 Promotion applied no migrations or content changes. Full publication and human
 interaction acceptance remain incomplete.
 
-### Public deployment route (D1-D3 locally implemented and validated; no public delivery)
+### Public deployment route (D1-D3 locally implemented and validated; public production deployed)
 
 The agreed direction is a single private server at `read.shabang.ch`, packaged
 with Docker Compose, a production WSGI server and reverse-proxy HTTPS. SQLite
@@ -88,19 +147,21 @@ remains appropriate for the initial single-instance deployment. D1's production
 runtime, D2's reproducible container image and D3's isolated local HTTPS
 simulation are implemented and locally validated with synthetic data. A local
 synthetic D4 restore rehearsal also passed. Off-site backup is deferred with
-same-server loss risk accepted. The server's Borg/Borgmatic
-backup and restore remain unverified, as do remote-server details. Write
-concurrency work is deferred; the first deployment uses one app instance and a
-fresh database. A host-local agent is the preferred deployment operator.
+same-server loss risk accepted. The production Borg/Borgmatic archive and
+scratch restore are verified, but scheduled backups, retention monitoring and
+authenticated operator login remain pending. Write concurrency work is deferred;
+the deployment uses one app instance and a fresh database. A host-local agent is
+the preferred deployment operator.
 Exact D3 and partial D4 evidence are in
 [the public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md).
 
-Local production simulation with synthetic isolated data, a separate port and
-an unsigned local certificate is authorized. Public DNS/firewall exposure,
-remote deployment, real-data transfer/migration and changes to the existing
-localhost live service are not authorized by this plan. Keep the existing
-contributor workflow and data/worker protections intact. This future route does
-not reorder current UI/UX work or claim public-hosting readiness.
+As recorded in the deployment roadmap, production is live at
+`https://read.shabang.ch`. The current contributor topology and its worker
+acceptance gaps are tracked in [milestone E1](#environment-milestone-e1-align-production-topology-and-worker-backed-acceptance-planned-2026-11-20).
+Local production simulation remains separate, using synthetic isolated data,
+its own port and an unsigned local certificate. Keep production data and worker
+policy separate from development and staging; this record does not authorize
+production processing, migration or publication.
 
 ## Current goals: coherent visual and structural UI/UX (2026-11-08)
 

@@ -26,8 +26,16 @@ except (ValueError, OSError) as exc:
 READING_HUB_REVISION = os.environ.get("READING_HUB_REVISION", "unmanaged")
 READING_HUB_INSTANCE = os.environ.get("READING_HUB_INSTANCE", "")
 READING_HUB_ALLOW_WORKERS = (
-    READING_HUB_ENVIRONMENT in {"live", "test"}
-    or os.environ.get("READING_HUB_ALLOW_WORKERS") == "1"
+    READING_HUB_ENVIRONMENT == "live"
+    or (
+        READING_HUB_ENVIRONMENT in {"development", "staging", "production"}
+        and os.environ.get("READING_HUB_ALLOW_WORKERS") != "0"
+    )
+    or (READING_HUB_ENVIRONMENT == "test" and os.environ.get("READING_HUB_ALLOW_WORKERS") == "1")
+)
+READING_HUB_AUTO_WORKERS = (
+    READING_HUB_ENVIRONMENT in {"development", "staging", "production"}
+    and READING_HUB_ALLOW_WORKERS
 )
 DATA_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
 secret_path = DATA_DIR / "secret-key"
@@ -86,6 +94,8 @@ DATABASES = {
         "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
     }
 }
+if READING_HUB_ENVIRONMENT == "test" and os.environ.get("READING_HUB_TEST_DATABASE_FILE") == "1":
+    DATABASES["default"]["TEST"] = {"NAME": DATA_DIR / "worker-test.sqlite3"}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LANGUAGE_CODE = "en"
 TIME_ZONE = "UTC"

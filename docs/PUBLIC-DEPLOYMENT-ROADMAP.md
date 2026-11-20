@@ -1,16 +1,18 @@
 # Public deployment roadmap
 
 Status: **Production is reachable through Caddy and Cloudflare over HTTPS. The first administrator exists and a post-administrator restore is verified. Authenticated login verification, scheduled backups and monitoring are pending**.
-This handoff records the agreed route for a future public Reading Hub at
-`read.shabang.ch`, hosted on one private server and managed by one project
-operator. It is an implementation guide, not authorization to expose a server,
-change DNS, migrate real data, or deploy remotely.
+This handoff records the production architecture and remaining operations for
+the public Reading Hub at `read.shabang.ch`, hosted on one private server and
+managed by one project operator. It is not authorization for additional remote
+changes, real-data migration or deployment.
 
 The operator has authorized a **local production simulation** on this
 development machine, including installing/configuring a production WSGI server.
-Use synthetic data, an isolated data root and a port distinct from the existing
-live localhost service. A self-signed certificate is acceptable only for that
-local simulation. Do not modify the existing live service on port 8765.
+Use synthetic data and an isolated data root. A self-signed certificate is
+acceptable only for that local simulation. The current contributor topology is
+production at `https://read.shabang.ch`, development at localhost:8766 and
+staging at localhost:8765; do not treat the staging listener as a local live
+production target.
 
 On 2026-11-20, the operator authorized persistent host-side changes for an
 isolated synthetic rehearsal, the permanent Borgmatic profile, and initialization
@@ -399,6 +401,12 @@ the managed workers. This bridge is not shared with Caddy or other services.
 Enabling the controls does not start workers or resume crawls: use **Manage
 workers** to explicitly start processing queued imports.
 
+That describes the currently deployed image. The E1 source change adds
+supervised worker startup to a future production release; it has not been
+deployed or verified against production. A separately authorized release may
+start one worker and process already queued imports without resuming paused
+crawls or enqueuing jobs.
+
 To disable public access without stopping the app or other sites, remove
 only the `read.shabang.ch` site block from Caddy's configuration, validate it
 and reload the running proxy. An authenticated operator login has not yet
@@ -409,8 +417,8 @@ been verified. Backup timers and monitoring remain off.
 - Do not push commits, publish images, change DNS/firewall rules, provision or
   access the remote server, or expose a public listener as a side effect of
   implementing D1-D4.
-- Do not change the existing localhost live service or its data, workers,
-  reader choices or signing key during local simulation.
+- Do not target public production or alter development/staging data, workers,
+  reader choices or signing keys during local simulation.
 - Do not place production data, credentials, signing keys or backups in GitHub,
   a container image, or an unapproved registry.
 - Do not enable public registration or mutate real records by assumption.

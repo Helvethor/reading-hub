@@ -5,6 +5,7 @@ services:
     image: ${READING_HUB_IMAGE:?Select the verified production image ID}
     pull_policy: never
     restart: unless-stopped
+    stop_grace_period: 3m
     networks:
       caddy:
         aliases:
@@ -22,14 +23,9 @@ services:
     environment:
       READING_HUB_ALLOW_WORKERS: "1"
     command:
-      - gunicorn
-      - --bind
-      - 0.0.0.0:8000
-      - --workers
-      - "1"
-      - --access-logfile
-      - "-"
-      - config.production_wsgi:application
+      - python
+      - manage.py
+      - serve_production
     volumes:
       - type: bind
         source: /mnt/data/reading-hub

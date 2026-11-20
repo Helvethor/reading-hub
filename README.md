@@ -7,7 +7,7 @@ without overwriting historical readers.
 
 ## Contributor workflow
 
-Use an isolated preview, not the live localhost instance, to develop and test:
+Use an isolated preview, not production, to develop and test:
 
 ```sh
 python workflow.py dev init
@@ -26,10 +26,16 @@ frontend assets rebuild automatically. Refresh the browser after an edit.
 Each checkout/worktree has separate data, cookies, assets and process controls;
 use `dev start --port PORT` for concurrent previews.
 
-For a frozen candidate use `stage prepare COMMIT` then `stage start COMMIT`;
-staging defaults to port 8767. Live promotion requires a registered, verified
-listener and the explicit `live promote COMMIT --confirm-live` command.
-Developing, testing or preparing staging never authorizes live deployment.
+For a frozen candidate use `stage prepare COMMIT` then `stage start COMMIT`.
+Staging defaults to `127.0.0.1:8765`; development defaults to
+`127.0.0.1:8766`. Both start one lifecycle-managed worker using their own
+isolated data. The worker processes queued imports but does not resume paused
+crawls or enqueue jobs.
+Production is `https://read.shabang.ch`; the local `live promote` command is not
+a deployment path to that public service. Developing, testing or preparing
+staging never authorizes production changes.
+Ordinary tests do not start workers. To run a selected worker subprocess test,
+use `python workflow.py test --with-workers library.tests.test_worker_subprocess`.
 See the [environment lifecycle](docs/OPERATIONS.md) for setup, acceptance,
 staging, migration gates and rollback.
 
@@ -394,18 +400,14 @@ behavior in its owning document rather than prepending another release essay.
 
 ## Run locally
 
-The current installation is in `~/reading-hub` in the `archlinux` WSL
-distribution. In WSL:
-
 ```sh
-cd ~/reading-hub
-.venv/bin/python manage.py runserver 127.0.0.1:8765 --noreload --insecure
+python workflow.py dev init
+python workflow.py dev start
 ```
 
-Open <http://127.0.0.1:8765/>. Use **Administration / Manage workers** for
-processing; starting the web server does not start the managed pool.
+Open <http://127.0.0.1:8766/>. The launcher owns the web server and its managed
+worker together; use `dev status` and `dev stop` to inspect and stop them.
 See [first-time setup and operating precautions](docs/OPERATIONS.md).
-This localhost development deployment is not a public hosting configuration.
 
 ## Read and preserve
 

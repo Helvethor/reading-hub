@@ -73,4 +73,4 @@ VOLUME ["/var/lib/reading-hub"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
     CMD ["python", "container_healthcheck.py"]
 USER 10001:10001
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--access-logfile", "-", "config.production_wsgi:application"]
+CMD ["python", "manage.py", "serve_production"]

@@ -121,6 +121,9 @@ def environment(spec, *, instance=""):
             "READING_HUB_REVISION": spec["revision"],
             "READING_HUB_INSTANCE": instance,
             "READING_HUB_ALLOW_WORKERS": "1" if spec.get("allow_workers") else "0",
+            "READING_HUB_TEST_DATABASE_FILE": (
+                "1" if role == "test" and spec.get("allow_workers") else "0"
+            ),
             "READING_HUB_EDITOR_PILOT": spec.get("editor_pilot", "1"),
             "PYTHONUNBUFFERED": "1",
         }
@@ -188,7 +191,7 @@ def new_spec(checkout, directory, role, revision, port):
         "profile": os.environ.get("READING_HUB_PROFILE", "profiles.marxist.site"),
         "revision": revision,
         "port": port,
-        "allow_workers": False,
+        "allow_workers": role in {"development", "staging"},
         "legacy": False,
     }
 
@@ -320,13 +323,13 @@ def owned(record):
     )
 
 
-def stop_owned(record):
+def stop_owned(record, *, timeout=15):
     if not owned(record):
         raise WorkflowError("Recorded process identity no longer matches; no process was stopped.")
     os.kill(record["pid"], signal.SIGTERM)
-    deadline = time.monotonic() + 15
+    deadline = None if timeout is None else time.monotonic() + timeout
     while process_identity(record["pid"]) == record["start"]:
-        if time.monotonic() >= deadline:
+        if deadline is not None and time.monotonic() >= deadline:
             raise WorkflowError(
                 "Owned process did not stop gracefully; inspect it before retrying."
             )
@@ -374,8 +377,28 @@ def health(spec, token, *, supervisor=None):
                 value.get("instance") == token
                 and value.get("environment") == spec["role"]
                 and value.get("revision") == spec["revision"]
+                and (
+                    spec["role"] not in {"development", "staging"}
+                    or worker_supervisor_healthy(spec, token)
+                )
             )
     except URLError, TimeoutError, ValueError:
+        return False
+
+
+def worker_supervisor_healthy(spec, token):
+    status_path = Path(spec["data"]) / "workers" / "supervisor.json"
+    try:
+        status = read_json(status_path)
+        return (
+            status.get("instance") == token
+            and status.get("role") == spec["role"]
+            and process_identity(status["pid"]) == status["process_start"]
+            and time.time() - status["heartbeat"] < 15
+            and status["expected_workers"] > 0
+            and status["live_workers"] == status["expected_workers"]
+        )
+    except KeyError, TypeError, WorkflowError, OSError:
         return False
 
 
@@ -404,6 +427,7 @@ def serve(directory, token):
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
     processes = []
+    manager = None
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (directory / "process.lock").open("a") as lock:
         try:
@@ -436,6 +460,24 @@ def serve(directory, token):
             else:
                 port_free(spec["port"])
             env = environment(spec, instance=token)
+            if spec["role"] in {"development", "staging"}:
+                manager = subprocess.Popen(
+                    [spec["python"], "manage.py", "manage_environment_workers"],
+                    cwd=spec["checkout"],
+                    env=env,
+                )
+                processes.append(manager)
+                deadline = time.monotonic() + 45
+                while time.monotonic() < deadline:
+                    if manager.poll() is not None:
+                        raise WorkflowError(
+                            f"Worker supervisor exited with status {manager.returncode}."
+                        )
+                    if worker_supervisor_healthy(spec, token):
+                        break
+                    time.sleep(0.2)
+                else:
+                    raise WorkflowError("Worker supervisor did not become ready.")
             if spec["role"] == "development":
                 processes.append(
                     subprocess.Popen(
@@ -463,6 +505,14 @@ def serve(directory, token):
                         )
                 time.sleep(0.2)
         finally:
+            if manager and manager.poll() is None:
+                os.kill(manager.pid, signal.SIGTERM)
+                try:
+                    manager.wait()
+                except subprocess.TimeoutExpired as exc:
+                    raise WorkflowError(
+                        "Worker supervisor did not stop gracefully; inspect the environment log."
+                    ) from exc
             descendants = children(os.getpid())
             for child in descendants:
                 if process_identity(child["pid"]) == child["start"]:
@@ -471,6 +521,8 @@ def serve(directory, token):
                     except ProcessLookupError:
                         pass
             for process in processes:
+                if process is manager:
+                    continue
                 try:
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired as exc:
@@ -564,9 +616,12 @@ def status(directory):
         raise WorkflowError(f"Environment is unhealthy or ownership changed: {directory}")
     print(f"Running {spec['role']} {spec['revision']} at http://127.0.0.1:{spec['port']}/")
     print(f"PID: {record['pid']}; isolated storage: {spec['data']}")
+    if spec["role"] in {"development", "staging"}:
+        workers = read_json(Path(spec["data"]) / "workers" / "supervisor.json")
+        print(f"Managed workers: {workers['live_workers']}/{workers['expected_workers']}")
 
 
-def test(checkout, selectors, *, revision=None):
+def test(checkout, selectors, *, revision=None, with_workers=False):
     directory = instance_directory(checkout) / "tests" / uuid.uuid4().hex
     spec = new_spec(
         checkout,
@@ -576,6 +631,7 @@ def test(checkout, selectors, *, revision=None):
         8766,
     )
     spec["python"] = str(checkout / ".venv" / "bin" / "python")
+    spec["allow_workers"] = with_workers
     if not Path(spec["python"]).exists():
         raise WorkflowError("Initialize development dependencies before running tests.")
     check_overrides(spec)
@@ -764,7 +820,7 @@ def main():
         command = commands.add_parser(group)
         actions = command.add_subparsers(dest="action", required=True)
         initial = actions.add_parser("init" if group == "dev" else "prepare")
-        initial.add_argument("--port", type=int, default=8766 if group == "dev" else 8767)
+        initial.add_argument("--port", type=int, default=8766 if group == "dev" else 8765)
         if group == "stage":
             initial.add_argument("revision")
         for action in ("start", "status", "stop"):
@@ -773,7 +829,6 @@ def main():
                 operation.add_argument("revision")
             if action == "start":
                 operation.add_argument("--port", type=int)
-                operation.add_argument("--allow-workers", action="store_true")
         management = actions.add_parser("manage")
         if group == "stage":
             management.add_argument("revision")
@@ -781,8 +836,10 @@ def main():
         if group == "stage":
             validation = actions.add_parser("test")
             validation.add_argument("revision")
+            validation.add_argument("--with-workers", action="store_true")
             validation.add_argument("selectors", nargs="*")
     tests = commands.add_parser("test")
+    tests.add_argument("--with-workers", action="store_true")
     tests.add_argument("selectors", nargs="*")
     live = commands.add_parser("live")
     actions = live.add_subparsers(dest="action", required=True)
@@ -798,7 +855,7 @@ def main():
     checkout = args.checkout.expanduser().resolve()
     ensure_state(checkout)
     if args.group == "test":
-        test(checkout, args.selectors)
+        test(checkout, args.selectors, with_workers=args.with_workers)
     elif args.group == "live":
         if args.action == "status":
             spec = live_registration()
@@ -834,7 +891,12 @@ def main():
             if args.group == "stage":
                 verify_candidate(spec)
             if args.action == "test":
-                test(Path(spec["checkout"]), args.selectors, revision=spec["revision"])
+                test(
+                    Path(spec["checkout"]),
+                    args.selectors,
+                    revision=spec["revision"],
+                    with_workers=args.with_workers,
+                )
             else:
                 if not args.arguments:
                     raise WorkflowError("Supply a Django management command.")
@@ -846,12 +908,15 @@ def main():
                 spec["revision"] = f"{commit(checkout)[:12]} working tree"
             if args.port is not None:
                 spec["port"] = args.port
-            spec["allow_workers"] = args.allow_workers
+            spec["allow_workers"] = True
             start(spec, directory)
         elif args.action == "status":
             status(directory)
         else:
-            stop_owned(read_json(directory / "process.json"))
+            stop_owned(
+                read_json(directory / "process.json"),
+                timeout=None if args.group in {"dev", "stage"} else 15,
+            )
             print("Stopped owned environment processes; data retained.")
 
 

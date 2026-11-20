@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connections, transaction
 
 from library.models import WorkerInstance, WorkerPool
 from library.profile import get_profile
@@ -127,6 +127,8 @@ def _start(worker):
         "READING_HUB_DATA": str(settings.DATA_DIR.resolve()),
         "READING_HUB_PROFILE": settings.READING_HUB_PROFILE,
         "DJANGO_SETTINGS_MODULE": os.environ.get("DJANGO_SETTINGS_MODULE", "config.settings"),
+        "READING_HUB_ALLOW_WORKERS": "1" if settings.READING_HUB_ALLOW_WORKERS else "0",
+        "READING_HUB_DATABASE_PATH": str(connections["default"].settings_dict["NAME"]),
     }
     try:
         with (worker_directory() / f"{worker.pk}.log").open("ab", buffering=0) as log:

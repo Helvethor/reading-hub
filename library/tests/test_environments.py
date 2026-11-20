@@ -201,6 +201,7 @@ class EnvironmentContractTests(SimpleTestCase):
     def test_running_development_accepts_a_new_checkpoint_but_not_changed_permissions(self):
         directory = self.root / "development"
         old = workflow.new_spec(self.checkout, directory, "development", "old working tree", 8766)
+        old["allow_workers"] = False
         record = workflow.process_record(os.getpid(), token="preview")
         workflow.write_json(directory / "environment.json", old)
         workflow.write_json(directory / "process.json", record)
@@ -221,6 +222,36 @@ class EnvironmentContractTests(SimpleTestCase):
                 ):
                     workflow.start({**requested, **changes}, directory)
             launch.assert_not_called()
+
+    def test_staging_defaults_to_the_declared_topology_port(self):
+        with (
+            patch("sys.argv", ["workflow.py", "stage", "prepare", "HEAD"]),
+            patch("workflow.ensure_state"),
+            patch("workflow.stage_prepare") as prepare,
+            patch("sys.stdout", new_callable=io.StringIO),
+        ):
+            workflow.main()
+        self.assertEqual(prepare.call_args.args[2], 8765)
+
+    def test_explicit_worker_test_harness_is_opt_in(self):
+        python = self.checkout / ".venv" / "bin" / "python"
+        python.parent.mkdir(parents=True)
+        python.touch()
+        with (
+            patch("workflow.instance_directory", return_value=self.root),
+            patch("workflow.commit", return_value="abc123"),
+            patch("workflow.check_overrides"),
+            patch("workflow.django") as run_tests,
+            patch("sys.stdout", new_callable=io.StringIO),
+        ):
+            workflow.test(self.checkout, ["library.tests.test_worker_subprocess"])
+            self.assertFalse(run_tests.call_args.args[0]["allow_workers"])
+            workflow.test(
+                self.checkout,
+                ["library.tests.test_worker_subprocess"],
+                with_workers=True,
+            )
+            self.assertTrue(run_tests.call_args.args[0]["allow_workers"])
 
     def test_candidate_source_and_assets_must_match_rehearsed_bytes(self):
         source = self.root / "source"

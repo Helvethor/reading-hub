@@ -9,22 +9,28 @@ work; [Operations](docs/OPERATIONS.md) explains running it. The
 is historical evidence, not additional scope. "Planned" below does not mean
 implemented. A backlog idea is not authorization to implement it immediately.
 
-### Contributor environment contract (2026-11-15)
+### Contributor environment contract (2026-11-15; topology updated 2026-11-20)
 
 Development previews the current checkout immediately using isolated synthetic
 data, autoreload and locally watched assets. Tests use fresh private storage.
 Staging freezes an exact committed revision with its own locked dependencies,
-assets and representative data. Only separately authorized promotion changes
-the live localhost service; staging records are never promoted as live content.
-Preserve live keys, cookies, data, worker/crawl policy and existing reader choices.
-Promotion refuses pending migrations and active workers; schema/data operations
-require separate authorization and recovery evidence. See
+assets and representative data. Production is now hosted at
+`https://read.shabang.ch`; development and staging remain local. The legacy
+localhost `live promote` command is not a production deployment path. Preserve
+production keys, cookies, data, worker/crawl policy and reader choices.
+Development and staging run one managed worker by default, monitor it, and stop
+it gracefully with the environment. The worker may process queued jobs but
+startup neither resumes paused crawls nor enqueues jobs. Production uses the
+same worker lifecycle only after a separately authorized release; it may process
+existing queued imports. Tests remain worker-free unless a selected test
+explicitly opts in with `--with-workers`.
+Schema/data operations require separate authorization and recovery evidence. See
 [Operations](docs/OPERATIONS.md#environment-contract) for the executable routine,
 ownership/path guards, acceptance and source-only rollback. This workflow is
 not public-hosting hardening, a sandbox or product acceptance certification.
-The separately planned single-server public route is recorded in the
-[public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md); it does not
-authorize remote deployment, public exposure or real-data transfer.
+The [public deployment roadmap](docs/PUBLIC-DEPLOYMENT-ROADMAP.md) records the
+running host and remaining operational checks; it does not authorize further
+remote changes, production processing or real-data transfer.
 
 ### Coherent UI/UX contract (agreed 2026-11-08; deployed locally, acceptance incomplete)
 

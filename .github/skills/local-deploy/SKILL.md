@@ -1,18 +1,20 @@
 ---
 name: local-deploy
-description: Deploy requested Reading Hub changes to the documented localhost service using the routine or exceptional path.
+description: Promote Reading Hub to an explicitly requested legacy localhost service; not public production.
 ---
 
 # Local deployment
 
-Use when the user requests "deploy" or local deployment without specifying
-another target. Default to the documented local Reading Hub service, not public
-or remote hosting. Consult the [operations guide](../../../docs/OPERATIONS.md)
-and relevant specification or task status when needed.
+Use when the user explicitly requests deployment. The current production target
+is `https://read.shabang.ch`; do not infer that a request authorizes deployment
+there. Ask which target when it is unclear. The local `live promote` workflow
+below only manages a legacy localhost service and is not a public deployment
+path. Consult the [operations guide](../../../docs/OPERATIONS.md) and relevant
+specification or task status.
 
-## Routine promotion: default
+## Legacy localhost promotion (explicit local target only)
 
-Use [the environment lifecycle](../../../docs/OPERATIONS.md#explicit-live-promotion-and-recovery).
+Use [the environment lifecycle](../../../docs/OPERATIONS.md#legacy-localhost-live-promotion-and-recovery).
 Ordinary implementation/preview requests use `dev init` / `dev start`, not this
 skill's live phase. A requested local deployment is an explicit live operation:
 

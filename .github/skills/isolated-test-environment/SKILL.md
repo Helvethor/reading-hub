@@ -18,6 +18,16 @@ python workflow.py test library.tests.test_document_editor_views
 python workflow.py stage test COMMIT library.tests.test_document_editor_views
 ```
 
+Tests that must launch a real managed worker subprocess must opt in explicitly:
+
+```sh
+python workflow.py test --with-workers library.tests.test_worker_subprocess
+```
+
+This selected run uses a private file-backed test database shared with its
+worker process. It does not start a worker automatically; the selected test
+owns start/stop. Ordinary test runs keep worker controls disabled.
+
 Select relevant modules, not a universal suite. Each invocation uses fresh
 private test storage outside the repository; successful runs are cleaned up and
 failed-run evidence is retained at its printed exact path. For interactive

@@ -15,7 +15,9 @@
 
 - Use [the environment lifecycle](docs/OPERATIONS.md#environment-contract).
   `python workflow.py dev init` and `dev start` provide the ordinary preview;
-  never deploy to the live port 8765 merely to test source changes.
+  development uses localhost:8766 and the requested staging listener is
+  localhost:8765. Do not treat either as production; public production is
+  `https://read.shabang.ch`.
 - Each checkout/worktree has private synthetic data and local test identities.
   Use a distinct free preview port, `dev status` and ownership-checked `dev stop`.
   Python/templates autoreload and frontend assets watch; refresh the browser.
@@ -25,13 +27,13 @@
 - Staging archives an exact committed revision and builds its own ignored assets.
   Uncommitted changes stay in development. Do not modify or delete frozen
   candidate source/dependencies that may be serving live.
-- Workers remain disabled in previews unless isolated import processing is
-  explicitly intended; `--allow-workers` only permits later UI starts and must
-  not resume catalogues or live workers.
-- Live registration/adoption and `live promote COMMIT --confirm-live` are
-  separate authorized operations, not implementation follow-through. Promotion
-  refuses pending migrations and active workers; use the documented UI and
-  separately authorized backup/migration procedure rather than bypassing gates.
+- Development and staging start one managed worker by default. It may process
+  queued jobs but does not resume paused crawls or enqueue jobs. Tests stay
+  worker-free unless a selected test run uses `--with-workers`.
+- The legacy localhost registration/promotion commands do not deploy public
+  production. Production changes require a separate explicit deployment
+  authorization; migrations and data operations also require backup/recovery
+  safeguards.
 - Never copy live credentials or user records into previews. A reproduction
   snapshot requires separate authorization and sanitization. Report synthetic,
   mocked, actual browser and human acceptance evidence distinctly.
@@ -79,17 +81,14 @@
 - This is a local recovery practice, not a requirement to add CI, branching
   machinery, release/version bumps or deployments.
 
-## Local maintenance account
+## Production and worker operations
 
-- The existing live localhost site has a dedicated `copilot-maintenance` account for
-  authenticated admin and worker-maintenance UI access at `127.0.0.1:8765`.
-  It is staff-only, not a superuser, and has no Django model or group
-  permissions.
-- Its credentials are stored outside Git in
-  `data/agent-maintenance-credentials.json`, readable only by the local account
-  owner. Use them only for this live local site, never for development or staging.
-  Never print, log, commit, copy, or
-  send the password elsewhere.
-- Use the worker UI for worker inspection and control; do not manipulate worker
-  processes or the database directly. Follow deployment authorization and
-  preservation safeguards before making changes.
+- Production is `https://read.shabang.ch`; do not assume credentials from an
+  older localhost-live setup grant production access. Never print, log, commit,
+  copy or send passwords.
+- Use the authenticated worker UI for inspection and control; do not manipulate
+  worker processes or databases directly. Starting production workers, imports
+  or crawls occurs only through a separately authorized production release, not
+  as a side effect of development or staging work. That release starts one
+  managed worker and may process existing queued imports; it does not resume
+  paused crawls or enqueue jobs.
