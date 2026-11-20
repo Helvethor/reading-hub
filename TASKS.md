@@ -40,13 +40,17 @@ start workers implicitly, but tests must be able to start one explicitly.
   require a person to use the admin UI. Keep each environment's data, queue,
   credentials and process ownership isolated; do not implicitly resume paused
   crawls or enqueue work.
-- [ ] Exercise a bounded synthetic job through the real worker subprocess in
-  development and staging. Verify queue completion/failure reporting and that
-  resulting records and retained files stay in the selected environment. Verify
-  production starts one worker and may process its existing queue, without
-  resuming crawls or creating jobs. Do not use production records to validate
-  local behavior. Production acceptance is pending a separately authorized
-  release.
+- [x] Exercise a bounded synthetic offline `REFORMAT` job through the real
+  worker subprocess in development and the frozen staging candidate. Both
+  isolated test runs completed the job as `READY` and verified its rendition
+  and retained blob in their private test storage.
+- [x] Start development and staging with one managed worker, verify HTTP health,
+  and confirm startup does not enqueue jobs or resume crawls. Production
+  acceptance remains pending a separately authorized release.
+- [ ] Verify production starts one worker and may process its existing queue,
+  without resuming crawls or creating jobs. Do not use production records to
+  validate local behavior. Production acceptance is pending a separately
+  authorized release.
 - [x] Provide an explicit test-harness path to start and stop a worker for
   selected tests while keeping ordinary ephemeral tests worker-free.
 
@@ -58,10 +62,17 @@ the supervisor; this source change has not been released. `workflow.py test
 --with-workers` provides an explicit, file-backed test database for a real
 worker subprocess test; ordinary test runs do not start a worker.
 
-**Acceptance:** automated tests and bounded synthetic worker jobs are recorded
-after implementation below. Production startup, queued-import handling and
-worker health remain unverified until a separately authorized release. No
-production deployment, migration, import or publication is authorized by E1.
+**Acceptance evidence:** `python workflow.py test library.tests.test_environments
+library.tests.test_workers library.tests.test_worker_subprocess` passed 37 tests
+with one expected opt-in skip. The direct and frozen-candidate
+`--with-workers library.tests.test_worker_subprocess` runs each passed the
+synthetic offline job. Development at `127.0.0.1:8776` and the candidate at
+`127.0.0.1:8777` each returned HTTP 200 and reported 1/1 managed workers; the
+staging database still had zero jobs and all ten seeded crawls paused after
+startup. Both previews stopped gracefully. Production startup, queued-import
+handling and worker health remain unverified until a separately authorized
+release. No production deployment, migration, import or publication is
+authorized by E1.
 
 ## Contributor workflow separation (2026-11-15)
 
