@@ -155,8 +155,9 @@ and observed acceptance evidence are in the
 
 ### Public host-agent handoff
 
-This is a handoff for a future, separately authorized deployment, not evidence
-that a host has been configured. A host-local agent should first inspect the
+This handoff is a procedure, not authorization to deploy. The
+[roadmap](PUBLIC-DEPLOYMENT-ROADMAP.md) records the observed deployment results.
+A host-local agent should first inspect the
 existing server setup without changing it: OS/resources, Docker/Compose,
 deployment access, firewall, DNS, reverse proxy and certificate renewal,
 Borg/Borgmatic version and repository, available storage, and monitoring.
@@ -185,6 +186,59 @@ For an approved deployment:
   backup, isolated restore, logs and rollback. Record exact image identity and
   results. The operator separately authorizes initialization of a fresh
   production database, its migrations and eventual public exposure.
+
+#### Production Compose and Caddy
+
+Use [the production Compose file](../compose.production.yaml), not the
+simulation. Its bind mount expects `/mnt/data/reading-hub` to exist with mode
+`0700` and ownership `10001:10001`. Confirm the mount and data before startup;
+the application must not be pointed at rehearsal data or an unintended empty
+directory. Set `READING_HUB_IMAGE` to the verified **local image ID**, not a
+mutable tag. Compose does not pull the image, publish Gunicorn, or run migrations
+on startup.
+
+On an approved new host, create the dedicated network once:
+
+```sh
+docker network create --driver bridge --internal reading-hub-caddy
+```
+
+Declare it as an external network in the Caddy Compose project and attach only
+Caddy and Reading Hub to it. On a running proxy, attach the existing Caddy
+container to the network rather than recreating the proxy. The application's
+separate outbound bridge provides the default route for imports; do not attach
+other services to it. Use a Compose version that supports `gw_priority`.
+
+With the data and image verified and the network present, validate the Compose
+file and start the web service:
+
+```sh
+docker compose -f compose.production.yaml config --quiet
+docker compose -f compose.production.yaml up -d --wait web
+```
+
+Start or stop managed workers explicitly in **Manage workers**. Starting the web
+service only enables the controls; it does not start the pool or resume crawls.
+Before replacing the web container, let active workers finish and stop them
+through the UI so the replacement does not interrupt their tasks.
+
+After an approved cutover and verified backup, add only this site block to Caddy
+(using the host's existing logging policy as appropriate):
+
+```caddyfile
+read.shabang.ch {
+    reverse_proxy reading-hub-web:8000 {
+        header_up Host read.shabang.ch
+        header_up X-Forwarded-Proto https
+    }
+}
+```
+
+Validate the updated Caddy configuration and gracefully reload the running proxy.
+Verify trusted origin and public HTTPS, `/healthz/`, the login page, and that
+`/accounts/signup/` returns 404. Verify operator login separately. Keep the
+existing DNS record and firewall rules if the origin is already reachable. To
+withdraw the route, remove only this site block, validate, and reload Caddy.
 
 #### Borgmatic requirements for the host agent
 
@@ -222,6 +276,22 @@ For an approved deployment:
    Document exact restore steps and image identity. Repeat verification with
    fresh production state once initialized; never overwrite it for a rehearsal.
 
+On the current host the root-only profile is `/etc/borgmatic.d/reading-hub.yaml`.
+It archives `blobs/` and `secret-key` alongside the `library` SQLite hook dump
+in the dedicated `/mnt/backup/reading-hub` repository. The host mounts the
+backup partition for the job; never write a repository into the unmounted
+mountpoint. Run only the Reading Hub profile and use the host's shared backup
+lock. Do not select all profiles.
+
+For a manual restore check, use an exact archive name. Restore the `library`
+data source with `borgmatic restore --data-source library --restore-path` pointing
+at a new file under a private scratch directory. Use `borgmatic extract
+--destination` to recover matching blobs and signing key from that same archive.
+Verify SQLite integrity and foreign keys, retained blob and signing-key hashes,
+and ownership/modes before using the restored copy as the app's non-root UID.
+Never restore over the running service. Scheduling and alerting remain pending;
+do not enable timers until backup can reliably run with all writers stopped.
+
 #### First production administrator
 
 Public signup is disabled in production, including the normal first-user
@@ -232,7 +302,7 @@ same production environment and mounted data directory. With a suitable
 production Compose service this is, for example:
 
 ```sh
-docker compose run --rm web python manage.py createsuperuser
+docker compose -f compose.production.yaml run --rm --no-deps web python manage.py createsuperuser
 ```
 
 The operator runs this personally in a private host terminal with a TTY, not

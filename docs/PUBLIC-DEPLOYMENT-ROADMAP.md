@@ -1,6 +1,6 @@
 # Public deployment roadmap
 
-Status: **D3 locally validated; D4 local restore rehearsal passed; no public deployment or production-readiness claim**.
+Status: **Production is reachable through Caddy and Cloudflare over HTTPS. The first administrator exists and a post-administrator restore is verified. Authenticated login verification, scheduled backups and monitoring are pending**.
 This handoff records the agreed route for a future public Reading Hub at
 `read.shabang.ch`, hosted on one private server and managed by one project
 operator. It is an implementation guide, not authorization to expose a server,
@@ -11,6 +11,11 @@ development machine, including installing/configuring a production WSGI server.
 Use synthetic data, an isolated data root and a port distinct from the existing
 live localhost service. A self-signed certificate is acceptable only for that
 local simulation. Do not modify the existing live service on port 8765.
+
+On 2026-11-20, the operator authorized persistent host-side changes for an
+isolated synthetic rehearsal, the permanent Borgmatic profile, and initialization
+and migrations of a fresh production database. This does not authorize
+production accounts, reverse-proxy/DNS/firewall changes, or public exposure.
 
 ## Agreed direction
 
@@ -239,10 +244,43 @@ in D3. Hashes of the backed-up and restored components matched, and the original
 synthetic state hashes were unchanged. The temporary restore, containers and
 files were removed afterward.
 
-This does not complete D4: the production Borgmatic configuration, schedule,
-retention, key recovery, monitoring and restore remain unverified. Off-site
-storage and write-concurrency work are deferred by the operator. No real
-library data was backed up.
+This local rehearsal did not complete D4: at that point the permanent
+production Borgmatic profile, schedule, retention, monitoring and restore
+remained unverified. Off-site storage and write-concurrency work are deferred
+by the operator. No real library data was backed up.
+
+**Host synthetic rehearsal (2026-11-20, partial):** a separate unencrypted
+Borg repository at `/mnt/backup/reading-hub-rehearsal` was created on the
+existing backup disk. Borgmatic 2.1.10 created an archive while the synthetic
+application was stopped, and `borgmatic check` passed. A separate restore
+passed SQLite integrity and foreign-key checks; hashes for all five retained
+blobs, the signing key and synthetic fixture files matched. Borgmatic restored
+the database as `root:root`; its owner and mode were corrected on the isolated
+restore copy before app testing. The restored app passed the article/book,
+authenticated edit/reopen and PDF smoke checks as UID/GID `10001:10001`.
+Existing repositories were left untouched. At the time of this rehearsal the
+production root `/mnt/data/reading-hub` was empty and mode `0700`, owned by
+numeric UID/GID `10001:10001`. No permanent production Borgmatic profile, timer
+or alerting was installed at that time; D4 remained partial.
+
+**Production profile and fresh-state restore (2026-11-20):** a root-owned
+`0600` profile is installed at `/etc/borgmatic.d/reading-hub.yaml`. It backs up
+the database through Borgmatic's SQLite hook and captures `blobs/` and
+`secret-key` in the same archive. The new repository
+`/mnt/backup/reading-hub` is on the dedicated backup partition; the operator
+approved unencrypted storage to match the existing host repositories. The
+profile validates, and a one-time archive
+`elli-reading-hub-2026-11-20T07:58:17` passed Borgmatic's archive/data
+consistency checks with zero integrity errors. A Borgmatic restore to scratch
+passed SQLite integrity and foreign-key checks; all 54 migrations through
+`0036_rendition_content_issues` were present, with zero users and documents,
+and the restored signing-key hash matched. The initial backup contained no blob
+files. The scratch restore was removed after verification. Backup and weekly
+maintenance timers remain disabled until a production writer-quiescing
+procedure is configured; monitoring/alerting is also pending. Existing
+repositories and the synthetic simulation were not modified. The new repository
+is unencrypted, so anyone able to read the backup filesystem can read its
+contents.
 
 **Acceptance:** a documented backup can be restored without touching the
 original; restored data passes integrity and representative application checks.
@@ -284,11 +322,22 @@ results, backup/restore result, operator procedure and unresolved risks.
 Public DNS/firewall exposure is a separate explicit decision; passing this
 rehearsal does not itself authorize it.
 
+**Host synthetic workflow (2026-11-20, partial):** the isolated production
+simulation and its restored copy were exercised on loopback ports `8444` and
+`8447`, respectively; both were bound only to `127.0.0.1` and stopped after
+verification. Both used image `reading-hub:ee0292e` (image ID
+`sha256:f5a3d18e76f4bc39ba7a3aa0868f22ea0ff26fad41c090785fdc72213ae03206`,
+OCI revision `ee0292e`). This verifies the synthetic host workflow and restore,
+not the Caddy route, trusted public TLS, disk monitoring, production data or
+public readiness. This synthetic rehearsal left production data untouched; the
+separately authorized production initialization is recorded under D7.
+
 ### D7 — Fresh production database and public cutover
 
 The selected first launch starts with a fresh database and no imported
-local library. After separately authorized initialization and migrations,
-the operator creates the first administrator interactively on the host; see
+local library. After separately authorized initialization and migrations
+(completed on 2026-11-20), the operator creates the first administrator
+interactively on the host; see
 the [host-agent handoff](OPERATIONS.md#public-host-agent-handoff). Verify login,
 the disabled public signup policy and a fresh production backup before public
 cutover. Public DNS/firewall exposure is separately authorized.
@@ -311,6 +360,49 @@ is verified, representative checks pass where data exists, and backup and
 rollback limits are understood. Public exposure is separately authorized;
 any later data transfer is separately authorized. Do not claim application
 correctness, accessibility or performance beyond the evidence collected.
+
+**Fresh production database (2026-11-20):** after explicit operator
+authorization, the production data root `/mnt/data/reading-hub` was initialized
+with a new signing key and SQLite database. All 54 migrations were applied
+explicitly and `migrate --check`, `makemigrations --check --dry-run`, and
+`check --deploy` completed; the latter retains the documented HSTS
+`W005`/`W021` warnings. The database integrity check passes and it contains no
+users or library documents at initialization.
+
+**Private production startup (2026-11-20):** the operator created the first
+administrator interactively. A read-only count confirmed one active
+administrator; an authenticated browser login was not tested. The
+[production Compose service](../compose.production.yaml) uses the verified
+image ID recorded above (passed as `READING_HUB_IMAGE`). At this stage it ran Gunicorn on
+container loopback with networking disabled, no published ports and no
+workers. Internal HTTP checks returned 200 for readiness and the login page,
+and 404 for public signup. No proxy, DNS or firewall settings changed.
+
+**Caddy cutover (2026-11-20):** before enabling the route, the web service
+was stopped and Borgmatic archive `elli-reading-hub-2026-11-20T09:57:05`
+was created and restored to scratch. Borg's data check, SQLite integrity and
+foreign-key checks, the active administrator count and the signing-key
+comparison passed. No existing archives were pruned.
+
+The production Compose service and Caddy share the external, internal
+Docker network `reading-hub-caddy`. Only those two containers are attached
+to that network, and Gunicorn has no published host port. Caddy forwards the
+canonical host and HTTPS scheme to `reading-hub-web:8000`. The running Caddy container was
+reloaded without replacement and obtained a Let's Encrypt certificate.
+Direct origin and Cloudflare checks returned 200 for readiness and the login
+page, and 404 for public signup. Existing Caddy sites returned their baseline
+HTTP statuses. No DNS or firewall rules changed.
+
+The operator later enabled managed worker controls and approved a separate
+Compose bridge for outbound access from the web container, which launches
+the managed workers. This bridge is not shared with Caddy or other services.
+Enabling the controls does not start workers or resume crawls: use **Manage
+workers** to explicitly start processing queued imports.
+
+To disable public access without stopping the app or other sites, remove
+only the `read.shabang.ch` site block from Caddy's configuration, validate it
+and reload the running proxy. An authenticated operator login has not yet
+been verified. Backup timers and monitoring remain off.
 
 ## Implementation boundaries
 

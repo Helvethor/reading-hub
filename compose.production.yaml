@@ -1,0 +1,45 @@
+name: reading-hub-production
+
+services:
+  web:
+    image: ${READING_HUB_IMAGE:?Select the verified production image ID}
+    pull_policy: never
+    restart: unless-stopped
+    networks:
+      caddy:
+        aliases:
+          - reading-hub-web
+      outbound:
+        gw_priority: 1
+    read_only: true
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=10001,gid=10001,mode=0700
+    environment:
+      READING_HUB_ALLOW_WORKERS: "1"
+    command:
+      - gunicorn
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "1"
+      - --access-logfile
+      - "-"
+      - config.production_wsgi:application
+    volumes:
+      - type: bind
+        source: /mnt/data/reading-hub
+        target: /var/lib/reading-hub
+        bind:
+          create_host_path: false
+
+networks:
+  caddy:
+    external: true
+    name: reading-hub-caddy
+  outbound:
+    driver: bridge
